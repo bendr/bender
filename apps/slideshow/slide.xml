@@ -1,13 +1,53 @@
-<component xmlns="http://bender.igel.co.jp"
+<component xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
   xmlns:html="http://www.w3.org/1999/xhtml" id="slide">
   <title>Slide</title>
   <stylesheet>
-    .slide { background-color: white; }
+    .slide { background-color: white; position: relative; }
     .hidden { display: none; }
+    .slide.moving { opacity: 0.9; }
+    .num { position: absolute; bottom: .5em; right: .5em; }
   </stylesheet>
+  <controller e:hidden="hidden">
+    <script><![CDATA[
+
+      $_.handleEvent = function(e)
+      {
+        if (e.type === "mousedown" || e.type === "touchdown") {
+          e.preventDefault();
+          this.__start_x = flexo.event_page_pos(e).x;
+        } else if (typeof this.__start_x === "number") {
+          if (e.type === "mousemove" || e.type === "touchmove") {
+            e.preventDefault();
+            flexo.add_class(this.outlets.s, "moving");
+          } else if (e.type === "mouseup" || e.type === "touchend") {
+            e.preventDefault();
+            var diff = flexo.event_page_pos(e).x - this.__start_x;
+            this.notify(diff <= 0 ? "@next" : "@prev");
+            delete this.__start_x;
+            flexo.remove_class(this.outlets.s, "moving");
+          }
+        }
+      };
+
+      $_.set_num = function(i, max)
+      {
+        this.outlets.num.textContent = "{0}/{1}".fmt(i, max);
+      };
+
+    ]]></script>
+    <listen dom-event="mousedown" source="s"/>
+    <listen dom-event="touchstart" source="s"/>
+    <listen dom-event="mousemove" source="s"/>
+    <listen dom-event="touchmove" source="s"/>
+    <listen dom-event="mouseup" source="s"/>
+    <listen dom-event="touchend" source="s"/>
+    <connect target="s"/>
+    <connect target="num"/>
+  </controller>
   <view>
-    <html:div class="slide">
+    <html:div class="slide {hidden}" id="s">
       <content/>
+      <html:span id="num" class="num"/>
     </html:div>
   </view>
 </component>

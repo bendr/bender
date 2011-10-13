@@ -103,6 +103,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (!args.dest) args.dest = find_body(document);
     load_uri(url, args.dest, function(prototype) {
         var app = prototype.instantiate_and_render(prototype.root_node);
+        app.args = args;
         connect(app);
         if (f) f(app);
         bender.notify(app.controllers[""], "@ready");

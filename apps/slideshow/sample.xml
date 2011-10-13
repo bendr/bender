@@ -1,5 +1,5 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Bender Slideshow</title>
+  <title>Sample Bender Slideshow</title>
   <stylesheet>
     body { background-color: #187757; }
     .slide { width: 1024px; height: 768px; }
