@@ -1,0 +1,13 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml" id="slide">
+  <title>Slide</title>
+  <stylesheet>
+    .slide { background-color: white; }
+    .hidden { display: none; }
+  </stylesheet>
+  <view>
+    <html:div class="slide">
+      <content/>
+    </html:div>
+  </view>
+</component>
