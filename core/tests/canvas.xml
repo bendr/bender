@@ -16,11 +16,11 @@
     <listen dom-event="touchend" source="canvas-points"/>
     <listen event="@ready"/>
   </controller>
-  <root-view>
+  <view>
     <html:p>Draw in the canvas below:</html:p>
     <html:div class="canvas-frame">
       <html:canvas width="640" height="480" id="canvas-curves"/>
       <html:canvas width="640" height="480" id="canvas-points"/>
     </html:div>
-  </root-view>
+  </view>
 </app>

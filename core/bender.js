@@ -15,22 +15,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Warning (at development time, throw an error)
   bender.warn = function(msg) { throw msg; };
 
-  // Can be called as notify(e), notify(source, event_name) or
-  // notify(source, event_name, e)
-  bender.notify = function(source, event_name, e)
+  // Can be called as notify(e), notify(source, type) or notify(source, type, e)
+  bender.notify = function(source, type, e)
   {
     if (e) {
       e.source = source;
-      e.event_name = event_name;
-    } else if (event_name) {
-      e = { source: source, event_name: event_name };
+      e.type = type;
+    } else if (type) {
+      e = { source: source, type: type };
     } else {
       e = source;
       if (!e.source) bender.warn("No source field for event");
-      if (!e.event_name) bender.warn("No event_name field for event");
+      if (!e.type) bender.warn("No type field for event");
     }
-    if (e.event_name in e.source) {
-      e.source[e.event_name].forEach(function(x) {
+    if (e.type in e.source) {
+      e.source[e.type].forEach(function(x) {
           if (x.handlEvent) {
             // used to be x.handleEvent.call(x, e), but that seems unnecessary
             x.handleEvent(e);
@@ -43,10 +42,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Listen to a notification using addEventListener when available (usually
   // for DOM nodes), or custom Bender events.
-  bender.listen = function(listener, event_name, handler, once)
+  bender.listen = function(listener, type, handler, once)
   {
     var h = once ? function(e) {
-        bender.unlisten(listener, event_name, h);
+        bender.unlisten(listener, type, h);
         if (handler.handleEvent) {
           handler.handleEvent(e);
         } else {
@@ -54,22 +53,22 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
       } : handler;
     if (listener.addEventListener) {
-      listener.addEventListener(event_name, h, false);
+      listener.addEventListener(type, h, false);
     } else {
-      if (!(event_name in listener)) listener[event_name] = [];
-      listener[event_name].push(h);
+      if (!(type in listener)) listener[type] = [];
+      listener[type].push(h);
     }
   };
 
   // Stop listening (using removeEventListener when available, just like
   // bender.listen)
-  bender.unlisten = function(listener, event_name, handler)
+  bender.unlisten = function(listener, type, handler)
   {
     if (listener.removeEventListener) {
-      listener.removeEventListener(event_name, handler, false);
-    } else if (event_name in listener) {
-      var i = listener[event_name].indexOf(handler);
-      if (i >= 0) listener[event_name].splice(i, 1);
+      listener.removeEventListener(type, handler, false);
+    } else if (type in listener) {
+      var i = listener[type].indexOf(handler);
+      if (i >= 0) listener[type].splice(i, 1);
     }
   };
 
@@ -204,7 +203,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     handleEvent: function() {},
     init: function() {},
-    notify: function(name, e) { bender.notify(this.component, name, e); }
+    notify: function(type, e) { bender.notify(this.component, type, e); },
+    forward_event: function(e) { bender.notify(this.component, e.type, e); },
   };
 
   // Base delegate for controller nodes. The init() method can be overridden to

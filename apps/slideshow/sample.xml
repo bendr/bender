@@ -1,4 +1,5 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Sample Bender Slideshow</title>
   <stylesheet>
     body { background-color: #187757; }
@@ -6,7 +7,12 @@
   </stylesheet>
   <script href="slideshow.js"/>
   <include href="slide.xml"/>
-  <controller instance-of="slideshow"/>
+  <controller instance-of="slideshow">
+    <listen source="num" event="@change">
+      this.show_slide(event.value - 1);
+    </listen>
+  </controller>
+
   <view>
 
     <component ref="slide">
@@ -16,6 +22,8 @@
     <component ref="slide">
       <html:h1>This is the second slide</html:h1>
     </component>
+
+    <component href="num.xml#num" id="num"/>
 
   </view>
 </app>

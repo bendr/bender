@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" id="num">
+  <title>Slide number</title>
+  <stylesheet>
+    .num { position: absolute; bottom: 1em; right: 1em; }
+  </stylesheet>
+  <controller>
+    <listen source="int" event="@change" handler="forward_event"/>
+  </controller>
+  <view>
+    <html:div class="num" id="num">
+      Slide #<component href="../../lib/integer.xml#integer" f:min="1" id="int"
+        f:scale="0.05"/> of <span id="max"/>
+    </html:div>
+  </view>
+</component>

@@ -10,7 +10,6 @@ slideshow = flexo.create_object(bender.controller, {
         this.slides.forEach((function(slide, i) {
             bender.listen(slide, "@next", this.show_slide.bind(this, i + 1));
             bender.listen(slide, "@prev", this.show_slide.bind(this, i - 1));
-            slide.controllers[""].set_num(i + 1, this.slides.length);
           }).bind(this));
         this.show_slide("slide" in this.component.args ?
           parseInt(this.component.args.slide, 10) : 0);
@@ -21,18 +20,16 @@ slideshow = flexo.create_object(bender.controller, {
 
   handleEvent: function(e)
   {
-    if ("type" in e) {
-      if (e.type === "keydown") {
-        if (e.keyCode === 13 || e.keyCode === 32 || e.keyCode === 39) {
-          e.preventDefault();
-          this.show_slide(this.slide + 1);
-        } else if (e.keyCode === 8 || e.keyCode === 37) {
-          e.preventDefault();
-          this.show_slide(this.slide - 1);
-        } else if (e.keyCode === 27) {
-          e.preventDefault();
-          this.show_slide(0);
-        }
+    if (e.type === "keydown") {
+      if (e.keyCode === 13 || e.keyCode === 32 || e.keyCode === 39) {
+        e.preventDefault();
+        this.show_slide(this.slide + 1);
+      } else if (e.keyCode === 8 || e.keyCode === 37) {
+        e.preventDefault();
+        this.show_slide(this.slide - 1);
+      } else if (e.keyCode === 27) {
+        e.preventDefault();
+        this.show_slide(0);
       }
     }
   },

@@ -120,7 +120,7 @@
 
         $_.handleEvent = function(e)
         {
-          if (e.event_name === "@moved") {
+          if (e.type === "@moved") {
             var p1 = this.outlets.p1.controllers[""].get_xy();
             var p2 = this.outlets.p2.controllers[""].get_xy();
             this.set_curve(p1.x, p1.y, p2.x, p2.y);

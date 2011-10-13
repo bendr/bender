@@ -10,8 +10,11 @@ canvas_controller = flexo.create_object(bender.controller,
   // When rendering occurs, update the pointer to the context
   handleEvent: function(e)
   {
-    if (e.type) {
-      // DOM event
+    if (e.type === "@ready") {
+      this.context_curves = this.outlets.canvas_curves.getContext("2d");
+      this.context_points = this.outlets.canvas_points.getContext("2d");
+      this.points = [];
+    } else {
       e.preventDefault();
       if (e.type === "mousedown" || e.type === "touchstart") {
         this.dragging = true;
@@ -29,11 +32,6 @@ canvas_controller = flexo.create_object(bender.controller,
         }
         this.points = [];
       }
-    } else {
-      // @ready
-      this.context_curves = this.outlets.canvas_curves.getContext("2d");
-      this.context_points = this.outlets.canvas_points.getContext("2d");
-      this.points = [];
     }
   },
 

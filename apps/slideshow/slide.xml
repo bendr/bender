@@ -5,7 +5,6 @@
     .slide { background-color: white; position: relative; }
     .hidden { display: none; }
     .slide.moving { opacity: 0.9; }
-    .num { position: absolute; bottom: .5em; right: .5em; }
   </stylesheet>
   <controller e:hidden="hidden">
     <script><![CDATA[
@@ -29,11 +28,6 @@
         }
       };
 
-      $_.set_num = function(i, max)
-      {
-        this.outlets.num.textContent = "{0}/{1}".fmt(i, max);
-      };
-
     ]]></script>
     <listen dom-event="mousedown" source="s"/>
     <listen dom-event="touchstart" source="s"/>
@@ -47,7 +41,6 @@
   <view>
     <html:div class="slide {hidden}" id="s">
       <content/>
-      <html:span id="num" class="num"/>
     </html:div>
   </view>
 </component>

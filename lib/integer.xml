@@ -15,25 +15,32 @@
           if (e.keyCode === 13 && typeof this.__value === "string") {
             this.set_event(parseInt(this.__value, 10));
             this.outlets.div.blur();
+            e.stopPropagation();
           } else if (e.keyCode === 27) {
             this.set(this.value);
             this.outlets.div.blur();
+            e.stopPropagation();
           } if (e.keyCode === 38) {
             this.set_event(this.value + this.scale);
+            e.stopPropagation();
           } else if (e.keyCode === 40) {
             this.set_event(this.value - this.scale);
-          } else if (e.keyCode === 45 || (e.keyCode >= 48 && e.keyCode <= 57)) {
-            if (this.__value && e.keyCode !== 45) {
+            e.stopPropagation();
+          } else if (e.keyCode === 189 ||
+            (e.keyCode >= 48 && e.keyCode <= 57)) {
+            if (this.__value && e.keyCode !== 189) {
               this.__value += String.fromCharCode(e.keyCode);
               this.outlets.div.textContent = this.__value;
             } else {
-              this.__value = String.fromCharCode(e.keyCode);
+              this.__value = e.keyCode === 189 ? "-" :
+                String.fromCharCode(e.keyCode);
               this.outlets.div.textContent = this.__value;
             }
+            e.stopPropagation();
           } else {
-            e.preventDefault();
             this.set(this.value);
             this.outlets.div.blur();
+            e.stopPropagation();
           }
         } else if (e.type === "mousedown" || e.type === "touchdown") {
           e.preventDefault();

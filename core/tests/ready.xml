@@ -7,7 +7,7 @@
     <controller>
       <listen event="@rendered" once="true">
         alert("(1) ready-component: {0} has sent a {1} event"
-          .fmt(event.source.node.localName, event.event_name));
+          .fmt(event.source.node.localName, event.type));
       </listen>
     </controller>
     <view>
@@ -19,7 +19,7 @@
   <controller>
     <listen event="@ready" once="true">
       alert("(2) App: {0} has sent a {1} event".fmt(event.source.node.localName,
-        event.event_name));
+        event.type));
     </listen>
   </controller>
   <view>
