@@ -2,20 +2,11 @@
   <title>Bender Slideshow</title>
   <stylesheet>
     body { background-color: #187757; }
+    .slide { width: 1024px; height: 768px; }
   </stylesheet>
-
-  <component id="slide">
-    <stylesheet>
-      .slide { width: 1024px; height: 768px; background-color: white; }
-      .hidden { display: none; }
-    </stylesheet>
-    <view>
-      <html:div class="slide">
-        <content/>
-      </html:div>
-    </view>
-  </component>
-
+  <script href="slideshow.js"/>
+  <include href="slide.xml"/>
+  <controller instance-of="slideshow"/>
   <view>
 
     <component ref="slide">

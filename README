@@ -47,6 +47,7 @@ Release Notes
 
     * Bender has its own repository
     * Apps has a list of arguments
+    * Slideshow app (apps/slideshow/sample.xml)
 
   Changes in v0.1.2 (2011-10-12)
 
