@@ -1,0 +1,12 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Label component test</title>
+  <stylesheet>
+    .bender-label { background-color: #ff4040; color: white; padding: 4px; }
+  </stylesheet>
+  <root-view>
+    <html:p>
+      The included label: <component
+        href="../../lib/label.xml#label">O HAI</component>
+    </html:p>
+  </root-view>
+</app>

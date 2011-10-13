@@ -1,0 +1,15 @@
+<app xmlns="http://bender.igel.co.jp">
+  <title>Label component test</title>
+  <include href="../../lib/label.xml"/>
+  <include href="../../lib/button.xml"/>
+  <controller>
+    <script>
+      $_.handleEvent = function(e) { this.notify("@ok"); };
+    </script>
+    <listen source="ok-button" event="@pushed"/>
+  </controller>
+  <root-view>
+    <component ref="label">This is a label</component>
+    <component ref="button" id="ok-button">OK</component>
+  </root-view>
+</app>

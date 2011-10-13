@@ -1,0 +1,75 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:e="http://bender.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg">
+  <title>Draggable component</title>
+
+  <component id="circle">
+    <title>A random circle component that can be dragged</title>
+    <controller>
+      <script><![CDATA[
+
+        $_.init = function()
+        {
+          this.opacity = flexo.random_number(0.2, 1);
+          this.r = flexo.random_int(10, 100);
+          this.cx = flexo.random_int(this.r, 400 - this.r);
+          this.cy = flexo.random_int(this.r, 400 - this.r);
+          this.fill = flexo.random_element(["#df151a", "#fd8603", "#f4f328",
+            "#00da3c", "#00cbe7", "#313985", "#7812b7", "#ff5eaa"]);
+        };
+
+        $_.handleEvent = function(e)
+        {
+          if (e.type === "mousedown" || e.type === "touchstart") {
+            e.preventDefault();
+            var p = flexo.event_svg_point(e, this.svg);
+            this.__x_offset = this.component.cx - p.x;
+            this.__y_offset = this.component.cy - p.y;
+          } else if (typeof this.__x_offset !== "undefined") {
+            if (e.type === "mousemove" || e.type === "touchmove") {
+              e.preventDefault();
+              var p = flexo.event_svg_point(e, this.svg);
+              this.component.cx = p.x + this.__x_offset;
+              this.component.cy = p.y + this.__y_offset;
+            } else if (e.type === "mouseup" || e.type === "touchend") {
+              e.preventDefault();
+              delete this.__x_offset;
+              delete this.__y_offset;
+            }
+          }
+        };
+
+      ]]></script>
+      <connect target="c"/>
+      <listen event="@rendered">
+        this.svg = flexo.find_svg(this.outlets.c);
+      </listen>
+      <listen dom-event="mousedown" source="c"/>
+      <listen dom-event="mousemove"/>
+      <listen dom-event="mouseup"/>
+      <listen dom-event="touchstart" source="c"/>
+      <listen dom-event="touchmove"/>
+      <listen dom-event="touchend"/>
+    </controller>
+    <view>
+      <svg:circle id="c" cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"
+        fill-opacity="{opacity}" stroke="{stroke}" filter="{filter}"/>
+    </view>
+  </component>
+
+  <view>
+    <svg:svg baseProfile="tiny" version="1.2" viewBox="0 0 400 400">
+      <svg:defs>
+        <svg:filter id="filter">
+          <svg:feTurbulence baseFrequency=".003" numOctaves="4"
+            result="noise"/>
+          <svg:feComposite in="SourceGraphic" in2="noise" operator="out"/>
+          <svg:feGaussianBlur stdDeviation="1"/>
+        </svg:filter>
+      </svg:defs>
+      <component ref="circle" f:cx="200" f:cy="200"/>
+      <component ref="circle" e:filter="url(#filter)"/>
+      <component ref="circle" e:stroke="black"/>
+    </svg:svg>
+  </view>
+
+</app>

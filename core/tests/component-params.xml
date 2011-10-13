@@ -1,0 +1,42 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:e="http://bender.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg">
+  <title>Component parameters</title>
+
+  <component id="circle">
+    <title>A random circle component</title>
+    <controller>
+      <script><![CDATA[
+        $_.init = function()
+        {
+          this.opacity = flexo.random_number(0.2, 1);
+          this.r = flexo.random_int(10, 100);
+          this.cx = flexo.random_int(this.r, 400 - this.r);
+          this.cy = flexo.random_int(this.r, 400 - this.r);
+          this.fill = flexo.random_element(["#df151a", "#fd8603", "#f4f328",
+            "#00da3c", "#00cbe7", "#313985", "#7812b7", "#ff5eaa"]);
+        };
+      ]]></script>
+    </controller>
+    <view>
+      <svg:circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"
+        fill-opacity="{opacity}" stroke="{stroke}" filter="{filter}"/>
+    </view>
+  </component>
+
+  <view>
+    <svg:svg baseProfile="tiny" version="1.2" viewBox="0 0 400 400">
+      <svg:defs>
+        <svg:filter id="filter">
+          <svg:feTurbulence baseFrequency=".003" numOctaves="4"
+            result="noise"/>
+          <svg:feComposite in="SourceGraphic" in2="noise" operator="out"/>
+          <svg:feGaussianBlur stdDeviation="1"/>
+        </svg:filter>
+      </svg:defs>
+      <component ref="circle" f:cx="200" f:cy="200"/>
+      <component ref="circle" e:filter="url(#filter)"/>
+      <component ref="circle" e:stroke="black"/>
+    </svg:svg>
+  </view>
+
+</app>

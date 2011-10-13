@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <script>
+    alert_controller = flexo.create_object(bender.controller,
+    {
+      handleEvent: function(event)
+      {
+        alert("{0} has sent a {1} event"
+          .fmt(event.source.localName, event.event_name));
+      }
+    });
+  </script>
+  <controller instance-of="alert_controller">
+    <listen event="@ready" once="true"/>
+  </controller>
+  <root-view>
+    <html:p>Alert when the application is ready.</html:p>
+  </root-view>
+</app>

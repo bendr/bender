@@ -1,0 +1,14 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Button component test</title>
+  <controller>
+    <listen source="ok-button" event="@pushed">
+      alert("OK");
+    </listen>
+  </controller>
+  <root-view>
+    <html:p>
+      Click this button: <component href="../../lib/button.xml#button"
+        id="ok-button">OK</component>
+    </html:p>
+  </root-view>
+</app>

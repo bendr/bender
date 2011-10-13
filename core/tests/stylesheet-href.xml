@@ -1,0 +1,10 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <stylesheet href="stylesheet.css"/>
+  <listen source="button" dom-event="click">
+    alert("You clicked me!");
+  </listen>
+  <root-view>
+    <html:p>This is a button styled with an external stylesheet and should be
+      blue: <html:div id="button">Click me!</html:div></html:p>
+  </root-view>
+</app>

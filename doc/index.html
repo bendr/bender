@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="bender.css">
+    <script src="../core/flexo.js"></script>
+    <script src="../core/bender.js"></script>
+    <script src="doc.js"></script>
+  </head>
+  <body>
+    <h1>Bender</h1>
+
+    <p>Bender is a Web application framework consisting of a markup language
+    for application and component description, a Javascript runtime engine for
+    Web browsers and SVG players, and a library of Javascript support code and
+    predefined components. Bender is free software, released under the <a
+      href="http://www.apache.org/licenses/LICENSE-2.0">Apache License v2.0</a>
+    and currently under active development.</p>
+
+    <p>Bender follows loosely the Model-View-Controller pattern, where
+    <em>models</em> can be seen as data stored on the application back-end
+    (<em>e.g.</em> in a database server-side, or using HTML5 Web storage
+    facilities client-side), <em>views</em> are concrete nodes in a target DOM
+    tree rendered by the host browser or viewer, and <em>controllers</em> are
+    Javascript objects sending and receiving <em>events</em>, and connected to
+    other parts of the application through <em>outlets</em>.</p>
+
+    <p>Without further ado, let's see a very simple Bender application. The
+    complete XML description is reproduced below; to run this application (or
+    any other application mentioned below) in your browser, just click on
+    the&nbsp;▶ sign.</p>
+
+    <div class="include-src" data-src="../doc/welcome.xml"
+      data-expanded="true">Welcome to Bender!</div>
+
+    <p>This example shows the main elements of a Bender application:</p>
+    <ul>
+      <li>the <span class="elem">app</span> element is the container for the
+      description of a complete Bender application;</li>
+      <li>the <span class="elem">view</span> element describes how the
+      application is rendered; in this case we use HTML;</li>
+      <li>the <span class="elem">controller</span> element describes a
+      controller object that in this case <span class="elem">listen</span>s to
+      events from a button <span class="elem">component</span>.
+    </ul>
+
+    <p>Running a Bender application consists of loading its description and
+    related resources, such as included components, external scripts and
+    stylesheets; creating prototypes for components and controllers; rendering
+    views in the host browser; then setting up connections between concrete
+    nodes and controller instances.</p>
+
+    <p>One of the main purposes of Bender is to facilitate the creation of Web
+    applications through reusable components. In the above example, we include
+    a pre-defined button component in our <span class="elem">view</span>
+    (notice that the view description mixes HTML elements, which are rendered
+    as is, with the Bender-specific element <span class="elem">component</span>,
+    the <span class="elem">view</span> of which will then be rendered.)
+    The <span class="attr">href</span> attribute of the element specifies the
+    location of the component description and its name. Let's have a look:</p>
+
+    <div class="include-src" data-src="../lib/button.xml">Button
+      component</div>
+
+    <p>Above is the description of an HTML push button, that can respond to
+    both mouse and touch events (and thus works on both desktop or touch screen
+    environments out of the box.) It reacts to being pushed and released, so
+    that its state can be visualized, but abstracts this from the including
+    application or component by simply sending a <code>@pushed</code> event
+    when the button was clicked or tapped.</p>
+
+    <script>
+      get_examples();
+      link_elements("reference.html#elements.{0}");
+    </script>
+
+  </body>
+</html>

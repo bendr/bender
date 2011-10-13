@@ -1,0 +1,17 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <include href="../../lib/button.xml"/>
+  <stylesheet>
+    .button { background-color: #ff4040; border-color: #7f2020; color: white; }
+  </stylesheet>
+  <controller>
+    <listen source="ok-button" event="@pushed">
+      alert("OK");
+    </listen>
+  </controller>
+  <view>
+    <html:p>
+      Click this (red) button: <component ref="button"
+        id="ok-button">OK</component>
+    </html:p>
+  </view>
+</app>

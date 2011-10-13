@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Reference</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="bender.css">
+    <script src="../core/flexo.js"></script>
+    <script src="../core/bender.js"></script>
+    <script src="doc.js"></script>
+  </head>
+  <body>
+    <h1>Bender | Reference</h1>
+
+    <nav id="toc">
+      <h2>Table of Contents</h2>
+    </nav>
+
+    <section id="elements">
+      <h2>Bender Elements</h2>
+
+      <p>Bender elements are in the namespace</p>
+      <pre class="code">http://bender.igel.co.jp</pre>
+
+      <section id="elements.app">
+        <h3><span class="elem">app</span></h3>
+        <p>The top-level element for an application is <span
+          class="elem">app</span>.</p>
+        <div class="include-src" data-src="../core/tests/empty.xml">An empty
+          application</div>
+      </section>
+
+      <section id="elements.component">
+        <h3><span class="elem">component</span></h3>
+
+        <section id="elements.component.parameters">
+          <h4>Component parameters</h4>
+
+          <p>Components can be parametrized in different ways. By parameter, we
+          mean properties of its controllers, which can be set in the following
+          manner:</p>
+          <ol>
+            <li>in the <code>init</code> method of the controller;</li>
+            <li>as parameters in the <code>e</code> and <code>f</code>
+            namespaces of the <span class="elem">controller</span>
+            element (when instatiating a controller) <span class="TODO">see the
+              timer example</span>;</li>
+            <li>as parameters in the <code>e</code> and <code>f</code>
+            namespaces of the <span class="elem">component</span> element (when
+            instantiating a component.)</li>
+          </ol>
+          <p>Initializations are done in that order so that values can be
+          successively overridden. A component view can then then reference
+          parameters; attribute strings of the form <code>{<em>x</em>}</code>
+          which, at instantiation time, get replaced with the value of the
+          property <code><em>x</em></code> of the default controller of the
+          component.</p>
+          <p>When a template value is used but there is no corresponding value,
+          the attribute is ignored. This is useful for optional attributes,
+          when no default value is provided.</p>
+
+          </p>In the example below, a component called <code>circle</code> is
+          defined. Its parameters (<code>cx</code>, <code>cy</code>,
+          <code>r</code>, <code>fill</code> and <code>opacity</code>) define how
+          it is rendered as an SVG circle. These parameters are set randomly in
+          the <code>init</code> method of the default controller. Further down
+          in the application, three instances are created; the first one has two
+          default parameters setting the center of the first circle to the
+          center of the view box, while the third one has a stroke attribute
+          which is only rendered for that particular instance since the other
+          two have no <code>stroke</code> property.</p>
+          <div class="include-src" data-suffix="svg"
+            data-src="../core/tests/component-params.xml">Component
+            parameters</div>
+
+          <p>In the example below, we see that we can access and modify
+          component parameters through code as well. Any change to a value
+          bound to a node attribute is reflected in the node. Clicking on a
+          circle will change its color by modifying the <code>fill</code>
+          parameter of the component.</p>
+          <div class="include-src" data-suffix="svg"
+            data-src="../core/tests/set-param.xml">Set component
+            parameter</div>
+          <p class="TODO">Better specify these bindings.</p>
+
+
+        </section>
+      </section>
+
+
+      <section id="elements.controller">
+        <h3><span class="elem">controller</span></h3>
+      </section>
+
+      <section id="elements.title">
+        <h3><span class="elem">title</span></h3>
+        <p>A metadata element to give a title to an application, a component, a
+        controller, a view, etc.</p>
+        <div class="include-src" data-src="../core/tests/metadata.xml">An
+          application with title and language metadata</div>
+        <p class="TODO"><code>xml:lang</code> is not implemented yet at the
+        application or component level.</p>
+      </section>
+
+      <section id="elements.view">
+        <h3><span class="elem">view</span></h3>
+        <p>This is the root element for the view of an application or a
+        component.</p>
+      </section>
+
+    </section>
+
+    <section id="library">
+      <h2>Components Library</h2>
+
+      <section id="library.button">
+        <h3>Button</h3>
+        <div class="include-src" data-src="../lib/button.xml">Button
+          library component</div>
+      </section>
+
+      <section id="library.check">
+        <h3>Check</h3>
+        <div class="include-src" data-src="../lib/check.xml">Checkbox
+          library component</div>
+      </section>
+
+      <section id="library.label">
+        <h3>Label</h3>
+        <div class="include-src" data-src="../lib/check.xml">Label
+          library component</div>
+      </section>
+
+    </section>
+
+    <section id="uncategorized">
+      <h2>Uncategorized Examples</h2>
+      <div class="include-src" data-src="../core/tests/alert.xml">Alert on
+        @ready event</div>
+      <div class="include-src" data-src="../core/tests/ready.xml">@ready and
+        @rendered events</div>
+      <div class="include-src" data-src="../core/tests/timer.xml">Timer
+        test</div>
+      <div class="include-src" data-src="../core/tests/svg-clock.xml"
+        data-suffix="svg">SVG clock</div>
+    </sections>
+
+    <section id="examples">
+      <h2>List of Examples</h2>
+      <ul id="examples.list">
+      </ul>
+    </sections>
+
+    <script>
+      build_toc(document.getElementById("toc"), document.body, 2);
+      build_examples_list(document.getElementById("examples.list"));
+      get_examples();
+      link_elements("#elements.{0}");
+    </script>
+
+  </body>
+</html>

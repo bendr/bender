@@ -1,0 +1,9 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Button component test</title>
+  <include href="button-component.xml"/>
+  <root-view>
+    <html:p>
+      Click this button: <component ref="button" id="ok-button">OK</component>
+    </html:p>
+  </root-view>
+</app>

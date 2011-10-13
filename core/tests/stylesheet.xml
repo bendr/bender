@@ -1,0 +1,13 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <stylesheet>
+#button { cursor: default; border: solid thin black; display: inline-block;
+  padding: 4px; background-color: #fdd; }
+  </stylesheet>
+  <listen source="button" dom-event="click">
+    alert("You clicked me!");
+  </listen>
+  <root-view>
+    <html:p>This is a button styled with an inline stylesheet: <html:div
+        id="button">Click me!</html:div></html:p>
+  </root-view>
+</app>

@@ -1,0 +1,18 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Buttons component test</title>
+  <include href="../../lib/button.xml"/>
+  <controller>
+    <listen source="ok-button" event="@pushed">
+      alert("OK");
+    </listen>
+    <listen source="cancel-button" event="@pushed">
+      alert("Cancel");
+    </listen>
+  </controller>
+  <view>
+    <html:p>
+      Click this button: <component ref="button" id="ok-button">OK</component>
+      or <component ref="button" id="cancel-button">Cancel</component>
+    </html:p>
+  </view>
+</app>

@@ -1,0 +1,6 @@
+<app xmlns="http://bender.igel.co.jp" xml:lang="ja">
+  <title>こんにちは世界！</title>
+  <view>
+    <p xmlns="http://www.w3.org/1999/xhtml">こんにちは世界！</p>
+  </view>
+</app>

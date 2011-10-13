@@ -1,0 +1,260 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/html"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>Cels</title>
+  <script href="fit_curve.js"/>
+  <include href="../../lib/button.xml"/>
+  <stylesheet>
+    body { background-color: #187757; }
+  </stylesheet>
+
+  <component id="canvas-component">
+    <controller>
+      <script><![CDATA[
+
+        $_.init = function()
+        {
+          this.frames = 0;
+          this.layers = 3;     // layers of onion skin
+          this.opacity = 0.3;  // max opacity of the first onion skin layer
+          this.fps = 9;        // frames/second for playback
+        };
+
+        $_.handleEvent = function(e)
+        {
+          if (this.timeout) return;
+          var svg = this.outlets.mask.parentNode;
+          var p = flexo.event_svg_point(e, svg);
+          if (e.type === "mousedown" || e.type === "touchstart") {
+            e.preventDefault();
+            this.points = [[p.x, p.y]];
+            this.path = flexo.svg("path",
+              { d: "M{0},{1} L{0},{1}".fmt(p.x, p.y) });
+            this.g.appendChild(this.path);
+          } else if ((e.type === "mousemove" || e.type === "touchmove") &&
+            this.path) {
+            e.preventDefault();
+            this.path.setAttribute("d",
+              this.path.getAttribute("d") + " L{0},{1}".fmt(p.x, p.y));
+            this.points.push([p.x, p.y]);
+          } else if ((e.type === "mouseup" || e.type === "touchend") &&
+            this.path) {
+            e.preventDefault();
+            if (this.points.length > 1) {
+              this.path.setAttribute("d", smooth_path(this.points));
+            }
+            delete this.path;
+          }
+        };
+
+        $_.add_frame = function()
+        {
+          var id = "frame_{0}".fmt(++this.frames);
+          this.g = this.outlets.frames.cloneNode(false);
+          this.g.id = id;
+          this.outlets.frames.appendChild(this.g);
+          this.show_frame(id);
+          return id;
+        };
+
+        $_.show_frame = function(id)
+        {
+          if (!id) id = "frame_{0}".fmt(this.frames);
+          this.outlets.current.setAttributeNS(flexo.XLINK_NS, "href", "#" + id);
+          var from = Math.max(1, this.frames - this.layers);
+          this.outlets.onion_skin.textContent = "";
+          var op_rate = this.opacity / (this.layers + 1);
+          for (var i = from; i < this.frames; ++i) {
+            var op = this.opacity - op_rate * (this.frames - 1 - i);
+            this.outlets.onion_skin.appendChild(flexo.svg_href("use",
+              "#frame_" + i, { "stroke-opacity": op }));
+          }
+        };
+
+        function smooth_path(points)
+        {
+          var curves = fit_curve(points, 4);
+          var d = [];
+          curves.forEach(function(c) {
+              d.push("M{0},{1}".fmt(c[0][0], c[0][1]));
+              d.push("C{0},{1} {2},{3} {4},{5}"
+                .fmt(c[1][0], c[1][1], c[2][0], c[2][1], c[3][0], c[3][1]));
+            });
+          return d.join(" ");
+        }
+
+        $_.play = function()
+        {
+          if (this.timeout) return;
+          this.outlets.onion_skin.textContent = "";
+          var first_frame = this.outlets.frames.firstElementChild;
+          var frame = first_frame;
+          var rate = 1000 / this.fps;
+          var self = this;
+          (function play()
+          {
+            self.outlets.current.setAttributeNS(flexo.XLINK_NS, "href",
+              "#" + frame.id);
+            frame = frame.nextElementSibling;
+            if (!frame) frame = first_frame;
+            self.timeout = setTimeout(play, rate);
+          })();
+          this.notify("@playing");
+        };
+
+        $_.stop = function()
+        {
+          if (this.timeout) clearTimeout(this.timeout);
+          delete this.timeout;
+          this.show_frame();
+          this.notify("@stopped");
+        };
+
+      ]]></script>
+      <connect target="frames"/>
+      <connect target="mask"/>
+      <connect target="current"/>
+      <connect target="onion-skin" outlet="onion_skin"/>
+      <listen dom-event="mousedown" source="mask"/>
+      <listen dom-event="mousemove"/>
+      <listen dom-event="mouseup"/>
+      <listen dom-event="touchstart" source="mask"/>
+      <listen dom-event="touchmove"/>
+      <listen dom-event="touchend"/>
+    </controller>
+    <view>
+      <svg:svg version="1.1" viewBox="0 0 960 720">
+        <svg:defs id="defs">
+          <svg:rect id="frame" width="960" height="720" fill="white"/>
+          <svg:clipPath id="frame-clip">
+            <svg:use xlink:href="#frame"/>
+          </svg:clipPath>
+          <svg:g id="frames" clip-path="url(#frame-clip)" stroke="black"
+            fill="none" stroke-width="4" stroke-linejoin="round"
+            stroke-linecap="round"/>
+        </svg:defs>
+        <svg:use xlink:href="#frame"/>
+        <svg:g id="onion-skin"/>
+        <svg:use id="current"/>
+        <svg:use xlink:href="#frame" fill-opacity="0" id="mask"/>
+      </svg:svg>
+    </view>
+  </component>
+
+  <component id="thumbnails-component">
+    <controller>
+      <script><![CDATA[
+
+        // <svg:svg version="1.1" viewBox="0 0 960 720" width="96px"
+        //   height="72px">
+        //   <svg:use xlink:href="#frame"/>
+        //   <svg:use xlink:href="#path"/>
+        // </svg:svg>
+        $_.add_frame = function(id)
+        {
+          this.outlets.thumbnails.appendChild(flexo.svg("svg",
+              { version: "1.1", viewBox: "0 0 960 720", width: "96px",
+              height: "72px" }, [
+                flexo.svg_href("use", "#frame"),
+                flexo.svg_href("use", "#" + id),
+              ]));
+        };
+
+        $_.playing = function()
+        {
+          this.outlets.add_after_button.controllers[""].enable(false);
+          this.outlets.play_button.controllers[""].enable(false);
+          this.outlets.stop_button.controllers[""].enable(true);
+        };
+
+        $_.stopped = function()
+        {
+          this.outlets.add_after_button.controllers[""].enable(true);
+          this.outlets.play_button.controllers[""].enable(true);
+          this.outlets.stop_button.controllers[""].enable(false);
+        };
+
+      ]]></script>
+      <listen source="add-after-button" event="@pushed">
+        this.notify("@add-frame");
+      </listen>
+      <listen source="play-button" event="@pushed">
+        this.notify("@play");
+      </listen>
+      <listen source="stop-button" event="@pushed">
+        this.notify("@stop");
+      </listen>
+      <connect target="thumbnails"/>
+      <connect target="add-after-button" outlet="add_after_button"/>
+      <connect target="play-button" outlet="play_button"/>
+      <connect target="stop-button" outlet="stop_button"/>
+    </controller>
+    <stylesheet>
+      #thumbnails { background-color: #888; height: 90px; }
+      #thumbnails svg { margin: 4px; }
+      #add-after .bender-button { padding: 0; border: none;
+        background-color: transparent; }
+    </stylesheet>
+    <view>
+      <html:div id="thumbnails"/>
+      <html:div id="add-after">
+        <component ref="button" id="add-after-button">
+          <svg:svg version="1.1" viewBox="0 0 720 720" width="72px"
+            height="72px">
+            <svg:circle cx="360" cy="360" r="200" fill="#444"/>
+            <svg:rect x="320" y="220" width="80" height="280" fill="#888"/>
+            <svg:rect x="220" y="320" width="280" height="80" fill="#888"/>
+          </svg:svg>
+        </component>
+      </html:div>
+      <component ref="button" id="play-button">Play</component>
+      <component ref="button" id="stop-button">Stop</component>
+    </view>
+  </component>
+
+  <controller>
+    <script><![CDATA[
+
+      $_.add_frame = function()
+      {
+        var id = this.outlets.canvas.controllers[""].add_frame();
+        this.outlets.thumbnails.controllers[""].add_frame(id);
+      };
+
+      $_.play = function() { this.outlets.canvas.controllers[""].play(); };
+      $_.stop = function() { this.outlets.canvas.controllers[""].stop(); };
+
+      $_.playing = function()
+      {
+        this.outlets.thumbnails.controllers[""].playing();
+      };
+
+      $_.stopped = function()
+      {
+        this.outlets.thumbnails.controllers[""].stopped();
+      };
+
+      $_.ready = function()
+      {
+        this.add_frame();
+        this.stopped();
+      };
+
+    ]]></script>
+    <connect target="canvas"/>
+    <connect target="screen"/>
+    <connect target="thumbnails"/>
+    <listen source="thumbnails" event="@add-frame" handler="add_frame"/>
+    <listen source="thumbnails" event="@play" handler="play"/>
+    <listen source="thumbnails" event="@stop" handler="stop"/>
+    <listen source="canvas" event="@playing" handler="playing"/>
+    <listen source="canvas" event="@stopped" handler="stopped"/>
+    <listen event="@ready" handler="ready"/>
+  </controller>
+
+  <view>
+    <component ref="canvas-component" id="canvas"/>
+    <component ref="thumbnails-component" id="thumbnails"/>
+  </view>
+
+</app>

@@ -1,0 +1,7 @@
+<app xmlns="http://bender.igel.co.jp">
+  <controller>
+    <script>
+      $_.init = function() { flexo.log("*** init controller", this); };
+    </script>
+  </controller>
+</app>

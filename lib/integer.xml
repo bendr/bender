@@ -1,0 +1,94 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" id="integer">
+  <title>Editable integer</title>
+  <stylesheet>
+    .bender-integer { display: inline-block; cursor: pointer; padding: 4px;
+      border: solid thin black; width: 3em; text-align: right; }
+    .bender-naked .bender-integer { padding: 0; border: none; cursor: default; }
+  </stylesheet>
+  <controller f:tabindex="0" f:min="-Infinity" f:max="Infinity" f:scale="1">
+    <script><![CDATA[
+
+      $_.handleEvent = function(e)
+      {
+        if (e.type === "keydown") {
+          if (e.keyCode === 13 && typeof this.__value === "string") {
+            this.set_event(parseInt(this.__value, 10));
+            this.outlets.div.blur();
+          } else if (e.keyCode === 27) {
+            this.set(this.value);
+            this.outlets.div.blur();
+          } if (e.keyCode === 38) {
+            this.set_event(this.value + this.scale);
+          } else if (e.keyCode === 40) {
+            this.set_event(this.value - this.scale);
+          } else if (e.keyCode === 45 || (e.keyCode >= 48 && e.keyCode <= 57)) {
+            if (this.__value && e.keyCode !== 45) {
+              this.__value += String.fromCharCode(e.keyCode);
+              this.outlets.div.textContent = this.__value;
+            } else {
+              this.__value = String.fromCharCode(e.keyCode);
+              this.outlets.div.textContent = this.__value;
+            }
+          } else {
+            e.preventDefault();
+            this.set(this.value);
+            this.outlets.div.blur();
+          }
+        } else if (e.type === "mousedown" || e.type === "touchdown") {
+          e.preventDefault();
+          this.outlets.div.blur();
+          this.__start_y = flexo.event_page_pos(e).y;
+          this.__start_value = this.value;
+          this.__cursor = document.documentElement.style.cursor;
+          document.documentElement.style.cursor = "row-resize";
+        } else if (typeof this.__start_y === "number") {
+          if (e.type === "mouseup" || e.type === "touchend") {
+            if (this.__moved) {
+              delete this.__moved;
+            } else {
+              this.outlets.div.focus();
+            }
+            document.documentElement.style.cursor = this.__cursor;
+            delete this.__start_y;
+            delete this.__start_value;
+            delete this.__cursor;
+          } else if (e.type === "mousemove" || e.type === "touchmove") {
+            this.__moved = true;
+            this.set_event(this.__start_value - this.scale *
+              (flexo.event_page_pos(e).y - this.__start_y));
+          }
+        }
+      };
+
+      $_.set = function(n)
+      {
+        if (isNaN(n)) n = 0;
+        this.value = Math.floor(flexo.constrain_value(n, this.min, this.max));
+        this.outlets.div.textContent = this.value.toString();
+        delete this.__value;
+      };
+
+      $_.set_event = function(n)
+      {
+        var v = this.value;
+        this.set(n);
+        if (this.value !== v) this.notify("@change", { value: this.value });
+      };
+
+    ]]></script>
+    <connect outlet="div" target="n"/>
+    <listen dom-event="mousedown" source="n"/>
+    <listen dom-event="mousemove"/>
+    <listen dom-event="mouseup"/>
+    <listen dom-event="touchstart" source="n"/>
+    <listen dom-event="touchmove" source="n"/>
+    <listen dom-event="touchend" source="n"/>
+    <listen dom-event="keydown" source="n"/>
+    <listen event="@rendered" once="true" handler="set"/>
+  </controller>
+  <view>
+    <!-- Should have role="range" but the ARIA spec seems to not like that. -->
+    <html:div class="bender-integer {class}" id="n" tabindex="{tabindex}"/>
+  </view>
+</component>

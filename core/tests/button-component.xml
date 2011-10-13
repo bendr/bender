@@ -1,0 +1,37 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml" id="button">
+  <stylesheet>
+    .button { display: inline-block; cursor: default; border: solid thin black;
+      padding: 4px; background-color: #ddd; }
+    .button.down { opacity: 0.5; }
+  </stylesheet>
+  <script>
+button_controller = flexo.create_object(bender.controller,
+{
+  handleEvent: function(e)
+  {
+    e.preventDefault();
+    if (e.type === "mousedown" || e.type === "touchstart") {
+      flexo.add_class(this.outlets.button, "down");
+    } else if (e.type === "mouseup" || e.type === "touchend") {
+      flexo.remove_class(this.outlets.button, "down");
+      setTimeout(function() { alert("!!!"); }, 0);
+    } else if (e.type === "mouseout" || e.type === "touchcancel") {
+      flexo.remove_class(this.outlets.button, "down");
+    }
+  }
+});
+  </script>
+  <controller instance-of="button_controller">
+    <connect outlet="button" target="b"/>
+    <listen dom-event="mousedown" source="b"/>
+    <listen dom-event="mouseout" source="b"/>
+    <listen dom-event="mouseup" source="b"/>
+    <listen dom-event="touchstart" source="b"/>
+    <listen dom-event="touchend" source="b"/>
+    <listen dom-event="touchcancel" source="b"/>
+  </controller>
+  <root-view>
+    <html:div class="button" id="b"><content/></html:div>
+  </root-view>
+</component>

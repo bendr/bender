@@ -1,0 +1,66 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" id="button">
+  <title>Push button</title>
+  <stylesheet>
+    .bender-button { display: inline-block; cursor: default; padding: 4px;
+      border: solid thin black; background-color: #ddd; }
+    .bender-button.__down { opacity: 0.5; }
+    .bender-button.__disabled { opacity: 0.5; }
+    .bender-naked .bender-button { padding: 0; border: none;
+      background-color: transparent; }
+  </stylesheet>
+  <controller f:tabindex="0">
+    <script>
+
+      $_.handleEvent = function(e)
+      {
+        if (flexo.has_class(this.outlets.button, "__disabled")) return;
+        if (e.type === "mousedown" || e.type === "touchstart") {
+          e.preventDefault();
+          flexo.add_class(this.outlets.button, "__down");
+        } else if (e.type === "mouseup" || e.type === "touchend") {
+          if (flexo.remove_class(this.outlets.button, "__down")) {
+            e.preventDefault();
+            setTimeout((function() { this.notify("@pushed"); }).bind(this), 0);
+          }
+        } else if (e.type === "mouseout" || e.type === "touchcancel") {
+          e.preventDefault();
+          flexo.remove_class(this.outlets.button, "__down");
+        } else if (e.type === "keydown") {
+          if (e.keyCode === 13) {
+            e.preventDefault();
+            flexo.add_class(this.outlets.button, "__down");
+            setTimeout((function() {
+                flexo.remove_class(this.outlets.button, "__down");
+                setTimeout((function() { this.notify("@pushed"); }).bind(this),
+                  0);
+              }).bind(this), 150);
+          } else if (e.keyCode === 27) {
+              e.preventDefault();
+            this.outlets.button.blur();
+          }
+        }
+      };
+
+      $_.enable = function(p)
+      {
+        flexo.set_class_iff(this.outlets.button, "__disabled", !p);
+      };
+
+    </script>
+    <connect outlet="button" target="b"/>
+    <listen dom-event="mousedown" source="b"/>
+    <listen dom-event="mouseout" source="b"/>
+    <listen dom-event="mouseup" source="b"/>
+    <listen dom-event="touchstart" source="b"/>
+    <listen dom-event="touchend" source="b"/>
+    <listen dom-event="touchcancel" source="b"/>
+    <listen dom-event="keydown" source="b"/>
+  </controller>
+  <view>
+    <html:div class="bender-button {class}" id="b" tabindex="{tabindex}"
+      role="button">
+      <content/>
+    </html:div>
+  </view>
+</component>

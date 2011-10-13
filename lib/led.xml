@@ -1,0 +1,17 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:svg="http://www.w3.org/2000/svg" id="led">
+  <title>LED</title>
+  <help>This is a very simple LED showing an on/off state. Simply give it a
+    height and a width to display itself in, and switch its status between on
+    and off. It is off by default.</help>
+  <controller e:width="16px" e:height="16px" e:status="off"/>
+  <stylesheet>
+    .bender-led.off { fill: #888; }
+    .bender-led.on { fill: #0f8; }
+  </stylesheet>
+  <view>
+    <svg:svg viewBox="0 0 100 100" width="{width}" height="{height}">
+      <svg:circle class="bender-led {status}" cx="50" cy="50" r="50"/>
+    </svg:svg>
+  </view>
+</component>

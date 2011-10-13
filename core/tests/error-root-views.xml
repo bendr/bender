@@ -1,0 +1,7 @@
+<app xmlns="http://bender.igel.co.jp">
+  <title>Error: redefining root view</title>
+  <root-view>
+    <p xmlns="http://www.w3.org/1999/xhtml">Hello, world! (root-view)</p>
+  </root-view>
+  <root-view/>
+</app>

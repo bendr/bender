@@ -1,0 +1,39 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
+  <title>SVG Clock</title>
+  <controller id="metro" instance-of="bender.metro" f:rate-ms="333"/>
+  <controller>
+    <listen event="@ready"><![CDATA[
+      for (var i = 1; i < 60; ++i) {
+        var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
+          stroke: "white" });
+        this.outlets.seconds.parentNode.insertBefore(c, this.outlets.seconds);
+      }
+      this.component.controllers.metro.bang();
+    ]]></listen>
+    <connect target="seconds"/>
+    <connect target="minutes"/>
+    <connect target="hours"/>
+    <listen source="metro" event="@bang">
+      var now = new Date();
+      var seconds = now.getSeconds() + 60 * (now.getMinutes() + 60 *
+        now.getHours());
+      this.outlets.seconds.setAttribute("r", 3 * now.getSeconds());
+      this.outlets.minutes.setAttribute("transform", "rotate({0})"
+        .fmt(now.getMinutes() * 6));
+      this.outlets.hours.setAttribute("transform", "rotate({0})"
+        .fmt(now.getHours() * 30 + now.getMinutes() / 2));
+    </listen>
+  </controller>
+  <view>
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
+      viewBox="-220 -220 440 440">
+      <circle r="200" fill="#a1dcff"/>
+      <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
+        stroke-opacity="0.75"/>
+      <line y1="20" y2="-180" stroke="#26521f" stroke-width="4"
+        stroke-linecap="round" id="minutes" stroke-opacity="0.8"/>
+      <line y1="8" y2="-90" stroke="#d1372f" stroke-width="8"
+        stroke-linecap="round" id="hours" stroke-opacity="0.9"/>
+    </svg>
+  </view>
+</app>
