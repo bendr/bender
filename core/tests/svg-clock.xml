@@ -1,14 +1,17 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
   <title>SVG Clock</title>
-  <controller id="metro" instance-of="bender.metro" f:rate-ms="333"/>
+  <controller id="metro" instance-of="bender.metro" f:rate-ms="333">
+    <listen event="@rendered">
+      this.bang();
+    </listen>
+  </controller>
   <controller>
-    <listen event="@ready"><![CDATA[
+    <listen event="@rendered"><![CDATA[
       for (var i = 1; i < 60; ++i) {
         var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
           stroke: "white" });
         this.outlets.seconds.parentNode.insertBefore(c, this.outlets.seconds);
       }
-      this.component.controllers.metro.bang();
     ]]></listen>
     <connect target="seconds"/>
     <connect target="minutes"/>

@@ -8,12 +8,12 @@
     </script>
     <listen source="button" event="@pushed"/>
   </controller>
-  <root-view>
+  <view>
     <component ref="label">
       <content id="label">Default label:</content>
     </component>
     <component ref="button" id="button">
       <content id="button-label">Button label</content>
     </component>
-  </root-view>
+  </view>
 </app>

@@ -5,10 +5,10 @@
     </script>
     <listen source="label" event="@button"/>
   </controller>
-  <root-view>
+  <view>
     <component href="label-button.xml" id="label">
       <content ref="label">Please click this button:</content>
       <content ref="button-label">OK</content>
     </component>
-  </root-view>
+  </view>
 </app>

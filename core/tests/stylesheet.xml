@@ -6,8 +6,8 @@
   <listen source="button" dom-event="click">
     alert("You clicked me!");
   </listen>
-  <root-view>
+  <view>
     <html:p>This is a button styled with an inline stylesheet: <html:div
         id="button">Click me!</html:div></html:p>
-  </root-view>
+  </view>
 </app>

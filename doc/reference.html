@@ -11,9 +11,39 @@
   <body>
     <h1>Bender | Reference</h1>
 
+    <p class="TODO">This is a work in progress and is very incomplete at the
+    moment. Thank you for your interest! Please <a
+    href="mailto:bender@igel.co.jp">contact us</a> for comments, questions,
+    etc.</p>
+
     <nav id="toc">
       <h2>Table of Contents</h2>
     </nav>
+
+    <section id="running">
+      <h2>Running a Bender application</h2>
+      <p>To run an HTML application, point your browser to:</p>
+      <pre class="code">$BENDER_HOME/core/bender.html?app=$RELATIVE_PATH</pre>
+      <p>where <code>$RELATIVE_PATH</code> is the path to the description file
+      of the application that you wish to run (on the same server as Bender),
+      relative to <code>$BENDER_HOME</code>. You may specify additional
+      arguments that are passed to the application in the <code>args</code>
+      object (see below); the following are default arguments:</p>
+      <ul>
+        <li><code>app</code>: the path to the application description
+        file;</li>
+        <li><code>path</code>: the base path for files (defaults to
+        <code>../</code> since the launcher application is in the
+        <code>core/</code> directory);</li>
+        <li><code>suffix</code>: the suffix for application files (defaults to
+        <code>.xml</code>);</li>
+        <li><code>dest</code>: the <code>id</code> attribute of the destination
+        element for rendering. If no such element is found, then the document
+        body is used.</li>
+        <li><code>debug</code>: the debug level for messages; must be a
+        positive integer (0 for no debug message.)</li>
+      </ul>
+    </section>
 
     <section id="elements">
       <h2>Bender Elements</h2>
@@ -27,10 +57,25 @@
           class="elem">app</span>.</p>
         <div class="include-src" data-src="../core/tests/empty.xml">An empty
           application</div>
+        <div class="include-src" data-src="../core/tests/hello.xml">Hello,
+          World!</div>
       </section>
 
       <section id="elements.component">
         <h3><span class="elem">component</span></h3>
+
+        <p>If appearing as the top-level element of a document or with an
+        <code>id</code> parameter within an application or component, then it
+        is a component definition. Otherwise, this is a component
+        instanciation.</p>
+
+        <section id="elements.component.definition">
+          <h4>Component definition</h4>
+        </section>
+
+        <section id="elements.component.instanciation">
+          <h4>Component instanciation</h4>
+        </section>
 
         <section id="elements.component.parameters">
           <h4>Component parameters</h4>
@@ -86,9 +131,67 @@
         </section>
       </section>
 
+      <section id="elements.connect">
+        <h3><span class="elem">connect</span></h3>
+      </section>
+
+      <section id="elements.content">
+        <h3><span class="elem">content</span></h3>
+        <p>Appears within the view of a component. This is a slot that will
+        receive the content of a component instanciation node. A component may
+        provide default content which is used if the instanciation node does
+        not have content.</p>
+        <p>A component may contain several content nodes; in that case, each
+        node must have an <code>id</code> attribute. The instanciation node can
+        then specify which content slot it refers to with a matching
+        <code>ref</code> attribute.</p>
+        <div class="include-src"
+          data-src="../core/tests/content-id.xml">Content with id</div>
+        <div class="include-src"
+          data-src="../core/tests/label-button.xml">Component with two
+          different content nodes and default content</div>
+      </section>
 
       <section id="elements.controller">
         <h3><span class="elem">controller</span></h3>
+        <p>Define a controller associated to a given application or component.
+        The main controller has no <code>id</code> attribute; other controllers
+        must have an <code>id</code> attribute to distinguish them from the
+        main controller. In the absence of a <span
+          class="elem">controller</span> node, the enclosing <span
+          class="elem">app</span> or <span class="elem">component</span> node
+        will act as the main controller node.</p>
+        <p>A controller node is backed by a controller delegate object. By
+        default this is an object created from the
+        <code>bender.controller</code> prototype; a different prototype name
+        can be specified by the <code>instance-of</code> attribute.</p>
+      </section>
+
+      <section id="elements.listen">
+        <h3><span class="elem">listen</span></h3>
+        <p>Specify a listener for a Bender event (using the <code>event</code>
+        attribute; normally, the event type starts with @, <em>e.g.</em>,
+        <code>event="@ready"</code>) or a DOM event (using the
+        <code>dom-event</code> attribute, <em>e.g.</em>,
+        <code>dom-event="mousedown"</code>.) A <code>source</code> attribute
+        specifies the id of the component or DOM node that is listened to;
+        if absent, it is main controller of the component (for Bender events)
+        or the document (for DOM events.)</p>
+        <div class="include-src"
+          data-src="../core/tests/dom-event.xml">Listen to a DOM event</div>
+      </section>
+
+      <section id="elements.stylesheet">
+        <h3><span class="elem">stylesheet</span></h3>
+        <p>Style a component or application with CSS, either inline or with an
+        external stylesheet at the URI given by the <code>href</code>
+        attribute. Stylesheets are added in inclusion order and cascading rules
+        apply.</p>
+        <div class="include-src"
+          data-src="../core/tests/stylesheet.xml">Inline stylesheet</div>
+        <div class="include-src"
+          data-src="../core/tests/stylesheet-href.xml">External stylesheet
+          (<code>href</code> attribute)</div>
       </section>
 
       <section id="elements.title">
@@ -124,10 +227,46 @@
           library component</div>
       </section>
 
+      <section id="library.integer">
+        <h3>Integer box</h3>
+        <div class="include-src" data-src="../lib/integer.xml">Integer box
+          library component</div>
+      </section>
+
       <section id="library.label">
         <h3>Label</h3>
-        <div class="include-src" data-src="../lib/check.xml">Label
+        <div class="include-src" data-src="../lib/label.xml">Label
           library component</div>
+      </section>
+
+      <section id="library.led">
+        <h3>LED</h3>
+        <div class="include-src" data-src="../lib/label.xml">LED
+          library component</div>
+      </section>
+
+    </section>
+
+    <section id="js-library">
+      <h2>Javascript library</h2>
+
+      <section id="js-library.flexo">
+        <h3>Flexo</h3>
+        <p>The support library <code>core/flexo.js</code>, with all non-Bender
+        specific code.</p>
+      </section>
+
+      <section id="js-library.bender">
+        <h3>Bender</h3>
+        <p>The main Javascript library <code>core/bender.js</code>, implementing the
+        runtime and providing prototypes for Bender objects.</p>
+      </section>
+
+      <section id="js-library.controllers">
+        <h3>Controllers</h3>
+        <p>A library of controller delegates (timer, <span
+          class="TODO">selection manager, clipboard manager, command
+          manager</span>, etc.)</p>
       </section>
 
     </section>

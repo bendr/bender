@@ -109,6 +109,10 @@
       <strong>Restart</strong> button. The LED indicator shows up green when
       the timer is running, and is grayed out otherwise. You can decide to
       display milliseconds or not by (un)checking the <em>Show
-        milliseconds</em> checkbox.</html:p>
+        milliseconds</em> checkbox. You can change the timer interval by
+      clicking inside the number box and draggin up or down, or typing a value
+      after having clicked in the timer box and typing enter or return (it
+      should show a focus ring.) Note: since we rely on Javascript for timing,
+      the timer interval is not very acurate.</html:p>
   </view>
 </app>

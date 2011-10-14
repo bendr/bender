@@ -1,9 +1,9 @@
-<?xml version="1.0"?>
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <stylesheet>#button { cursor: pointer; }</stylesheet>
   <listen source="button" dom-event="click">
     alert("You clicked me!");
   </listen>
-  <root-view>
+  <view>
     <html:div id="button">Click me!</html:div>
-  </root-view>
+  </view>
 </app>
