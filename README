@@ -50,6 +50,7 @@ Release Notes
     * Slideshow app (apps/slideshow/sample.xml)
     * Changed event_name in event to type (as in DOM)
     * Added forward_event method to controllers
+    * Handling of CDATA sections as text
 
   Changes in v0.1.2 (2011-10-12)
 

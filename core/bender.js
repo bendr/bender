@@ -320,6 +320,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
     setTimeout(function() { bender.notify(parent, "@bender-load"); }, 0);
   };
 
+  // Include an external component from an href value
+  var include_href = function(href, prototype)
+  {
+    var uri = href.replace(/#.*$/, "");
+    if (uri in prototype.app.loaded_uris) return true;
+    load_uri(uri, prototype.app.dest_body, function(prototype_) {
+        prototype.app.loaded_uris[uri] = true;
+        loaded_component(prototype_, prototype);
+      }, prototype.app);
+    return false;
+  };
+
   // Specific load functions for various elements. Return true if loading can
   // continue immediately, false otherwise. Default is thus to do nothing and
   // return true.
@@ -370,14 +382,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // loaded
     include: function(node, prototype)
     {
-      var uri = prototype.get_absolute_uri(node.getAttribute("href"));
-      var uri_ = uri.replace(/#.*$/, "");
-      if (uri_ in prototype.app.loaded_uris) return true;
-      load_uri(uri_, prototype.app.dest_body, function(prototype_) {
-          prototype.app.loaded_uris[uri_] = true;
-          loaded_component(prototype_, prototype);
-        }, prototype.app);
-      return false;
+      return include_href(prototype.get_absolute_uri(node.getAttribute("href")),
+          prototype);
     },
 
     // Store the title node in the component prototype
@@ -739,7 +745,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         });
       render_content(node, target, instance);
       return target;
-    } else if (node.nodeType === 3) {
+    } else if (node.nodeType === 3 || node.nodeType === 4) {
       return instance.app.dest_body.ownerDocument
         .createTextNode(node.textContent);
     }
