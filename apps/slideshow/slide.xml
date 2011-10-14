@@ -5,13 +5,15 @@
     .slide { background-color: white; position: relative; }
     .hidden { display: none; }
     .slide.moving { opacity: 0.9; }
+    .title { text-align: center; }
   </stylesheet>
   <controller e:hidden="hidden">
     <script><![CDATA[
 
       $_.handleEvent = function(e)
       {
-        if (e.type === "mousedown" || e.type === "touchdown") {
+        if (e.target === this.outlets.s &&
+          (e.type === "mousedown" || e.type === "touchdown")) {
           e.preventDefault();
           this.__start_x = flexo.event_page_pos(e).x;
         } else if (typeof this.__start_x === "number") {
@@ -39,7 +41,7 @@
     <connect target="num"/>
   </controller>
   <view>
-    <html:div class="slide {hidden}" id="s">
+    <html:div class="slide {hidden} {class}" id="s">
       <content/>
     </html:div>
   </view>

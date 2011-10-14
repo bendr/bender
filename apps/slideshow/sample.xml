@@ -1,4 +1,4 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Sample Bender Slideshow</title>
   <stylesheet>
@@ -7,23 +7,21 @@
   </stylesheet>
   <script href="slideshow.js"/>
   <include href="slide.xml"/>
-  <controller instance-of="slideshow">
-    <listen source="num" event="@change">
-      this.show_slide(event.value - 1);
-    </listen>
-  </controller>
+  <controller instance-of="slideshow"/>
 
   <view>
 
-    <component ref="slide">
-      <html:h1>This is the first slide</html:h1>
+    <component ref="slide" e:class="title">
+      <html:h1>Sample slide show</html:h1>
     </component>
 
     <component ref="slide">
-      <html:h1>This is the second slide</html:h1>
+      <html:h2>Navigating the slide show</html:h2>
+      <html:p>You can navigate by clicking anywhere on the slide (next slide),
+        clicking and dragging forward or backward for next or previous slide,
+        using the right and left arrow keys, space, return, backspace to go
+        back and esc to go to the beginning.</html:p>
     </component>
-
-    <component href="num.xml#num" id="num"/>
 
   </view>
 </app>

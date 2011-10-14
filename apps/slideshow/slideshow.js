@@ -11,11 +11,16 @@ slideshow = flexo.create_object(bender.controller, {
             bender.listen(slide, "@next", this.show_slide.bind(this, i + 1));
             bender.listen(slide, "@prev", this.show_slide.bind(this, i - 1));
           }).bind(this));
-        this.show_slide("slide" in this.component.args ?
-          parseInt(this.component.args.slide, 10) : 0);
+        var slide = "slide" in this.component.args ?
+          parseInt(this.component.args.slide, 10) : 0;
+        if (slide < 0) slide += this.slides.length;
+        this.show_slide(slide);
       }).bind(this));
     bender.listen(this.component.dest_body.ownerDocument, "keydown",
       this.handleEvent.bind(this));
+
+    //bender.listen(num, "@change",
+    //  (function(e) { this.show_slide(e.value - 1); }).bind(this));
   },
 
   handleEvent: function(e)
