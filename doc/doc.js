@@ -53,6 +53,7 @@ function link_elements(template)
 // TODO make links for href attributes; syntax highlighting?
 function get_examples()
 {
+  console.log("get_examples");
   [].forEach.call(document.querySelectorAll(".include-src"), function(p) {
       flexo.dataset(p);
       if (typeof p.dataset.expanded === "string" && p.dataset.expanded) {
@@ -62,7 +63,7 @@ function get_examples()
         span.addEventListener("click", function() {
             p.removeChild(span);
             expand_example(p);
-          });
+          }, false);
         p.insertBefore(span, p.firstChild);
       }
     });

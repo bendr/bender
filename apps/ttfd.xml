@@ -138,7 +138,6 @@
           this.outlets.anim2.setAttribute("keySplines", "{0} {1} {2} {3}"
             .fmt(p1.x / 100, p1.y / 100, p2.x / 100, p2.y / 100));
           this.outlets.anim2.beginElement();
-          console.log(this.outlets.anim2);
         };
 
       ]]></script>
@@ -259,7 +258,7 @@
       button below to test these values; the orange circle will go along the
       current curve in the given number of seconds, while the blue circle will
       move on a linear path.
-      <html:em>TODO: currently really only works in Firefox.</html:em>
+      <html:em>TODO: currently test animation is broken in Webkit.</html:em>
     </html:p>
 
     <html:p>
