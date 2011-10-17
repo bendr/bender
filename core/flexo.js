@@ -134,6 +134,17 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return Math.max(Math.min(value, max), min);
   };
 
+  // Remove all children of an element
+  flexo.remove_children = function(elem)
+  {
+    var child = elem.firstElementChild;
+    while (child) {
+      var next = child.nextElementSibling;
+      elem.removeChild(child);
+      child = next;
+    }
+  };
+
   // Create a dataset attribute if not present
   flexo.dataset = function(elem)
   {
