@@ -9,6 +9,7 @@
 
   <include href="../lib/button.xml"/>
   <include href="../lib/check.xml"/>
+  <include href="../lib/integer.xml"/>
 
   <component id="curve-point">
     <controller b:overflow="false">
@@ -129,12 +130,15 @@
 
         $_.test = function()
         {
-          this.outlets.anim1.beginElement && this.outlets.anim1.beginElement();
+          if (this.outlets.anim1.beginElement) {
+            this.outlets.anim1.beginElement();
+          }
           var p1 = this.outlets.p1.controllers[""].get_xy();
           var p2 = this.outlets.p2.controllers[""].get_xy();
           this.outlets.anim2.setAttribute("keySplines", "{0} {1} {2} {3}"
             .fmt(p1.x / 100, p1.y / 100, p2.x / 100, p2.y / 100));
           this.outlets.anim2.beginElement();
+          console.log(this.outlets.anim2);
         };
 
       ]]></script>
@@ -158,14 +162,14 @@
           <component id="p1" ref="curve-point"/>
           <component id="p2" ref="curve-point" f:x1="100" f:y1="100"/>
           <svg:circle r="2" fill="none" stroke="#f80">
-            <svg:animateMotion id="anim1" dur="3s" rotate="auto"
+            <svg:animateMotion id="anim1" rotate="auto" dur="{dur}s"
               begin="indefinite" fill="freeze">
               <svg:mpath xlink:href="#curve"/>
             </svg:animateMotion>
           </svg:circle>
           <svg:circle r="2" fill="none" stroke="#08f">
             <svg:animateTransform attributeName="transform" attributeType="XML"
-              type="translate" id="anim2" dur="3s" values="0; 100"
+              type="translate" id="anim2" dur="{dur}s" values="0; 100"
               keyTimes="0; 1" calcMode="spline" begin="indefinite"
               fill="freeze">
               <svg:mpath xlink:href="#curve"/>
@@ -193,8 +197,10 @@
 
         $_.moved = function(e)
         {
-          this.outlets.params.textContent = "cubic-bezier({0}, {1}, {2}, {3})"
-            .fmt(e.x1 / 100, e.y1 / 100, e.x2 / 100, e.y2 / 100);
+          this.outlets.params.textContent =
+            "".fmt.apply("cubic-bezier({0}, {1}, {2}, {3})",
+              [e.x1, e.y1, e.x2, e.y2]
+                .map(function(x) { return (x / 100).toFixed(2); }));
         };
 
         $_.random = function()
@@ -226,9 +232,18 @@
         this.set_ttf(42, 0, 58, 100);
       </listen>
       <listen event="@pushed" source="set-random" handler="random"/>
-      <listen event="@rendered" once="true" handler="random"/>
+      <listen event="@rendered" once="true">
+        this.random();
+        this.outlets.durbox.controllers[""].set(3);
+        this.outlets.curve.dur = "3";
+      </listen>
       <listen event="@checked" source="overflow-check">
         this.outlets.curve.controllers[""].set_overflow(event.checked);
+      </listen>
+      <connect target="durbox"/>
+      <listen event="@change" source="durbox">
+        flexo.log(event);
+        this.outlets.curve.dur = event.value;
       </listen>
     </controller>
     <component ref="curve-component" id="curve"/>
@@ -242,13 +257,15 @@
       default value below (<html:em>random</html:em> is not a value, but will
       generate random values.) Click on the <html:strong>Test</html:strong>
       button below to test these values; the orange circle will go along the
-      current curve in 3 seconds, while the blue circle will move on a linear
-      path.  <html:em>Currently really only works in Firefox; to be fixed
-        soon.</html:em>
+      current curve in the given number of seconds, while the blue circle will
+      move on a linear path.
+      <html:em>TODO: currently really only works in Firefox.</html:em>
     </html:p>
 
     <html:p>
       <component ref="button" id="test-button">Test</component>
+      (animation duration: <component ref="integer" id="durbox" f:min="1"
+        f:scale="0.05"/>s)
     </html:p>
     <html:p>
       <component ref="check" id="overflow-check">Allow overflowing <em>y</em>
