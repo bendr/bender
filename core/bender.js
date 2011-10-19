@@ -139,8 +139,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return url;
     },
 
-    // Find an id in the id map designated by map_name (e.g., "components" or
-    // "controllers")
+    // Find an id in the id map designated by map_name (e.g., "components",
+    // "views" or "controllers")
     find: function(id, map_name)
     {
       if (!id) return;
@@ -462,6 +462,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (!prototype.main_controller_node) {
         prototype.main_controller_node = node;
       }
+      set_parameters_from_attributes(node, prototype);
     },
 
     // Definition nodes behave like app
@@ -673,7 +674,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       if (node._instance) {
         node._instance.__component = node;
-        set_parameters_from_attributes(node, node._instance.controllers[""]);
+        set_parameters_from_attributes(node, node._instance);
         render_content(node._instance.view_node, target, node._instance);
         delete node._instance.__component;
       }

@@ -1,0 +1,5 @@
+<app xmlns="http://bender.igel.co.jp"
+  xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:f="http://bender.igel.co.jp/f"
+  b:flag="true" e:foo="bar" f:x="12.34"/>
