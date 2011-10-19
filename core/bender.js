@@ -113,7 +113,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Base prototype for app and component objects
   // Fields:
-  //   * instance_id: string of the form component-######
+  //   * instance_id: unique id
   //   * children: list of child components
   //   * controllers: map of id to controllers, the main controller has no id
   //       (i.e. main controller is component.controllers[""])
@@ -160,7 +160,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     instantiate: function()
     {
       var instance = flexo.create_object(this);
-      instance.instance_id = "component-" + flexo.random_id(6);
+      instance.instance_id = flexo.random_id(6);
       instance.children = [];
       instance.controllers = {};
       instance.views = {};
@@ -523,7 +523,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
         node._instance.parent = instance;
         instance.children.push(node._instance);
         var id = node.getAttribute("id");
-        if (id) instance.views[id] = node._instance;
+        if (id) {
+          instance.views[id] = node._instance;
+          node._instance.instance_id += "--" + id;
+        }
       }
       return true;
     },
