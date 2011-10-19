@@ -30,6 +30,7 @@ if (args.app) {
       if (args.debug) {
         flexo.add_class(status_elem, "ok");
         status_elem.textContent = "OK";
+        $APP = app;
       }
     });
 } else {

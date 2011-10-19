@@ -4,7 +4,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
 (function(bender) {
 
-  bender.VERSION = "0.1.3";
+  bender.VERSION = "0.2.0";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";
@@ -13,7 +13,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.NS_F = bender.NS + "/f";
 
   // Warning (at development time, throw an error)
+  // TODO depending on debug level: ignore, log, die
   bender.warn = function(msg) { throw msg; };
+
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
   bender.notify = function(source, type, e)
@@ -110,6 +112,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
   // Base prototype for app and component objects
+  // Fields:
+  //   * instance_id: string of the form component-######
+  //   * children: list of child components
+  //   * controllers: map of id to controllers, the main controller has no id
+  //       (i.e. main controller is component.controllers[""])
+  //   * views: map of id of view nodes to instances and concrete DOM nodes
   bender.component =
   {
     // Get an absolute URI by solving relative paths to the app path
@@ -152,11 +160,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
     instantiate: function()
     {
       var instance = flexo.create_object(this);
-      instance.instance_id = flexo.random_id(6);
+      instance.instance_id = "component-" + flexo.random_id(6);
       instance.children = [];
       instance.controllers = {};
-      instance.id_map = {};
-      instance.attrs_map = {};
+      instance.views = {};
       return instance;
     },
 
@@ -516,7 +523,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         node._instance.parent = instance;
         instance.children.push(node._instance);
         var id = node.getAttribute("id");
-        if (id) instance.id_map[id] = node._instance;
+        if (id) instance.views[id] = node._instance;
       }
       return true;
     },
@@ -570,7 +577,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           .fmt(id ? "main " : "", id ? " " + id : "");
       }
       if (id) instance.main_controller_node = node;
-      instance.controllers[id] = instance.id_map[id] = delegate;
+      instance.controllers[id] = delegate;
     },
   };
 
@@ -720,27 +727,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
         createElementNS(node.namespaceURI, node.localName);
       var id = node.getAttribute("id");
       if (id) {
-        if (instance.id_map[id]) throw "Redefinition of id {0}".fmt(id);
-        instance.id_map[id] = target;
+        if (instance.views[id]) throw "Redefinition of id {0}".fmt(id);
+        instance.views[id] = target;
       }
       [].forEach.call(node.attributes, function(attr) {
-          var has_value = true;
-          var pattern = attr.nodeValue;
-          var value = pattern.replace(/{([^\}]+)}/g, function(_, a) {
-                var v = instance.controllers[""][a];
-                if (v === undefined) has_value = false;
-                if (!(a in instance.attrs_map)) instance.attrs_map[a] = [];
-                instance.attrs_map[a].push({ node: target,
-                  nsuri: attr.namespaceURI, name: attr.localName,
-                  pattern: pattern });
-                return v === undefined ? "" : v;
-              });
-          if (has_value || value !== "") {
-            if (attr.namespaceURI === flexo.XML_NS && !target.namespaceURI) {
-              target.setAttribute(attr.localName, value);
-            } else {
-              target.setAttributeNS(attr.namespaceURI, attr.localName, value);
-            }
+          if (attr.namespaceURI === flexo.XML_NS && !target.namespaceURI) {
+            target.setAttribute(attr.localName, attr.nodeValue);
+          } else {
+            target.setAttributeNS(attr.namespaceURI, attr.localName,
+              attr.nodeValue);
           }
         });
       render_content(node, target, instance);
@@ -772,7 +767,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   var connect = function(instance)
   {
     instance.children.forEach(connect);
-    for (attr in instance.attrs_map) connect_attr(instance, attr);
     for (var id in instance.controllers) {
       var controller = instance.controllers[id];
       for (var ch = controller.node.firstElementChild; ch;
@@ -780,10 +774,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
         if (ch.namespaceURI === bender.NS) {
           if (ch.localName === "listen") {
             // <listen> node
-            // TODO get parameters from the node (see <controller>)
-            var source_id = ch.getAttribute("source");
-            var source = instance.find(source_id, "id_map");
-            if (source_id && !source) throw "No source for {0}".fmt(source_id);
+            var view = ch.getAttribute("view");
+            var controller_ = ch.getAttribute("controller");
+            var source = view ? instance.find(view, "views") :
+              controller_ ? instance.find(controller_, "controllers") :
+              undefined;
+            if (view && !source) throw "No source view for {0}".fmt(view);
+            if (controller_ && !source) {
+              throw "No source controller for {0}".fmt(controller_);
+            }
             var once = ch.getAttribute("once") === "true";
             var ev = ch.getAttribute("event");
             var h = ch.getAttribute("handler");
@@ -805,42 +804,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
             bender.listen(source, ev, handler, once);
           } else if (ch.localName === "connect") {
             // <connect> node
-            var target = ch.getAttribute("target");
-            var outlet = ch.getAttribute("outlet") || target;
+            var view = ch.getAttribute("view");
+            var controller_ = ch.getAttribute("controller");
+            if (view && controller_) throw "Ambiguous target for outlet";
+            var outlet = ch.getAttribute("outlet") || view || controller_;
             if (!outlet) throw "No outlet for connect element";
             if (outlet in controller.outlets) {
               throw "Outlet {0} already exists".fmt(outlet);
             }
-            controller.outlets[outlet] = instance.find(target, "id_map");
+            controller.outlets[outlet] = view ? instance.find(view, "views") :
+              instance.find(controller_, "controller");
           }
         }
       }
       bender.notify(controller, "@rendered");
     }
-  };
-
-  // Connect all properties to the node attributes that they modify
-  var connect_attr = function(instance, attr)
-  {
-    var __value__ = instance.controllers[""][attr];
-    flexo.getter_setter(instance, attr, function() { return __value__; },
-      function(value) {
-        __value__ = value;
-        instance.attrs_map[attr].forEach(function(x) {
-            var has_value = true;
-            var v = x.pattern.replace(/{([^\}]+)}/g, function(_, a) {
-                if (value === undefined) has_value = false;
-                return value === undefined ? "" : value;
-              });
-            if (has_value || v !== "") {
-              if (x.nsuri === flexo.XML_NS && !x.node.namespaceURI) {
-              x.node.setAttribute(x.name, v);
-            } else {
-              x.node.setAttributeNS(x.nsuri, x.name, v);
-            }
-          }
-        });
-      });
   };
 
 })(typeof exports === "object" ? exports : this.bender = {});

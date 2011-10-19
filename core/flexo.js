@@ -134,6 +134,38 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return Math.max(Math.min(value, max), min);
   };
 
+  // Convert a number to roman numerals (integer part only; n must be positive
+  // or zero.) Now that's an important function to have in any framework.
+  flexo.to_roman = function(n)
+  {
+    function unit(n, i, v, x)
+    {
+      var r = "";
+      if (n % 5 === 4) {
+        r += i;
+        n += 1;
+      }
+      if (n === 10) {
+        r += x;
+      } else {
+        if (n >= 5) r += v;
+        for (var j = 0; j < n % 5; ++j) r += i;
+      }
+      return r;
+    }
+
+    if (typeof n === "number" && n >= 0) {
+      n = Math.floor(n);
+      if (n === 0) return "nulla";
+      var r = "";
+      for (var i = 0; i < Math.floor(n / 1000); ++i) r += "m";
+      return r +
+        unit(Math.floor(n / 100) % 10, "c", "d", "m") +
+        unit(Math.floor(n / 10) % 10, "x", "l", "c") +
+        unit(n % 10, "i", "v", "x");
+    }
+  };
+
   // Remove all children of an element
   flexo.remove_children = function(elem)
   {

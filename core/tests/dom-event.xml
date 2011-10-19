@@ -1,9 +1,12 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <stylesheet>#button { cursor: pointer; }</stylesheet>
-  <listen source="button" dom-event="click">
+  <stylesheet>
+    #button { cursor: pointer; background-color: #08f; color: white;
+    padding: 4px; }
+  </stylesheet>
+  <listen view="button" dom-event="click">
     alert("You clicked me!");
   </listen>
   <view>
-    <html:div id="button">Click me!</html:div>
+    <html:span id="button">Click me!</html:span>
   </view>
 </app>
