@@ -61,6 +61,28 @@
           World!</div>
       </section>
 
+      <section id="elements.bind">
+        <h3><span class="elem">bind</span></h3>
+        <p>Bind a value in a component to a view. Whenever the value is
+        changed, the change is reflected in the view.</p>
+        <p>The first example shows how to set default values for a component.
+        Use the b, e, and f namespaces to set boolean, string or float values.
+        These values are reflected by a property of the same name in the
+        component.</p>
+        <div class="include-src" data-src="../core/tests/params.xml">Setting
+          component parameters</div>
+        <p>Instances can of a component can override the default values by
+        setting their own:</p>
+        <div class="include-src"
+          data-src="../core/tests/params-instance.xml">Instantiating with
+          parameters</div>
+        <p><span class="TODO">Test adding <em>new</em> params to an instance as
+          well.</span><p>
+        <p>Finally, this examples bind a value to a view:</p>
+        <div class="include-src" data-src="../core/tests/bind.xml">Simple
+          binding</div>
+      </section>
+
       <section id="elements.component">
         <h3><span class="elem">component</span></h3>
 
