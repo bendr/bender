@@ -11,7 +11,10 @@
 var args = bender.get_args();
 if (args.app) {
   bender.init_app(args.path + args.app + args.suffix, args, function(app) {
-      if (args.debug) flexo.log("Bender/SVG app started OK");
+      if (args.debug) {
+        $APP = app;
+        flexo.log("Bender/SVG app started OK");
+      }
     });
 } else {
   alert("Error: No app to show; missing app parameter.");

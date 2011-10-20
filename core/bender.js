@@ -182,7 +182,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
-    c.bindings = {};          // binding nodes indexed by value
+    c.bindings = {};          // binding nodes indexed by value then by view
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
@@ -350,8 +350,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       var value = node.getAttribute("value");
       if (!value) throw "No value to bind";
-      if (!(value in prototype.bindings)) prototype.bindings[value] = [];
-      prototype.bindings[value].push(node);
+      var view = node.getAttribute("view");
+      if (!view) throw "No view to bind a value to";
+      if (!(value in prototype.bindings)) prototype.bindings[value] = {};
+      if (!(view in prototype.bindings[value])) {
+        prototype.bindings[value][view] = [];
+      }
+      prototype.bindings[value][view].push(node);
       return true;
     },
 
@@ -843,18 +848,35 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // getter/setter
   var bind = function(instance)
   {
-    for (var value in instance.bindings) {
-      var views = instance.bindings[value].map(function(b) {
-          return instance.find(b.getAttribute("view"), "views");
+    var setters_for_view = function(view, value)
+    {
+      var view_ = instance.find(view, "views");
+      return instance.bindings[value][view].map(function(node) {
+          var attr = node.getAttribute("attr");
+          if (attr) {
+            return function(v) {
+              view_.setAttribute(attr, v);
+            };
+          } else {
+            return function(v) { view_.textContent = v; };
+          }
         });
+    };
+    var getter_setter_for_value = function(value)
+    {
       var v = instance[value];
+      var setters = [];
+      for (var view in instance.bindings[value]) {
+        [].push.apply(setters, setters_for_view(view, value));
+      }
       instance.__defineGetter__(value, function() { return v; });
       instance.__defineSetter__(value, function(v_) {
-          v = v_;
-          views.forEach(function(view) { view.textContent = v_; });
-        });
+        v = v_;
+        setters.forEach(function(f) { f(v); });
+      });
       instance[value] = v;
-    }
+    };
+    for (var value in instance.bindings) getter_setter_for_value(value);
   };
 
 })(typeof exports === "object" ? exports : this.bender = {});
