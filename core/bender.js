@@ -182,7 +182,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
-    c.bindings = [];          // should be {}, indexed by values
+    c.bindings = {};          // binding nodes indexed by value
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
@@ -348,7 +348,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Store the bind node for later (rendering)
     bind: function(node, prototype)
     {
-      prototype.bindings.push(node);
+      var value = node.getAttribute("value");
+      if (!value) throw "No value to bind";
+      if (!(value in prototype.bindings)) prototype.bindings[value] = [];
+      prototype.bindings[value].push(node);
       return true;
     },
 
@@ -840,17 +843,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // getter/setter
   var bind = function(instance)
   {
-    instance.bindings.forEach(function(b) {
-      var value = b.getAttribute("value");
-      var view = instance.find(b.getAttribute("view"), "views");
+    for (var value in instance.bindings) {
+      var views = instance.bindings[value].map(function(b) {
+          return instance.find(b.getAttribute("view"), "views");
+        });
       var v = instance[value];
       instance.__defineGetter__(value, function() { return v; });
       instance.__defineSetter__(value, function(v_) {
           v = v_;
-          view.textContent = v_;
+          views.forEach(function(view) { view.textContent = v_; });
         });
       instance[value] = v;
-    });
-}
+    }
+  };
 
 })(typeof exports === "object" ? exports : this.bender = {});
