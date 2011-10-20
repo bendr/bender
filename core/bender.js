@@ -853,12 +853,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var view_ = instance.find(view, "views");
       return instance.bindings[value][view].map(function(node) {
           var attr = node.getAttribute("attr");
+          var transform = /\S/.test(node.textContent) ?
+            new Function("$_", node.textContent) : flexo.id;
           if (attr) {
             return function(v) {
-              view_.setAttribute(attr, v);
+              view_.setAttribute(attr, transform(v));
             };
           } else {
-            return function(v) { view_.textContent = v; };
+            return function(v) { view_.textContent = transform(v); };
           }
         });
     };

@@ -1,0 +1,12 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:n="123">
+  <bind value="n" view="num"/>
+  <bind value="n" view="roman">
+    return flexo.to_roman($_);
+  </bind>
+  <view>
+    <html:p>
+      <html:span id="num"/> is <html:strong id="roman"/> in roman numerals.
+    </html:p>
+  </view>
+</app>

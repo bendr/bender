@@ -91,6 +91,14 @@
         <div class="include-src" data-suffix="svg"
           data-src="../core/tests/bind-attr.xml">Binding values to
           attributes</div>
+        <p>The <span class="elem">bind</span> can have text content, which is
+        interpreted as a Javascript function taking an argument named
+        <code>$_</code>; this function is called to transform the value passed
+        as the <code>$_</code> parameter to this function. In the example
+        below, a number is displayed both directly, and transformed into roman
+        numerals:</p>
+        <div class="include-src"
+          data-src="../core/tests/bind-transform.xml">Transformed value</div>
       </section>
 
       <section id="elements.component">

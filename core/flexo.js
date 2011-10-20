@@ -65,6 +65,9 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
   flexo.XML_NS = "http://www.w3.org/1999/xml";
 
+  // Id function
+  flexo.id = function(x) { return x; };
+
   // Safe log function
   flexo.log = function()
   {
