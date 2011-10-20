@@ -518,7 +518,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     down: function(e) {},
     up: function(e) {},
     move: function(e) {},
-    out: function(e) {},
+    out: function(e) {}
 
   };
 
@@ -573,7 +573,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     dragover: function(e) {},
     dragenter: function(e) {},
     dragleave: function(e) {},
-    drop: function(e) {},
+    drop: function(e) {}
   };
 
 })(typeof exports === "object" ? exports : this.flexo = {});

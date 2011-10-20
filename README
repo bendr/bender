@@ -46,6 +46,7 @@ Release Notes
 
     * Distinguishing between view and controller ids
     * Removed patterns in attributes
+    * <bind> element (naive and incomplete)
 
   Changes in v0.1.3 (2011-10-14)
 

@@ -173,7 +173,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var instance = this.instantiate();
       render_component(instance.root_node, instance);
       return instance;
-    },
+    }
 
   };
 
@@ -182,6 +182,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
+    c.bindings = [];          // should be {}, indexed by values
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
@@ -211,7 +212,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     handleEvent: function() {},
     init: function() {},
     notify: function(type, e) { bender.notify(this.component, type, e); },
-    forward_event: function(e) { bender.notify(this.component, e.type, e); },
+    forward_event: function(e) { bender.notify(this.component, e.type, e); }
   };
 
   // Base delegate for controller nodes. The init() method can be overridden to
@@ -298,7 +299,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }, true);
         bender.listen(prototype, "@bender-error", function() {
             throw "Failed to load {0} element at {1}".fmt(node.localName,
-              prototype.get_path(node.getAttribute("href")));
+              prototype.get_absolute_uri(node.getAttribute("href")));
           }, true);
         return;
       }
@@ -344,6 +345,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // return true.
   var will_load_element =
   {
+    // Store the bind node for later (rendering)
+    bind: function(node, prototype)
+    {
+      prototype.bindings.push(node);
+      return true;
+    },
+
     // At the loading stage, treat <component href="..."> in the same manner as
     // <include href="..."> (instantation will differ though.) For component
     // definitions, update the URI of the prototype.
@@ -449,7 +457,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             node.textContent);
       find_head(prototype.dest_body.ownerDocument).appendChild(elem);
       return true;
-    },
+    }
   };
 
   var did_load_element =
@@ -469,7 +477,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     component: function(node, prototype)
     {
       if (node._is_definition) did_load_element.app(node, prototype);
-    },
+    }
   };
 
   // Return the body element (for HTML documents) or by default the
@@ -544,7 +552,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         (new Function("$_", node.textContent))(prototype);
       }
       return true;
-    },
+    }
   };
 
   var did_render_element =
@@ -555,9 +563,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       // Render metadata and view to the output document only for the main
       // app (i.e. not for components or included app)
       if (!instance.parent) {
-        instance.dest_body.textContent = "";
+        flexo.remove_children(instance.dest_body);
         render_metadata(instance);
         render_content(instance.view_node, instance.dest_body, instance);
+
       }
     },
 
@@ -582,7 +591,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       if (id) instance.main_controller_node = node;
       instance.controllers[id] = delegate;
-    },
+    }
   };
 
 
@@ -623,7 +632,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var title = find_title(app.dest_body.ownerDocument);
     if (!title) {
-      var title = flexo.elem(app.dest_body.namespaceURI, "title", {});
+      title = flexo.elem(app.dest_body.namespaceURI, "title", {});
       app.dest_body.insertBefore(title, app.dest_body.firstChild);
     }
     if (app.metadata.title) {
@@ -668,6 +677,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   var render_view =
   {
+
     // Render the view of the component; keep track of the component node so
     // that the <content> element can access it
     component: function(node, target, instance)
@@ -701,7 +711,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       } else {
         render_content(node, target, instance);
       }
-    },
+    }
   };
 
   // Render the view of a component to a target node
@@ -821,8 +831,26 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       }
+      bind(instance);
       bender.notify(controller, "@rendered");
     }
   };
+
+  // Implement the bindings by changing the plain values to properties with
+  // getter/setter
+  var bind = function(instance)
+  {
+    instance.bindings.forEach(function(b) {
+      var value = b.getAttribute("value");
+      var view = instance.find(b.getAttribute("view"), "views");
+      var v = instance[value];
+      instance.__defineGetter__(value, function() { return v; });
+      instance.__defineSetter__(value, function(v_) {
+          v = v_;
+          view.textContent = v_;
+        });
+      instance[value] = v;
+    });
+}
 
 })(typeof exports === "object" ? exports : this.bender = {});

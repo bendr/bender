@@ -1,0 +1,7 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml" e:text="Help, I'm bound!">
+  <bind value="text" view="p"/>
+  <view>
+    <html:p id="p"/>
+  </view>
+</app>
