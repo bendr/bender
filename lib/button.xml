@@ -43,7 +43,7 @@
                   0);
               }).bind(this), 150);
           } else if (e.keyCode === 27) {
-              e.preventDefault();
+            e.preventDefault();
             this.component.views.b.blur();
           }
         }
@@ -64,6 +64,7 @@
     if (!value) {
       this._tabindex = this.tabindex;
       this.tabindex = -1;
+      view.blur();
     } else if ("_tabindex" in this) {
       this.tabindex = this._tabindex;
     }
