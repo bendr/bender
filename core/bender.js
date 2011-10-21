@@ -853,6 +853,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var view_ = instance.find(view, "views");
       return instance.bindings[value][view].map(function(node) {
           var attr = node.getAttribute("attr");
+          var property = node.getAttribute("property");
+          if (property) {
+            if (attr) throw "bind with both attr and property attributes";
+          } else {
+            property = "textContent";
+          }
           var transform = /\S/.test(node.textContent) ?
             (new Function("value", "prev", "view", node.textContent))
               .bind(instance) : flexo.id;
@@ -864,7 +870,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           } else {
             return function(v, p) {
               var v_ = transform(v, p, view_);
-              if (typeof v_ !== "undefined") view_.textContent = v_;
+              if (typeof v_ !== "undefined") view_[property] = v_;
             };
           }
         });

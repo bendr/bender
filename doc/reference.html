@@ -91,6 +91,13 @@
         <div class="include-src" data-suffix="svg"
           data-src="../core/tests/bind-attr.xml">Binding values to
           attributes</div>
+        <p>When the view that is bound to a value is a component and not a DOM
+        node, then instead of specifying an attribute destination with the
+        <code>attr</code> attribute, a property of the component is specified
+        with the <code>property</code> attribute, as in the example below:</p>
+        <div class="include-src"
+          data-src="../core/tests/integer-bind.xml">Integer box binding
+          test</div>
         <p>The <span class="elem">bind</span> element can have text content,
         which is interpreted as a Javascript function. This function is called
         to transform the value and takes three arguments named

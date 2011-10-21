@@ -1,12 +1,17 @@
 <component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
-  xmlns:html="http://www.w3.org/1999/xhtml" id="integer">
-  <title>Editable integer</title>
+  xmlns:html="http://www.w3.org/1999/xhtml" id="integer"
+  f:tabindex="0" f:min="-Infinity" f:max="Infinity" f:step="1" f:value="0">
+
+  <title>Editable integer box</title>
+
   <stylesheet>
     .bender-integer { display: inline-block; cursor: pointer; padding: 4px;
-      border: solid thin black; width: 3em; text-align: right; }
+      border: solid thin black; width: 3em; text-align: right;
+      overflow: hidden; }
     .bender-naked .bender-integer { padding: 0; border: none; cursor: default; }
   </stylesheet>
-  <controller f:tabindex="0" f:min="-Infinity" f:max="Infinity" f:scale="1">
+
+  <controller>
     <script><![CDATA[
 
       $_.handleEvent = function(e)
@@ -14,39 +19,41 @@
         if (e.type === "keydown") {
           if (e.keyCode === 13 && typeof this.__value === "string") {
             this.set_event(parseInt(this.__value, 10));
-            this.outlets.div.blur();
+            this.component.views.n.blur();
             e.stopPropagation();
           } else if (e.keyCode === 27) {
-            this.set(this.value);
-            this.outlets.div.blur();
+            this.set(this.component.value);
+            this.component.views.n.blur();
             e.stopPropagation();
           } if (e.keyCode === 38) {
-            this.set_event(this.value + this.scale);
+            this.set_event(this.component.value +
+              Math.max(1, this.component.step));
             e.stopPropagation();
           } else if (e.keyCode === 40) {
-            this.set_event(this.value - this.scale);
+          this.set_event(this.component.value -
+              Math.max(1, this.component.step));
             e.stopPropagation();
           } else if (e.keyCode === 189 ||
             (e.keyCode >= 48 && e.keyCode <= 57)) {
             if (this.__value && e.keyCode !== 189) {
               this.__value += String.fromCharCode(e.keyCode);
-              this.outlets.div.textContent = this.__value;
+              this.component.views.n.textContent = this.__value;
             } else {
               this.__value = e.keyCode === 189 ? "-" :
                 String.fromCharCode(e.keyCode);
-              this.outlets.div.textContent = this.__value;
+              this.component.views.n.textContent = this.__value;
             }
             e.stopPropagation();
           } else {
-            this.set(this.value);
-            this.outlets.div.blur();
+            this.set(this.component.value);
+            this.component.views.n.blur();
             e.stopPropagation();
           }
         } else if (e.type === "mousedown" || e.type === "touchdown") {
           e.preventDefault();
-          this.outlets.div.blur();
+          this.component.views.n.blur();
           this.__start_y = flexo.event_page_pos(e).y;
-          this.__start_value = this.value;
+          this.__start_value = this.component.value;
           this.__cursor = document.documentElement.style.cursor;
           document.documentElement.style.cursor = "row-resize";
         } else if (typeof this.__start_y === "number") {
@@ -54,7 +61,7 @@
             if (this.__moved) {
               delete this.__moved;
             } else {
-              this.outlets.div.focus();
+              this.component.views.n.focus();
             }
             document.documentElement.style.cursor = this.__cursor;
             delete this.__start_y;
@@ -62,40 +69,42 @@
             delete this.__cursor;
           } else if (e.type === "mousemove" || e.type === "touchmove") {
             this.__moved = true;
-            this.set_event(this.__start_value - this.scale *
+            this.set_event(this.__start_value - this.component.step *
               (flexo.event_page_pos(e).y - this.__start_y));
           }
         }
       };
 
-      $_.set = function(n)
-      {
-        if (isNaN(n)) n = 0;
-        this.value = Math.floor(flexo.constrain_value(n, this.min, this.max));
-        this.outlets.div.textContent = this.value.toString();
-        delete this.__value;
-      };
-
       $_.set_event = function(n)
       {
-        var v = this.value;
-        this.set(n);
-        if (this.value !== v) this.notify("@change", { value: this.value });
+        var v = this.component.value;
+        if (isNaN(n)) n = 0;
+        this.component.value = Math.floor(flexo.constrain_value(n,
+          this.component.min, this.component.max));
+        delete this.__value;
+        if (this.value !== v) this.notify("@change");
       };
 
     ]]></script>
-    <connect outlet="div" target="n"/>
-    <listen dom-event="mousedown" source="n"/>
+    <listen dom-event="mousedown" view="n"/>
     <listen dom-event="mousemove"/>
     <listen dom-event="mouseup"/>
-    <listen dom-event="touchstart" source="n"/>
-    <listen dom-event="touchmove" source="n"/>
-    <listen dom-event="touchend" source="n"/>
-    <listen dom-event="keydown" source="n"/>
-    <listen event="@rendered" once="true" handler="set"/>
+    <listen dom-event="touchstart" view="n"/>
+    <listen dom-event="touchmove" view="n"/>
+    <listen dom-event="touchend" view="n"/>
+    <listen dom-event="keydown" view="n"/>
   </controller>
+
+  <bind value="tabindex" view="n" attr="tabindex"/>
+  <bind value="class" view="n">
+    if (value !== prev) {
+      if (prev) flexo.remove_class(view, prev);
+      if (value) flexo.add_class(view, value);
+    }
+  </bind>
+  <bind value="value" view="n"/>
+
   <view>
-    <!-- Should have role="range" but the ARIA spec seems to not like that. -->
-    <html:div class="bender-integer {class}" id="n" tabindex="{tabindex}"/>
+    <html:div id="n" class="bender-integer"/>
   </view>
 </component>

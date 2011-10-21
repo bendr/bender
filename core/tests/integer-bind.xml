@@ -1,0 +1,10 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:n="123">
+  <title>Integer box binding test</title>
+  <bind value="n" view="integer" property="value"/>
+  <view>
+    <html:p>
+      <component href="../../lib/integer.xml#integer" id="integer"/>
+    </html:p>
+  </view>
+</app>
