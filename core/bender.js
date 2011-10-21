@@ -854,13 +854,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return instance.bindings[value][view].map(function(node) {
           var attr = node.getAttribute("attr");
           var transform = /\S/.test(node.textContent) ?
-            new Function("$_", node.textContent) : flexo.id;
+            (new Function("value", "prev", "view", node.textContent))
+              .bind(instance) : flexo.id;
           if (attr) {
-            return function(v) {
-              view_.setAttribute(attr, transform(v));
+            return function(v, p) {
+              var v_ = transform(v, p, view_);
+              if (typeof v_ !== "undefined") view_.setAttribute(attr, v_);
             };
           } else {
-            return function(v) { view_.textContent = transform(v); };
+            return function(v, p) {
+              var v_ = transform(v, p, view_);
+              if (typeof v_ !== "undefined") view_.textContent = v_;
+            };
           }
         });
     };
@@ -873,8 +878,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       instance.__defineGetter__(value, function() { return v; });
       instance.__defineSetter__(value, function(v_) {
+        var p = v;
         v = v_;
-        setters.forEach(function(f) { f(v); });
+        setters.forEach(function(f) { f(v, p); });
       });
       instance[value] = v;
     };

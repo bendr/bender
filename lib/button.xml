@@ -58,11 +58,22 @@
     <listen dom-event="keydown" view="b"/>
   </controller>
 
-  <bind value="tabindex" view="b" attribute="tabindex"/>
-  <bind value="enabled" view="b" attribute="class" pattern="{0}{1}">
-    return value ? "" : " __disabled";
+  <bind value="tabindex" view="b" attr="tabindex"/>
+  <bind value="enabled" view="b">
+    flexo.set_class_iff(view, "__disabled", !value);
+    if (!value) {
+      this._tabindex = this.tabindex;
+      this.tabindex = -1;
+    } else if ("_tabindex" in this) {
+      this.tabindex = this._tabindex;
+    }
   </bind>
-  <bind value="class" view="b" attribute="class" pattern="{0} {1}"/>
+  <bind value="class" view="b">
+    if (value !== prev) {
+      if (prev) flexo.remove_class(view, prev);
+      if (value) flexo.add_class(view, value);
+    }
+  </bind>
 
   <view>
     <html:div class="bender-button" id="b" role="button">
