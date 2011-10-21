@@ -1,30 +1,33 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
   <title>SVG Clock</title>
+  <bind value="time" view="hours" attr="transform">
+    return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
+  </bind>
+  <bind value="time" view="minutes" attr="transform">
+    return "rotate({0})".fmt(value.getMinutes() * 6);
+  </bind>
+  <bind value="time" view="seconds" attr="r">
+    return 3 * value.getSeconds();
+  </bind>
   <controller id="metro" instance-of="bender.metro" f:rate-ms="333">
     <listen event="@rendered">
       this.bang();
     </listen>
   </controller>
   <controller>
+    <script>
+      $_.init = function() { this.component.time = new Date(); };
+    </script>
     <listen event="@rendered"><![CDATA[
       for (var i = 1; i < 60; ++i) {
         var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
           stroke: "white" });
-        this.outlets.seconds.parentNode.insertBefore(c, this.outlets.seconds);
+        this.component.views.seconds.parentNode
+          .insertBefore(c, this.component.views.seconds);
       }
     ]]></listen>
-    <connect target="seconds"/>
-    <connect target="minutes"/>
-    <connect target="hours"/>
-    <listen source="metro" event="@bang">
-      var now = new Date();
-      var seconds = now.getSeconds() + 60 * (now.getMinutes() + 60 *
-        now.getHours());
-      this.outlets.seconds.setAttribute("r", 3 * now.getSeconds());
-      this.outlets.minutes.setAttribute("transform", "rotate({0})"
-        .fmt(now.getMinutes() * 6));
-      this.outlets.hours.setAttribute("transform", "rotate({0})"
-        .fmt(now.getHours() * 30 + now.getMinutes() / 2));
+    <listen controller="metro" event="@bang">
+      this.component.time = new Date();
     </listen>
   </controller>
   <view>

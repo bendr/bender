@@ -1,12 +1,12 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Metro test</title>
+  <bind value="time" view="time"/>
   <controller id="metro" instance-of="bender.metro"/>
   <controller>
     <listen controller="metro" event="@bang">
-      this.component.views.time.textContent = new Date();
+      this.component.time = new Date();
     </listen>
     <listen event="@rendered">
-      this.component.views.time.textContent = 0;
       this.component.controllers.metro.bang();
     </listen>
   </controller>

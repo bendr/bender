@@ -1,0 +1,32 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Text clock with metro</title>
+  <bind value="time" view="hh">
+    return value.getHours();
+  </bind>
+  <bind value="time" view="mm">
+    var m = value.getMinutes();
+    return (m &lt; 10 ? "0" : "") + m.toString();
+  </bind>
+  <bind value="time" view="ss">
+    var s = value.getSeconds();
+    return (s &lt; 10 ? "0" : "") + s.toString();
+  </bind>
+  <controller id="metro" instance-of="bender.metro">
+    <listen event="@rendered">
+      this.bang();
+    </listen>
+  </controller>
+  <controller>
+    <script>
+      $_.init = function() { this.component.time = new Date(); };
+    </script>
+    <listen controller="metro" event="@bang">
+      this.component.time = new Date();
+    </listen>
+  </controller>
+  <view>
+    <html:p>Current time is:
+      <html:span id="hh"/>:<html:span id="mm"/>:<html:span id="ss"/>
+    </html:p>
+  </view>
+</app>
