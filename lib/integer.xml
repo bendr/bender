@@ -22,7 +22,7 @@
             this.component.views.n.blur();
             e.stopPropagation();
           } else if (e.keyCode === 27) {
-            this.set(this.component.value);
+            this.set_event(this.component.value);
             this.component.views.n.blur();
             e.stopPropagation();
           } if (e.keyCode === 38) {
@@ -45,7 +45,7 @@
             }
             e.stopPropagation();
           } else {
-            this.set(this.component.value);
+            this.set_event(this.component.value);
             this.component.views.n.blur();
             e.stopPropagation();
           }
