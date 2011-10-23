@@ -183,6 +183,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
     c.bindings = {};          // binding nodes indexed by value then by view
+    c.bound_events = {};      // same for events
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
@@ -224,7 +225,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     var c = flexo.create_object(prototype);
     c.node = node;
     c.component = instance;
-    c.outlets = {};
     c.init();
     set_parameters_from_attributes(node, c);
     return c;
@@ -352,11 +352,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (!value) throw "No value to bind";
       var view = node.getAttribute("view");
       if (!view) throw "No view to bind a value to";
-      if (!(value in prototype.bindings)) prototype.bindings[value] = {};
-      if (!(view in prototype.bindings[value])) {
-        prototype.bindings[value][view] = [];
+      var event = node.getAttribute("on-event");
+      var bindings = event ? "bound_events" : "bindings";
+      if (!(value in prototype[bindings])) prototype[bindings][value] = {};
+      if (!(view in prototype[bindings][value])) {
+        prototype[bindings][value][view] = [];
       }
-      prototype.bindings[value][view].push(node);
+      prototype[bindings][value][view].push(node);
       return true;
     },
 
@@ -784,8 +786,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
 
-  // Establish connections between outlets and nodes, as well as Bender and DOM
-  // event listeners
+  // Connect Bender and DOM event listeners
   var connect = function(instance)
   {
     instance.children.forEach(connect);
@@ -824,18 +825,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
               if (!source) source = instance.dest_body.ownerDocument;
             }
             bender.listen(source, ev, handler, once);
-          } else if (ch.localName === "connect") {
-            // <connect> node
-            var view = ch.getAttribute("view");
-            var controller_ = ch.getAttribute("controller");
-            if (view && controller_) throw "Ambiguous target for outlet";
-            var outlet = ch.getAttribute("outlet") || view || controller_;
-            if (!outlet) throw "No outlet for connect element";
-            if (outlet in controller.outlets) {
-              throw "Outlet {0} already exists".fmt(outlet);
-            }
-            controller.outlets[outlet] = view ? instance.find(view, "views") :
-              instance.find(controller_, "controller");
           }
         }
       }
@@ -891,6 +880,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       instance[value] = v;
     };
     for (var value in instance.bindings) getter_setter_for_value(value);
+
+    for (var value in instance.bound_events) {
+    }
+
   };
 
 })(typeof exports === "object" ? exports : this.bender = {});

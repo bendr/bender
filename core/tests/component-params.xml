@@ -17,9 +17,15 @@
         };
       ]]></script>
     </controller>
+    <bind value="cx" view="circle" attr="cx"/>
+    <bind value="cy" view="circle" attr="cy"/>
+    <bind value="r" view="circle" attr="r"/>
+    <bind value="fill" view="circle" attr="fill"/>
+    <bind value="fill-opacity" view="circle" attr="fill-opacity"/>
+    <bind value="stroke" view="circle" attr="stroke"/>
+    <bind value="filter" view="circle" attr="filter"/>
     <view>
-      <svg:circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}"
-        fill-opacity="{opacity}" stroke="{stroke}" filter="{filter}"/>
+      <svg:circle id="circle"/>
     </view>
   </component>
 
