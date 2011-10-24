@@ -1,0 +1,14 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Two-way (i.e., proper) binding test</title>
+  <bind value="n">
+    <view ref="integer" property="value" event="@change"/>
+    <view ref="num"/>
+  </bind>
+  <view>
+    <html:p>
+      <component href="../../lib/integer.xml#integer" id="integer"/> =
+      <html:span id="num"/>
+    </html:p>
+  </view>
+</app>

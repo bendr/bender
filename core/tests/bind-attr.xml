@@ -1,11 +1,14 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
-  xmlns:f="http://bender.igel.co.jp/f" xmlns:svg="http://www.w3.org/2000/svg"
-  e:fill="#08f" f:r="100">
-  <bind value="fill" view="circle" attr="fill"/>
-  <bind value="r" view="circle" attr="r"/>
+  xmlns:f="http://bender.igel.co.jp/f" xmlns:svg="http://www.w3.org/2000/svg">
+  <bind value="fill">
+    <view ref="circle" attr="fill"/>
+  </bind>
+  <bind value="r">
+    <view ref="circle" attr="r"/>
+  </bind>
   <view>
     <svg:svg viewBox="0 0 400 400">
-      <svg:circle id="circle" cx="200" cy="200"/>
+      <svg:circle id="circle" cx="200" cy="200" r="100" fill="#08f"/>
     </svg:svg>
   </view>
 </app>

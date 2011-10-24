@@ -4,7 +4,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
 (function(bender) {
 
-  bender.VERSION = "0.2.0";
+  bender.VERSION = "0.2.1";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";
@@ -182,8 +182,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
-    c.bindings = {};          // binding nodes indexed by value then by view
-    c.bound_events = {};      // same for events
+    c.bind_nodes = [];        // binding nodes
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
@@ -348,17 +347,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Store the bind node for later (rendering)
     bind: function(node, prototype)
     {
-      var value = node.getAttribute("value");
-      if (!value) throw "No value to bind";
-      var view = node.getAttribute("view");
-      if (!view) throw "No view to bind a value to";
-      var event = node.getAttribute("on-event");
-      var bindings = event ? "bound_events" : "bindings";
-      if (!(value in prototype[bindings])) prototype[bindings][value] = {};
-      if (!(view in prototype[bindings][value])) {
-        prototype[bindings][value][view] = [];
-      }
-      prototype[bindings][value][view].push(node);
+      prototype.bind_nodes.push(node);
       return true;
     },
 
@@ -833,11 +822,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
   };
 
-  // Implement the bindings by changing the plain values to properties with
-  // getter/setter
+  // Build the bind graph for all bind nodes
   var bind = function(instance)
   {
-    var setters_for_view = function(view, value)
+    instance.bind_nodes.forEach(function(node) {
+        
+      });
+
+    /*var setters_for_view = function(view, value)
     {
       var view_ = instance.find(view, "views");
       return instance.bindings[value][view].map(function(node) {
@@ -879,10 +871,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       });
       instance[value] = v;
     };
-    for (var value in instance.bindings) getter_setter_for_value(value);
-
-    for (var value in instance.bound_events) {
-    }
+    for (var value in instance.bindings) getter_setter_for_value(value);*?
 
   };
 

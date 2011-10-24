@@ -1,6 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:e="http://bender.igel.co.jp/e" xmlns:f="http://bender.igel.co.jp/f">
-  <title>A timer test</title>
+  <title>A complex timer test</title>
+
   <stylesheet>
 .pop { padding: 4px; border: solid 2px black;
   background-color: transparent !important; font-weight: bold;
@@ -13,46 +14,46 @@
 .pop.__disabled { opacity: 0.5; }
 #time { font-size: 1000%; }
   </stylesheet>
+
+  <!-- Keep track of the running state of the metro -->
+  <bind value="running">
+    <view ref="led" property="on"/>
+    <view ref="stop-button">
+      <get event="@pushed">
+        if (this.paused) {
+          // was paused or stop, so really stop
+          this.paused = false;
+        } else {
+          this.paused = true;
+        }
+      </get>
+      <set/>
+    </view>
+    <view ref="resume-button" event="@pushed">
+      <get></get>
+      <set></set>
+    </view>
+    <view ref="restart-button" event="@pushed">
+      <get></get>
+      <set></set>
+    </view>
+  </bind>
+
   <controller id="metro" instance-of="bender.metro" f:rate-ms="75"/>
+
   <controller>
-    <connect outlet="resume_button" target="resume-button"/>
-    <connect target="led"/>
-    <connect outlet="ms_check" target="ms-check"/>
-    <connect outlet="int_box" target="int-box"/>
     <script><![CDATA[
-      $_.update_time = function()
-      {
-        var s = Math.floor(this.current_time / 1000) % 60;
-        var m = Math.floor(this.current_time / 60000) % 60;
-        var h = Math.floor(this.current_time / 3600000);
-        var ms = this.current_time % 1000;
-        this.outlets.time.textContent =
-          (this.outlets.ms_check.checked ?
-            "{0}{1}:{2}{3}:{4}{5}.{6}{7}{8}" : "{0}{1}:{2}{3}:{4}{5}")
-            .fmt(h < 10 ? "0" : "", h,
-              m < 10 ? "0" : "", m,
-              s < 10 ? "0" : "", s,
-              ms < 10 ? "0" : "", ms < 100 ? "0" : "", ms % 1000);
-      };
       $_.start = function()
       {
         this.start_time = (new Date).valueOf();
-        this.current_time = this.start_time;
         this.outlets.led.status = "on";
         this.outlets.metro.bang();
         this.outlets.resume_button.controllers[""].enable(false);
       };
     ]]></script>
-    <connect target="time"/>
-    <connect target="metro"/>
-    <listen event="@ready">
-      this.outlets.int_box.controllers[""].set(this.outlets.metro["rate-ms"]);
-      this.start();
-    </listen>
-    <listen source="metro" event="@bang">
-      this.current_time = (new Date).valueOf() - this.start_time;
-      this.update_time();
-    </listen>
+
+    <listen event="@ready" handler="start"/>
+
     <listen source="stop-button" event="@pushed">
       if (this.outlets.led.status === "on") {
         this.outlets.led.status = "off";
@@ -66,6 +67,7 @@
         this.outlets.resume_button.controllers[""].enable(false);
       }
     </listen>
+
     <listen source="resume-button" event="@pushed"><![CDATA[
       if (this.outlets.led.status === "off" && this.__stop_time) {
         this.start_time += (new Date).valueOf() - this.__stop_time;
@@ -84,6 +86,39 @@
       this.outlets.metro["rate-ms"] = event.value;
     </listen>
   </controller>
+
+  <!-- Show ms flag -->
+  <bind value="show_ms">
+    <view ref="ms-check" property="checked" event="@checked"/>
+  </bind>
+
+  <!-- On metro events: update current_time, LED is on, show the current
+  time -->
+  <bind value="current_time">
+    <controller ref="metro" event="@bang">
+      <get>
+        return (new Date).valueOf() - this.start_time;
+      </get>
+    </controller>
+    <view ref="led" property="status">
+      <set>return "on";</set>
+    </view>
+    <view ref="time">
+      <set><![CDATA[
+        var s = Math.floor(value / 1000) % 60;
+        var m = Math.floor(value / 60000) % 60;
+        var h = Math.floor(value / 3600000);
+        var ms = value % 1000;
+        return (this.show_ms ?
+          "{0}{1}:{2}{3}:{4}{5}.{6}{7}{8}" : "{0}{1}:{2}{3}:{4}{5}")
+          .fmt(h < 10 ? "0" : "", h,
+            m < 10 ? "0" : "", m,
+            s < 10 ? "0" : "", s,
+            ms < 10 ? "0" : "", ms < 100 ? "0" : "", ms % 1000);
+      ]]></set>
+    </view>
+  </bind>
+
   <view>
     <html:p>
       <component href="../../lib/led.xml#led" id="led"/>

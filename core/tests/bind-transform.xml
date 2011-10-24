@@ -1,9 +1,11 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
   xmlns:html="http://www.w3.org/1999/xhtml" f:n="123">
   <title>Transformed value</title>
-  <bind value="n" view="num"/>
-  <bind value="n" view="roman">
-    return flexo.to_roman(value) || "???";
+  <bind value="n">
+    <view ref="num"/>
+    <view ref="roman">
+      return flexo.to_roman(value) || "???";
+    </view>
   </bind>
   <view>
     <html:p>

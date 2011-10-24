@@ -9,14 +9,22 @@
     .bender-led.off { fill: #888; }
     .bender-led.on { fill: #0f8; }
   </stylesheet>
-  <bind value="width" view="svg" attr="width"/>
-  <bind value="height" view="svg" attr="height"/>
-  <bind value="status" view="circle">
-    if (value !== prev) {
-      if (prev) flexo.remove_class(view, prev);
-      if (value) flexo.add_class(view, value);
-    }
+
+  <bind value="width">
+    <view ref="svg" attr="width"/>
   </bind>
+
+  <bind value="height">
+    <view ref="svg" attr="height"/>
+  </bind>
+
+  <bind value="on">
+    <view ref="circle">
+      flexo.remove_class(view, value ? "off" : "on");
+      flexo.add_class(view, value ? "on" : "off");
+    </view>
+  </bind>
+
   <view>
     <svg:svg id="svg" viewBox="0 0 100 100">
       <svg:circle id="circle" class="bender-led" cx="50" cy="50" r="50"/>

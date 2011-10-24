@@ -1,5 +1,12 @@
 Bender; or, a Web application framework.
-Copyright © 2011, IGEL Co., Ltd. (http://www.igel.co.jp/)
+Copyright © 2011, IGEL Co., Ltd. (http://www.igel.co.jp/bender/)
+
+
+Bender is a Web application framework consisting of a markup language for
+application and component description, a Javascript runtime engine for Web
+browsers and SVG players, and a library of Javascript support code and
+predefined components. Bender is free software, released under the Apache
+License v2.0 and currently under active development.
 
 
 Install and run Bender
@@ -37,10 +44,15 @@ Install and run Bender
 
 Release Notes
 
-  This is a very early release of Bender (v0.2.0, 2011-10-23) and as such is
+  This is a very early release of Bender (v0.2.1, 2011-10-xx) and as such is
   more of a sneak preview than an actual release. Thank you for your interest!
   Bender is free software, released under the Apache License v2.0 (see included
   LICENSE file.) Please contact bender@igel.co.jp for comments, questions, etc.
+
+  Changes in v0.2.1 (2011-10-xx)
+
+    - (TODO) Proper <bind> element
+    - (TODO) extend components
 
   Changes in v0.2.0 (2011-10-23)
 
