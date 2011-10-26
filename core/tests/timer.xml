@@ -15,19 +15,20 @@
 #time { font-size: 1000%; }
   </stylesheet>
 
+  <bind>
+    <set value="running"/>
+    <set view="led" property="on"/>
+  </bind>
+
   <!-- Keep track of the running state of the metro -->
   <bind value="running">
     <view ref="led" property="on"/>
-    <view ref="stop-button">
-      <get event="@pushed">
-        if (this.paused) {
-          // was paused or stop, so really stop
-          this.paused = false;
-        } else {
-          this.paused = true;
-        }
-      </get>
-      <set/>
+    <view ref="stop-button" event="@pushed">
+      if (this.paused) {
+        this.paused = false;
+      } else {
+        this.paused = true;
+      }
     </view>
     <view ref="resume-button" event="@pushed">
       <get></get>

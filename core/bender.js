@@ -324,6 +324,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
     prototype.parent = parent;
     if (prototype.id) parent.components[prototype.id] = prototype.uri;
     prototype.app.uri_map[prototype.uri] = prototype;
+    if (prototype.uri_) {
+      prototype.app.uri_map[prototype.uri_] = prototype;
+      delete prototype.uri_;
+    }
     setTimeout(function() { bender.notify(parent, "@bender-load"); }, 0);
   };
 
@@ -378,6 +382,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
         // in that document.)
         var id = node.getAttribute("id");
         if (id) {
+          if (node === node.ownerDocument.documentElement) {
+            prototype.uri_ = prototype.uri;
+          }
           prototype.id = id;
           prototype.uri += "#" + id;
         }
@@ -826,7 +833,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   var bind = function(instance)
   {
     instance.bind_nodes.forEach(function(node) {
-        
       });
 
     /*var setters_for_view = function(view, value)
@@ -871,7 +877,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       });
       instance[value] = v;
     };
-    for (var value in instance.bindings) getter_setter_for_value(value);*?
+    for (var value in instance.bindings) getter_setter_for_value(value);*/
 
   };
 
