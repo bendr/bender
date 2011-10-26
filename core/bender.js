@@ -182,7 +182,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
-    c.bind_nodes = [];        // binding nodes
+    c.bind_nodes = [];        // bind nodes from which the graph is built
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
@@ -824,61 +824,26 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       }
-      bind(instance);
       bender.notify(controller, "@rendered");
     }
+    bind(instance);
   };
 
   // Build the bind graph for all bind nodes
   var bind = function(instance)
   {
+    flexo.log("bind {0}".fmt(instance.instance_id));
     instance.bind_nodes.forEach(function(node) {
-      });
-
-    /*var setters_for_view = function(view, value)
-    {
-      var view_ = instance.find(view, "views");
-      return instance.bindings[value][view].map(function(node) {
-          var attr = node.getAttribute("attr");
-          var property = node.getAttribute("property");
-          if (property) {
-            if (attr) throw "bind with both attr and property attributes";
-          } else {
-            property = "textContent";
+        for (var ch = node.firstElementChild; ch;
+          ch = ch.nextElementSibling) {
+          if (ch.namespaceURI !== bender.NS) continue;
+          if (ch.localName === "update") {
+          } else if (ch.localName === "get") {
+          } else if (ch.localName === "set") {
+          } else if (ch.localName === "touch") {
           }
-          var transform = /\S/.test(node.textContent) ?
-            (new Function("value", "prev", "view", node.textContent))
-              .bind(instance) : flexo.id;
-          if (attr) {
-            return function(v, p) {
-              var v_ = transform(v, p, view_);
-              if (typeof v_ !== "undefined") view_.setAttribute(attr, v_);
-            };
-          } else {
-            return function(v, p) {
-              var v_ = transform(v, p, view_);
-              if (typeof v_ !== "undefined") view_[property] = v_;
-            };
-          }
-        });
-    };
-    var getter_setter_for_value = function(value)
-    {
-      var v = instance[value];
-      var setters = [];
-      for (var view in instance.bindings[value]) {
-        [].push.apply(setters, setters_for_view(view, value));
-      }
-      instance.__defineGetter__(value, function() { return v; });
-      instance.__defineSetter__(value, function(v_) {
-        var p = v;
-        v = v_;
-        setters.forEach(function(f) { f(v, p); });
+        }
       });
-      instance[value] = v;
-    };
-    for (var value in instance.bindings) getter_setter_for_value(value);*/
-
   };
 
 })(typeof exports === "object" ? exports : this.bender = {});

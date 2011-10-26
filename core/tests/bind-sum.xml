@@ -1,15 +1,15 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Multiple binding test</title>
-  <bind value="x">
-    <view ref="x" property="value" event="@change"/>
-    <view ref="sum">
-      return this.x + this.y;
-    </view>
+  <bind>
+    <update view="x" property="value" event="@change"/>
+    <set view="sum">
+      return this.x.value + this.y.value;
+    </set>
   </bind>
-  <bind value="y">
-    <view ref="y" property="value" event="@change"/>
-    <view ref="sum"/>
+  <bind>
+    <update view="y" property="value" event="@change"/>
+    <touch view="sum"/>
   </bind>
   <view>
     <html:p>

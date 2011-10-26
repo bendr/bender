@@ -95,14 +95,25 @@
     <listen dom-event="keydown" view="n"/>
   </controller>
 
-  <bind value="tabindex" view="n" attr="tabindex"/>
-  <bind value="class" view="n">
-    if (value !== prev) {
-      if (prev) flexo.remove_class(view, prev);
-      if (value) flexo.add_class(view, value);
-    }
+  <bind>
+    <update poperty="tabindex"/>
+    <set view="n" attr="tabindex"/>
   </bind>
-  <bind value="value" view="n"/>
+
+  <bind>
+    <update property="class"/>
+    <touch view="n">
+      if (value !== prev) {
+        if (prev) flexo.remove_class(view, prev);
+        if (value) flexo.add_class(view, value);
+      }
+    </touch>
+  </bind>
+
+  <bind>
+    <update property="value"/>
+    <set view="n"/>
+  </bind>
 
   <view>
     <html:div id="n" class="bender-integer"/>

@@ -1,6 +1,6 @@
-<component xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
-  xmlns:svg="http://www.w3.org/2000/svg" id="led" e:status="off"
-  e:width="16px" e:height="16px">
+<component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:e="http://bender.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg"
+  id="led" e:width="16px" e:height="16px" b:on="false">
   <title>LED</title>
   <help>This is a very simple LED showing an on/off state. Simply give it a
     height and a width to display itself in, and switch its status between on
@@ -22,12 +22,10 @@
 
   <bind>
     <update property="on"/>
-    <update view="circle">
-      <set>
-        flexo.remove_class(view, value ? "off" : "on");
-        flexo.add_class(view, value ? "on" : "off");
-      </set>
-    </update>
+    <touch view="circle">
+      flexo.remove_class(view, value ? "off" : "on");
+      flexo.add_class(view, value ? "on" : "off");
+    </touch>
   </bind>
 
   <view>
