@@ -25,6 +25,7 @@ var status_elem = document.getElementById("status");
 
 if (args.debug) flexo.remove_class(status_elem, "hidden");
 if (args.app) {
+  status_elem.textContent = "Loading";
   bender.init_app(args.path + args.app + args.suffix, args,
     function(app) {
       if (args.debug) {

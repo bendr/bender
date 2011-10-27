@@ -51,25 +51,25 @@ function link_elements(template)
 
 // TODO highlight with data-hl
 // TODO make links for href attributes; syntax highlighting?
-function get_examples()
+function get_examples(debug)
 {
-  console.log("get_examples");
+  debug = debug || 0;
   [].forEach.call(document.querySelectorAll(".include-src"), function(p) {
       flexo.dataset(p);
       if (typeof p.dataset.expanded === "string" && p.dataset.expanded) {
-        expand_example(p);
+        expand_example(p, debug);
       } else {
         var span = flexo.html("span", { "class": "expand" }, "☞ ");
         span.addEventListener("click", function() {
             p.removeChild(span);
-            expand_example(p);
+            expand_example(p, debug);
           }, false);
         p.insertBefore(span, p.firstChild);
       }
     });
 }
 
-function expand_example(p)
+function expand_example(p, debug)
 {
   var req = new XMLHttpRequest();
   req.open("GET", p.dataset.src);
@@ -84,9 +84,9 @@ function expand_example(p)
         if (req.responseXML &&
           req.responseXML.documentElement.namespaceURI === bender.NS &&
           req.responseXML.documentElement.localName === "app") {
-          p.insertBefore(flexo.html("a",
-            { href: "../core/bender.{0}?app={1}".fmt(suffix, src) }, "▶ "),
-            p.firstChild);
+          var href = "../core/bender.{0}?app={1}".fmt(suffix, src);
+          if (debug) href += "&debug={0}".fmt(debug);
+          p.insertBefore(flexo.html("a", { href: href }, "▶ "), p.firstChild);
         }
       } else {
         flexo.add_class(p, "error");
