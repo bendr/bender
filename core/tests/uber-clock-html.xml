@@ -1,0 +1,19 @@
+<app xmlns="http://bender.igel.co.jp" extends="uber-clock">
+  <title>Über Clock (HTML)</title>
+  <bind value="time" view="hh">
+    return value.getHours();
+  </bind>
+  <bind value="time" view="mm">
+    var m = value.getMinutes();
+    return (m &lt; 10 ? "0" : "") + m.toString();
+  </bind>
+  <bind value="time" view="ss">
+    var s = value.getSeconds();
+    return (s &lt; 10 ? "0" : "") + s.toString();
+  </bind>
+  <view>
+    <html:p>
+      <html:span id="hh"/>:<html:span id="mm"/>:<html:span id="ss"/>
+    </html:p>
+  </view>
+</app>

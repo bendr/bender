@@ -1,0 +1,36 @@
+<app xmlns="http://bender.igel.co.jp" extends="uber-clock">
+  <title>Über Clock (SVG)</title>
+  <bind value="time" view="hours" attr="transform">
+    return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
+  </bind>
+  <bind value="time" view="minutes" attr="transform">
+    return "rotate({0})".fmt(value.getMinutes() * 6);
+  </bind>
+  <bind value="time" view="seconds" attr="r">
+    return 3 * value.getSeconds();
+  </bind>
+  <controller>
+    <script><![CDATA[
+      $_.rendered = function() {
+        for (var i = 1; i < 60; ++i) {
+          var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2,
+            fill: "none", stroke: "white" });
+          this.component.views.seconds.parentNode
+            .insertBefore(c, this.component.views.seconds);
+        }
+      };
+    ]]></listen>
+  </controller>
+  <view>
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
+      viewBox="-220 -220 440 440">
+      <circle r="200" fill="#a1dcff"/>
+      <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
+        stroke-opacity="0.75"/>
+      <line y1="20" y2="-180" stroke="#26521f" stroke-width="4"
+        stroke-linecap="round" id="minutes" stroke-opacity="0.8"/>
+      <line y1="8" y2="-90" stroke="#d1372f" stroke-width="8"
+        stroke-linecap="round" id="hours" stroke-opacity="0.9"/>
+    </svg>
+  </view>
+</app>
