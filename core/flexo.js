@@ -1,4 +1,4 @@
-// Bender application support library
+// General pupropse Javascript support library; as used by Bender
 
 
 // Simple format function for messages and templates. Use {0}, {1}...
@@ -65,6 +65,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
   flexo.XML_NS = "http://www.w3.org/1999/xml";
 
+
   // Id function
   flexo.id = function(x) { return x; };
 
@@ -80,15 +81,34 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }
   };
 
+  // Chop the last character of a string if it's a newline
+  flexo.chomp = function(string)
+  {
+    return string.replace(/\n$/, "");
+  };
+
+  // Object.create replacement; necessary for Opera or Vidualize.
+  // Extra arguments are definitions of additional properties.
+  flexo.create_object = function(o)
+  {
+    var f = function() {};
+    f.prototype = o;
+    var f_ = new f;
+    for (var i = 1; i < arguments.length; ++i) {
+      for (var a in arguments[i]) f_[a] = arguments[i][a];
+    }
+    return f_;
+  };
+
   // Define a getter/setter for a property, using Object.defineProperty if
   // available, otherwise the deprecated __defineGetter__/__defineSetter__
   flexo.getter_setter = function(o, prop, getter, setter)
   {
     if (typeof Object.defineProperty === "function") {
-      if (!getter) getter = undefined;
-      if (!setter) setter = undefined;
-      Object.defineProperty(o, prop, { enumerable: true, configurable: true,
-        get: getter, set: setter });
+      var props = { enumerable: true, configurable: true };
+      if (getter) props.getter = getter;
+      if (setter) props.setter = setter;
+      Object.defineProperty(o, prop, props);
     } else {
       if (getter) o.__defineGetter__(prop, getter);
       if (setter) o.__defineSetter__(prop, setter);
@@ -100,6 +120,29 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     return (function() { return this; })();
   };
+
+  // Simple wrapper for XMLHttpRequest GET request with no data; call back with
+  // the request object on success, throw an exception on error.
+  flexo.request_uri = function(uri, f)
+  {
+    var req = new XMLHttpRequest();
+    req.open("GET", uri);
+    req.onreadystatechange = function()
+    {
+      if (req.readyState === 4) {
+        if (req.status === 200 || req.status === 0) {
+          f(req);
+        } else {
+          throw "get_uri failed for {0}: {1}".fmt(uri, req.status);
+        }
+      }
+    };
+    req.send("");
+  };
+
+
+  // Randomness
+  // TODO drunk
 
   // Return a random element from an array
   flexo.random_element = function(a)
@@ -130,11 +173,20 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return min + Math.random() * (max - min);
   };
 
+
+  // Transforming values
+
   // Return the value constrained between min and max.
   flexo.constrain_value = function(value, min, max)
   {
     if (isNaN(value)) value = 0;
     return Math.max(Math.min(value, max), min);
+  };
+
+  // Remap a value from a given range to another range (from Processing)
+  flexo.remap = function(value, istart, istop, ostart, ostop)
+  {
+    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
   };
 
   // Convert a number to roman numerals (integer part only; n must be positive
@@ -156,7 +208,6 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       }
       return r;
     }
-
     if (typeof n === "number" && n >= 0) {
       n = Math.floor(n);
       if (n === 0) return "nulla";
@@ -169,15 +220,25 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }
   };
 
-  // Remove all children of an element
-  flexo.remove_children = function(elem)
+
+  // DOM related functions
+
+  // Append a class to an element (if it does not contain it already)
+  flexo.add_class = function(elem, c)
   {
-    var child = elem.firstElementChild;
-    while (child) {
-      var next = child.nextElementSibling;
-      elem.removeChild(child);
-      child = next;
+    var k = elem.className;
+    if (!flexo.has_class(elem, c)) {
+      elem.className = "{0}{1}{2}".fmt(k, k ? " " : "", c);
     }
+  };
+
+  // Wrapper for createObjectURL, since different browsers have different
+  // namespaces for it
+  flexo.create_object_url = function(file)
+  {
+    return window.webkitURL ? window.webkitURL.createObjectURL(file) :
+      window.URL ? window.URL.createObjectURL(file) :
+      createObjectURL(file);
   };
 
   // Create a dataset attribute if not present
@@ -194,13 +255,39 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       });
   };
 
-  // Append a class to an element (if it does not contain it already)
-  flexo.add_class = function(elem, c)
+  // Make a DOM Element node in the current document
+  flexo.elem = function(ns, name, attrs, contents)
   {
-    var k = elem.className;
-    if (!flexo.has_class(elem, c)) {
-      elem.className = "{0}{1}{2}".fmt(k, k ? " " : "", c);
+    var elem = ns ? document.createElementNS(ns, name) :
+      document.createElement(name);
+    for (attr in attrs) elem.setAttribute(attr, attrs[attr]);
+    if (typeof contents === "string") {
+      elem.textContent = contents;
+    } else if (contents && contents.forEach) {
+      contents.forEach(function(ch) { elem.appendChild(ch); });
     }
+    return elem;
+  };
+
+  // Get clientX/clientY as an object { x: ..., y: ... } for events that may
+  // be either a mouse event or a touch event, in which case the position of
+  // the first touch is returned.
+  flexo.event_client_pos = function(e)
+  {
+    return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
+      y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
+  };
+
+  // Get pageX/pageY as an object { x: ..., y: ... } for events that may be
+  // either a mouse event or a touch event, in which case the position of the
+  // first touch is returned. This is client position (clientX/clientY) offset
+  // by the document body scroll position
+  // TODO check whether this is always correct
+  flexo.event_page_pos = function(e)
+  {
+    var p = flexo.event_client_pos(e);
+    return { x: p.x + document.body.scrollLeft,
+      y: p.y + document.body.scrollTop };
   };
 
   // Test whether an element has the given class
@@ -208,6 +295,35 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     return (new RegExp("\\b{0}\\b".fmt(c))).test(elem.className);
   };
+
+  // Make an HTML element (without namespace) in the current document
+  flexo.html = function(name, attrs, contents)
+  {
+    return flexo.elem(null, name, attrs, contents);
+  };
+
+  // Remove all children of an element
+  flexo.remove_children = function(elem)
+  {
+    var child = elem.firstElementChild;
+    while (child) {
+      var next = child.nextElementSibling;
+      elem.removeChild(child);
+      child = next;
+    }
+  };
+
+  // requestAnimationFrame
+  if (typeof window !== "undefined") {
+    flexo.request_animation_frame =
+      window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame ||
+      window.oRequestAnimationFrame ||
+      function(f) {
+        return setTimeout(function() { f(Date.now()); }, 1000 / 60);
+      };
+  }
 
   // Remove the given class from an element and return it. If it did not have
   // the class to start with, return an empty string.
@@ -227,43 +343,44 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     flexo[(p ? "add" : "remove") + "_class"](elem, c);
   };
 
-  // Get clientX/clientY as an object { x: ..., y: ... } for events that may
-  // be either a mouse event or a touch event, in which case the position of
-  // the first touch is returned.
-  flexo.event_client_pos = function(e)
+
+  // SVG specific functions
+  // TODO these work in the SVG namespace, what about inline SVG in HTML5?
+
+  // Get an SVG point for the event in the context of an SVG element (or the
+  // closest svg element by default)
+  flexo.event_svg_point = function(e, svg)
   {
-    return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
-      y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
+    if (!svg) svg = flexo.find_svg(e);
+    var p = svg.createSVGPoint();
+    p.x = e.targetTouches ? e.targetTouches[0].clientX : e.clientX;
+    p.y = e.targetTouches ? e.targetTouches[0].clientY : e.clientY;
+    return p.matrixTransform(svg.getScreenCTM().inverse());
   };
 
-  // Get pageX/pageY as an object { x: ..., y: ... } for events that may be
-  // either a mouse event or a touch event, in which case the position of the
-  // first touch is returned. This is client position (clientX/clientY) offset
-  // by the document body scroll position
-  flexo.event_page_pos = function(e)
-  {
-    var p = flexo.event_client_pos(e);
-    return { x: p.x + document.body.scrollLeft,
-      y: p.y + document.body.scrollTop };
-  };
-
-  // Find the closests <svg> ancestor for a given element
+  // Find the closest <svg> ancestor for a given element
   flexo.find_svg = function(elem)
   {
     return elem.namespaceURI === flexo.SVG_NS &&
       elem.localName === "svg" ? elem : flexo.find_svg(elem.parentNode);
   };
 
-  // Get an SVG point for the event in the context of an SVG element (or the
-  // document element by default)
-  flexo.event_svg_point = function(e, svg)
+  // Make an SVG element in the current document
+  flexo.svg = function(name, attrs, contents)
   {
-    if (!svg) svg = document.documentElement;
-    var p = svg.createSVGPoint();
-    p.x = e.targetTouches ? e.targetTouches[0].clientX : e.clientX;
-    p.y = e.targetTouches ? e.targetTouches[0].clientY : e.clientY;
-    return p.matrixTransform(svg.getScreenCTM().inverse());
+    return flexo.elem(flexo.SVG_NS, name, attrs, contents);
   };
+
+  // Make an SVG element with an xlink:href attribute
+  flexo.svg_href = function(name, href, attrs, contents)
+  {
+    var elem = flexo.elem(flexo.SVG_NS, name, attrs, contents);
+    elem.setAttributeNS(flexo.XLINK_NS, "href", href);
+    return elem;
+  };
+
+
+  // Color functions
 
   // Convert a color from hsv space (hue in degrees, saturation and brightness
   // in the [0, 1] range) to RGB, returned as an array in the [0, 256[ range.
@@ -286,6 +403,12 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return rgb;
   };
 
+  // Convert an RGB color (3 values) to a hex value
+  flexo.rgb_to_hex = function(r, g, b)
+  {
+    return "#" + r.toString(16) + g.toString(16) + b.toString(16);
+  };
+
 
   // Some canvas stuff
 
@@ -293,7 +416,6 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // (or more acurately its 2D drawing context.)
   flexo.draw_path = function(path, context)
   {
-
     // Return the tokens (commands and parameters) for path data, everything
     // else is ignored (no error reporting is done.) The token list has a
     // next_p method to get the next parameter, or 0 if there is none.
@@ -405,62 +527,6 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       });
   };
 
-
-  // Make a DOM Element node in the current document
-  flexo.elem = function(ns, name, attrs, contents)
-  {
-    var elem = ns ? document.createElementNS(ns, name) :
-      document.createElement(name);
-    for (attr in attrs) elem.setAttribute(attr, attrs[attr]);
-    if (typeof contents === "string") {
-      elem.textContent = contents;
-    } else if (contents && contents.forEach) {
-      contents.forEach(function(ch) { elem.appendChild(ch); });
-    }
-    return elem;
-  };
-
-  // Make an SVG element in the current document
-  flexo.svg = function(name, attrs, contents)
-  {
-    return flexo.elem(flexo.SVG_NS, name, attrs, contents);
-  };
-
-  // Make an SVG element with an xlink:href attribute
-  flexo.svg_href = function(name, href, attrs, contents)
-  {
-    var elem = flexo.elem(flexo.SVG_NS, name, attrs, contents);
-    elem.setAttributeNS(flexo.XLINK_NS, "href", href);
-    return elem;
-  };
-
-  // Make an HTML element (without namespace) in the current document
-  flexo.html = function(name, attrs, contents)
-  {
-    return flexo.elem(null, name, attrs, contents);
-  };
-
-  // Object.create replacement; necessary for Opera or Vidualize.
-  // Extra arguments are definitions of additional properties.
-  flexo.create_object = function(o)
-  {
-    var f = function() {};
-    f.prototype = o;
-    var f_ = new f;
-    for (var i = 1; i < arguments.length; ++i) {
-      for (var a in arguments[i]) f_[a] = arguments[i][a];
-    }
-    return f_;
-  };
-
-  // Wrapper for createObjectURL, since different browsers have different
-  // namespaces for it
-  flexo.create_object_url = function(file)
-  {
-    return window.webkitURL ? window.webkitURL.createObjectURL(file) :
-      window.URL ? window.URL.createObjectURL(file) :
-      createObjectURL(file);
-  };
 
   // Basic handler for pointing, with a mouse or touch
   flexo.point_handler =
