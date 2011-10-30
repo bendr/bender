@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Welcome to Bender!</title>
   <controller>
-    <listen source="button" event="@pushed">
+    <listen view="button" event="@pushed">
       alert("You're welcome!");
     </listen>
   </controller>
