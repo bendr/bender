@@ -174,7 +174,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       render_component(instance.root_node, instance);
       return instance;
     }
-
   };
 
   // Setup the object for a new component (before loading)
@@ -182,11 +181,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var c = flexo.create_object(bender.component);
     c.app = app || c;         // the current app
-    c.bind_nodes = [];        // bind nodes from which the graph is built
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
     c.root_node = node;       // root node of the component
+    c.update_nodes = [];      // update nodes
     c.uri = node.ownerDocument.baseURI;
     return c;
   };
@@ -259,28 +258,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // only in Safari), and is only for development versions
   var load_uri = function(uri, dest_body, f, app)
   {
-    var req = new XMLHttpRequest();
-    req.open("GET", uri);
-    req.onreadystatechange = function()
-    {
-      if (req.readyState === 4) {
-        if (req.status === 200 || req.status === 0) {
-          if (!req.responseXML) throw "Could not get XML for URI {0}".fmt(uri);
-          var node = req.responseXML.documentElement;
-          var prototype = app ?
-            bender.create_component(node, dest_body, app) :
-            bender.create_app(node, dest_body);
-          load_async.trampoline(prototype.root_node, prototype,
-            function(error) {
-              if (error) throw error;
-              f(prototype);
-            });
-        } else {
-          throw "load_uri() failed to get {0}: {1}".fmt(uri, req.status);
-        }
-      }
-    };
-    req.send("");
+    flexo.request_uri(uri, function(req) {
+        if (!req.responseXML) throw "Could not get XML for URI {0}".fmt(uri);
+        var node = req.responseXML.documentElement;
+        var prototype = app ?
+          bender.create_component(node, dest_body, app) :
+          bender.create_app(node, dest_body);
+        load_async.trampoline(prototype.root_node, prototype,
+          function(error) {
+            if (error) throw error;
+            f(prototype);
+          });
+      });
   };
 
   // Load the current node--there might be nothing to do, loading may be
@@ -348,13 +337,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // return true.
   var will_load_element =
   {
-    // Store the bind node for later (rendering)
-    bind: function(node, prototype)
-    {
-      prototype.bind_nodes.push(node);
-      return true;
-    },
-
     // At the loading stage, treat <component href="..."> in the same manner as
     // <include href="..."> (instantation will differ though.) For component
     // definitions, update the URI of the prototype.
@@ -407,21 +389,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           prototype);
     },
 
-    // Store the title node in the component prototype
-    title: function(node, prototype)
-    {
-      prototype.metadata.title = node;
-      return true;
-    },
-
-    // Keep track of the view node
-    view: function(node, prototype)
-    {
-      if (prototype.view_node) throw "Redefinition of view";
-      prototype.view_node = node;
-      return true;
-    },
-
     // Script may defer loading: if there is an href attribute, then pause
     // loading of the document until the script has been run, since later
     // scripts may depend on this one.
@@ -462,6 +429,28 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.elem(prototype.dest_body.namespaceURI, "style", {},
             node.textContent);
       find_head(prototype.dest_body.ownerDocument).appendChild(elem);
+      return true;
+    },
+
+    // Store the title node in the component prototype
+    title: function(node, prototype)
+    {
+      prototype.metadata.title = node;
+      return true;
+    },
+
+    // Store the update node for later (rendering)
+    update: function(node, prototype)
+    {
+      prototype.update_nodes.push(node);
+      return true;
+    },
+
+    // Keep track of the view node
+    view: function(node, prototype)
+    {
+      if (prototype.view_node) throw "Redefinition of view";
+      prototype.view_node = node;
       return true;
     }
   };
@@ -826,21 +815,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       bender.notify(controller, "@rendered");
     }
-    bind(instance);
+    setup_updates(instance);
   };
 
   // Build the bind graph for all bind nodes
-  var bind = function(instance)
+  var setup_updates = function(instance)
   {
-    flexo.log("bind {0}".fmt(instance.instance_id));
-    instance.bind_nodes.forEach(function(node) {
+    instance.update_nodes.forEach(function(node) {
         for (var ch = node.firstElementChild; ch;
           ch = ch.nextElementSibling) {
           if (ch.namespaceURI !== bender.NS) continue;
-          if (ch.localName === "update") {
-          } else if (ch.localName === "get") {
+          if (ch.localName === "get") {
           } else if (ch.localName === "set") {
-          } else if (ch.localName === "touch") {
           }
         }
       });
