@@ -1,4 +1,4 @@
-// General pupropse Javascript support library; as used by Bender
+// General purpose Javascript support library; as used by Bender
 
 
 // Simple format function for messages and templates. Use {0}, {1}...
@@ -106,8 +106,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     if (typeof Object.defineProperty === "function") {
       var props = { enumerable: true, configurable: true };
-      if (getter) props.getter = getter;
-      if (setter) props.setter = setter;
+      if (getter) props.get = getter;
+      if (setter) props.set = setter;
       Object.defineProperty(o, prop, props);
     } else {
       if (getter) o.__defineGetter__(prop, getter);
