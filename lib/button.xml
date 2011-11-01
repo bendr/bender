@@ -1,7 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
   xmlns:e="http://bender.igel.co.jp/e" xmlns:f="http://bender.igel.co.jp/f"
-  xmlns:html="http://www.w3.org/1999/xhtml" id="button"
-  f:tabindex="0" b:enabled="true" e:class="">
+  xmlns:html="http://www.w3.org/1999/xhtml" id="button">
 
   <title>Push button</title>
   <help>A push button reacting to pointer and touch events with keyboard
@@ -9,19 +8,21 @@
     manner.</help>
 
   <stylesheet>
-    .bender-button { display: inline-block; cursor: default; padding: 4px;
-      border: solid thin black; background-color: #ddd; }
+    .bender-button { display: inline-block; cursor: default; padding: .3em .5em;
+      background-color:#ddd; -moz-border-radius: 6px;
+      -webkit-border-radius: 6px; border-radius: 6px;
+      box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
     .bender-button.__down { opacity: 0.5; }
     .bender-button.__disabled { opacity: 0.5; }
     .bender-naked .bender-button { padding: 0; border: none;
-      background-color: transparent; }
+      background-color: transparent; text-shadow: 0px 0px 0px; }
   </stylesheet>
 
   <controller>
     <script>
       $_.handleEvent = function(e)
       {
-        if (flexo.has_class(this.component.views.b, "__disabled")) return;
+        if (this.disabled) return;
         if (e.type === "mousedown" || e.type === "touchstart") {
           e.preventDefault();
           flexo.add_class(this.component.views.b, "__down");
@@ -58,23 +59,34 @@
     <listen dom-event="keydown" view="b"/>
   </controller>
 
-  <bind value="tabindex" view="b" attr="tabindex"/>
-  <bind value="enabled" view="b">
-    flexo.set_class_iff(view, "__disabled", !value);
-    if (!value) {
-      this._tabindex = this.tabindex;
-      this.tabindex = -1;
-      view.blur();
-    } else if ("_tabindex" in this) {
-      this.tabindex = this._tabindex;
-    }
-  </bind>
-  <bind value="class" view="b">
-    if (value !== prev) {
-      if (prev) flexo.remove_class(view, prev);
-      if (value) flexo.add_class(view, value);
-    }
-  </bind>
+  <update f:tabindex="0">
+    <set view="b" attr="tabindex"/>
+  </update>
+
+  <update b:enabled="true">
+    <set view="b">
+      flexo.set_class_iff(view, "__disabled", !value);
+      if (!value) {
+        this._tabindex = this.tabindex;
+        this.tabindex = -1;
+        view.blur();
+      } else if ("_tabindex" in this) {
+        this.tabindex = this._tabindex;
+      }
+    </set>
+    <get view="b">
+      return flexo.has_class(view, "__disabled");
+    </get>
+  </update>
+
+  <update e:class="">
+    <set view="b">
+      if (value !== prev) {
+        if (prev) flexo.remove_class(view, prev);
+        if (value) flexo.add_class(view, value);
+      }
+    </set>
+  </update>
 
   <view>
     <html:div class="bender-button" id="b" role="button">

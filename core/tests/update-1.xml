@@ -1,0 +1,18 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:n="123">
+  <title>Updating a view on a value change</title>
+  <update>
+    <get property="n"/>
+    <set property="n"/>
+    <set view="num"/>
+  </update>
+  <view>
+    <html:p style="font-size:900%">
+      n = <html:span id="num"/>.
+    </html:p>
+    <html:p>
+      Change this value by setting <html:code>$APP.n</html:code> in the
+      console (when running in debug mode.)
+    </html:p>
+  </view>
+</app>

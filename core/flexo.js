@@ -161,6 +161,17 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return doc && doc.getElementById(id) ? flexo.random_id(n, doc) : id;
   };
 
+  // Generate a random variable name of the given length.
+  flexo.random_var = function(n, ns)
+  {
+    if (!ns) ns = flexo.global_object();
+    var first = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm$_";
+    var all = first + "123456789";
+    var name = flexo.random_element(first);
+    for (var i = 1; i < n; ++i) name += flexo.random_element(all);
+    return name in ns ? flexo.random_var(n, ns) : name;
+  };
+
   // Return a random integer in the [min, max] range
   flexo.random_int = function(min, max)
   {

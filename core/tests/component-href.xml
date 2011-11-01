@@ -1,5 +1,5 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Button component test</title>
+  <title>Including component with href</title>
   <controller>
     <listen view="ok-button" event="@pushed">
       alert("OK");
@@ -7,7 +7,7 @@
   </controller>
   <view>
     <html:p>
-      Click this button: <component href="../../lib/button.xml#button"
+      Click this button: <component href="../../lib/button.xml"
         id="ok-button">OK</component>
     </html:p>
   </view>

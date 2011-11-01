@@ -7,32 +7,51 @@ canvas_controller = flexo.create_object(bender.controller,
     this.error = 4;  // squared error for fitting
   },
 
-  // When rendering occurs, update the pointer to the context
-  handleEvent: function(e)
+  // When rendering occurs, update the pointers to the contexts
+  rendered: function()
   {
-    if (e.type === "@ready") {
-      this.context_curves = this.outlets.canvas_curves.getContext("2d");
-      this.context_points = this.outlets.canvas_points.getContext("2d");
-      this.points = [];
-    } else {
-      e.preventDefault();
-      if (e.type === "mousedown" || e.type === "touchstart") {
-        this.dragging = true;
-        this.context_points.clearRect(0, 0, this.outlets.canvas_points.width,
-            this.outlets.canvas_points.height);
-        this.points = [];
-        this.points.push(this.draw_line(e));
-      } else if ((e.type === "mousemove" || e.type === "touchmove") &&
-        this.dragging) {
-        this.points.push(this.draw_line(e));
-      } else if (e.type === "mouseup" || e.type === "touchend") {
-        this.dragging = false;
-        if (this.points.length > 1) {
-          this.draw_curve(fit_curve(this.points, this.error));
-        }
-        this.points = [];
-      }
+    this.context_curves = this.outlets.curves.getContext("2d");
+    this.context_points = this.outlets.points.getContext("2d");
+  },
+
+  // Start drawing (mouse down or touch start)
+  start_drawing: function(e)
+  {
+    e.preventDefault();
+    this.context_points.clearRect(0, 0, this.outlets.points.width,
+        this.outlets.points.height);
+    this.points = [];
+    this.points.push(this.draw_line(e));
+  },
+
+  // Keep drawing (dragging the mouse or finger)
+  keep_drawing: function(e)
+  {
+    e.preventDefault();
+    this.points.push(this.draw_line(e));
+  },
+
+  // Stop drawing(mouse up or touch end)
+  stop_drawing: function(e)
+  {
+    if (this.points.length > 1) {
+      this.draw_curve(fit_curve(this.points, this.error));
     }
+    this.points = [];
+  },
+
+  // Draw a line to the position of the given event
+  draw_line: function(e)
+  {
+    var p_ = flexo.event_page_pos(e);
+    var p = [p_.x - this.outlets.points.offsetLeft,
+        p_.y - this.outlets.points.offsetTop];
+    var q = this.points[this.points.length - 1] || p;
+    this.context_points.beginPath();
+    this.context_points.moveTo(q[0], q[1]);
+    this.context_points.lineTo(p[0], p[1]);
+    this.context_points.stroke();
+    return p;
   },
 
   // Draw the result curve(s) from the point fitting
@@ -46,19 +65,6 @@ canvas_controller = flexo.create_object(bender.controller,
         c.bezierCurveTo(q[1][0], q[1][1], q[2][0], q[2][1], q[3][0], q[3][1]);
       });
     c.stroke();
-  },
-
-  draw_line: function(e)
-  {
-    var p_ = flexo.event_page_pos(e);
-    var p = [p_.x - this.outlets.canvas_points.offsetLeft,
-        p_.y - this.outlets.canvas_points.offsetTop];
-    var q = this.points[this.points.length - 1] || p;
-    this.context_points.beginPath();
-    this.context_points.moveTo(q[0], q[1]);
-    this.context_points.lineTo(p[0], p[1]);
-    this.context_points.stroke();
-    return p;
   },
 
 });

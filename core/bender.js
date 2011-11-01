@@ -1,5 +1,6 @@
 // Bender core library
 
+
 if (typeof require === "function") flexo = require("./flexo.js");
 
 (function(bender) {
@@ -821,14 +822,36 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Build the bind graph for all bind nodes
   var setup_updates = function(instance)
   {
+    instance.updates = {};
     instance.update_nodes.forEach(function(node) {
+        var getters = [];
+        var setters = [];
         for (var ch = node.firstElementChild; ch;
           ch = ch.nextElementSibling) {
           if (ch.namespaceURI !== bender.NS) continue;
           if (ch.localName === "get") {
+            var view = ch.getAttribute("view");
+            var controller = ch.getAttribute("controller");
+            if (view && controller) {
+              throw "Ambiguous getter: view and controller attributes.";
+            }
+            var source = view ? instance.find(view, "views") :
+              controller ? instance.find(controller, "controllers") :
+              instance;
+            if (!source) throw "Could not find source for getter.";
+            var property = ch.getAttribute("property");
+            if (view && !property) property = "textContent";
+            if (!property) throw "No property for getter.";
+            var getter = { source: source, property: property };
+            var event = ch.getAttribute("event");
+            if (event) getter.event = event;
+            var domevent = ch.getAttribute("dom-event");
+            if (domevent) getter.domevent = domevent;
+            getters.push(getter);
           } else if (ch.localName === "set") {
           }
         }
+        var name = flexo.random_var(6, instance.updates);
       });
   };
 

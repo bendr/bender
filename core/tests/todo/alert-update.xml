@@ -1,0 +1,12 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Alert on @ready event</title>
+  <update once="true">
+    <get event="@ready">
+      alert("{0} has sent a {1} event".fmt(event.source.node.localName,
+        event.type));
+    </get>
+  </update>
+  <view>
+    <html:p>Alert when the application is ready.</html:p>
+  </view>
+</app>

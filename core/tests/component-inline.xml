@@ -1,5 +1,5 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Inline button component test</title>
+  <title>Inline component</title>
 
   <component id="button">
     <title>A button component that responds to both mouse and touch

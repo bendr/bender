@@ -61,61 +61,6 @@
           World!</div>
       </section>
 
-      <section id="elements.bind">
-        <h3><span class="elem">bind</span></h3>
-        <p>Bind a value in a component to a view. Whenever the value is
-        changed, the change is reflected in the view.</p>
-        <p>The first example shows how to set default values for a component.
-        Use the b, e, and f namespaces to set boolean, string or float values.
-        These values are reflected by a property of the same name in the
-        component.</p>
-        <div class="include-src" data-src="../core/tests/params.xml">Setting
-          component parameters</div>
-        <p>Instances can of a component can override the default values by
-        setting their own:</p>
-        <div class="include-src"
-          data-src="../core/tests/params-instance.xml">Instantiating with
-          parameters</div>
-        <p><span class="TODO">Test adding <em>new</em> params to an instance as
-          well.</span><p>
-        <p>This example binds a value to a view:</p>
-        <div class="include-src" data-src="../core/tests/bind.xml">Simple
-          binding</div>
-        <p>or to two different views:</p>
-        <div class="include-src" data-src="../core/tests/bind2.xml">Double
-          binding</div>
-        <p>By default, the value is rendered as the <code>textContent</code> of
-        the view node. By using the <code>attr</code> attribute, the target of
-        the binding can be changed to a specific attribute of the view, as
-        shown below:</p>
-        <div class="include-src" data-suffix="svg"
-          data-src="../core/tests/bind-attr.xml">Binding values to
-          attributes</div>
-        <p>When the view that is bound to a value is a component and not a DOM
-        node, then instead of specifying an attribute destination with the
-        <code>attr</code> attribute, a property of the component is specified
-        with the <code>property</code> attribute, as in the example below:</p>
-        <div class="include-src"
-          data-src="../core/tests/integer-bind.xml">Integer box binding
-          test</div>
-        <p>The <span class="elem">bind</span> element can have text content,
-        which is interpreted as a Javascript function. This function is called
-        to transform the value and takes three arguments named
-        <code>value</code>, <code>prev</code> and <code>view</code>. When the
-        value is modified, this function is called with the new value in
-        <code>value</code>, the previous value in <code>prev</code>, and the
-        target view in <code>view</code>. Additionally, this function is called
-        in the context of the component instance, so <code>this</code> will
-        point to that instance. This function can then return a value that will
-        be used to populate the view text content or attribute. If an undefined
-        value is returned, then no change is reflected (but there may have been
-        side-effects; this is useful to manipulate the class attribute of the
-        target view for instance.) In the example below, a number is displayed
-        both directly, and transformed into roman numerals:</p>
-        <div class="include-src"
-          data-src="../core/tests/bind-transform.xml">Transformed value</div>
-      </section>
-
       <section id="elements.component">
         <h3><span class="elem">component</span></h3>
 
@@ -258,6 +203,13 @@
         application or component level.</p>
       </section>
 
+      <section id="elements.update">
+        <h3><span class="elem">update</span></h3>
+        <p>An element governing the update of values throughout a component.</p>
+        <div class="include-src" data-src="../core/tests/update-1.xml">Updating
+          a view when a value changes.</div>
+      </section>
+
       <section id="elements.view">
         <h3><span class="elem">view</span></h3>
         <p>This is the root element for the view of an application or a
@@ -329,12 +281,38 @@
       <h2>Uncategorized Examples</h2>
       <div class="include-src" data-src="../core/tests/alert.xml">Alert on
         @ready event</div>
-      <div class="include-src" data-src="../core/tests/ready.xml">@ready and
-        @rendered events</div>
-      <div class="include-src" data-src="../core/tests/timer.xml">Timer
-        test</div>
-      <div class="include-src" data-src="../core/tests/svg-clock.xml"
-        data-suffix="svg">SVG clock</div>
+      <div class="include-src"
+        data-src="../core/tests/component-href.xml">Including a component with
+        href</div>
+      <div class="include-src"
+        data-src="../core/tests/component-include.xml">Including a
+        component</div>
+      <div class="include-src"
+        data-src="../core/tests/component-inline.xml">Inline component</div>
+      <div class="include-src"
+        data-src="../core/tests/component-multiple.xml">Multiple
+        components</div>
+
+      <section id="uncategorized.todo">
+        <h3>TODO</h3>
+        <div class="include-src"
+          data-src="../core/tests/todo/alert-update.xml">Alert on @ready event
+          [using update]</div>
+        <div class="include-src"
+          data-src="../core/tests/todo/button-component.xml">A simple button
+          component implemented with updates</div>
+        <div class="include-src"
+          data-src="../core/tests/todo/button.xml">A simple button implemented
+          with updates</div>
+        <div class="include-src"
+          data-src="../core/tests/todo/canvas.xml">Canvas</div>
+        <div class="include-src"
+          data-src="../core/tests/todo/component-include.xml">Including a
+          component [using update]</div>
+        <div class="include-src"
+          data-src="../core/tests/todo/component-multiple.xml">Multiple
+          components [using update]</div>
+      </section>
     </sections>
 
     <section id="examples">
