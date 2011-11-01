@@ -11,7 +11,7 @@
   </update>
   <view>
     <html:p>
-      <html:span id="num"/> is <html:strong id="roman"/> in roman numerals.
+      <html:em id="num"/> is <html:strong id="roman"/> in roman numerals.
     </html:p>
   </view>
 </app>

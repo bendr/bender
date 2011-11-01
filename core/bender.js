@@ -822,57 +822,71 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Build the bind graph for all bind nodes
   var setup_updates = function(instance)
   {
+
     instance.update_nodes.forEach(function(node) {
         var setters = [];
         var getters = [];
+
         for (var ch = node.firstElementChild; ch;
           ch = ch.nextElementSibling) {
           if (ch.namespaceURI !== bender.NS) continue;
           if (ch.localName === "get" || ch.localName === "set") {
-            var view = ch.getAttribute("view");
-            var controller = ch.getAttribute("controller");
-            if (view && controller) {
-              throw "Ambiguous update: view and controller attributes.";
-            }
-            var property = ch.getAttribute("property");
-            if (view && !property) property = "textContent";
-            if (!controller && !property) throw "No property for update";
-            var event = ch.getAttribute("event");
-            var domevent = ch.getAttribute("dom-event");
-            var source = view ? instance.find(view, "views") :
-              controller ? instance.find(controller, "controllers") :
-              domevent ? instance.dest_body : event ? instance.controllers[""] :
-              instance;
-            if (!source) throw "Could not find source for update.";
-            if (ch.localName === "get") {
-              // Getter
-              if (event || domevent) {
-              } else if (view) {
-              } else {
-                (function() {
+            (function() {
+              var view = ch.getAttribute("view");
+              var controller = ch.getAttribute("controller");
+              if (view && controller) {
+                throw "Ambiguous update: view and controller attributes.";
+              }
+              var property = ch.getAttribute("property");
+              if (view && !property) property = "textContent";
+              if (!controller && !property) throw "No property for update";
+              var event = ch.getAttribute("event");
+              var domevent = ch.getAttribute("dom-event");
+              var source = view ? instance.find(view, "views") :
+                controller ? instance.find(controller, "controllers") :
+                domevent ? instance.dest_body :
+                event ? instance.controllers[""] : instance;
+              if (!source) throw "Could not find source for update.";
+              if (ch.localName === "get") {
+                // Getter
+                if (event || domevent) {
+                } else if (view) {
+                } else {
                   var p;
                   if (property in source) {
-                    var p_ = source[property];
-                    getters.push(function(v) { source[property] = p_ });
+                    p = source[property];
+                    getters.push(function(v) { source[property] = p; });
                   }
                   flexo.getter_setter(source, property,
                     function() { return p; },
                     function(v) {
                       p = v;
-                      setters.forEach(function(setter) { setter(v); });
+                      setters.forEach(function(setter) {
+                          if (setter.source !== source &&
+                            setter.property !== property) {
+                            setter(v);
+                          }
+                        });
                     });
-                  flexo.log("Add setter for {0} in {1}"
+                  flexo.log("get {0} in {1}"
                     .fmt(property, instance.instance_id));
-                })();
+                }
+              } else {
+                flexo.log("set {0} in {1}"
+                  .fmt(property, instance.instance_id));
+                var f = /\S/.test(ch.textContent) ?
+                  (new Function("value", ch.textContent)) : flexo.id;
+                var setter = function(v) { source[property] = f(v); };
+                setter.source = source;
+                setter.property = property;
+                setters.push(setter);
               }
-            } else {
-              // Setter
-              setters.push(function(v) { source[property] = v; });
-            }
+            })();
           }
         }
         getters.forEach(function(getter) { getter(); });
       });
   };
+
 
 })(typeof exports === "object" ? exports : this.bender = {});
