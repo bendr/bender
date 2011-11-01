@@ -1,4 +1,5 @@
 <app xmlns="http://bender.igel.co.jp">
+  <title>Local script</title>
   <controller>
     <script>
       $_.init = function() { flexo.log("*** init controller", this); };

@@ -7,7 +7,7 @@
     <set view="num"/>
     <set view="roman">
       return flexo.to_roman(value) || "unknown";
-    </view>
+    </set>
   </update>
   <view>
     <html:p>

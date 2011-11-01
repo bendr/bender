@@ -1,5 +1,5 @@
-<?xml version="1.0"?>
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>instance-of attribute for controller</title>
   <script>
     alert_controller = flexo.create_object(bender.controller,
     {
@@ -13,7 +13,7 @@
   <controller instance-of="alert_controller">
     <listen event="@ready" once="true"/>
   </controller>
-  <root-view>
+  <view>
     <html:p>Alert when the application is ready.</html:p>
-  </root-view>
+  </view>
 </app>

@@ -1,12 +1,12 @@
 <app xmlns="http://bender.igel.co.jp">
+  <title>Content with id</title>
   <controller>
-    <script>
-      $_.handleEvent = function(e) { alert("OK"); }
-    </script>
-    <listen source="label" event="@button"/>
+    <listen view="label" event="@button">
+      alert("OK");
+    </listen>
   </controller>
   <view>
-    <component href="label-button.xml" id="label">
+    <component href="components/label-button.xml" id="label">
       <content ref="label">Please click this button:</content>
       <content ref="button-label">OK</content>
     </component>

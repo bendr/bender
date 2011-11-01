@@ -4,9 +4,11 @@
     #button { cursor: pointer; background-color: #08f; color: white;
     padding: 4px; }
   </stylesheet>
-  <listen view="button" dom-event="click">
-    alert("You clicked me!");
-  </listen>
+  <update>
+    <get view="button" dom-event="click">
+      alert("You clicked me!");
+    </get>
+  </update>
   <view>
     <html:span id="button">Click me!</html:span>
   </view>
