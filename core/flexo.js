@@ -66,7 +66,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.XML_NS = "http://www.w3.org/1999/xml";
 
 
-  // Id function
+  // Identity function
   flexo.id = function(x) { return x; };
 
   // Safe log function
@@ -139,6 +139,16 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     };
     req.send("");
   };
+
+  // Return a hash string based on a prefix and a counter
+  (function() {
+    var counter = 0;
+    flexo.hash = function(prefix)
+    {
+      if (!prefix) prefix = "object";
+      return "{0}-{1}".fmt(prefix, counter++);
+    };
+  })();
 
 
   // Randomness

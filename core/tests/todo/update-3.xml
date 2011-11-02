@@ -4,7 +4,9 @@
   <update>
     <get property="on"/>
     <set property="on"/>
-    <set view="on"/>
+    <set view="on">
+      return value ? "on" : "off";
+    </set>
   </update>
   <update>
     <get view="button" event="@pushed"/>
@@ -17,7 +19,7 @@
       Currently <html:strong id="on"/>
     </html:p>
     <html:p>
-      <component href="../../../lib/button.xml">Toogle</component>
+      <component id="button" href="../../../lib/button.xml">Toogle</component>
     </html:p>
   </view>
 </app>

@@ -53,6 +53,7 @@ Release Notes
     * Can include an external component with the href attribute without an id
       URI fragment (core/tests/led.xml)
     * Replacing <bind> with <update>/<get>/<set> (in progress)
+    * flexo.hash to replace instance_id
 
   Changes in v0.2.0 (2011-10-23)
 
