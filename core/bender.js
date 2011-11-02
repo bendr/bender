@@ -76,17 +76,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
 
-  // Get the arguments from the query string
-  // Default arguments are:
+  // Get the arguments from the query string, or a custom string to use its
+  // stead. Default arguments are:
   //   * app: required; path to the app to run
   //   * path: default path (../)
   //   * suffix: default suffix (.xml)
   //   * dest: id of the destination element for rendering; document if none
   //   * debug: debug level (0, 1, etc.)
-  bender.get_args = function()
+  bender.get_args = function(argstr)
   {
     var args = { dest: "dest-body", debug: 0, path: "../", suffix: ".xml" };
-    window.location.search.substring(1).split("&").forEach(function(q) {
+    if (!argstr) argst = window.location.search.substring(1);
+    argstr.split("&").forEach(function(q) {
         var sep = q.indexOf("=");
         args[q.substr(0, sep)] = q.substr(sep + 1);
       });
@@ -840,11 +841,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Build the bind graph for all bind nodes
   var setup_updates = function(instance)
   {
-
+    var updates = {};
     instance.update_nodes.forEach(function(node) {
         var setters = [];
         var getters = [];
-
         for (var ch = node.firstElementChild; ch;
           ch = ch.nextElementSibling) {
           if (ch.namespaceURI !== bender.NS) continue;

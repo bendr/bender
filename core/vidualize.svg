@@ -8,7 +8,7 @@
   <g id="dest-body"/>
   <script><![CDATA[
 
-var args = bender.get_args();
+var args = bender.get_args("app=core/tests/hello-svg&debug=1");
 if (args.app) {
   bender.init_app(args.path + args.app + args.suffix, args, function(app) {
       if (args.debug) {

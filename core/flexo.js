@@ -409,7 +409,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     var rgb;
     if (s == 0) {
-      rgb = [v, v, v].map(function(x) { return Math.round(x * 255); });
+      var v_ = Math.round(v * 255);
+      rgb = [v_, v_, v_];
     } else {
       h = (((h * 180 / Math.PI) + 360) % 360) / 60;
       var i = Math.floor(h);
