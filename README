@@ -52,11 +52,7 @@ Release Notes
 
     * Can include an external component with the href attribute without an id
       URI fragment (core/tests/led.xml)
-
-    - (TODO) Replacing <bind> with <update> (along with <get>/<set>)
-    - (TODO) extend components (core/test/uber-clock*)
-    - (TODO) Remove <listen>
-    - (TODO) Readd <connect>
+    * Replacing <bind> with <update>/<get>/<set> (in progress)
 
   Changes in v0.2.0 (2011-10-23)
 

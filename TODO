@@ -1,0 +1,63 @@
+Bender TODO list as of 2011-11-02 (v0.2.1)
+
+
+* Core Features
+
+[/] Replace <bind> with <update>/<get>/<set>
+    [x] core/tests/update-1
+    [x] core/tests/update-2
+    [ ] core/tests/update-3
+    [ ] more tests
+    [ ] several updates for same property/view -> index updates
+[ ] Component extension
+    [ ] core/tests/uber-clock*
+[ ] Remove <listen> (replaced by <update>/<get>)
+[ ] Readd <connect> and remove link from controller to component
+    [ ] underspecified <connect> for component extension?
+[ ] Generate new ids from component instances
+    [ ] handle stylesheets
+[ ] Metadata
+
+
+* Library
+
+[ ] Selection controller
+[ ] Command manager controller
+[ ] Clipboard controller
+[ ] Drag-and-drop controller
+[ ] Float box
+[ ] Editable label
+[ ] Very Simple Backend
+
+
+* Applications
+
+[ ] Update TTFD for current version
+[ ] Update Cels for current version
+    [ ] Improve layout
+[ ] Update Slideshow for current version
+    [ ] Slide number
+[ ] Kanji application
+
+
+* Documentation and deployment
+
+[ ] Logo
+[ ] Skeleton for reference manual
+[ ] Running examples
+    [ ] Unexpand examples
+    [ ] Run unexpanded examples
+[/] Sort out tests for current version
+[ ] Continuous deployment
+[ ] Vidualize port
+
+
+* Design and open questions
+
+[ ] Review terminology
+[ ] Dynamic application tree modifications
+[ ] Updates from HTTP
+[ ] Importing widgets from other toolkits (e.g., Dojo)
+[ ] Using libraries (e.g., D3, jQuery)
+[ ] Output methods for components (HTML, SVG, Media queries?)
+[ ] External stylesheets
