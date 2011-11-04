@@ -833,8 +833,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var property = set.getAttribute("property");
             if (view) {
               if (!property) property = "textContent";
+              var get_v = /\S/.test(set.textContent) ?
+                new Function("value", set.textContent) : flexo.id;
               return function(v) {
-                if (typeof v !== "undefined") dest[property] = v;
+                var v_ = get_v(v);
+                if (typeof v_ !== "undefined") dest[property] = v_;
               };
             }
             return function() { flexo.log("TODO"); };
