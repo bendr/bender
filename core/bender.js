@@ -85,7 +85,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.get_args = function(argstr)
   {
     var args = { dest: "dest-body", debug: 0, path: "../", suffix: ".xml" };
-    if (!argstr) argst = window.location.search.substring(1);
+    if (!argstr) argstr = window.location.search.substring(1);
     argstr.split("&").forEach(function(q) {
         var sep = q.indexOf("=");
         args[q.substr(0, sep)] = q.substr(sep + 1);
@@ -107,6 +107,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var app = prototype.instantiate_and_render(prototype.root_node);
         app.args = args;
         connect(app);
+        build_watch_graph(app);
         if (f) f(app);
         bender.notify(app.controllers[""], "@ready");
       });
@@ -186,7 +187,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
     c.root_node = node;       // root node of the component
-    c.update_nodes = [];      // update nodes
+    c.watches = [];           // watch nodes
     c.uri = node.ownerDocument.baseURI;
     return c;
   };
@@ -335,6 +336,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return false;
   };
 
+  // Check whether the node is in the Bender namespace and has the requested
+  // local name
+  var is_bender_node = function(node, localname)
+  {
+    return node.namespaceURI === bender.NS && node.localName === localname;
+  };
+
   // Specific load functions for various elements. Return true if loading can
   // continue immediately, false otherwise. Default is thus to do nothing and
   // return true.
@@ -399,7 +407,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // executed when rendering.
     script: function(node, prototype)
     {
-      if (is_controller_node(node.parentNode)) {
+      if (is_bender_node(node.parentNode, "controller")) {
         // Set the local scripts flag, so that we know to create a specific
         // prototype for this controller
         node.parentNode.local_scripts = true;
@@ -442,18 +450,22 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return true;
     },
 
-    // Store the update node for later (rendering)
-    update: function(node, prototype)
-    {
-      prototype.update_nodes.push(node);
-      return true;
-    },
-
     // Keep track of the view node
     view: function(node, prototype)
     {
       if (prototype.view_node) throw "Redefinition of view";
       prototype.view_node = node;
+      return true;
+    },
+
+    // Prepare the watch nodes
+    watch: function(node, prototype)
+    {
+      var w = { node: node, hash: flexo.hash("watch") };
+      if (is_bender_node(node, "watch")) {
+        w.parent = prototype.watches[prototype.watches.length - 1];
+      }
+      prototype.watches.push(w);
       return true;
     }
   };
@@ -485,12 +497,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Return the head element (for HTML documents) or by default the
   // documentElement (for SVG or generic documents)
   var find_head = function(doc) { return doc.head || doc.documentElement; };
-
-  // Return true for <controller> nodes
-  var is_controller_node = function(node)
-  {
-    return node.namespaceURI === bender.NS && node.localName === "controller";
-  };
 
   // Render the different elements; this means creating component objects,
   // controller delegates, and DOM nodes for concrete nodes.
@@ -542,7 +548,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     script: function(node, instance)
     {
       var p = node.parentNode;
-      if (is_controller_node(p)) {
+      if (is_bender_node(p, "controller")) {
         var prototype = node_prototype(p, bender.controller);
         (new Function("$_", node.textContent))(prototype);
       }
@@ -669,8 +675,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     if (!node) return;
     for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
-      if (ch.namespaceURI === bender.NS && ch.localName === "content" &&
-          ch.getAttribute("ref") === id) return ch;
+      if (is_bender_node(ch, "content") && ch.getAttribute("ref") === id) {
+        return ch;
+      }
     }
   }
 
@@ -767,11 +774,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
   var children_or_text = function(node)
   {
     var children = [];
-    for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
-      children.push(ch);
-    }
-    if (children.length === 0 && node.textContent) return node.textContent;
-    return children;
+    for (var ch = node.firstChild; ch; ch = ch.nextSibling) children.push(ch);
+    return children.length === 0 && /\S/.test(node.textContent) ?
+      node.textContent : children;
   };
 
   // Get source view or controller from the node attributes "view" or
@@ -799,6 +804,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return source;
   }
 
+  // Build the watch graph for this instance
+  var build_watch_graph = function(instance)
+  {
+    flexo.log("build_watch_graph:", instance.watches);
+  };
+
   // Connect Bender and DOM event listeners
   var connect = function(instance)
   {
@@ -807,39 +818,34 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var controller = instance.controllers[id];
       for (var ch = controller.node.firstElementChild; ch;
           ch = ch.nextElementSibling) {
-        if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "listen") {
-            // <listen> node
-            var source = source_view_or_controller(instance, ch);
-            var once = ch.getAttribute("once") === "true";
-            var ev = ch.getAttribute("event");
-            var h = ch.getAttribute("handler");
-            var handler;
-            if (h) {
-              handler = controller[h].bind(controller);
-            } else {
-              h = ch.textContent;
-              handler = (h ? new Function("event", h) : controller.handleEvent)
-                .bind(controller);
-            }
-            if (ev) {
-              if (!source) source = controller;
-            } else {
-              ev = ch.getAttribute("dom-event");
-              if (!ev) throw "Listen with no event or dom-event attribute";
-              if (!source) source = instance.dest_body.ownerDocument;
-            }
-            bender.listen(source, ev, handler, once);
+        if (is_bender_node(ch, "listen")) {
+          var source = source_view_or_controller(instance, ch);
+          var once = ch.getAttribute("once") === "true";
+          var ev = ch.getAttribute("event");
+          var h = ch.getAttribute("handler");
+          var handler;
+          if (h) {
+            handler = controller[h].bind(controller);
+          } else {
+            h = ch.textContent;
+            handler = (h ? new Function("event", h) : controller.handleEvent)
+              .bind(controller);
           }
+          if (ev) {
+            if (!source) source = controller;
+          } else {
+            ev = ch.getAttribute("dom-event");
+            if (!ev) throw "Listen with no event or dom-event attribute";
+            if (!source) source = instance.dest_body.ownerDocument;
+          }
+          bender.listen(source, ev, handler, once);
         }
       }
       bender.notify(controller, "@rendered");
     }
-    setup_updates(instance);
   };
 
-  // Build the update graph from all update nodes
-  // TODO review the XML syntax; translate get/set to vertices and edges
+  /*
   var setup_updates = function(instance)
   {
     var updates = {};
@@ -903,5 +909,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
         getters.forEach(function(getter) { getter(); });
       });
   };
+  */
 
 })(typeof exports === "object" ? exports : this.bender = {});

@@ -1,28 +1,24 @@
-Bender TODO list as of 2011-11-02 (v0.2.1)
+Bender TODO list as of 2011-11-03 (v0.2.1)
 
 
 * Core Features
 
-[/] Replace <bind> with <update>/<get>/<set>
-    [ ] review syntax to match graph better
-    [x] core/tests/update-1
-    [x] core/tests/update-2
-    [ ] core/tests/update-3
-    [ ] more tests
-    [ ] several updates for same property/view -> index updates
+[/] Replace <bind> with <watch>/<get>/<set>
+    [ ] remove <listen>
 [ ] Component extension
     [ ] core/tests/uber-clock*
-[ ] Remove <listen> (replaced by <update>/<get>)
 [ ] Readd <connect> and remove link from controller to component
     [ ] underspecified <connect> for component extension?
 [ ] Generate new ids from component instances
     [ ] handle stylesheets
-[ ] Metadata
+[ ] Metadata (at least xml:lang)
+    [ ] help/about element
 [ ] Undash names from XML
 
 
 * Library
 
+[ ] Review metro -> @tick
 [ ] Selection controller
 [ ] Command manager controller
 [ ] Clipboard controller
@@ -46,6 +42,7 @@ Bender TODO list as of 2011-11-02 (v0.2.1)
 
 [ ] Logo
 [ ] Pamphlet
+[ ] Manifesto? (cf. Redis)
 [ ] Skeleton for reference manual
 [ ] Running examples
     [ ] Unexpand examples
@@ -53,6 +50,7 @@ Bender TODO list as of 2011-11-02 (v0.2.1)
 [/] Sort out tests for current version
 [ ] Continuous deployment
 [x] Vidualize port
+    [ ] SVG button test
 
 
 * Design and open questions
