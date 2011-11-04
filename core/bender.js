@@ -461,13 +461,31 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Prepare the watch nodes
     watch: function(node, prototype)
     {
-      var w = { node: node, hash: flexo.hash("watch") };
-      if (is_bender_node(node, "watch")) {
-        w.parent = prototype.watches[prototype.watches.length - 1];
+      var w = { node: node, hash: flexo.hash("watch"), children: [], get: [],
+        set: [], parent: prototype };
+      if (is_bender_node(node.parentNode, "watch")) {
+        var p = prototype.watches[prototype.watches.length - 1];
+        w.parent = p.node === node.parentNode ? p : p.parent;
+        w.parent.children.push(w);
       }
       prototype.watches.push(w);
       return true;
-    }
+    },
+
+    get: function(node, prototype)
+    {
+      var p = prototype.watches[prototype.watches.length - 1];
+      if (p) p.get.push(node);
+      return true;
+    },
+
+    set: function(node, prototype)
+    {
+      var p = prototype.watches[prototype.watches.length - 1];
+      if (p) p.set.push(node);
+      return true;
+    },
+
   };
 
   var did_load_element =
@@ -781,7 +799,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Get source view or controller from the node attributes "view" or
   // "controller" in the context of a component instance
-  var source_view_or_controller = function (instance, node_or_view, controller)
+  var view_or_controller = function (instance, node_or_view, controller)
   {
     var view, source;
     if (node_or_view && typeof node_or_view.getAttribute === "function") {
@@ -807,7 +825,47 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Build the watch graph for this instance
   var build_watch_graph = function(instance)
   {
-    flexo.log("build_watch_graph:", instance.watches);
+    instance.watches.forEach(function(watch) {
+        var setters = watch.set.map(function(set) {
+            var view = set.getAttribute("view");
+            var controller = set.getAttribute("controller");
+            var dest = view_or_controller(instance, view, controller);
+            var property = set.getAttribute("property");
+            if (view) {
+              if (!property) property = "textContent";
+              return function(v) {
+                if (typeof v !== "undefined") dest[property] = v;
+              };
+            }
+            return function() { flexo.log("TODO"); };
+          });
+        watch.get.forEach(function(get) {
+            var view = get.getAttribute("view");
+            var controller = get.getAttribute("controller");
+            var source = view_or_controller(instance, view, controller);
+            var property = get.getAttribute("property");
+            if (view) {
+              if (!property) property = "textContent";
+              // use dom-event or monitor node
+            } else if (controller) {
+              // use event
+            } else {
+              // use setter
+              if (!property) throw "No property for watch/get on instance";
+              var init = instance[property];
+              (function() {
+                var p;
+                flexo.getter_setter(instance, property,
+                  function() { return p; },
+                  function(x) {
+                    p = x;
+                    setters.forEach(function(f) { f(x); });
+                  });
+              })();
+              if (typeof init !== "undefined") instance[property] = init;
+            }
+          });
+      });
   };
 
   // Connect Bender and DOM event listeners
@@ -819,7 +877,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       for (var ch = controller.node.firstElementChild; ch;
           ch = ch.nextElementSibling) {
         if (is_bender_node(ch, "listen")) {
-          var source = source_view_or_controller(instance, ch);
+          var source = view_or_controller(instance, ch);
           var once = ch.getAttribute("once") === "true";
           var ev = ch.getAttribute("event");
           var h = ch.getAttribute("handler");
@@ -844,71 +902,5 @@ if (typeof require === "function") flexo = require("./flexo.js");
       bender.notify(controller, "@rendered");
     }
   };
-
-  /*
-  var setup_updates = function(instance)
-  {
-    var updates = {};
-    instance.update_nodes.forEach(function(node) {
-        var setters = [];
-        var getters = [];
-        for (var ch = node.firstElementChild; ch;
-          ch = ch.nextElementSibling) {
-          if (ch.namespaceURI !== bender.NS) continue;
-          if (ch.localName === "get" || ch.localName === "set") {
-            (function() {
-              var view = ch.getAttribute("view");
-              var controller = ch.getAttribute("controller")
-              var source = source_view_or_controller(instance, ch);
-              var property = ch.getAttribute("property");
-              if (view && !property) property = "textContent";
-              // if (!property) throw "No property for update";
-              var event = ch.getAttribute("event");
-              var domevent = ch.getAttribute("dom-event");
-              if (!source) {
-                source = domevent ? instance.dest_body :
-                  event ? instance.controllers[""] : instance;
-              }
-              if (!source) throw "Could not find source for update.";
-              if (!source.hash) source.hash = flexo.hash("view");
-              if (ch.localName === "get") {
-                // Getter
-                if (event || domevent) {
-                } else if (view) {
-                } else {
-                  var p;
-                  if (property in source) {
-                    p = source[property];
-                    getters.push(function(v) { source[property] = p; });
-                  }
-                  flexo.getter_setter(source, property,
-                    function() { return p; },
-                    function(v) {
-                      p = v;
-                      setters.forEach(function(setter) {
-                          if (setter.source !== source &&
-                            setter.property !== property) {
-                            setter(v);
-                          }
-                        });
-                    });
-                  flexo.log("get {0} in {1}".fmt(property, instance.hash));
-                }
-              } else {
-                flexo.log("set {0} in {1}".fmt(property, instance.hash));
-                var f = /\S/.test(ch.textContent) ?
-                  (new Function("value", ch.textContent)) : flexo.id;
-                var setter = function(v) { source[property] = f(v); };
-                setter.source = source;
-                setter.property = property;
-                setters.push(setter);
-              }
-            })();
-          }
-        }
-        getters.forEach(function(getter) { getter(); });
-      });
-  };
-  */
 
 })(typeof exports === "object" ? exports : this.bender = {});

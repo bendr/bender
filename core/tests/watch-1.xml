@@ -2,8 +2,10 @@
   xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
   <title>Watch: display a value from the component</title>
   <view>
-    <html:p> Value = <html:span id="v"
+    <html:p>Value = <html:span id="v"
         style="padding: 2px; background-color:#08f; color:white"/></html:p>
+    <html:p>Set <html:code>$APP.value</html:code> from the console to change
+      this value (when run in debug mode.)</html:p>
   </view>
   <watch>
     <get property="value"/>
