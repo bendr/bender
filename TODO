@@ -4,6 +4,7 @@ Bender TODO list as of 2011-11-02 (v0.2.1)
 * Core Features
 
 [/] Replace <bind> with <update>/<get>/<set>
+    [ ] review syntax to match graph better
     [x] core/tests/update-1
     [x] core/tests/update-2
     [ ] core/tests/update-3
@@ -17,6 +18,7 @@ Bender TODO list as of 2011-11-02 (v0.2.1)
 [ ] Generate new ids from component instances
     [ ] handle stylesheets
 [ ] Metadata
+[ ] Undash names from XML
 
 
 * Library
@@ -43,13 +45,14 @@ Bender TODO list as of 2011-11-02 (v0.2.1)
 * Documentation and deployment
 
 [ ] Logo
+[ ] Pamphlet
 [ ] Skeleton for reference manual
 [ ] Running examples
     [ ] Unexpand examples
     [ ] Run unexpanded examples
 [/] Sort out tests for current version
 [ ] Continuous deployment
-[/] Vidualize port
+[x] Vidualize port
 
 
 * Design and open questions

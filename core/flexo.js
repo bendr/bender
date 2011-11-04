@@ -121,6 +121,16 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return (function() { return this; })();
   };
 
+  // Return a hash string based on a prefix and a counter
+  (function() {
+    var counter = 0;
+    flexo.hash = function(prefix)
+    {
+      if (!prefix) prefix = "object";
+      return "{0}-{1}".fmt(prefix, counter++);
+    };
+  })();
+
   // Simple wrapper for XMLHttpRequest GET request with no data; call back with
   // the request object on success, throw an exception on error.
   flexo.request_uri = function(uri, f)
@@ -140,15 +150,12 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     req.send("");
   };
 
-  // Return a hash string based on a prefix and a counter
-  (function() {
-    var counter = 0;
-    flexo.hash = function(prefix)
-    {
-      if (!prefix) prefix = "object";
-      return "{0}-{1}".fmt(prefix, counter++);
-    };
-  })();
+  // Convert a string with dashes (as used in XML attributes) to camel case (as
+  // used for property names)
+  flexo.undash = function(string)
+  {
+    return string.replace(/-(\w)/, function(_, w) { return w.toUpperCase(); });
+  };
 
 
   // Randomness
@@ -269,9 +276,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     elem.dataset = {};  // TODO create a DOMStringMap?
     [].forEach.call(elem.attributes, function(attr) {
         if (!attr.namespaceURI && attr.localName.indexOf("data-") === 0) {
-          var n = attr.localName.substr(5)
-            .replace(/-(\w)/, function(_, w) { return w.toUpperCase(); });
-          elem.dataset[n] = attr.textContent;
+          elem.dataset[flexo.undash(attr.localName.substr(5))] = attr.value;
         }
       });
   };

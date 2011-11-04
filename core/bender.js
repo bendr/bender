@@ -34,7 +34,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (e.type in e.source) {
       e.source[e.type].forEach(function(x) {
           if (x.handlEvent) {
-            // used to be x.handleEvent.call(x, e), but that seems unnecessary
             x.handleEvent(e);
           } else {
             x(e);
@@ -234,20 +233,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Set parameters on the object o frome the e/f/b attributes of the node
   var set_parameters_from_attributes = function(node, o)
   {
-    [].forEach.call(node.attributes, function(attr) {
-        if (attr.namespaceURI === bender.NS_E) {
-          o[attr.localName] = attr.nodeValue;
-        } else if (attr.namespaceURI === bender.NS_F) {
-          var v = parseFloat(attr.nodeValue);
-          if (isNaN(v)) {
-            throw "Not a float value for attribute {0}: {1}"
-              .fmt(attr.localName, attr.nodeValue);
-          }
-          o[attr.localName] = v;
-        } else if (attr.namespaceURI === bender.NS_B) {
-          o[attr.localName] = attr.nodeValue.toLowerCase() === "true";
+    for (var i = 0, n = node.attributes.length; i < n; ++i) {
+      var attr = node.attributes[i];
+      if (attr.namespaceURI === bender.NS_E) {
+        o[attr.localName] = attr.nodeValue;
+      } else if (attr.namespaceURI === bender.NS_F) {
+        var v = parseFloat(attr.nodeValue);
+        if (isNaN(v)) {
+          throw "Not a float value for attribute {0}: {1}"
+            .fmt(attr.localName, attr.nodeValue);
         }
-      });
+        o[attr.localName] = v;
+      } else if (attr.namespaceURI === bender.NS_B) {
+        o[attr.localName] = attr.nodeValue.toLowerCase() === "true";
+      }
+    }
   };
 
   // Load URL using XMLHttpRequest. The dest_body element is used as
@@ -632,7 +632,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     var title = find_title(app.dest_body.ownerDocument);
     if (!title) {
       title = flexo.elem(app.dest_body.namespaceURI, "title", {});
-      app.dest_body.insertBefore(title, app.dest_body.firstChild);
+      app.dest_body.appendChild(title);
     }
     if (app.metadata.title) {
       title.textContent = app.metadata.title.textContent;
@@ -743,14 +743,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
         if (instance.views[id]) throw "Redefinition of id {0}".fmt(id);
         instance.views[id] = target;
       }
-      [].forEach.call(node.attributes, function(attr) {
-          if (attr.namespaceURI === flexo.XML_NS && !target.namespaceURI) {
-            target.setAttribute(attr.localName, attr.nodeValue);
-          } else {
-            target.setAttributeNS(attr.namespaceURI, attr.localName,
-              attr.nodeValue);
-          }
-        });
+      for (var i = 0, n = node.attributes.length; i < n; ++i) {
+        var attr = node.attributes[i];
+        if (attr.namespaceURI === flexo.XML_NS && !target.namespaceURI) {
+          target.setAttribute(attr.localName, attr.nodeValue);
+        } else {
+          target.setAttributeNS(attr.namespaceURI, attr.localName,
+            attr.nodeValue);
+        }
+      }
       render_content(node, target, instance);
       return target;
     } else if (node.nodeType === 3 || node.nodeType === 4) {
@@ -765,7 +766,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // of the node is returned as a string
   var children_or_text = function(node)
   {
-    if (node.childNodes) return [].slice.call(node.childNodes);
     var children = [];
     for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
       children.push(ch);
@@ -838,7 +838,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
     setup_updates(instance);
   };
 
-  // Build the bind graph for all bind nodes
+  // Build the update graph from all update nodes
+  // TODO review the XML syntax; translate get/set to vertices and edges
   var setup_updates = function(instance)
   {
     var updates = {};
