@@ -831,15 +831,20 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var controller = set.getAttribute("controller");
             var dest = view_or_controller(instance, view, controller);
             var property = set.getAttribute("property");
-            // TODO adapt to the kind of content (e.g. nodes?) when there is
-            // no property
-            if (!property) property = "textContent";
+            var attr = set.getAttribute("attr");
+            if (!attr && !property) property = "textContent";
             var get_v = /\S/.test(set.textContent) ?
               (new Function("value", set.textContent)).bind(instance) :
               flexo.id;
             return function(v) {
               var v_ = get_v(v);
-              if (typeof v_ !== "undefined") dest[property] = v_;
+              if (typeof v_ !== "undefined") {
+                if (attr) {
+                  dest.setAttribute(attr, v_);
+                } else {
+                  dest[property] = v_;
+                }
+              }
             };
           });
         watch.get.forEach(function(get) {
@@ -855,7 +860,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
               if (!event) event = "@change";
               if (!controller) source = instance.controllers[""];
               bender.listen(source, event, function(e) {
-                  setters.forEach(function(f) { f.call(instance, e); });
+                  var get_v = /\S/.test(get.textContent) ?
+                    (new Function("value", get.textContent)).bind(instance) :
+                    flexo.id;
+                  setters.forEach(function(f) { f.call(instance, get_v(e)); });
                 });
             } else {
               if (!property) throw "No property for watch/get on instance";
@@ -866,7 +874,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
                   function() { return p; },
                   function(x) {
                     p = x;
-                    flexo.log("===", instance);
                     setters.forEach(function(f) { f.call(instance, x); });
                   });
               })();

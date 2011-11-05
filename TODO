@@ -1,10 +1,13 @@
-Bender TODO list as of 2011-11-04 (v0.2.1)
+Bender TODO list as of 2011-11-05 (v0.2.1)
 
 
 * Core Features
 
 [/] Replace <bind> with <watch>/<get>/<set>
     [ ] remove <listen>
+    [x] add action to <get> (core/tests/svg-clock)
+        [ ] only event so far; review semantics
+    [ ] adapt content for set/@view with no property/attr (e.g. text vs. nodes)
 [ ] Component extension
     [ ] core/tests/uber-clock*
 [ ] Readd <connect> and remove link from controller to component
@@ -35,7 +38,9 @@ Bender TODO list as of 2011-11-04 (v0.2.1)
     [ ] Improve layout
 [ ] Update Slideshow for current version
     [ ] Slide number
-[ ] Kanji application
+[ ] Kanji/vocabulary application
+[ ] Peacock
+[ ] Bender Builder
 
 
 * Documentation and deployment

@@ -1,35 +1,6 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
   <title>SVG Clock</title>
-  <bind value="time" view="hours" attr="transform">
-    return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
-  </bind>
-  <bind value="time" view="minutes" attr="transform">
-    return "rotate({0})".fmt(value.getMinutes() * 6);
-  </bind>
-  <bind value="time" view="seconds" attr="r">
-    return 3 * value.getSeconds();
-  </bind>
-  <controller id="metro" instance-of="bender.metro" f:rate-ms="333">
-    <listen event="@rendered">
-      this.bang();
-    </listen>
-  </controller>
-  <controller>
-    <script>
-      $_.init = function() { this.component.time = new Date(); };
-    </script>
-    <listen event="@rendered"><![CDATA[
-      for (var i = 1; i < 60; ++i) {
-        var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
-          stroke: "white" });
-        this.component.views.seconds.parentNode
-          .insertBefore(c, this.component.views.seconds);
-      }
-    ]]></listen>
-    <listen controller="metro" event="@bang">
-      this.component.time = new Date();
-    </listen>
-  </controller>
+
   <view>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
       viewBox="-220 -220 440 440">
@@ -42,4 +13,34 @@
         stroke-linecap="round" id="hours" stroke-opacity="0.9"/>
     </svg>
   </view>
+
+  <controller instance-of="bender.metro" id="timer" f:rate-ms="333"/>
+
+  <watch>
+    <get event="@ready"/>
+    <set><![CDATA[
+      for (var i = 1; i < 60; ++i) {
+        var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
+          stroke: "white" });
+        this.views.seconds.parentNode.insertBefore(c, this.views.seconds);
+      }
+      this.controllers.timer.bang();
+      ]]></set>
+  </watch>
+
+  <watch>
+    <get controller="timer" event="@bang">
+      return new Date();
+    </get>
+    <set view="hours" attr="transform">
+      return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
+    </set>
+    <set view="minutes" attr="transform">
+      return "rotate({0})".fmt(value.getMinutes() * 6);
+    </set>
+    <set view="seconds" attr="r">
+      return 3 * value.getSeconds();
+    </set>
+  </watch>
+
 </app>
