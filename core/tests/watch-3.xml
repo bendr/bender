@@ -1,0 +1,20 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Watch: display a value from a controller</title>
+  <view>
+    <html:p>The time is now: <html:span id="time">...</html:span></html:p>
+  </view>
+  <controller instance-of="bender.metro" id="timer" f:rate-ms="333"/>
+  <watch>
+    <get event="@ready"/>
+    <set>
+      this.controllers.timer.bang();
+    </set>
+  </watch>
+  <watch>
+    <get controller="timer" event="@bang"/>
+    <set view="time">
+      return new Date();
+    </set>
+  </watch>
+</app>

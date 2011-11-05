@@ -831,29 +831,33 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var controller = set.getAttribute("controller");
             var dest = view_or_controller(instance, view, controller);
             var property = set.getAttribute("property");
-            if (view) {
-              if (!property) property = "textContent";
-              var get_v = /\S/.test(set.textContent) ?
-                new Function("value", set.textContent) : flexo.id;
-              return function(v) {
-                var v_ = get_v(v);
-                if (typeof v_ !== "undefined") dest[property] = v_;
-              };
-            }
-            return function() { flexo.log("TODO"); };
+            // TODO adapt to the kind of content (e.g. nodes?) when there is
+            // no property
+            if (!property) property = "textContent";
+            var get_v = /\S/.test(set.textContent) ?
+              (new Function("value", set.textContent)).bind(instance) :
+              flexo.id;
+            return function(v) {
+              var v_ = get_v(v);
+              if (typeof v_ !== "undefined") dest[property] = v_;
+            };
           });
         watch.get.forEach(function(get) {
             var view = get.getAttribute("view");
             var controller = get.getAttribute("controller");
             var source = view_or_controller(instance, view, controller);
             var property = get.getAttribute("property");
+            var event = get.getAttribute("event");
             if (view) {
               if (!property) property = "textContent";
               // use dom-event or monitor node
-            } else if (controller) {
-              // use event
+            } else if (controller || event) {
+              if (!event) event = "@change";
+              if (!controller) source = instance.controllers[""];
+              bender.listen(source, event, function(e) {
+                  setters.forEach(function(f) { f.call(instance, e); });
+                });
             } else {
-              // use setter
               if (!property) throw "No property for watch/get on instance";
               var init = instance[property];
               (function() {
@@ -862,7 +866,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
                   function() { return p; },
                   function(x) {
                     p = x;
-                    setters.forEach(function(f) { f(x); });
+                    flexo.log("===", instance);
+                    setters.forEach(function(f) { f.call(instance, x); });
                   });
               })();
               if (typeof init !== "undefined") instance[property] = init;

@@ -1,4 +1,4 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/f"
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
   xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
   <title>Watch: display a value from the component</title>
   <view>
