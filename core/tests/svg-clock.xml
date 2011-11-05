@@ -17,15 +17,14 @@
   <controller instance-of="bender.metro" id="timer" f:rate-ms="333"/>
 
   <watch>
-    <get event="@ready"/>
-    <set><![CDATA[
+    <get event="@ready"/><![CDATA[
       for (var i = 1; i < 60; ++i) {
         var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
           stroke: "white" });
         this.views.seconds.parentNode.insertBefore(c, this.views.seconds);
       }
       this.controllers.timer.bang();
-      ]]></set>
+    ]]></get>
   </watch>
 
   <watch>

@@ -1,0 +1,44 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:svg="http://www.w3.org/2000/svg">
+  <title>SVG Button component test</title>
+
+  <component id="svg-button">
+    <view>
+      <svg:rect id="rect" width="100" height="100" fill="#08f"/>
+    </view>
+    <controller/>
+    <watch>
+      <get view="rect" dom-event="mousedown"/>
+      <get view="rect" dom-event="touchstart"/>
+      <set>
+        flexo.log("down/start");
+      </set>
+      <watch>
+        <get view="rect" dom-event="mouseup"/>
+        <get view="rect" dom-event="touchend"/>
+        <set>
+          flexo.log("up/end, @foo from {0}".fmt(this.hash));
+          bender.notify(this, "@foo");
+        </set>
+      </watch>
+      <watch>
+        <get view="rect" dom-event="mouseout"/>
+        <get view="rect" dom-event="touchcancel"/>
+        <set>
+          flexo.log("out/cancel");
+        </set>
+      </watch>
+    </watch>
+  </component>
+
+  <view>
+    <component ref="svg-button" id="button"/>
+  </view>
+
+  <watch>
+    <get view="button" event="@foo">
+      flexo.log("@foo");
+    </get>
+  </watch>
+
+</app>

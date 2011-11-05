@@ -825,7 +825,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Build the watch graph for this instance
   var build_watch_graph = function(instance)
   {
+    instance.children.forEach(build_watch_graph);
     instance.watches.forEach(function(watch) {
+        var active = watch.parent === instance.__proto__;
+        watch.__active = active;
         var setters = watch.set.map(function(set) {
             var view = set.getAttribute("view");
             var controller = set.getAttribute("controller");
@@ -853,18 +856,39 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var source = view_or_controller(instance, view, controller);
             var property = get.getAttribute("property");
             var event = get.getAttribute("event");
-            if (view) {
-              if (!property) property = "textContent";
-              // use dom-event or monitor node
-            } else if (controller || event) {
+            if (controller || event) {
               if (!event) event = "@change";
               if (!controller) source = instance.controllers[""];
+              if (view) source = source.component;
+              flexo.log("listen to {0}".fmt(source.hash));
               bender.listen(source, event, function(e) {
                   var get_v = /\S/.test(get.textContent) ?
                     (new Function("value", get.textContent)).bind(instance) :
                     flexo.id;
-                  setters.forEach(function(f) { f.call(instance, get_v(e)); });
+                  var e_ = get_v(e);
+                  setters.forEach(function(f) { f.call(instance, e_); });
                 });
+            } else if (view) {
+              if (!property) property = "textContent";
+              var domevent = get.getAttribute("dom-event");
+              if (domevent) {
+                if (!source) source = instance.app.dest_body.ownerDocument;
+                bender.listen(source, domevent, function(e) {
+                    if (!watch.__active) return;
+                    if (!active) {
+                      watch.parent.children.forEach(function(w) {
+                          w.__active = false;
+                        });
+                    }
+                    watch.children.forEach(function(w) { w.__active = true; });
+                    var get_v = /\S/.test(get.textContent) ?
+                      (new Function("value", get.textContent)).bind(instance) :
+                      flexo.id;
+                    var e_ = get_v(e);
+                    setters.forEach(function(f) { f.call(instance, e_); });
+                  });
+              }
+              // else monitor property
             } else {
               if (!property) throw "No property for watch/get on instance";
               var init = instance[property];
