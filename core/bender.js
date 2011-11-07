@@ -299,7 +299,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     var load_child = function(ch) {
       if (!ch) {
         if (node.namespaceURI === bender.NS &&
-            node.localName in did_load_element) {
+            did_load_element.hasOwnProperty(node.localName)) {
           did_load_element[node.localName](node, prototype);
         }
         return k.get_thunk();
@@ -505,10 +505,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     component: function(node, prototype)
     {
       if (node._is_definition) did_load_element.app(node, prototype);
-    },
-
-    // Override Gecko's watch()
-    watch: function() {},
+    }
   };
 
   // Return the body element (for HTML documents) or by default the
@@ -529,14 +526,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
   var render_component = function(node, instance)
   {
     if (node.namespaceURI === bender.NS &&
-        node.localName in will_render_element) {
+        will_render_element.hasOwnProperty(node.localName)) {
       if (!will_render_element[node.localName](node, instance)) return;
     }
     for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
       render_component(ch, instance);
     }
     if (node.namespaceURI === bender.NS &&
-        node.localName in did_render_element) {
+        did_render_element.hasOwnProperty(node.localName)) {
       did_render_element[node.localName](node, instance);
     }
   };
@@ -574,10 +571,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         (new Function("$_", node.textContent))(prototype);
       }
       return true;
-    },
-
-    // Override Gecko's watch()
-    watch: function() {}
+    }
   };
 
   var did_render_element =
@@ -616,10 +610,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       if (id) instance.main_controller_node = node;
       instance.controllers[id] = delegate;
-    },
-
-    // Override Gecko's watch()
-    watch: function() {}
+    }
   };
 
 
