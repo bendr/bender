@@ -505,7 +505,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
     component: function(node, prototype)
     {
       if (node._is_definition) did_load_element.app(node, prototype);
-    }
+    },
+
+    // Override Gecko's watch()
+    watch: function() {},
   };
 
   // Return the body element (for HTML documents) or by default the
@@ -571,7 +574,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
         (new Function("$_", node.textContent))(prototype);
       }
       return true;
-    }
+    },
+
+    // Override Gecko's watch()
+    watch: function() {}
   };
 
   var did_render_element =
@@ -610,7 +616,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       if (id) instance.main_controller_node = node;
       instance.controllers[id] = delegate;
-    }
+    },
+
+    // Override Gecko's watch()
+    watch: function() {}
   };
 
 
