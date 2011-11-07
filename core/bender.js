@@ -152,7 +152,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Get an URI for a component node, looking up its href or ref attribute
     get_uri_for_node: function(node)
     {
-      return node.hasAttribute("href") ?
+      return node.getAttribute("href") ?
         this.get_absolute_uri(node.getAttribute("href")) :
         this.find(node.getAttribute("ref"), "components");
     },
@@ -355,9 +355,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // instanciation nodes easily
     component: function(node, prototype)
     {
-      if (node.hasAttribute("href")) {
+      if (node.getAttribute("href")) {
         return will_load_element.include(node, prototype);
-      } else if (!node.hasAttribute("ref")) {
+      } else if (!node.getAttribute("ref")) {
         // If this is node the root node, then it is an inline component
         // definition
         if (node !== prototype.root_node) {
@@ -666,7 +666,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // TODO render language attribute rather than language metadata property
     if (app.metadata.language) {
       var e = app.dest_body.ownerDocument.documentElement;
-      if (e.namespaceURI && !e.hasAttribute("lang")) {
+      if (e.namespaceURI && !e.getAttribute("lang")) {
         e.setAttributeNS(flexo.XML_NS, "lang", app.metadata.language);
       } else {
         e.setAttribute("lang", app.metadata.language);
