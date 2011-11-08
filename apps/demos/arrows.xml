@@ -3,6 +3,8 @@
   xmlns:xlink="http://www.w3.org/1999/xlink"
   f:width="320" f:height="240" f:size="20" e:color="">
 
+  <title>Arrows</title>
+
   <view>
     <svg:defs>
       <svg:g id="arrow">

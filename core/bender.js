@@ -122,9 +122,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (!args.dest) args.dest = find_body(document);
     load_uri(url, args.dest, function(prototype) {
         var app = prototype.instantiate_and_render();
+        set_parameters_from_args(app, args);
         connect(app);
         build_watch_graph(app);
-        set_parameters_from_args(app, args);
         if (f) f(app);
         bender.notify(app.controllers[""], "@ready");
       });
@@ -273,6 +273,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
   };
 
+  // Set application parameters from the arguments passed
   var set_parameters_from_args = function(app, args)
   {
     for (var param in args) {
@@ -632,12 +633,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Make sure that a component has a default controller
     component: function(node, instance)
     {
-      bender.log(node, instance.hash);
-      //if (!node._is_definition) {
-        if (!instance.controllers[""]) {
-          did_render_element.controller(node, instance, true);
-        }
-      //}
+      if (!instance.controllers[""]) {
+        did_render_element.controller(node, instance, true);
+      }
     },
 
     // Create new delegates for controllers.
@@ -900,8 +898,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var domevent = get.getAttribute("dom-event");
             if (controller || event) {
               if (!event) event = "@change";
-              if (!controller) source = instance.controllers[""];
-              if (view) source = source.component;
+              if (!source) source = instance.controllers[""];
               bender.listen(source, event, function(e) {
                   var get_v = /\S/.test(get.textContent) ?
                     (new Function("value", get.textContent)).bind(instance) :

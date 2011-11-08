@@ -10,22 +10,23 @@
       <get view="rect" dom-event="mousedown"/>
       <get view="rect" dom-event="touchstart"/>
       <set>
-        flexo.log("down/start");
+        this.views.rect.setAttribute("fill", "#f80");
       </set>
       <watch>
         <get view="rect" dom-event="mouseup"/>
         <get view="rect" dom-event="touchend"/>
         <set>
-          flexo.log("up/end, @foo from {0}".fmt(this.hash));
-          bender.notify(this, "@foo");
-          alert("!!!");
+          this.views.rect.setAttribute("fill", "#08f");
+          setTimeout((function() { bender.notify(this, "@pushed") }).bind(this),
+            0);
+          flexo.log(value);
         </set>
       </watch>
       <watch>
         <get view="rect" dom-event="mouseout"/>
         <get view="rect" dom-event="touchcancel"/>
         <set>
-          flexo.log("out/cancel");
+          this.views.rect.setAttribute("fill", "#08f");
         </set>
       </watch>
     </watch>
@@ -36,8 +37,8 @@
   </view>
 
   <watch>
-    <get view="button" event="@foo">
-      flexo.log("@foo");
+    <get view="button" event="@pushed">
+      alert("button was pushed!");
     </get>
   </watch>
 

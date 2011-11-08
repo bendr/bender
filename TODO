@@ -3,8 +3,8 @@ Bender TODO list as of 2011-11-08 (v0.2.1)
 
 * Bugs
 
-[/] No default controller for inline component? (core/tests/svg-button)
-[/] Event sources mismatch (core/tests/svg-button)
+[x] No default controller for inline component? (core/tests/svg-button)
+[x] Event sources mismatch (core/tests/svg-button)
 
 
 * Core Features
