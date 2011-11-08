@@ -104,7 +104,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (!argstr) argstr = window.location.search.substring(1);
     argstr.split("&").forEach(function(q) {
         var sep = q.indexOf("=");
-        args[q.substr(0, sep)] = q.substr(sep + 1);
+        args[q.substr(0, sep)] = unescape(q.substr(sep + 1));
       });
     args.debug = Math.max(parseInt(args.debug, 10), 0);
     args.dest = document.getElementById(args.dest);
@@ -121,10 +121,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     if (!args.dest) args.dest = find_body(document);
     load_uri(url, args.dest, function(prototype) {
-        var app = prototype.instantiate_and_render(prototype.root_node);
-        app.args = args;
+        var app = prototype.instantiate_and_render();
         connect(app);
         build_watch_graph(app);
+        set_parameters_from_args(app, args);
         if (f) f(app);
         bender.notify(app.controllers[""], "@ready");
       });
@@ -269,6 +269,25 @@ if (typeof require === "function") flexo = require("./flexo.js");
         o[attr.localName] = v;
       } else if (attr.namespaceURI === bender.NS_B) {
         o[attr.localName] = attr.nodeValue.toLowerCase() === "true";
+      }
+    }
+  };
+
+  var set_parameters_from_args = function(app, args)
+  {
+    for (var param in args) {
+      var val = args[param];
+      var m;
+      if (m = param.match(/^e:/)) {
+        app[param.substr(m[0].length)] = val;
+      } else if (m = param.match(/^f:/)) {
+        var v = parseFloat(val);
+        if (isNaN(v)) {
+          throw "Not a float value for attribute {0}: {1}".fmt(param, val);
+        }
+        app[param.substr(m[0].length)] = v;
+      } else if (m = param.match(/^b:/)) {
+        app[param.substr(m[0].length)] = val.toLowerCase() === "true";
       }
     }
   };
@@ -883,7 +902,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
               if (!event) event = "@change";
               if (!controller) source = instance.controllers[""];
               if (view) source = source.component;
-              bender.log("listen to {0}".fmt(source.hash));
               bender.listen(source, event, function(e) {
                   var get_v = /\S/.test(get.textContent) ?
                     (new Function("value", get.textContent)).bind(instance) :

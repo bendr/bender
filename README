@@ -54,6 +54,7 @@ Release Notes
       URI fragment (core/tests/led.xml)
     * Replacing <bind> with <watch>/<get>/<set> (in progress)
     * flexo.hash to replace instance_id
+    * Can pass parameter arguments in the command line (e:, f:, b: prefixed)
 
   Changes in v0.2.0 (2011-10-23)
 
