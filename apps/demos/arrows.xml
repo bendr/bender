@@ -1,0 +1,69 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  f:width="640" f:height="480" f:size="20">
+
+  <view>
+    <svg:defs>
+      <svg:g id="arrow">
+        <svg:line x1="2" y1="10" x2="18" y2="10"/>
+        <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
+      </svg:g>
+    </svg:defs>
+    <svg:rect width="100%" height="100%"/>
+  </view>
+
+  <watch>
+    <get property="width"/>
+    <get property="height"/>
+    <set>
+      this.ROOT = flexo.find_svg(this.app.dest_body);
+      this.ROOT.setAttribute("viewBox", "0 0 {0} {1}"
+        .fmt(this.width, this.height));
+    </set>
+  </watch>
+
+  <watch>
+    <get event="@ready"><![CDATA[
+      this.transform = function(arrow, p)
+      {
+        var x = p ? p.x : flexo.random_int(0, this.width);
+        var y = p ? p.y : flexo.random_int(0, this.height);
+        var dx = x - arrow._x - this.size / 2;
+        var dy = y - arrow._y - this.size / 2;
+        var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
+        arrow.setAttribute("transform", "translate({0}, {1}) rotate({2}, 10, 10)"
+          .fmt(arrow._x, arrow._y, a));
+        var d = dx * dx + dy * dy;
+        var r = Math.max(this.width, this.height);
+        r *= r;
+        var c = "hsl({0}, {1}%, {2}%)".fmt((Math.floor(a) + 360) % 360,
+          Math.floor(100 * flexo.clamp(1 - d / r, 0, 1)),
+          Math.floor(50 * flexo.clamp(1 - d / r, 0, 1)));
+        arrow.setAttribute("stroke", c);
+        arrow.setAttribute("fill", c);
+      }
+
+      this.ARROWS = [];
+      for (var x = 0; x < this.width; x += this.size) {
+        for (var y = 0; y < this.height; y += this.size) {
+          var arrow = flexo.svg_href("use", "#arrow");
+          arrow._x = x;
+          arrow._y = y;
+          this.transform(arrow);
+          this.ARROWS.push(arrow);
+          this.app.dest_body.appendChild(arrow);
+        }
+      }
+    ]]></get>
+  </watch>
+
+  <watch>
+    <get dom-event="mousemove"><![CDATA[
+      var p = flexo.event_svg_point(value, this.ROOT);
+      this.ARROWS
+        .forEach((function(arrow) { this.transform(arrow, p); }).bind(this));
+    ]]></get>
+  </watch>
+
+</app>

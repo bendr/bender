@@ -205,7 +205,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Transforming values
 
   // Return the value constrained between min and max.
-  flexo.constrain_value = function(value, min, max)
+  flexo.clamp = function(value, min, max)
   {
     if (isNaN(value)) value = 0;
     return Math.max(Math.min(value, max), min);

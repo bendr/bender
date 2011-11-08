@@ -1,10 +1,13 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Alert on @ready event</title>
-  <listen event="@ready" once="true">
-    alert("{0} has sent a {1} event".fmt(event.source.node.localName,
-      event.type));
-  </listen>
+  <title>Alert on @ready/@rendered events</title>
   <view>
     <html:p>Alert when the application is ready.</html:p>
   </view>
+  <watch>
+    <get event="@ready"/>
+    <get event="@rendered"/>
+    <set>
+      alert("{0} has sent a {1} event".fmt(value.source.hash, value.type));
+    </set>
+  </watch>
 </app>

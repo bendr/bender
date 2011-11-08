@@ -17,6 +17,22 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // TODO depending on debug level: ignore, log, die
   bender.warn = function(msg) { throw msg; };
 
+  var ARGS = { debug: 0 };
+
+  // Log messages only in debug mode; same as bender.log(1, ...)
+  bender.log = function()
+  {
+    if (ARGS.debug > 0) flexo.log.apply(flexo, arguments);
+  };
+
+  // Conditional debug messages following the current debug level
+  bender.debug = function(level)
+  {
+    if (ARGS.debug > level) {
+      flexo.log.apply(flexo, [].slice.call(arguments, 1));
+    }
+  };
+
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
   bender.notify = function(source, type, e)
@@ -32,11 +48,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (!e.type) bender.warn("No type field for event");
     }
     if (e.type in e.source) {
-      e.source[e.type].forEach(function(x) {
-          if (x.handlEvent) {
-            x.handleEvent(e);
+      e.source[e.type].forEach(function(handler) {
+          if (handler.handleEvent) {
+            handler.handleEvent(e);
           } else {
-            x(e);
+            handler(e);
           }
         });
     }
@@ -92,6 +108,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       });
     args.debug = Math.max(parseInt(args.debug, 10), 0);
     args.dest = document.getElementById(args.dest);
+    ARGS.debug = args.debug;
     return args;
   };
 
@@ -165,6 +182,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
       instance.children = [];
       instance.controllers = {};
       instance.views = {};
+      bender.log("component.instantiate: {0} from {1}"
+          .fmt(instance.hash, this.hash));
       return instance;
     },
 
@@ -189,6 +208,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     c.root_node = node;       // root node of the component
     c.watches = [];           // watch nodes
     c.uri = node.ownerDocument.baseURI;
+    bender.log("create_component: {0}".fmt(c.hash), node);
     return c;
   };
 
@@ -228,6 +248,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
     c.component = instance;
     c.init();
     set_parameters_from_attributes(node, c);
+    bender.log("create_controller: {0} for {1}/{2}"
+        .fmt(c.hash, instance.hash, instance.__proto__.hash));
     return c;
   };
 
@@ -268,6 +290,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var prototype = app ?
           bender.create_component(node, dest_body, app) :
           bender.create_app(node, dest_body);
+        bender.log("load_uri: prototype {0} for {1}"
+          .fmt(prototype.hash, uri));
         load_async.trampoline(prototype.root_node, prototype,
           function(error) {
             if (error) throw error;
@@ -284,7 +308,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     if (!node) return k.get_thunk();
     if (node.namespaceURI === bender.NS &&
-        node.localName in will_load_element) {
+        will_load_element.hasOwnProperty(node.localName)) {
       if (!will_load_element[node.localName](node, prototype)) {
         bender.listen(prototype, "@bender-load", function() {
             k.trampoline();
@@ -469,6 +493,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         w.parent.children.push(w);
       }
       prototype.watches.push(w);
+      bender.log("watch: {0}".fmt(w.hash));
       return true;
     },
 
@@ -495,9 +520,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     app: function(node, prototype)
     {
       if (!prototype.view_node) prototype.view_node = node;
-      if (!prototype.main_controller_node) {
-        prototype.main_controller_node = node;
-      }
       set_parameters_from_attributes(node, prototype);
     },
 
@@ -568,7 +590,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var p = node.parentNode;
       if (is_bender_node(p, "controller")) {
         var prototype = node_prototype(p, bender.controller);
-        (new Function("$_", node.textContent))(prototype);
+        (new Function("$_", node.textContent)).call(instance, prototype);
       }
       return true;
     }
@@ -585,30 +607,30 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.remove_children(instance.dest_body);
         render_metadata(instance);
         render_content(instance.view_node, instance.dest_body, instance);
-
       }
     },
 
+    // Make sure that a component has a default controller
     component: function(node, instance)
     {
-      if (!node._is_definition) {
+      bender.log(node, instance.hash);
+      //if (!node._is_definition) {
         if (!instance.controllers[""]) {
-          did_render_element.controller(node, instance);
+          did_render_element.controller(node, instance, true);
         }
-      }
+      //}
     },
 
     // Create new delegates for controllers.
-    controller: function(node, instance)
+    controller: function(node, instance, skip_id)
     {
       var prototype = node_prototype(node, bender.controller);
       var delegate = bender.create_controller(node, instance, prototype);
-      var id = node.getAttribute("id") || "";
+      var id = !skip_id && node.getAttribute("id") || "";
       if (instance.controllers[id]) {
         throw "Redefinition of {0}controller{1}"
           .fmt(id ? "main " : "", id ? " " + id : "");
       }
-      if (id) instance.main_controller_node = node;
       instance.controllers[id] = delegate;
     }
   };
@@ -856,11 +878,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var source = view_or_controller(instance, view, controller);
             var property = get.getAttribute("property");
             var event = get.getAttribute("event");
+            var domevent = get.getAttribute("dom-event");
             if (controller || event) {
               if (!event) event = "@change";
               if (!controller) source = instance.controllers[""];
               if (view) source = source.component;
-              flexo.log("listen to {0}".fmt(source.hash));
+              bender.log("listen to {0}".fmt(source.hash));
               bender.listen(source, event, function(e) {
                   var get_v = /\S/.test(get.textContent) ?
                     (new Function("value", get.textContent)).bind(instance) :
@@ -868,9 +891,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
                   var e_ = get_v(e);
                   setters.forEach(function(f) { f.call(instance, e_); });
                 });
-            } else if (view) {
+            } else if (view || domevent) {
               if (!property) property = "textContent";
-              var domevent = get.getAttribute("dom-event");
               if (domevent) {
                 if (!source) source = instance.app.dest_body.ownerDocument;
                 bender.listen(source, domevent, function(e) {
@@ -905,6 +927,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             }
           });
       });
+    bender.notify(instance.controllers[""], "@rendered");
   };
 
   // Connect Bender and DOM event listeners
@@ -938,7 +961,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           bender.listen(source, ev, handler, once);
         }
       }
-      bender.notify(controller, "@rendered");
     }
   };
 

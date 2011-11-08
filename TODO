@@ -1,10 +1,10 @@
-Bender TODO list as of 2011-11-05 (v0.2.1)
+Bender TODO list as of 2011-11-07 (v0.2.1)
 
 
 * Bugs
 
-[ ] No default controller for inline component? (core/tests/svg-button)
-[ ] Event sources mismatch (core/tests/svg-button)
+[/] No default controller for inline component? (core/tests/svg-button)
+[/] Event sources mismatch (core/tests/svg-button)
 
 
 * Core Features
@@ -24,6 +24,7 @@ Bender TODO list as of 2011-11-05 (v0.2.1)
 [ ] Metadata (at least xml:lang)
     [ ] help/about element
 [ ] Undash names from XML
+[ ] Keep namespace prefixes around for resolution of attribute names in <watch>
 
 
 * Library
@@ -61,7 +62,7 @@ Bender TODO list as of 2011-11-05 (v0.2.1)
     [ ] Run unexpanded examples
 [/] Sort out tests for current version
 [ ] Continuous deployment
-[x] Vidualize port
+[/] Vidualize port
     [ ] SVG button test
 
 
