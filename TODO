@@ -5,7 +5,7 @@ Bender TODO list as of 2011-11-09 (v0.2.1)
 
 [x] No default controller for inline component? (core/tests/svg-button)
 [x] Event sources mismatch (core/tests/svg-button)
-[ ] content with ref: cannot find current __component
+[x] content with ref: cannot find current __component
 
 
 * Core Features
@@ -26,6 +26,7 @@ Bender TODO list as of 2011-11-09 (v0.2.1)
     [ ] help/about element
 [ ] Undash names from XML
 [ ] Keep namespace prefixes around for resolution of attribute names in <watch>
+[ ] Attribute for local scripts; for both controllers and components
 
 
 * Library
