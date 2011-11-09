@@ -1,0 +1,64 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:svg="http://www.w3.org/2000/svg" id="svg-button" b:enabled="true">
+  <title>SVG Button</title>
+
+  <stylesheet>
+    .svg-button-hidden { display: none; }
+  </stylesheet>
+
+  <view>
+    <svg:g id="_enabled">
+      <content id="enabled">
+        <svg:rect width="100" height="100" fill="#08f"/>
+      </content>
+    </svg:g>
+    <svg:g id="_pushed">
+      <content id="pushed">
+        <svg:rect width="100" height="100" fill="#f80"/>
+      </content>
+    </svg:g>
+    <svg:g id="_disabled">
+      <content id="disabled">
+        <svg:rect width="100" height="100" fill="#ccc"/>
+      </content>
+    </svg:g>
+  </view>
+
+  <watch>
+    <get property="enabled"/>
+    <set>
+      flexo.set_class_iff(this.views._enabled, "svg-button-hidden", !value);
+      flexo.set_class_iff(this.views._disabled, "svg-button-hidden", value);
+      flexo.add_class(this.views._pushed, "svg-button-hidden");
+    </set>
+  </watch>
+
+  <watch>
+    <get view="_enabled" dom-event="mousedown"/>
+    <get view="_enabled" dom-event="touchstart"/>
+    <set>
+      flexo.add_class(this.views._enabled, "svg-button-hidden");
+      flexo.remove_class(this.views._pushed, "svg-button-hidden");
+    </set>
+  </watch>
+
+  <watch>
+    <get view="_pushed" dom-event="mouseup"/>
+    <get view="_pushed" dom-event="touchend"/>
+    <set>
+      flexo.remove_class(this.views._enabled, "svg-button-hidden");
+      flexo.add_class(this.views._pushed, "svg-button-hidden");
+      setTimeout((function() { bender.notify(this, "@pushed"); }).bind(this));
+    </set>
+  </watch>
+
+  <watch>
+    <get dom-event="mouseup"/>
+    <get dom-event="touchend"/>
+    <set>
+      flexo.remove_class(this.views._enabled, "svg-button-hidden");
+      flexo.add_class(this.views._pushed, "svg-button-hidden");
+    </set>
+  </watch>
+
+</component>

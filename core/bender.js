@@ -728,19 +728,23 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
   };
 
+  // Find the first content descendant with the given id
   var find_content = function(node, id)
   {
+    bender.log("find_content: {0} in".fmt(id), node);
     if (!node) return;
     for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
       if (is_bender_node(ch, "content") && ch.getAttribute("ref") === id) {
         return ch;
+      } else {
+        var content = find_content(ch, id);
+        if (content) return content;
       }
     }
   }
 
   var render_view =
   {
-
     // Render the view of the component; keep track of the component node so
     // that the <content> element can access it
     component: function(node, target, instance)
@@ -762,7 +766,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (instance.__component) {
         var id = node.getAttribute("id");
         if (id) {
-          var content = find_content(instance.parent.__component, id);
+          // TODO fix this for content-id and svg-button tests
+          for (var i = instance; i && !i.hasOwnProperty("__component");
+              i = i.parent);
+          var content = find_content(i.__component, id);
           if (content) {
             render_content(content, target, instance);
           } else {
