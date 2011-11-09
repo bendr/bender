@@ -19,7 +19,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   var ARGS = { debug: 0 };
 
-  // Log messages only in debug mode; same as bender.log(1, ...)
+  // Log messages only in debug mode; same as bender.debug(1, ...)
   bender.log = function()
   {
     if (ARGS.debug > 0) flexo.log.apply(flexo, arguments);
@@ -937,8 +937,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 flexo.getter_setter(instance, property,
                   function() { return p; },
                   function(x) {
-                    p = x;
                     setters.forEach(function(f) { f.call(instance, x); });
+                    p = x;
                   });
               })();
               if (typeof init !== "undefined") instance[property] = init;

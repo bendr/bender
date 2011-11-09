@@ -341,9 +341,9 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   };
 
   // requestAnimationFrame
-  if (typeof window !== "undefined") {
-    flexo.request_animation_frame =
-      window.requestAnimationFrame ||
+  if (typeof window !== "undefined" &&
+      typeof window.requestAnimationFrame !== "function") {
+    window.requestAnimationFrame =
       window.webkitRequestAnimationFrame ||
       window.mozRequestAnimationFrame ||
       window.oRequestAnimationFrame ||

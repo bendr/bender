@@ -1,97 +1,97 @@
-<component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
-  xmlns:e="http://bender.igel.co.jp/e" xmlns:f="http://bender.igel.co.jp/f"
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:b="http://bender.igel.co.jp/b" b:enabled="true"
+  xmlns:f="http://bender.igel.co.jp/f" f:tabindex="0"
+  xmlns:e="http://bender.igel.co.jp/e" e:class=""
   xmlns:html="http://www.w3.org/1999/xhtml" id="button">
 
-  <title>Push button</title>
-  <help>A push button reacting to pointer and touch events with keyboard
-    accessibility. Send a simple @pushed event when activated in any
-    manner.</help>
+  <title>An HTML button component that responds to both mouse and touch
+    events</title>
 
   <stylesheet>
-    .bender-button { display: inline-block; cursor: default; padding: .3em .5em;
-      background-color:#ddd; -moz-border-radius: 6px;
+    .bender-button { display: inline-block; cursor: default;
+      padding: .3em .5em; background-color:#ddd; -moz-border-radius: 6px;
       -webkit-border-radius: 6px; border-radius: 6px;
       box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
-    .bender-button.__down { opacity: 0.5; }
-    .bender-button.__disabled { opacity: 0.5; }
+    .bender-button.__disabled, .bender-button.__down { opacity: 0.5; }
     .bender-naked .bender-button { padding: 0; border: none;
       background-color: transparent; text-shadow: 0px 0px 0px; }
   </stylesheet>
 
-  <controller>
-    <script>
-      $_.handleEvent = function(e)
-      {
-        if (this.disabled) return;
-        if (e.type === "mousedown" || e.type === "touchstart") {
-          e.preventDefault();
-          flexo.add_class(this.component.views.b, "__down");
-        } else if (e.type === "mouseup" || e.type === "touchend") {
-          if (flexo.remove_class(this.component.views.b, "__down")) {
-            e.preventDefault();
-            setTimeout((function() { this.notify("@pushed"); }).bind(this), 0);
-          }
-        } else if (e.type === "mouseout" || e.type === "touchcancel") {
-          e.preventDefault();
-          flexo.remove_class(this.component.views.b, "__down");
-        } else if (e.type === "keydown") {
-          if (e.keyCode === 13) {
-            e.preventDefault();
-            flexo.add_class(this.component.views.b, "__down");
-            setTimeout((function() {
-                flexo.remove_class(this.component.views.b, "__down");
-                setTimeout((function() { this.notify("@pushed"); }).bind(this),
-                  0);
-              }).bind(this), 150);
-          } else if (e.keyCode === 27) {
-            e.preventDefault();
-            this.component.views.b.blur();
-          }
-        }
-      };
-    </script>
-    <listen dom-event="mousedown" view="b"/>
-    <listen dom-event="mouseout" view="b"/>
-    <listen dom-event="mouseup" view="b"/>
-    <listen dom-event="touchstart" view="b"/>
-    <listen dom-event="touchend" view="b"/>
-    <listen dom-event="touchcancel" view="b"/>
-    <listen dom-event="keydown" view="b"/>
-  </controller>
-
-  <update f:tabindex="0">
-    <set view="b" attr="tabindex"/>
-  </update>
-
-  <update b:enabled="true">
-    <set view="b">
-      flexo.set_class_iff(view, "__disabled", !value);
-      if (!value) {
-        this._tabindex = this.tabindex;
-        this.tabindex = -1;
-        view.blur();
-      } else if ("_tabindex" in this) {
-        this.tabindex = this._tabindex;
-      }
-    </set>
-    <get view="b">
-      return flexo.has_class(view, "__disabled");
-    </get>
-  </update>
-
-  <update e:class="">
-    <set view="b">
-      if (value !== prev) {
-        if (prev) flexo.remove_class(view, prev);
-        if (value) flexo.add_class(view, value);
-      }
-    </set>
-  </update>
-
   <view>
-    <html:div class="bender-button" id="b" role="button">
-      <content/>
-    </html:div>
+    <html:div class="bender-button" id="b"><content/></html:div>
   </view>
+
+  <watch>
+    <get property="enabled"/>
+    <set>
+      flexo.set_class_iff(this.views.b, "__disabled", !value);
+      if (!value) {
+        this.__tabindex = this.tabindex;
+        this.tabindex = -1;
+      } else if (this.hasOwnProperty("__tabindex")) {
+        this.tabindex = this.__tabindex;
+        delete this.__tabindex;
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get property="tabindex"/>
+    <set view="b" attr="tabindex"/>
+  </watch>
+
+  <watch>
+    <get property="class"/>
+    <set>
+      if (value !== this["class"]) {
+        if (this["class"]) flexo.remove_class(this.views.b, this["class"]);
+        if (value) flexo.add_class(this.views.b, value);
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get view="b" dom-event="mousedown"/>
+    <set>
+      value.preventDefault();
+      if (this.enabled) flexo.add_class(this.views.b, "__down");
+    </set>
+    <watch>
+      <get view="b" dom-event="mouseup"/>
+      <set>
+        if (flexo.remove_class(this.views.b, "__down")) {
+          setTimeout((function() {
+              bender.notify(this, "@pushed");
+            }).bind(this), 0);
+        }
+      </set>
+    </watch>
+    <watch>
+      <get dom-event="mouseup"/>
+      <set>
+        flexo.remove_class(this.views.b, "__down");
+      </set>
+    </watch>
+  </watch>
+
+  <watch>
+    <get view="b" dom-event="keydown"/>
+    <set>
+      if (this.enabled) {
+        if (value.keyCode === 13) {
+          value.preventDefault();
+          flexo.add_class(this.views.b, "__down");
+          setTimeout((function() {
+              flexo.remove_class(this.views.b, "__down");
+              setTimeout((function() { bender.notify(this, "@pushed"); })
+                .bind(this), 0);
+            }).bind(this), 150);
+        } else if (value.keyCode === 27) {
+          value.preventDefault();
+          this.views.b.blur();
+        }
+      }
+    </set>
+  </watch>
 
 </component>

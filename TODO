@@ -27,6 +27,7 @@ Bender TODO list as of 2011-11-09 (v0.2.1)
 [ ] Undash names from XML
 [ ] Keep namespace prefixes around for resolution of attribute names in <watch>
 [ ] Attribute for local scripts; for both controllers and components
+[ ] Access to host viewBox for SVG documents
 
 
 * Library
@@ -65,7 +66,7 @@ Bender TODO list as of 2011-11-09 (v0.2.1)
 [/] Sort out tests for current version
 [ ] Continuous deployment
 [/] Vidualize port
-    [ ] SVG button test
+    [/] SVG button test
 
 
 * Design and open questions

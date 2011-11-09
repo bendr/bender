@@ -1,13 +1,13 @@
 <app xmlns="http://bender.igel.co.jp">
   <title>Bind/LED</title>
-  <bind>
-    <get view="toggle" event="@pushed"/>
-    <set view="led" property="on">
-      return !view.on;
-    </set>
-  </bind>
   <view>
     <component href="../../lib/button.xml" id="toggle">Toggle</component>
     <component href="../../lib/led.xml" id="led"/>
   </view>
+  <watch>
+    <get view="toggle" event="@pushed"/>
+    <set>
+      this.views.led.on = !this.views.led.on;
+    </set>
+  </watch>
 </app>
