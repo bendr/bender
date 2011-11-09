@@ -1,32 +1,48 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
   xmlns:svg="http://www.w3.org/2000/svg">
   <title>SVG Button component test</title>
 
-  <component id="svg-button">
+  <component id="svg-button" b:enabled="true">
     <view>
-      <svg:rect id="rect" width="100" height="100" fill="#08f"/>
+      <svg:rect id="rect" width="100" height="100"/>
     </view>
+
+    <watch>
+      <get property="enabled"/>
+      <set view="rect" attr="fill">
+        return value ? "#08f" : "#ccc";
+      </set>
+    </watch>
+
     <watch>
       <get view="rect" dom-event="mousedown"/>
       <get view="rect" dom-event="touchstart"/>
       <set>
-        this.views.rect.setAttribute("fill", "#f80");
+        if (this.enabled) {
+          this.views.rect.setAttribute("fill", "#f80");
+          this.__down = true;
+        }
       </set>
       <watch>
         <get view="rect" dom-event="mouseup"/>
         <get view="rect" dom-event="touchend"/>
         <set>
-          this.views.rect.setAttribute("fill", "#08f");
-          setTimeout((function() { bender.notify(this, "@pushed") }).bind(this),
-            0);
-          flexo.log(value);
+          if (this.__down) {
+            this.views.rect.setAttribute("fill", "#08f");
+            setTimeout((function() { bender.notify(this, "@pushed") })
+                .bind(this), 0);
+            delete this.__down;
+          }
         </set>
       </watch>
       <watch>
         <get view="rect" dom-event="mouseout"/>
         <get view="rect" dom-event="touchcancel"/>
         <set>
-          this.views.rect.setAttribute("fill", "#08f");
+          if (this.__down) {
+            this.views.rect.setAttribute("fill", "#08f");
+            delete this.__down;
+          }
         </set>
       </watch>
     </watch>
