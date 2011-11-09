@@ -254,9 +254,9 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Append a class to an element (if it does not contain it already)
   flexo.add_class = function(elem, c)
   {
-    var k = elem.className;
+    var k = elem.getAttribute("class") || "";
     if (!flexo.has_class(elem, c)) {
-      elem.className = "{0}{1}{2}".fmt(k, k ? " " : "", c);
+      elem.setAttribute("class", "{0}{1}{2}".fmt(k, k ? " " : "", c));
     }
   };
 
@@ -319,7 +319,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Test whether an element has the given class
   flexo.has_class = function(elem, c)
   {
-    return (new RegExp("\\b{0}\\b".fmt(c))).test(elem.className);
+    return (new RegExp("\\b{0}\\b".fmt(c)))
+      .test(elem.getAttribute("class") || "");
   };
 
   // Make an HTML element (without namespace) in the current document
@@ -356,9 +357,14 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.remove_class = function(elem, c)
   {
     var removed = "";
-    elem.className = elem.className.replace(new RegExp("\\s*{0}\\b".fmt(c)),
-        function(str) { removed = str; return ""; });
-    if (elem.className === "") elem.removeAttribute("class");
+    var k = (elem.getAttribute("class") || "")
+      .replace(new RegExp("\\s*{0}\\b".fmt(c)),
+          function(str) { removed = str; return ""; });
+    if (/\S/.test(k)) {
+      elem.setAttribute("class", k);
+    } else {
+      elem.removeAttribute("class");
+    }
     return removed;
   };
 
