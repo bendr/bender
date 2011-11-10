@@ -1,11 +1,8 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
-  xmlns:svg="http://www.w3.org/2000/svg">
+  xmlns:svg="http://www.w3.org/2000/svg" b:test="true">
   <title>SVG Button component test</title>
 
   <component id="svg-button" b:enabled="true">
-    <stylesheet>
-      .svg-button-hidden { display: none; }
-    </stylesheet>
     <view>
       <svg:g id="_enabled">
         <content id="enabled"/>
@@ -21,9 +18,9 @@
     <watch>
       <get property="enabled"/>
       <set>
-        flexo.set_class_iff(this.views._enabled, "svg-button-hidden", !value);
-        flexo.set_class_iff(this.views._disabled, "svg-button-hidden", value);
-        flexo.add_class(this.views._pushed, "svg-button-hidden");
+        this.views._enabled.setAttribute("display", value ? "" : "none");
+        this.views._pushed.setAttribute("display", "none");
+        this.views._disabled.setAttribute("display", value ? "none" : "");
       </set>
     </watch>
 
@@ -31,8 +28,8 @@
       <get view="_enabled" dom-event="mousedown"/>
       <get view="_enabled" dom-event="touchstart"/>
       <set>
-        flexo.add_class(this.views._enabled, "svg-button-hidden");
-        flexo.remove_class(this.views._pushed, "svg-button-hidden");
+        this.views._enabled.setAttribute("display", "none");
+        this.views._pushed.setAttribute("display", "");
       </set>
     </watch>
 
@@ -40,9 +37,10 @@
       <get view="_pushed" dom-event="mouseup"/>
       <get view="_pushed" dom-event="touchend"/>
       <set>
-        flexo.remove_class(this.views._enabled, "svg-button-hidden");
-        flexo.add_class(this.views._pushed, "svg-button-hidden");
-        setTimeout((function() { bender.notify(this, "@pushed"); }).bind(this));
+        this.views._enabled.setAttribute("display", "");
+        this.views._pushed.setAttribute("display", "none");
+        setTimeout((function() { bender.notify(this, "@pushed"); }).bind(this),
+          0);
       </set>
     </watch>
 
@@ -50,8 +48,8 @@
       <get dom-event="mouseup"/>
       <get dom-event="touchend"/>
       <set>
-        flexo.remove_class(this.views._enabled, "svg-button-hidden");
-        flexo.add_class(this.views._pushed, "svg-button-hidden");
+        this.views._enabled.setAttribute("display", "");
+        this.views._pushed.setAttribute("display", "none");
       </set>
     </watch>
   </component>
@@ -65,7 +63,7 @@
         <svg:rect width="100" height="100" rx="10" ry="10" fill="#f80"/>
       </content>
       <content ref="disabled">
-        <svg:rect width="100" height="100" rx="10" ry="10" fill="#ccc"/>
+        <svg:rect width="100" height="100" rx="10" ry="10" fill="#ff4040"/>
       </content>
     </component>
   </view>
