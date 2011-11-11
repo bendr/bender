@@ -259,20 +259,16 @@ if (typeof require === "function") flexo = require("./flexo.js");
     for (var i = 0, n = node.attributes.length; i < n; ++i) {
       var attr = node.attributes[i];
       if (!attr.namespaceURI) continue;
-      // Workaround for Vidualize
-      // if (attr.namespaceURI === bender.NS_E) {
-      if (attr.namespaceURI.indexOf(bender.NS_E) === 0) {
+      if (attr.namespaceURI === bender.NS_E) {
         o[attr.localName] = attr.nodeValue;
-      // } else if (attr.namespaceURI === bender.NS_F) {
-      } else if (attr.namespaceURI.indexOf(bender.NS_F) === 0) {
+      } else if (attr.namespaceURI === bender.NS_F) {
         var v = parseFloat(attr.nodeValue);
         if (isNaN(v)) {
           throw "Not a float value for attribute {0}: {1}"
             .fmt(attr.localName, attr.nodeValue);
         }
         o[attr.localName] = v;
-      // } else if (attr.namespaceURI === bender.NS_B) {
-      } else if (attr.namespaceURI.indexOf(bender.NS_B) === 0) {
+      } else if (attr.namespaceURI === bender.NS_B) {
         o[attr.localName] = attr.nodeValue.toLowerCase() === "true";
       }
     }
