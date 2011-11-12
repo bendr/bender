@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-11-09 (v0.2.1)
+Bender TODO list as of 2011-11-12 (v0.2.1)
 
 
 * Bugs
@@ -16,6 +16,7 @@ Bender TODO list as of 2011-11-09 (v0.2.1)
         [ ] only event so far; review semantics
     [ ] adapt content for set/@view with no property/attr (e.g. text vs. nodes)
     [ ] factor code for watches
+    [ ] retrieve old value
 [ ] Component extension
     [ ] core/tests/uber-clock*
 [ ] Readd <connect> and remove link from controller to component

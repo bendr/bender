@@ -1,5 +1,5 @@
 <app xmlns="http://bender.igel.co.jp">
-  <title>Bind/LED</title>
+  <title>Watch/LED</title>
   <view>
     <component href="../../lib/button.xml" id="toggle">Toggle</component>
     <component href="../../lib/led.xml" id="led"/>

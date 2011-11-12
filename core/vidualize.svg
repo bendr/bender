@@ -4,7 +4,6 @@
   <title>Bender</title>
   <script xlink:href="flexo.js"/>
   <script xlink:href="bender.js"/>
-  <script xlink:href="lib.js"/>
   <g id="dest-body"/>
   <script><![CDATA[
 

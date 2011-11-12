@@ -258,7 +258,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     for (var i = 0, n = node.attributes.length; i < n; ++i) {
       var attr = node.attributes[i];
-      if (!attr.namespaceURI) continue;
       if (attr.namespaceURI === bender.NS_E) {
         o[attr.localName] = attr.nodeValue;
       } else if (attr.namespaceURI === bender.NS_F) {
@@ -281,15 +280,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var val = args[param];
       var m;
       if (m = param.match(/^e:/)) {
-        app[param.substr(m[0].length)] = val;
+        app[param.substr(2)] = val;
       } else if (m = param.match(/^f:/)) {
         var v = parseFloat(val);
         if (isNaN(v)) {
           throw "Not a float value for attribute {0}: {1}".fmt(param, val);
         }
-        app[param.substr(m[0].length)] = v;
+        app[param.substr(2)] = v;
       } else if (m = param.match(/^b:/)) {
-        app[param.substr(m[0].length)] = val.toLowerCase() === "true";
+        app[param.substr(2)] = val.toLowerCase() === "true";
       }
     }
   };
@@ -938,8 +937,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 flexo.getter_setter(instance, property,
                   function() { return p; },
                   function(x) {
-                    setters.forEach(function(f) { f.call(instance, x); });
                     p = x;
+                    setters.forEach(function(f) { f.call(instance, x); });
                   });
               })();
               if (typeof init !== "undefined") instance[property] = init;
