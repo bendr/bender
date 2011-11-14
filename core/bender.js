@@ -893,10 +893,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
             return function(v) {
               var v_ = get_v(v);
               if (typeof v_ !== "undefined") {
-                if (attr) {
-                  dest.setAttribute(attr, v_);
+                if (dest) {
+                  if (attr) {
+                    dest.setAttribute(attr, v_);
+                  } else {
+                    dest[property] = v_;
+                  }
                 } else {
-                  dest[property] = v_;
+                  instance[property] = v_;
                 }
               }
             };

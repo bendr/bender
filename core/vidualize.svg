@@ -7,8 +7,8 @@
   <g id="dest-body"/>
   <script><![CDATA[
 
-var args = bender.get_args("app=et2011/vidualize/button-test&debug=1&dest=");
-//var args = bender.get_args("app=et2011/vidualize/onepage&dest=");
+//var args = bender.get_args("app=et2011/vidualize/button-test&debug=1&dest=");
+var args = bender.get_args("app=et2011/vidualize/onepage&dest=&debug=1");
 if (args.app) {
   bender.init_app(args.path + args.app + args.suffix, args, function(app) {
       if (args.debug) {
