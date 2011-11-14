@@ -590,13 +590,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return false;
       } else if (!node._is_definition) {
         var uri = instance.get_uri_for_node(node);
+        if (!uri) {
+          var href = node.getAttribute("href");
+          if (href) throw "Could not get URI for href=\"{0}\"".fmt(href);
+          throw "Could not get URI for ref=\"{0}\"".fmt(node.getAttribute("ref"));
+        }
         var prototype = instance.app.uri_map[uri];
         if (!prototype) throw "No prototype for component at URI {0}".fmt(uri);
         node._instance = prototype.instantiate_and_render();
         node._instance.parent = instance;
         instance.children.push(node._instance);
         var id = node.getAttribute("id");
-        if (id) instance.views[id] = node._instance;
+        if (id) {
+          instance.views[id] = node._instance;
+          node._instance.parent_id = id;
+        }
       }
       return true;
     },

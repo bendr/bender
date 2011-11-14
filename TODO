@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-11-12 (v0.2.1)
+Bender TODO list as of 2011-11-14 (v0.2.1)
 
 
 * Bugs
@@ -6,6 +6,9 @@ Bender TODO list as of 2011-11-12 (v0.2.1)
 [x] No default controller for inline component? (core/tests/svg-button)
 [x] Event sources mismatch (core/tests/svg-button)
 [x] content with ref: cannot find current __component
+[ ] <include> bug inside components (within components?)
+[ ] id redefinition bug for components including components (test case?)
+[ ] relative URIs in included files should be relative to that file
 
 
 * Core Features
