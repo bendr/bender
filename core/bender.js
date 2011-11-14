@@ -15,7 +15,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die
-  bender.warn = function(msg) { throw msg; };
+  bender.warn = function(msg) { flexo.log("!!! WARNING: " + msg); }
 
   var ARGS = { debug: 0 };
 
@@ -138,6 +138,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
   //   * views: map of id of view nodes to instances and concrete DOM nodes
   bender.component =
   {
+    // Find an id in the id map designated by map_name (e.g., "components",
+    // "views" or "controllers")
+    find: function(id, map_name)
+    {
+      if (!id) return;
+      return id in this[map_name] ? this[map_name][id] :
+        this.parent ? this.parent.find(id, map_name) : undefined;
+    },
+
     // Get an absolute URI by solving relative paths to the app path
     get_absolute_uri: function(p)
     {
@@ -157,15 +166,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return url;
     },
 
-    // Find an id in the id map designated by map_name (e.g., "components",
-    // "views" or "controllers")
-    find: function(id, map_name)
-    {
-      if (!id) return;
-      return id in this[map_name] ? this[map_name][id] :
-        this.parent ? this.parent.find(id, map_name) : undefined;
-    },
-
     // Get an URI for a component node, looking up its href or ref attribute
     get_uri_for_node: function(node)
     {
@@ -182,15 +182,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
       instance.children = [];
       instance.controllers = {};
       instance.views = {};
-      bender.log("component.instantiate: {0} from {1}"
-          .fmt(instance.hash, this.hash));
       return instance;
     },
 
     // Render the component to a new instance in the destination element
-    instantiate_and_render: function()
+    instantiate_and_render: function(parent_id)
     {
       var instance = this.instantiate();
+      if (typeof parent_id === "string") instance.parent_id = parent_id;
       render_component(instance.root_node, instance);
       return instance;
     }
@@ -208,7 +207,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     c.root_node = node;       // root node of the component
     c.watches = [];           // watch nodes
     c.uri = node.ownerDocument.baseURI;
-    bender.log("create_component: {0}".fmt(c.hash), node);
     return c;
   };
 
@@ -248,8 +246,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     c.component = instance;
     c.init();
     set_parameters_from_attributes(node, c);
-    bender.log("create_controller: {0} for {1}/{2}"
-        .fmt(c.hash, instance.hash, instance.__proto__.hash));
     return c;
   };
 
@@ -310,8 +306,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var prototype = app ?
           bender.create_component(node, dest_body, app) :
           bender.create_app(node, dest_body);
-        bender.log("load_uri: prototype {0} for {1}"
-          .fmt(prototype.hash, uri));
         load_async.trampoline(prototype.root_node, prototype,
           function(error) {
             if (error) throw error;
@@ -513,7 +507,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
         w.parent.children.push(w);
       }
       prototype.watches.push(w);
-      bender.log("watch: {0}".fmt(w.hash));
       return true;
     },
 
@@ -593,18 +586,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
         if (!uri) {
           var href = node.getAttribute("href");
           if (href) throw "Could not get URI for href=\"{0}\"".fmt(href);
-          throw "Could not get URI for ref=\"{0}\"".fmt(node.getAttribute("ref"));
+          throw "Could not get URI for ref=\"{0}\""
+            .fmt(node.getAttribute("ref"));
         }
         var prototype = instance.app.uri_map[uri];
         if (!prototype) throw "No prototype for component at URI {0}".fmt(uri);
-        node._instance = prototype.instantiate_and_render();
-        node._instance.parent = instance;
-        instance.children.push(node._instance);
         var id = node.getAttribute("id");
-        if (id) {
-          instance.views[id] = node._instance;
-          node._instance.parent_id = id;
-        }
+        if (typeof node._instances !== "object") node._instances = [];
+        var instance_ = prototype.instantiate_and_render(id);
+        instance_.parent = instance;
+        instance.children.push(instance_);
+        node._instances.push(instance_);
+        if (id) instance.views[id] = instance_;
       }
       return true;
     },
@@ -756,11 +749,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // that the <content> element can access it
     component: function(node, target, instance)
     {
-      if (node._instance) {
-        node._instance.__component = node;
-        set_parameters_from_attributes(node, node._instance);
-        render_content(node._instance.view_node, target, node._instance);
-        delete node._instance.__component;
+      if (typeof node._instances === "object") {
+        var instance_ = node._instances.shift();
+        instance_.__component = node;
+        set_parameters_from_attributes(node, instance_);
+        render_content(instance_.view_node, target, instance_);
+        delete instance_.__component;
       }
     },
 
@@ -808,27 +802,32 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     if (node.nodeType === 1) {
       if (node.namespaceURI === bender.NS) {
-        return node.localName in render_view ?
+        return render_view.hasOwnProperty(node.localName) ?
           render_view[node.localName](node, target, instance) : undefined;
       }
-      var target = instance.app.dest_body.ownerDocument.
+      var target_ = instance.app.dest_body.ownerDocument.
         createElementNS(node.namespaceURI, node.localName);
       var id = node.getAttribute("id");
       if (id) {
-        if (instance.views[id]) throw "Redefinition of id {0}".fmt(id);
-        instance.views[id] = target;
+        if (instance.views[id]) {
+          bender.warn("Redefinition of id {0} in {1}".fmt(id, instance.hash));
+        } else {
+          instance.views[id] = target_;
+        }
       }
       for (var i = 0, n = node.attributes.length; i < n; ++i) {
         var attr = node.attributes[i];
-        if (attr.namespaceURI === flexo.XML_NS && !target.namespaceURI) {
-          target.setAttribute(attr.localName, attr.nodeValue);
-        } else {
-          target.setAttributeNS(attr.namespaceURI, attr.localName,
+        if (attr.namespaceURI === flexo.XML_NS && !target_.namespaceURI) {
+          target_.setAttribute(attr.localName, attr.nodeValue);
+        } else if (attr.namespaceURI) {
+          target_.setAttributeNS(attr.namespaceURI, attr.localName,
             attr.nodeValue);
+        } else {
+          target_.setAttribute(attr.localName, attr.nodeValue);
         }
       }
-      render_content(node, target, instance);
-      return target;
+      render_content(node, target_, instance);
+      return target_;
     } else if (node.nodeType === 3 || node.nodeType === 4) {
       return instance.app.dest_body.ownerDocument
         .createTextNode(node.textContent);
@@ -864,10 +863,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
           .fmt(view, controller);
       }
       source = instance.find(view, "views");
-      if (!source) throw "No source view for \"{0}\"".fmt(view);
+      if (!source) bender.warn("No source view for \"{0}\"".fmt(view));
     } else if (controller) {
       source = instance.find(controller, "controllers");
-      if (!source) throw "No source controller for \"{0}\"".fmt(controller);
+      if (!source) {
+        bender.warn("No source controller for \"{0}\"".fmt(controller));
+      }
     }
     return source;
   }

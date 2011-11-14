@@ -58,9 +58,15 @@
     <component ref="svg-button" id="button">
       <content ref="enabled">
         <svg:rect width="100" height="100" rx="10" ry="10" fill="#08f"/>
+        <svg:text x="50" y="50" font-size="30" fill="white"
+          text-anchor="middle" dominant-baseline="middle"
+          font-family="Gill Sans">OK</svg:text>
       </content>
       <content ref="pushed">
         <svg:rect width="100" height="100" rx="10" ry="10" fill="#f80"/>
+        <svg:text x="50" y="52" font-size="30" fill="white"
+          text-anchor="middle" dominant-baseline="middle"
+          font-family="Gill Sans">OK</svg:text>
       </content>
       <content ref="disabled">
         <svg:rect width="100" height="100" rx="10" ry="10" fill="#ff4040"/>

@@ -7,7 +7,7 @@ Bender TODO list as of 2011-11-14 (v0.2.1)
 [x] Event sources mismatch (core/tests/svg-button)
 [x] content with ref: cannot find current __component
 [ ] <include> bug inside components (within components?)
-[ ] id redefinition bug for components including components (test case?)
+[x] id redefinition bug for components including components (was node._instance)
 [ ] relative URIs in included files should be relative to that file
 
 
