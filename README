@@ -44,17 +44,18 @@ Install and run Bender
 
 Release Notes
 
-  This is a very early release of Bender (v0.2.1, 2011-11-xx) and as such is
+  This is a very early release of Bender (v0.2.1, 2011-11-15) and as such is
   more of a sneak preview than an actual release. Thank you for your interest!
   Please contact bender@igel.co.jp for comments, questions, etc.
 
-  Changes in v0.2.1 (2011-11-xx)
+  Changes in v0.2.1 (2011-11-15)
 
     * Can include an external component with the href attribute without an id
       URI fragment (core/tests/led.xml)
     * Replacing <bind> with <watch>/<get>/<set> (in progress)
     * flexo.hash to replace instance_id
     * Can pass parameter arguments in the command line (e:, f:, b: prefixed)
+    * This version is the one demonstrated at ET2011 in Yokohama
 
   Changes in v0.2.0 (2011-10-23)
 
