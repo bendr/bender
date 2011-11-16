@@ -1,13 +1,9 @@
-Bender TODO list as of 2011-11-15 (v0.2.1)
+Bender TODO list as of 2011-11-16 (v0.2.2)
 
 
 * Bugs
 
-[x] No default controller for inline component? (core/tests/svg-button)
-[x] Event sources mismatch (core/tests/svg-button)
-[x] content with ref: cannot find current __component
 [ ] <include> bug inside components (within components?)
-[x] id redefinition bug for components including components (was node._instance)
 [ ] relative URIs in included files should be relative to that file
 
 
@@ -15,8 +11,7 @@ Bender TODO list as of 2011-11-15 (v0.2.1)
 
 [/] Replace <bind> with <watch>/<get>/<set>
     [ ] remove <listen>
-    [x] add action to <get> (core/tests/svg-clock)
-        [ ] only event so far; review semantics
+    [/] add action to <get> (core/tests/svg-clock)
     [ ] adapt content for set/@view with no property/attr (e.g. text vs. nodes)
     [ ] factor code for watches
     [ ] retrieve old value
@@ -34,6 +29,8 @@ Bender TODO list as of 2011-11-15 (v0.2.1)
 [ ] Keep namespace prefixes around for resolution of attribute names in <watch>
 [ ] Attribute for local scripts; for both controllers and components
 [ ] Access to host viewBox for SVG documents
+[ ] <head> element for views so that content is copied only once in the DOM
+    (e.g. <defs> in SVG component)
 
 
 * Library
@@ -50,6 +47,7 @@ Bender TODO list as of 2011-11-15 (v0.2.1)
 
 * Applications
 
+[ ] Test and demos menu application
 [ ] Update TTFD for current version
 [ ] Update Cels for current version
     [ ] Improve layout
@@ -71,8 +69,6 @@ Bender TODO list as of 2011-11-15 (v0.2.1)
     [ ] Run unexpanded examples
 [/] Sort out tests for current version
 [ ] Continuous deployment
-[/] Vidualize port
-    [/] SVG button test
 
 
 * Design and open questions

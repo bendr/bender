@@ -1,11 +1,9 @@
 // Bender core library
-
-
 if (typeof require === "function") flexo = require("./flexo.js");
 
-(function(bender) {
-
-  bender.VERSION = "0.2.1";
+(function(bender)
+{
+  bender.VERSION = "0.2.2";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";
@@ -13,7 +11,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.NS_E = bender.NS + "/e";
   bender.NS_F = bender.NS + "/f";
 
-  // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die
   bender.warn = function(msg) { flexo.log("!!! WARNING: " + msg); }
 
@@ -34,7 +31,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
 
-  // Can be called as notify(e), notify(source, type) or notify(source, type, e)
+  // Send a Bender event of a given type with optional arguments on behalf of a
+  // source object by notifying all listeners. Can be called as notify(e),
+  // where e must have a "source" and "type" property, or notify(source, type)
+  // or notify(source, type, e)
   bender.notify = function(source, type, e)
   {
     if (e) {
@@ -44,10 +44,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       e = { source: source, type: type };
     } else {
       e = source;
-      if (!e.source) bender.warn("No source field for event");
-      if (!e.type) bender.warn("No type field for event");
     }
-    if (e.type in e.source) {
+    if (!e.source) bender.warn("No source for event", e);
+    if (!e.type) bender.warn("No type for event", e);
+    if (e.source.hasOwnProperty(e.type)) {
       e.source[e.type].forEach(function(handler) {
           if (handler.handleEvent) {
             handler.handleEvent(e);
@@ -58,35 +58,40 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
   };
 
-  // Listen to a notification using addEventListener when available (usually
-  // for DOM nodes), or custom Bender events.
-  bender.listen = function(listener, type, handler, once)
+  // Listen to notifications of a certain type from a source. addEventListener
+  // is used for DOM events (when the source supports it), otherwise a custom
+  // Bender listener is setup. The handler can be an object supporting the
+  // handleEvent() function or a function. The once flag may be set to remove
+  // the listener automatically after the first notification has been received.
+  bender.listen = function(source, type, handler, once)
   {
     var h = once ? function(e) {
-        bender.unlisten(listener, type, h);
+        bender.unlisten(source, type, h);
         if (handler.handleEvent) {
           handler.handleEvent(e);
         } else {
           handler(e);
         }
       } : handler;
-    if (listener.addEventListener) {
-      listener.addEventListener(type, h, false);
+    if (source.addEventListener) {
+      source.addEventListener(type, h, false);
     } else {
-      if (!(type in listener)) listener[type] = [];
-      listener[type].push(h);
+      if (!(source.hasOwnProperty(type))) source[type] = [];
+      source[type].push(h);
     }
   };
 
-  // Stop listening (using removeEventListener when available, just like
-  // bender.listen)
-  bender.unlisten = function(listener, type, handler)
+  // Stop listening (using removeEventListener when available)
+  bender.unlisten = function(source, type, handler)
   {
-    if (listener.removeEventListener) {
-      listener.removeEventListener(type, handler, false);
-    } else if (type in listener) {
-      var i = listener[type].indexOf(handler);
-      if (i >= 0) listener[type].splice(i, 1);
+    if (source.removeEventListener) {
+      source.removeEventListener(type, handler, false);
+    } else if (source.hasOwnProperty(type)) {
+      var i = source[type].indexOf(handler);
+      if (i >= 0) {
+        source[type].splice(i, 1);
+        if (source[type].length === 0) delete source[type];
+      }
     }
   };
 
@@ -123,24 +128,22 @@ if (typeof require === "function") flexo = require("./flexo.js");
     load_uri(url, args.dest, function(prototype) {
         var app = prototype.instantiate_and_render();
         set_parameters_from_args(app, args);
-        connect(app);
         build_watch_graph(app);
         if (f) f(app);
         bender.notify(app.controllers[""], "@ready");
       });
   };
 
-  // Base prototype for app and component objects
-  // Fields:
-  //   * children: list of child components
-  //   * controllers: map of id to controllers, the main controller has no id
-  //       (i.e. main controller is component.controllers[""])
-  //   * views: map of id of view nodes to instances and concrete DOM nodes
+  // Return the body element (for HTML documents) or by default the
+  // documentElement (for SVG or generic documents)
+  var find_body = function(doc) { return doc.body || doc.documentElement; };
+
+  // Base prototype for component objects (including app)
   bender.component =
   {
     // Find an id in the id map designated by map_name (e.g., "components",
     // "views" or "controllers")
-    find: function(id, map_name)
+    find_id: function(id, map_name)
     {
       if (!id) return;
       return id in this[map_name] ? this[map_name][id] :
@@ -150,14 +153,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Get an absolute URI by solving relative paths to the app path
     get_absolute_uri: function(p)
     {
-      // This is usually called with getAttribute("href") so there may be no
-      // value
+      // Often called with getAttribute("href") so there may be no value
       if (!p) return;
       // The path is absolute if it starts with a scheme and an authority (the
       // scheme comes before the : and the authority follows //) or with a
       // slash; otherwise it is relative and is resolved
-      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+/.test(p) || /^\//.test(p)) return p;
-      var url = this.root_node.ownerDocument.baseURI.replace(/(\/?)[^\/]*$/,
+      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(p) || /^\//.test(p)) return p;
+      var url = this.root.ownerDocument.baseURI.replace(/(\/?)[^\/]*$/,
           "$1" + p);
       var m;
       while (m = /[^\/]+\/\.\.\//.exec(url)) {
@@ -171,7 +173,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       return node.getAttribute("href") ?
         this.get_absolute_uri(node.getAttribute("href")) :
-        this.find(node.getAttribute("ref"), "components");
+        this.find_id(node.getAttribute("ref"), "components");
     },
 
     // Instantiate a new component from this prototype
@@ -190,7 +192,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       var instance = this.instantiate();
       if (typeof parent_id === "string") instance.parent_id = parent_id;
-      render_component(instance.root_node, instance);
+      render_component(instance.root, instance);
       return instance;
     }
   };
@@ -204,7 +206,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     c.dest_body = dest_body;  // body element for rendering
     c.components = {};        // map ids to loaded component prototypes
     c.metadata = {};          // component metadata
-    c.root_node = node;       // root node of the component
+    c.root = node;            // root node of the component
     c.watches = [];           // watch nodes
     c.uri = node.ownerDocument.baseURI;
     return c;
@@ -306,7 +308,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var prototype = app ?
           bender.create_component(node, dest_body, app) :
           bender.create_app(node, dest_body);
-        load_async.trampoline(prototype.root_node, prototype,
+        load_async.trampoline(prototype.root, prototype,
           function(error) {
             if (error) throw error;
             f(prototype);
@@ -398,7 +400,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       } else if (!node.getAttribute("ref")) {
         // If this is node the root node, then it is an inline component
         // definition
-        if (node !== prototype.root_node) {
+        if (node !== prototype.root) {
           var prototype_ = bender.create_component(node, prototype.dest_body,
               prototype.app);
           load_async.trampoline(node, prototype_, function(error) {
@@ -543,10 +545,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
   };
 
-  // Return the body element (for HTML documents) or by default the
-  // documentElement (for SVG or generic documents)
-  var find_body = function(doc) { return doc.body || doc.documentElement; };
-
   // Return the head element (for HTML documents) or by default the
   // documentElement (for SVG or generic documents)
   var find_head = function(doc) { return doc.head || doc.documentElement; };
@@ -579,7 +577,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // definitions
     component: function(node, instance)
     {
-      if (node._is_definition && node !== instance.root_node) {
+      if (node._is_definition && node !== instance.root) {
         return false;
       } else if (!node._is_definition) {
         var uri = instance.get_uri_for_node(node);
@@ -862,10 +860,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
         throw "Ambiguous source: view \"{0}\" or controller \"{1}\"?"
           .fmt(view, controller);
       }
-      source = instance.find(view, "views");
+      source = instance.find_id(view, "views");
       if (!source) bender.warn("No source view for \"{0}\"".fmt(view));
     } else if (controller) {
-      source = instance.find(controller, "controllers");
+      source = instance.find_id(controller, "controllers");
       if (!source) {
         bender.warn("No source controller for \"{0}\"".fmt(controller));
       }
@@ -959,40 +957,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           });
       });
     bender.notify(instance.controllers[""], "@rendered");
-  };
-
-  // Connect Bender and DOM event listeners
-  var connect = function(instance)
-  {
-    instance.children.forEach(connect);
-    for (var id in instance.controllers) {
-      var controller = instance.controllers[id];
-      for (var ch = controller.node.firstElementChild; ch;
-          ch = ch.nextElementSibling) {
-        if (is_bender_node(ch, "listen")) {
-          var source = view_or_controller(instance, ch);
-          var once = ch.getAttribute("once") === "true";
-          var ev = ch.getAttribute("event");
-          var h = ch.getAttribute("handler");
-          var handler;
-          if (h) {
-            handler = controller[h].bind(controller);
-          } else {
-            h = ch.textContent;
-            handler = (h ? new Function("event", h) : controller.handleEvent)
-              .bind(controller);
-          }
-          if (ev) {
-            if (!source) source = controller;
-          } else {
-            ev = ch.getAttribute("dom-event");
-            if (!ev) throw "Listen with no event or dom-event attribute";
-            if (!source) source = instance.dest_body.ownerDocument;
-          }
-          bender.listen(source, ev, handler, once);
-        }
-      }
-    }
   };
 
 })(typeof exports === "object" ? exports : this.bender = {});
