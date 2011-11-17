@@ -42,8 +42,10 @@
 
   <watch>
     <get view="b" dom-event="mousedown">
-      value.preventDefault();
-      if (this.enabled) flexo.add_class(this.views.b, "__down");
+      if (value.button === 0) {
+        value.preventDefault();
+        if (this.enabled) flexo.add_class(this.views.b, "__down");
+      }
     </get>
     <watch>
       <get view="b" dom-event="mouseup">
