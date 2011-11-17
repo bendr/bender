@@ -49,6 +49,7 @@ function link_elements(template)
 }
 
 
+// TODO add parameters
 // TODO highlight with data-hl
 // TODO make links for href attributes; syntax highlighting?
 function get_examples(debug)
@@ -56,44 +57,53 @@ function get_examples(debug)
   debug = debug || 0;
   [].forEach.call(document.querySelectorAll(".include-src"), function(p) {
       flexo.dataset(p);
-      if (typeof p.dataset.expanded === "string" && p.dataset.expanded) {
-        expand_example(p, debug);
-      } else {
-        var span = flexo.html("span", { "class": "expand" }, "☞ ");
-        span.addEventListener("click", function() {
-            p.removeChild(span);
-            expand_example(p, debug);
-          }, false);
-        p.insertBefore(span, p.firstChild);
+      // Add a run flag unless the data-component attribute is set (do not run
+      // components)
+      var component = typeof p.dataset.component === "string" &&
+        p.dataset.component;
+      if (!component) {
+        var src = p.dataset.src.replace(/^\.\.\//, "").replace(/\.xml$/, "");
+        var suffix = p.dataset.suffix || "html";
+        var href = "../core/bender.{0}?app={1}".fmt(suffix, src);
+        if (debug) href += "&debug={0}".fmt(debug);
+        p.insertBefore(flexo.html("a", { href: href }, "⚐ "), p.firstChild);
       }
-    });
+      // Add an expand button and auto-expand if data-expand is set
+      var expand = flexo.html("span", { "class": "expand" });
+      p.insertBefore(expand, p.firstChild);
+      expand.addEventListener("click", expand_example, false);
+      expand_example(expand);
+  });
 }
 
-function expand_example(p, debug)
+// Toggle the expanded/unexpanded status of an example
+function expand_example(e)
 {
-  var req = new XMLHttpRequest();
-  req.open("GET", p.dataset.src);
-  var suffix = p.dataset.suffix || "html";
-  req.onreadystatechange = function()
-  {
-    if (req.readyState === 4) {
-      if (req.status === 200 || req.status === 0) {
-        var src = p.dataset.src.replace(/^\.\.\//, "")
-          .replace(/\.xml$/, "");
-        p.appendChild(flexo.html("pre", {}, req.responseText));
-        if (req.responseXML &&
-          req.responseXML.documentElement.namespaceURI === bender.NS &&
-          req.responseXML.documentElement.localName === "app") {
-          var href = "../core/bender.{0}?app={1}".fmt(suffix, src);
-          if (debug) href += "&debug={0}".fmt(debug);
-          p.insertBefore(flexo.html("a", { href: href }, "▶ "), p.firstChild);
+  var span = e.target || e;
+  var p = span.parentNode;
+  var expanded = typeof p.dataset.expanded === "string" && p.dataset.expanded;
+  if (expanded) {
+    var req = new XMLHttpRequest();
+    req.open("GET", p.dataset.src);
+    req.onreadystatechange = function() {
+      if (req.readyState === 4) {
+        if (req.status === 200 || req.status === 0) {
+          p.appendChild(flexo.html("pre", {}, req.responseText));
+        } else {
+          flexo.add_class(p, "error");
+          p.textContent = "Could not get {0} application file {1} ({2})"
+            .fmt(suffix, p.dataset.src, req.status);
         }
-      } else {
-        flexo.add_class(p, "error");
-        p.textContent = "Could not get {0} application file {1} ({2})"
-          .fmt(suffix, p.dataset.src, req.status);
       }
+    };
+    req.send("");
+    span.textContent = "▾ ";
+    p.dataset.expanded = "";
+  } else {
+    if (p.lastElementChild.localName === "pre") {
+      p.removeChild(p.lastElementChild);
     }
-  };
-  req.send("");
+    span.textContent = "▸ ";
+    p.dataset.expanded = "true";
+  }
 }

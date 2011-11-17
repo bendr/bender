@@ -11,25 +11,18 @@
   <body>
     <h1>Bender</h1>
 
-    <p>Bender is a Web application framework consisting of a markup language
+    <p>Bender is a <em>declarative Web application framework</em>. It is a tool
+    to build Web application <em>front-ends</em> using a markup language
     for application and component description, a Javascript runtime engine for
     Web browsers and SVG players, and a library of Javascript support code and
     predefined components. Bender is free software, released under the <a
       href="http://www.apache.org/licenses/LICENSE-2.0">Apache License v2.0</a>
     and currently under active development.</p>
 
-    <p>Bender follows loosely the Model-View-Controller pattern, where
-    <em>models</em> can be seen as data stored on the application back-end
-    (<em>e.g.</em> in a database server-side, or using HTML5 Web storage
-    facilities client-side), <em>views</em> are concrete nodes in a target DOM
-    tree rendered by the host browser or viewer, and <em>controllers</em> are
-    Javascript objects sending and receiving <em>events</em>, and connected to
-    other parts of the application through <em>outlets</em>.</p>
-
     <p>Without further ado, let's see a very simple Bender application. The
     complete XML description is reproduced below; to run this application (or
     any other application mentioned below) in your browser, just click on
-    the&nbsp;▶ sign.</p>
+    the&nbsp;⚐ sign.</p>
 
     <div class="include-src" data-src="../doc/welcome.xml"
       data-expanded="true">Welcome to Bender!</div>
@@ -40,16 +33,12 @@
       description of a complete Bender application;</li>
       <li>the <span class="elem">view</span> element describes how the
       application is rendered; in this case we use HTML;</li>
-      <li>the <span class="elem">controller</span> element describes a
-      controller object that in this case <span class="elem">listen</span>s to
-      events from a button <span class="elem">component</span>.
+      <li>the <span class="elem">watch</span> element is used to react to
+      changes in a component attribute or property, or to events sent by a
+      component: in this case, when we <span class="elem">get</span> a
+      <code>@pushed</code> event from the <em>button</em> <span
+        class="elem">component</span>, an alert box shows up.</li>
     </ul>
-
-    <p>Running a Bender application consists of loading its description and
-    related resources, such as included components, external scripts and
-    stylesheets; creating prototypes for components and controllers; rendering
-    views in the host browser; then setting up connections between concrete
-    nodes and controller instances.</p>
 
     <p>One of the main purposes of Bender is to facilitate the creation of Web
     applications through reusable components. In the above example, we include
@@ -60,10 +49,10 @@
     The <span class="attr">href</span> attribute of the element specifies the
     location of the component description and its name. Let's have a look:</p>
 
-    <div class="include-src" data-src="../lib/button.xml">Button
-      component</div>
+    <div class="include-src" data-src="../lib/button.xml"
+      data-component="true">Button component</div>
 
-    <p>(Click on the ☞ sign to expand.)</p>
+    <p>(Click on the ▸ sign to expand.)</p>
     <p>Above is the description of an HTML push button, that can respond to
     both mouse and touch events (and thus works on both desktop or touch screen
     environments out of the box.) It reacts to being pushed and released, so

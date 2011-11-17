@@ -71,9 +71,10 @@ Bender TODO list as of 2011-11-17 (v0.2.2)
 [ ] Pamphlet
 [ ] Manifesto? (cf. Redis)
 [ ] Skeleton for reference manual
-[ ] Running examples
-    [ ] Unexpand examples
-    [ ] Run unexpanded examples
+[/] Running examples
+    [x] Unexpand examples
+    [x] Run unexpanded examples
+    [ ] Pass options (other than debug)
 [/] Sort out tests for current version
 [ ] Continuous deployment
 

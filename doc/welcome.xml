@@ -5,7 +5,7 @@
       Welcome to Bender!
     </html:p>
     <html:p>
-      <component href="../lib/button.xml#button" id="button">Thanks</component>
+      <component href="../lib/button.xml" id="button">Thanks</component>
     </html:p>
   </view>
   <watch>

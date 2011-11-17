@@ -1,7 +1,6 @@
 <component xmlns="http://bender.igel.co.jp"
   xmlns:b="http://bender.igel.co.jp/b" b:enabled="true"
   xmlns:f="http://bender.igel.co.jp/f" f:tabindex="0"
-  xmlns:e="http://bender.igel.co.jp/e" e:class=""
   xmlns:html="http://www.w3.org/1999/xhtml" id="button">
 
   <title>An HTML button component that responds to both mouse and touch
@@ -18,12 +17,13 @@
   </stylesheet>
 
   <view>
-    <html:div class="bender-button" id="b"><content/></html:div>
+    <html:div class="bender-button" id="b" aria-role="button">
+      <content/>
+    </html:div>
   </view>
 
   <watch>
-    <get property="enabled"/>
-    <set>
+    <get property="enabled">
       flexo.set_class_iff(this.views.b, "__disabled", !value);
       if (!value) {
         this.__tabindex = this.tabindex;
@@ -32,7 +32,7 @@
         this.tabindex = this.__tabindex;
         delete this.__tabindex;
       }
-    </set>
+    </get>
   </watch>
 
   <watch>
@@ -41,42 +41,28 @@
   </watch>
 
   <watch>
-    <get property="class"/>
-    <set>
-      if (value !== this["class"]) {
-        if (this["class"]) flexo.remove_class(this.views.b, this["class"]);
-        if (value) flexo.add_class(this.views.b, value);
-      }
-    </set>
-  </watch>
-
-  <watch>
-    <get view="b" dom-event="mousedown"/>
-    <set>
+    <get view="b" dom-event="mousedown">
       value.preventDefault();
       if (this.enabled) flexo.add_class(this.views.b, "__down");
-    </set>
+    </get>
     <watch>
-      <get view="b" dom-event="mouseup"/>
-      <set>
+      <get view="b" dom-event="mouseup">
         if (flexo.remove_class(this.views.b, "__down")) {
           setTimeout((function() {
               bender.notify(this, "@pushed");
             }).bind(this), 0);
         }
-      </set>
+      </get>
     </watch>
     <watch>
-      <get dom-event="mouseup"/>
-      <set>
+      <get dom-event="mouseup">
         flexo.remove_class(this.views.b, "__down");
-      </set>
+      </get>
     </watch>
   </watch>
 
   <watch>
-    <get view="b" dom-event="keydown"/>
-    <set>
+    <get view="b" dom-event="keydown">
       if (this.enabled) {
         if (value.keyCode === 13) {
           value.preventDefault();
@@ -91,7 +77,7 @@
           this.views.b.blur();
         }
       }
-    </set>
+    </get>
   </watch>
 
 </component>

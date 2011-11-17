@@ -3,7 +3,7 @@ body { font-family: "Helvetica Neue", Helvetica, sans-serif; margin: 2em auto;
 a, .expand { color: #ff7f40; text-decoration: none; }
 .expand { cursor: pointer; }
 
-h1, h2, h3, h4, h5, h6 { font-weight: normal; color: #102040; }
+h1, h2, h3, h4, h5, h6 { font-weight: normal; color: #126; }
 
 code, pre, .elem, .code, .attr, ul.elem-list li {
   font-family: Monaco, monospace; font-size: smaller; }
