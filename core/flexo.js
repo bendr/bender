@@ -76,8 +76,11 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       if (typeof opera !== "undefined") {
         opera.postError.apply(this, arguments);
       }
-    } else if (console.log) {
+    } else if (typeof console.log === "function") {
       console.log.apply(console, arguments);
+    } else if (typeof console.log === "object") {
+      (Function.prototype.bind.call(console.log, console))
+        .apply(console, arguments);
     }
   };
 

@@ -106,7 +106,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.get_args = function(argstr)
   {
     var args = { dest: "dest-body", debug: 0, path: "../", suffix: ".xml" };
-    if (!argstr) argstr = window.location.search.substring(1);
+    if (!argstr) {
+      argstr = typeof window === "object" &&
+        typeof window.location === "object" &&
+        typeof window.location.search === "string" ?
+        window.location.search.substring(1) : "";
+    }
     argstr.split("&").forEach(function(q) {
         var sep = q.indexOf("=");
         args[q.substr(0, sep)] = unescape(q.substr(sep + 1));

@@ -30,12 +30,14 @@ Bender TODO list as of 2011-11-21 (v0.2.2)
 [ ] <local> for local scripts; for both controllers and components
 [ ] "reuse" attribute to avoid copying elements over and over; values: "none"
       (always create), "any" (any element with the same name) "same" (same name
-      and same attributes). Then copy the attributes, possibly overwriting them,
-      as in <svg viewBox="x y w h" bender:reuse="any"/>. Children are appended.
+      and same attributes), "#id" (match an existing id.) Then copy the
+      attributes, possibly overwriting them, as in <svg viewBox="x y w h"
+          bender:reuse="any"/>. Children are appended.
 [ ] Merge controller and component; make <view> mandatory for components with a
       view.
     [ ] Readd <connect>?
         [ ] underspecified <connect> for component extension
+[ ] Search path for components
 
 
 * Library
@@ -76,6 +78,7 @@ Bender TODO list as of 2011-11-21 (v0.2.2)
     [ ] Pass options (other than debug)
 [/] Sort out tests for current version
 [ ] Continuous deployment
+[ ] Application packager (make it standalone)
 
 
 * Design and open questions
