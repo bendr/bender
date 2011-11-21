@@ -2,11 +2,6 @@
   <title>Button and label component</title>
   <include href="../../../lib/label.xml"/>
   <include href="../../../lib/button.xml"/>
-  <controller>
-    <listen view="button" event="@pushed">
-      this.notify("@button");
-    </listen>
-  </controller>
   <view>
     <component ref="label">
       <content id="label">Default label:</content>
@@ -15,4 +10,9 @@
       <content id="button-label">Button label</content>
     </component>
   </view>
+  <watch>
+    <get view="button" event="@pushed">
+      bender.notify(this, "@button");
+    </get>
+  </watch>
 </app>

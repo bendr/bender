@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
   xmlns:e="http://bender.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  f:width="320" f:height="240" f:size="20" e:color="">
+  f:width="16" f:height="12" f:size="20" e:color="">
 
   <title>Arrows</title>
 
@@ -23,8 +23,8 @@
       // If no p is given (such as at the startup), a random point is chosen
       $_.transform_arrow = function(arrow, p)
       {
-        var x = p ? p.x : flexo.random_int(0, this.component.width);
-        var y = p ? p.y : flexo.random_int(0, this.component.height);
+        var x = p ? p.x : flexo.random_int(0, this.w);
+        var y = p ? p.y : flexo.random_int(0, this.h);
         var dx = x - arrow._x - this.component.size / 2;
         var dy = y - arrow._y - this.component.size / 2;
         var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
@@ -32,11 +32,9 @@
           "translate({0}, {1}) rotate({2}, 10, 10)".fmt(arrow._x, arrow._y, a));
         if (!this.component.color) {
           var d = dx * dx + dy * dy;
-          var r = Math.max(this.component.width, this.component.height);
-          r *= r;
           var c = "hsl({0}, {1}%, {2}%)".fmt((Math.floor(180 - a) + 360) % 360,
-            Math.floor(100 * flexo.clamp(1 - d / r, 0, 1)),
-            Math.floor(50 * flexo.clamp(1 - d / r, 0, 1)));
+            Math.floor(100 * flexo.clamp(1 - d / this.r, 0, 1)),
+            Math.floor(50 * flexo.clamp(1 - d / this.r, 0, 1)));
           arrow.setAttribute("stroke", c);
           arrow.setAttribute("fill", c);
         }
@@ -54,11 +52,13 @@
       {
         this.arrows = [];
         this.root = flexo.find_svg(this.component.views.arrows);
-        this.root.setAttribute("viewBox", "0 0 {0} {1}"
-          .fmt(this.component.width, this.component.height));
+        this.w = this.component.width * this.component.size;
+        this.h = this.component.height * this.component.size;
+        this.r = Math.pow(Math.max(this.w, this.h), 2);
+        this.root.setAttribute("viewBox", "0 0 {0} {1}".fmt(this.w, this.h));
         flexo.remove_children(this.component.views.arrows);
-        for (var x = 0; x < this.component.width; x += this.component.size) {
-          for (var y = 0; y < this.component.height; y += this.component.size) {
+        for (var x = 0; x < this.w; x += this.component.size) {
+          for (var y = 0; y < this.h; y += this.component.size) {
             var arrow = flexo.svg_href("use", "#arrow",
               { fill: this.component.color, stroke: this.component.color });
             arrow._x = x;

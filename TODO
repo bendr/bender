@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-11-17 (v0.2.2)
+Bender TODO list as of 2011-11-21 (v0.2.2)
 
 
 * Bugs
@@ -21,22 +21,21 @@ Bender TODO list as of 2011-11-17 (v0.2.2)
         component looking at that property -> generate an event automatically
 [ ] Component extension
     [ ] core/tests/uber-clock*
-[ ] Readd <connect> and remove link from controller to component
-    [ ] underspecified <connect> for component extension?
-[ ] In general, review the roles of <controller> and <component>; is
-      <controller> just a component without a view?
 [ ] Generate new ids from component instances
     [ ] handle stylesheets
 [ ] Metadata (at least xml:lang)
     [ ] help/about element
 [ ] Undash names from XML
 [ ] Keep namespace prefixes around for resolution of attribute names in <watch>
-[ ] Attribute for local scripts; for both controllers and components
-[ ] Access to host viewBox for SVG documents
+[ ] <local> for local scripts; for both controllers and components
 [ ] "reuse" attribute to avoid copying elements over and over; values: "none"
       (always create), "any" (any element with the same name) "same" (same name
       and same attributes). Then copy the attributes, possibly overwriting them,
       as in <svg viewBox="x y w h" bender:reuse="any"/>. Children are appended.
+[ ] Merge controller and component; make <view> mandatory for components with a
+      view.
+    [ ] Readd <connect>?
+        [ ] underspecified <connect> for component extension
 
 
 * Library

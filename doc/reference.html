@@ -16,6 +16,8 @@
     href="mailto:bender@igel.co.jp">contact us</a> for comments, questions,
     etc.</p>
 
+    <p>This is the reference manual for Bender v0.2.2.</p>
+
     <nav id="toc">
       <h2>Table of Contents</h2>
     </nav>
@@ -39,10 +41,34 @@
         <code>.xml</code>);</li>
         <li><code>dest</code>: the <code>id</code> attribute of the destination
         element for rendering. If no such element is found, then the document
-        body is used.</li>
+        body is used. Hint: use <code>dest=</code> if you want to use the
+        document body for rendering; the default is to use a <code>div</code>
+        inside the launcher page.</li>
         <li><code>debug</code>: the debug level for messages; must be a
-        positive integer (0 for no debug message.)</li>
+        positive integer; 0 for no debug messages.</li>
       </ul>
+      <p>Running an SVG application is similar to running an HTML application.
+      Use the pseudo-URL below:</p>
+      <pre class="code">$BENDER_HOME/core/bender.<strong>svg</strong>?app=$RELATIVE_PATH</pre>
+      <section id="running.extra-args">
+        <h3>Extra arguments</h3>
+        <p>Bender applications have <a
+        href="#elements.app.properties">properties</a> that can be set
+        through parameters of the form <code>e:<em>name</em></code>,
+        <code>f:<em>name</em></code> or <code>b:<em>name</em></code>, where
+        <em>name</em> is the name of the property, and the value is
+        respectively any string, a number, or a boolean. For example if an
+        application has a <code>size</code> property and a <code>color</code>
+        property, these can be set as follows:</p>
+        <pre
+        class="code">$BENDER_HOME/core/bender.html?app=$RELATIVE_PATH<strong>&amp;f:size=32&amp;e:color=white</strong></pre>
+
+      </section>
+
+      <section id="running.including">
+        <h3>Including an application into an existing document</h3>
+        <p class="TODO">TODO</p>
+      </section>
     </section>
 
     <section id="elements">
@@ -59,82 +85,12 @@
           application</div>
         <div class="include-src" data-src="../core/tests/hello.xml">Hello,
           World!</div>
+        <div class="include-src" data-src="../core/tests/hello-svg.xml"
+          data-suffix="svg">Hello, World! | SVG version</div>
       </section>
 
       <section id="elements.component">
         <h3><span class="elem">component</span></h3>
-
-        <p>If appearing as the top-level element of a document or with an
-        <code>id</code> parameter within an application or component, then it
-        is a component definition. Otherwise, this is a component
-        instanciation.</p>
-
-        <section id="elements.component.definition">
-          <h4>Component definition</h4>
-        </section>
-
-        <section id="elements.component.instanciation">
-          <h4>Component instanciation</h4>
-        </section>
-
-        <section id="elements.component.parameters">
-          <h4>Component parameters</h4>
-
-          <!--
-
-          <p>Components can be parametrized in different ways. By parameter, we
-          mean properties of its controllers, which can be set in the following
-          manner:</p>
-          <ol>
-            <li>in the <code>init</code> method of the controller;</li>
-            <li>as parameters in the <code>e</code> and <code>f</code>
-            namespaces of the <span class="elem">controller</span>
-            element (when instatiating a controller) <span class="TODO">see the
-              timer example</span>;</li>
-            <li>as parameters in the <code>e</code> and <code>f</code>
-            namespaces of the <span class="elem">component</span> element (when
-            instantiating a component.)</li>
-          </ol>
-          <p>Initializations are done in that order so that values can be
-          successively overridden. A component view can then then reference
-          parameters; attribute strings of the form <code>{<em>x</em>}</code>
-          which, at instantiation time, get replaced with the value of the
-          property <code><em>x</em></code> of the default controller of the
-          component.</p>
-          <p>When a template value is used but there is no corresponding value,
-          the attribute is ignored. This is useful for optional attributes,
-          when no default value is provided.</p>
-
-          </p>In the example below, a component called <code>circle</code> is
-          defined. Its parameters (<code>cx</code>, <code>cy</code>,
-          <code>r</code>, <code>fill</code> and <code>opacity</code>) define how
-          it is rendered as an SVG circle. These parameters are set randomly in
-          the <code>init</code> method of the default controller. Further down
-          in the application, three instances are created; the first one has two
-          default parameters setting the center of the first circle to the
-          center of the view box, while the third one has a stroke attribute
-          which is only rendered for that particular instance since the other
-          two have no <code>stroke</code> property.</p>
-          <div class="include-src" data-suffix="svg"
-            data-src="../core/tests/component-params.xml">Component
-            parameters</div>
-
-          <p>In the example below, we see that we can access and modify
-          component parameters through code as well. Any change to a value
-          bound to a node attribute is reflected in the node. Clicking on a
-          circle will change its color by modifying the <code>fill</code>
-          parameter of the component.</p>
-          <div class="include-src" data-suffix="svg"
-            data-src="../core/tests/set-param.xml">Set component
-            parameter</div>
-          <p class="TODO">Better specify these bindings.</p>
-          -->
-
-        </section>
-
-        <section id="elements.component.instanciation">
-          <h4>Component instanciation</h4>
-        </section>
       </section>
 
       <section id="elements.content">
@@ -149,38 +105,29 @@
         <code>ref</code> attribute.</p>
         <div class="include-src"
           data-src="../core/tests/content-id.xml">Content with id</div>
-        <div class="include-src"
-          data-src="../core/tests/label-button.xml">Component with two
+        <div class="include-src" data-component="true"
+          data-src="../core/tests/components/label-button.xml">Component with two
           different content nodes and default content</div>
       </section>
 
-      <section id="elements.controller">
-        <h3><span class="elem">controller</span></h3>
-        <p>Define a controller associated to a given application or component.
-        The main controller has no <code>id</code> attribute; other controllers
-        must have an <code>id</code> attribute to distinguish them from the
-        main controller. In the absence of a <span
-          class="elem">controller</span> node, the enclosing <span
-          class="elem">app</span> or <span class="elem">component</span> node
-        will act as the main controller node.</p>
-        <p>A controller node is backed by a controller delegate object. By
-        default this is an object created from the
-        <code>bender.controller</code> prototype; a different prototype name
-        can be specified by the <code>instance-of</code> attribute.</p>
+      <section id="elements.get">
+        <h3><span class="elem">get</span></h3>
       </section>
 
-      <section id="elements.listen">
-        <h3><span class="elem">listen</span></h3>
-        <p>Specify a listener for a Bender event (using the <code>event</code>
-        attribute; normally, the event type starts with @, <em>e.g.</em>,
-        <code>event="@ready"</code>) or a DOM event (using the
-        <code>dom-event</code> attribute, <em>e.g.</em>,
-        <code>dom-event="mousedown"</code>.) A <code>source</code> attribute
-        specifies the id of the component or DOM node that is listened to;
-        if absent, it is main controller of the component (for Bender events)
-        or the document (for DOM events.)</p>
-        <div class="include-src"
-          data-src="../core/tests/dom-event.xml">Listen to a DOM event</div>
+      <section id="elements.include">
+        <h3><span class="elem">include</span></h3>
+      </section>
+
+      <section id="elements.local">
+        <h3><span class="elem">local</span></h3>
+      </section>
+
+      <section id="elements.script">
+        <h3><span class="elem">script</span></h3>
+      </section>
+
+      <section id="elements.set">
+        <h3><span class="elem">set</span></h3>
       </section>
 
       <section id="elements.stylesheet">
@@ -206,15 +153,14 @@
         application or component level.</p>
       </section>
 
-      <section id="elements.watch">
-        <h3><span class="elem">watch</span></h3>
-        <p><span class="TODO">Being implemented...</span></p>
-      </section>
-
       <section id="elements.view">
         <h3><span class="elem">view</span></h3>
         <p>This is the root element for the view of an application or a
         component.</p>
+      </section>
+
+      <section id="elements.watch">
+        <h3><span class="elem">watch</span></h3>
       </section>
 
     </section>

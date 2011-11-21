@@ -1,14 +1,14 @@
 <app xmlns="http://bender.igel.co.jp">
   <title>Content with id</title>
-  <controller>
-    <listen view="label" event="@button">
-      alert("OK");
-    </listen>
-  </controller>
   <view>
     <component href="components/label-button.xml" id="label">
       <content ref="label">Please click this button:</content>
       <content ref="button-label">OK</content>
     </component>
   </view>
+  <watch>
+    <get view="label" event="@button">
+      alert("OK");
+    </get>
+  </watch>
 </app>
