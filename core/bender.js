@@ -3,7 +3,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
 (function(bender)
 {
-  bender.VERSION = "0.2.2";
+  bender.VERSION = "0.3.0";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";
@@ -11,21 +11,277 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.NS_E = bender.NS + "/e";
   bender.NS_F = bender.NS + "/f";
 
+
+  var did_create_node =
+  {
+    app: function(node, context)
+    {
+      did_create_node.component(node, context);
+    },
+
+    component: function(node, context)
+    {
+      var ref = node.getAttribute("ref");
+      var href = node.getAttribute("href");
+      if (!ref && !href) {
+        node._is_definition = true;
+        node._component = context.create_component(node);
+      }
+    },
+  };
+
+  var did_add_child =
+  {
+    view: function(node)
+    {
+      if (is_bender_node(node.parentNode, "component") ||
+          is_bender_node(node.parentNode, "app")) {
+        node.parentNode._component.view = node;
+      }
+    }
+  };
+
+  // Context in which components are created and run
+  bender.context =
+  {
+    append_child: function(parent, child)
+    {
+      parent.appendChild(child);
+      var n = child.localName;
+      if (child.namespaceURI === bender.NS && did_add_child.hasOwnProperty(n)) {
+        did_add_child[n](child, context);
+      }
+    },
+
+    // Setup the object for a new component (before loading)
+    create_component: function(node)
+    {
+      var component = flexo.create_object(bender.component);
+      flexo.hash(component, "component");
+      component.context = this;    // current context
+      component.definitions = {};  // map ids to loaded component prototypes
+      component.metadata = {};     // component metadata
+      component.node = node;       // root node of the component
+      component.uri = node.ownerDocument.baseURI;
+      component.watches = [];      // watch nodes
+
+      var target;
+      var view;
+
+      flexo.getter_setter(bender.component, "target",
+        function() { return target; },
+        function(t) {
+          target = t;
+          if (view) this.render_view();
+        });
+
+      flexo.getter_setter(bender.component, "view",
+        function() { return view; },
+        function(v) {
+          view = v;
+          if (target) this.render_view();
+        });
+
+      bender.log("+ Created component {0} at {1}"
+          .fmt(component.hash, component.uri));
+      return component;
+    },
+
+    // Create a bender node of the given name
+    create_element: function(name, attrs, contents)
+    {
+      var node = flexo.elem(bender.NS, name, attrs, contents);
+      if (did_create_node.hasOwnProperty(name)) {
+        did_create_node[name](node, context);
+      }
+      return node;
+    },
+
+    // Include an external component from an href value; return true if the
+    // URI was already loaded (for use with load_async.)
+    include: function(href, prototype)
+    {
+      var uri = href.replace(/#.*$/, "");
+      if (this.loaded.hasOwnProperty(uri)) return true;
+      this.load_component(uri, (function(prototype_) {
+          this.loaded[uri] = true;
+          loaded_component(prototype_, prototype);
+        }).bind(this));
+      return false;
+    },
+
+    // Initialize a new component from its URI and an optional target. The
+    // third argument is an optioanl callback function that gets called with the
+    // created instance just before a "@ready" event is dispatched from this
+    // instance.
+    init_component: function(uri, target, f)
+    {
+      this.load_component(uri, (function(prototype) {
+          /*var instance = prototype.instantiate();
+          instance.render_component(instance.node, target || this.target);
+          instance.setup_watches();
+          if (typeof f === "function") f(instance);
+          bender.notify(instance, "@ready");*/
+          if (typeof f === "function") f(prototype);
+        }).bind(this));
+    },
+
+    // Load a component from its URI into its target calling a continuation
+    // function on success or error.
+    load_component: function(uri, f)
+    {
+      flexo.request_uri(uri, (function(req) {
+          if (!req.responseXML) throw "Could not get XML for URI {0}".fmt(uri);
+          var node = req.responseXML.documentElement;
+          var prototype = this.create_component(node);
+          load_async.trampoline(node, prototype, function(error) {
+              if (error) throw error;
+              f(prototype);
+            });
+        }).bind(this));
+    },
+  };
+
+  // Create a new context for a document
+  bender.create_context = function(doc)
+  {
+    var context = flexo.create_object(bender.context);
+    flexo.hash(context, "context");
+    context.document = doc;
+    context.loaded = {};      // loaded URIs
+    context.prototypes = {};  // component prototypes indexed by URI
+    bender.log("+ Created context {0} for".fmt(context.hash), context.document);
+    return context;
+  };
+
+
+  bender.component =
+  {
+    // Find an id in the id map designated by map_name ("components" or "views")
+    find_id: function(id, map_name)
+    {
+      if (!id) return;
+      return id in this[map_name] ? this[map_name][id] :
+        this.parent ? this.parent.find(id, map_name) : undefined;
+    },
+
+    // Get an absolute URI by solving relative paths to the component path
+    get_absolute_uri: function(p)
+    {
+      // Often called with getAttribute("href") so there may be no value
+      if (!p) return;
+      // The path is absolute if it starts with a scheme and an authority (the
+      // scheme comes before the : and the authority follows //) or with a
+      // slash; otherwise it is relative and is resolved
+      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(p) || /^\//.test(p)) return p;
+      var url = this.node.ownerDocument.baseURI.replace(/(\/?)[^\/]*$/,
+          "$1" + p);
+      var m;
+      while (m = /[^\/]+\/\.\.\//.exec(url)) {
+        url = url.substr(0, m.index) + url.substr(m.index + m[0].length);
+      }
+      return url;
+    },
+
+    // Get an URI for a component node, looking up its href or ref attribute
+    get_uri_for_node: function(node)
+    {
+      return node.getAttribute("href") ?
+        this.get_absolute_uri(node.getAttribute("href")) :
+        this.find_id(node.getAttribute("ref"), "components");
+    },
+
+    // Stub for event handling
+    handleEvent: function() {},
+
+    // Instantiate a new component from this prototype
+    instantiate: function()
+    {
+      var instance = flexo.create_object(this);
+      flexo.hash(instance, "instance");
+      instance.children = [];
+      instance.views = {};
+      return instance;
+    },
+
+    // Render the different elements; this means creating component objects,
+    // delegates, and DOM nodes for concrete nodes. The node argument is the
+    // current node in the XML definition. We may want to skip rendering, e.g.
+    // for inline component definitions, so we check the result of
+    // will_render_element() calls to see if we should proceed with the contents
+    // of the current node or not.
+    render_component: function(node, target)
+    {
+      var n = node.localName;
+      if (node.namespaceURI === bender.NS &&
+          will_render_element.hasOwnProperty(n)) {
+        if (!will_render_element[n](node, this, target)) return;
+      }
+      for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
+        this.render_component(ch, target);
+      }
+      if (node.namespaceURI === bender.NS &&
+          did_render_element.hasOwnProperty(n)) {
+        did_render_element[n](node, this, target);
+      }
+    },
+
+    // Render the view node in the target node
+    render_view: function()
+    {
+      flexo.remove_children(this.target);
+      (function render(view, target) {
+        for (var ch = view.firstChild; ch; ch = ch.nextSibling) {
+          if (ch.nodeType === 1) {
+            var t = target.ownerDocument
+              .createElementNS(ch.namespaceURI, ch.localName);
+            for (var i = 0, n = ch.attributes.length; i < n; ++i) {
+              var attr = ch.attributes[i];
+              if ((attr.namspaceURI === flexo.XML_NS || !attr.namespaceURI) &&
+                attr.localName === "id") {
+                t.setAttribute("id", flexo.random_id(6));
+              } else if (attr.namespaceURI === flexo.XML_NS && !t.namespaceURI) {
+                t.setAttribute(attr.localName, attr.nodeValue);
+              } else if (attr.namespaceURI) {
+                t.setAttributeNS(attr.namespaceURI, attr.localName,
+                  attr.nodeValue);
+              } else {
+                t.setAttribute(attr.localName, attr.nodeValue);
+              }
+            }
+            target.appendChild(t);
+            render(ch, t);
+          } else if (ch.nodeType === 3 || ch.nodeType === 4) {
+            target.appendChild(target.ownerDocument
+                .createTextNode(ch.textContent));
+          }
+        }
+      })(this.view, this.target);
+    },
+
+    // Setup watches after rendering was done
+    setup_watches: function()
+    {
+      bender.log("setup_watches {0}".fmt(this.hash));
+    }
+  };
+
+
   // TODO depending on debug level: ignore, log, die
   bender.warn = function(msg) { flexo.log("!!! WARNING: " + msg); }
 
-  var ARGS = { debug: 0 };
+  bender.DEBUG_LEVEL = 0;
 
   // Log messages only in debug mode; same as bender.debug(1, ...)
   bender.log = function()
   {
-    if (ARGS.debug > 0) flexo.log.apply(flexo, arguments);
+    if (bender.DEBUG_LEVEL > 0) flexo.log.apply(flexo, arguments);
   };
 
   // Conditional debug messages following the current debug level
   bender.debug = function(level)
   {
-    if (ARGS.debug > level) {
+    if (BENDER_DEBUG_LEVEL > level) {
       flexo.log.apply(flexo, [].slice.call(arguments, 1));
     }
   };
@@ -96,6 +352,299 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
 
+  // Load the current node--there might be nothing to do, loading may be
+  // immediate, or there might be a delay in which case the tree traversal
+  // stops until a loaded event resumes it. Only handle loading; we'll
+  // render and connect components later
+  var load_async = function(node, prototype, k)
+  {
+    if (!node) return k.get_thunk();
+    var n = node.localName;
+    if (node.namespaceURI === bender.NS &&
+        will_load_element.hasOwnProperty(n)) {
+      if (!will_load_element[n](node, prototype, k)) {
+        bender.listen(prototype, "@bender-load", function() { k.trampoline(); },
+            true);
+        bender.listen(prototype, "@bender-error", function() {
+            throw "Failed to load {0} element at {1}"
+              .fmt(n, prototype.get_absolute_uri(node.getAttribute("href")));
+          }, true);
+        return;
+      }
+    }
+    var load_child = function(ch) {
+      if (!ch) {
+        if (node.namespaceURI === bender.NS &&
+            did_load_element.hasOwnProperty(n)) {
+          did_load_element[n](node, prototype);
+        }
+        return k.get_thunk();
+      }
+      return load_async.get_thunk(ch, prototype,
+          function() { return load_child.get_thunk(ch.nextElementSibling); });
+    }
+    return load_child.get_thunk(node.firstElementChild);
+  };
+
+  // Specific load functions for various elements. Return true if loading can
+  // continue immediately, false otherwise. Default is thus to do nothing and
+  // return true.
+  var will_load_element =
+  {
+    // At the loading stage, treat <component href="..."> in the same manner as
+    // <include href="..."> (instantation will differ though.) For component
+    // definitions, update the URI of the prototype.
+    // Also flag definition nodes so that we can distinguish them from
+    // instanciation nodes easily
+    component: function(node, prototype)
+    {
+      if (node.getAttribute("href")) {
+        return will_load_element.include(node, prototype);
+      } else if (!node.getAttribute("ref")) {
+        // If this is not the root node, then it is an inline component
+        // definition
+        if (node !== prototype.node) {
+          var prototype_ = prototype.context.create_component(node);
+          load_async.trampoline(node, prototype_, function(error) {
+              if (error) throw error;
+              loaded_component(prototype_, prototype);
+            });
+          return false;
+        }
+        node._is_definition = true;
+        // The component may not have an id, in which case its URI is that of
+        // the document that it is inside (there should be only one component
+        // in that document.)
+        var id = node.getAttribute("id");
+        if (id) {
+          if (node === node.ownerDocument.documentElement) {
+            prototype.uri_ = prototype.uri;
+          }
+          prototype.id = id;
+          prototype.uri += "#" + id;
+        }
+      }
+      return true;
+    },
+
+    // Add the get to the current watch (if any)
+    get: function(node, prototype)
+    {
+      var p = prototype.watches[prototype.watches.length - 1];
+      if (p) p.get.push(node);
+      return true;
+    },
+
+    // Include an external component. Do not load an URI that has already been
+    // loaded
+    include: function(node, prototype)
+    {
+      return prototype.context
+        .include(prototype.get_absolute_uri(node.getAttribute("href")),
+            prototype);
+    },
+
+    // Local script; loaded later
+    local: function(node, prototype)
+    {
+      node.parentNode.local_scripts = true;
+      return true;
+    },
+
+    // Script may defer loading: if there is an href attribute, then pause
+    // loading of the document until the script has been run, since later
+    // scripts may depend on this one.
+    // Local scripts (children of controller nodes) are skipped and only
+    // executed when rendering.
+    script: function(node, prototype)
+    {
+      var uri = prototype.get_absolute_uri(node.getAttribute("href"));
+      var content = uri ? "" : node.textContent;
+      var elem = prototype.context.document.createElement("script");
+      if (uri) {
+        elem.onload = function() { bender.notify(prototype, "@bender-load"); };
+        elem.onerror = function(e) {
+          bender.notify(prototype, "@bender-error", e);
+        };
+        elem.setAttribute("src", uri);
+      } else {
+        elem.textContent = content;
+      }
+      prototype.context.document.appendChild(elem);
+      return !uri;
+    },
+
+    // Add the set to the current watch (if any)
+    set: function(node, prototype)
+    {
+      var p = prototype.watches[prototype.watches.length - 1];
+      if (p) p.set.push(node);
+      return true;
+    },
+
+    // We don't wait for stylesheets to load; we'll let the host application
+    // handle that.
+    stylesheet: function(node, prototype)
+    {
+      var uri = prototype.get_absolute_uri(node.getAttribute("href"));
+      var head = find_head(prototype.context.document);
+      head.appendChild(uri ?
+        flexo.elem(head.namespaceURI, "link",
+            { rel: "stylesheet", type: "text/css", href: uri }) :
+        flexo.elem(head.namespaceURI, "style", {}, node.textContent));
+      return true;
+    },
+
+    // Store the title node in the component prototype
+    title: function(node, prototype)
+    {
+      prototype.metadata.title = node;
+      return true;
+    },
+
+    // Keep track of the view node
+    view: function(node, prototype)
+    {
+      if (!prototype.view_node) prototype.view_node = node;
+      return true;
+    },
+
+    // Prepare the watch nodes
+    watch: function(node, prototype)
+    {
+      var w = { node: node, children: [], get: [], set: [], parent: prototype };
+      flexo.hash(w, "watch");
+      if (is_bender_node(node.parentNode, "watch")) {
+        var p = prototype.watches[prototype.watches.length - 1];
+        w.parent = p.node === node.parentNode ? p : p.parent;
+        w.parent.children.push(w);
+      }
+      prototype.watches.push(w);
+      return true;
+    }
+  };
+
+  var did_load_element = {};
+
+  var will_render_element =
+  {
+    // Create new component instances for references; don't do rendering for
+    // definitions
+    component: function(node, instance)
+    {
+      if (node._is_definition && node !== instance.node) {
+        return false;
+      } else if (!node._is_definition) {
+        var uri = instance.get_uri_for_node(node);
+        if (!uri) {
+          var href = node.getAttribute("href");
+          if (href) throw "Could not get URI for href=\"{0}\"".fmt(href);
+          throw "Could not get URI for ref=\"{0}\""
+            .fmt(node.getAttribute("ref"));
+        }
+        var prototype = instance.context.prototypes[uri];
+        if (!prototype) throw "No prototype for component at URI {0}".fmt(uri);
+        var id = node.getAttribute("id");
+        if (typeof node._instances !== "object") node._instances = [];
+        // TODO
+        //var instance_ = prototype.instantiate();
+        // _and_render(id);
+        instance_.parent = instance;
+        instance.children.push(instance_);
+        node._instances.push(instance_);
+        if (id) instance.views[id] = instance_;
+      }
+      return true;
+    },
+
+    // Local scripts are executed in the context of the parent delegate:
+    // the text content is wrapped into a function binding the special variable
+    // $_ to the prototype of the controller delegate, thus allowing to
+    // redefine methods; e.g., $_.handleEvent = function(e) { ... };
+    script: function(node, instance)
+    {
+      var p = node.parentNode;
+      if (is_bender_node(p, "controller")) {
+        var prototype = node_prototype(p, bender.controller);
+        (new Function("$_", node.textContent)).call(instance, prototype);
+      }
+      return true;
+    }
+  };
+
+  var did_render_element =
+  {
+    app: function(node, instance)
+    {
+      did_render_element.component(node, instance);
+      // Render metadata and view to the output document only for the main
+      // app (i.e. not for components or included app)
+      if (!instance.parent) {
+        //flexo.remove_children(instance.);
+        //render_metadata(instance);
+        //render_content(instance.view_node, instance.dest_body, instance);
+      }
+    },
+
+    // Create new delegates for controllers.
+    component: function(node, instance)
+    {
+      /*var prototype = node_prototype(node, bender.controller);
+      var delegate = bender.create_controller(node, instance, prototype);
+      var id = !skip_id && node.getAttribute("id") || "";
+      if (instance.controllers[id]) {
+        throw "Redefinition of {0}controller{1}"
+          .fmt(id ? "main " : "", id ? " " + id : "");
+      }
+      instance.controllers[id] = delegate;*/
+    }
+  };
+
+  // Return the head element (for HTML documents) or by default the
+  // documentElement (for SVG or generic documents)
+  var find_head = function(doc) { return doc.head || doc.documentElement; };
+
+  // Find the prototype for the name of an instance
+  // i.e. "bender.controller" -> bender.controller
+  // Use the default_prototype argument if not found (or if there was no
+  // instance-of argument to start with)
+  // This is used to instantiate controller nodes with the correct prototype
+  var find_prototype = function(name, default_prototype)
+  {
+    if (!name) return default_prototype;
+    var p = flexo.global_object();
+    var derefs = name.split(".");
+    for (var i = 0, n = derefs.length; i < n && p; ++i) {
+      p = typeof p === "object" && p.hasOwnProperty(derefs[i]) ?
+        p[derefs[i]] : "";
+    }
+    if (!p) bender.warn("No prototype found for \"{0}\"".fmt(name));
+    return p || default_prototype;
+  };
+
+  // Check whether the node is in the Bender namespace and has the requested
+  // local name
+  var is_bender_node = function(node, localname)
+  {
+    return node.namespaceURI === bender.NS && node.localName === localname;
+  };
+
+  // A component was loaded: setup the relationship with the parent and app,
+  // and send a loaded event (delayed for inline components)
+  var loaded_component = function(prototype, parent)
+  {
+    prototype.parent = parent;
+    if (prototype.id) parent.definitions[prototype.id] = prototype.uri;
+    prototype.context.prototypes[prototype.uri] = prototype;
+    if (prototype.uri_) {
+      prototype.context.prototypes[prototype.uri_] = prototype;
+      delete prototype.uri_;
+    }
+    setTimeout(function() { bender.notify(parent, "@bender-load"); }, 0);
+  };
+
+  /*
+
   // Get the arguments from the query string, or a custom string to use its
   // stead. Default arguments are:
   //   * app: required; path to the app to run
@@ -122,23 +671,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return args;
   };
 
-  // Load and initialize an application from a URL into a destination body,
-  // optionally calling the function f with the result app instance when done,
-  // and then sending a @ready notification on behalf of the main controller.
-  // The destination is obtained from the args object, which contains all the
-  // default and user-defined arguments for the application.
-  bender.init_app = function(url, args, f)
-  {
-    if (!args.dest) args.dest = find_body(document);
-    load_uri(url, args.dest, function(prototype) {
-        var app = prototype.instantiate_and_render();
-        set_parameters_from_args(app, args);
-        build_watch_graph(app);
-        if (f) f(app);
-        bender.notify(app.controllers[""], "@ready");
-      });
-  };
-
   // Return the body element (for HTML documents) or by default the
   // documentElement (for SVG or generic documents)
   var find_body = function(doc) { return doc.body || doc.documentElement; };
@@ -146,60 +678,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Base prototype for component objects (including app)
   bender.component =
   {
-    // Find an id in the id map designated by map_name (e.g., "components",
-    // "views" or "controllers")
-    find_id: function(id, map_name)
-    {
-      if (!id) return;
-      return id in this[map_name] ? this[map_name][id] :
-        this.parent ? this.parent.find(id, map_name) : undefined;
-    },
 
-    // Get an absolute URI by solving relative paths to the app path
-    get_absolute_uri: function(p)
-    {
-      // Often called with getAttribute("href") so there may be no value
-      if (!p) return;
-      // The path is absolute if it starts with a scheme and an authority (the
-      // scheme comes before the : and the authority follows //) or with a
-      // slash; otherwise it is relative and is resolved
-      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(p) || /^\//.test(p)) return p;
-      var url = this.root.ownerDocument.baseURI.replace(/(\/?)[^\/]*$/,
-          "$1" + p);
-      var m;
-      while (m = /[^\/]+\/\.\.\//.exec(url)) {
-        url = url.substr(0, m.index) + url.substr(m.index + m[0].length);
-      }
-      return url;
-    },
-
-    // Get an URI for a component node, looking up its href or ref attribute
-    get_uri_for_node: function(node)
-    {
-      return node.getAttribute("href") ?
-        this.get_absolute_uri(node.getAttribute("href")) :
-        this.find_id(node.getAttribute("ref"), "components");
-    },
-
-    // Instantiate a new component from this prototype
-    instantiate: function()
-    {
-      var instance = flexo.create_object(this);
-      instance.hash = flexo.hash("instance");
-      instance.children = [];
-      instance.controllers = {};
-      instance.views = {};
-      return instance;
-    },
-
-    // Render the component to a new instance in the destination element
-    instantiate_and_render: function(parent_id)
-    {
-      var instance = this.instantiate();
-      if (typeof parent_id === "string") instance.parent_id = parent_id;
-      render_component(instance.root, instance);
-      return instance;
-    }
   };
 
   // Setup the object for a new component (before loading)
@@ -229,31 +708,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     app.loaded_uris = {};
     app.loaded_uris[app.uri] = true;
     return app;
-  };
-
-  // Base controller to be derived by custom controllers
-  // Default handling of event is to just ignore them
-  bender.controller =
-  {
-    handleEvent: function() {},
-    init: function() {},
-    notify: function(type, e) { bender.notify(this.component, type, e); },
-    forward_event: function(e) { bender.notify(this.component, e.type, e); }
-  };
-
-  // Base delegate for controller nodes. The init() method can be overridden to
-  // perform custom initialization and set default parameters; parameter values
-  // are provided through attribute in the e/f namespace (e for string values,
-  // f for float values.)
-  bender.create_controller = function(node, instance, prototype)
-  {
-    var c = flexo.create_object(prototype);
-    c.hash = flexo.hash("controller");
-    c.node = node;
-    c.component = instance;
-    c.init();
-    set_parameters_from_attributes(node, c);
-    return c;
   };
 
   // Set parameters on the object o frome the e/f/b attributes of the node
@@ -321,358 +775,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       });
   };
 
-  // Load the current node--there might be nothing to do, loading may be
-  // immediate, or there might be a delay in which case the tree traversal
-  // stops until a loaded event resumes it. Only handle loading; we'll
-  // render and connect components later
-  var load_async = function(node, prototype, k)
-  {
-    if (!node) return k.get_thunk();
-    if (node.namespaceURI === bender.NS &&
-        will_load_element.hasOwnProperty(node.localName)) {
-      if (!will_load_element[node.localName](node, prototype)) {
-        bender.listen(prototype, "@bender-load", function() {
-            k.trampoline();
-          }, true);
-        bender.listen(prototype, "@bender-error", function() {
-            throw "Failed to load {0} element at {1}".fmt(node.localName,
-              prototype.get_absolute_uri(node.getAttribute("href")));
-          }, true);
-        return;
-      }
-    }
-    var load_child = function(ch) {
-      if (!ch) {
-        if (node.namespaceURI === bender.NS &&
-            did_load_element.hasOwnProperty(node.localName)) {
-          did_load_element[node.localName](node, prototype);
-        }
-        return k.get_thunk();
-      }
-      return load_async.get_thunk(ch, prototype,
-          function() { return load_child.get_thunk(ch.nextElementSibling); });
-    }
-    return load_child.get_thunk(node.firstElementChild);
-  };
 
-  // A component was loaded: setup the relationship with the parent and app,
-  // and send a loaded event (delayed for inline components)
-  var loaded_component = function(prototype, parent)
-  {
-    prototype.parent = parent;
-    if (prototype.id) parent.components[prototype.id] = prototype.uri;
-    prototype.app.uri_map[prototype.uri] = prototype;
-    if (prototype.uri_) {
-      prototype.app.uri_map[prototype.uri_] = prototype;
-      delete prototype.uri_;
-    }
-    setTimeout(function() { bender.notify(parent, "@bender-load"); }, 0);
-  };
-
-  // Include an external component from an href value
-  var include_href = function(href, prototype)
-  {
-    var uri = href.replace(/#.*$/, "");
-    if (uri in prototype.app.loaded_uris) return true;
-    load_uri(uri, prototype.app.dest_body, function(prototype_) {
-        prototype.app.loaded_uris[uri] = true;
-        loaded_component(prototype_, prototype);
-      }, prototype.app);
-    return false;
-  };
-
-  // Check whether the node is in the Bender namespace and has the requested
-  // local name
-  var is_bender_node = function(node, localname)
-  {
-    return node.namespaceURI === bender.NS && node.localName === localname;
-  };
-
-  // Specific load functions for various elements. Return true if loading can
-  // continue immediately, false otherwise. Default is thus to do nothing and
-  // return true.
-  var will_load_element =
-  {
-    // At the loading stage, treat <component href="..."> in the same manner as
-    // <include href="..."> (instantation will differ though.) For component
-    // definitions, update the URI of the prototype.
-    // Also flag definition nodes so that we can distinguish them from
-    // instanciation nodes easily
-    component: function(node, prototype)
-    {
-      if (node.getAttribute("href")) {
-        return will_load_element.include(node, prototype);
-      } else if (!node.getAttribute("ref")) {
-        // If this is node the root node, then it is an inline component
-        // definition
-        if (node !== prototype.root) {
-          var prototype_ = bender.create_component(node, prototype.dest_body,
-              prototype.app);
-          load_async.trampoline(node, prototype_, function(error) {
-              if (error) throw error;
-              loaded_component(prototype_, prototype);
-            });
-          return false;
-        }
-        node._is_definition = true;
-        // The component may not have an id, in which case its URI is that of
-        // the document that it is inside (there should be only one component
-        // in that document.)
-        var id = node.getAttribute("id");
-        if (id) {
-          if (node === node.ownerDocument.documentElement) {
-            prototype.uri_ = prototype.uri;
-          }
-          prototype.id = id;
-          prototype.uri += "#" + id;
-        }
-      }
-      return true;
-    },
-
-    // Store the help node in the component prototype
-    help: function(node, prototype)
-    {
-      prototype.metadata.help = node;
-      return true;
-    },
-
-    // Include an external component. Do not load an URI that has already been
-    // loaded
-    include: function(node, prototype)
-    {
-      return include_href(prototype.get_absolute_uri(node.getAttribute("href")),
-          prototype);
-    },
-
-    // Script may defer loading: if there is an href attribute, then pause
-    // loading of the document until the script has been run, since later
-    // scripts may depend on this one.
-    // Local scripts (children of controller nodes) are skipped and only
-    // executed when rendering.
-    script: function(node, prototype)
-    {
-      if (is_bender_node(node.parentNode, "controller")) {
-        // Set the local scripts flag, so that we know to create a specific
-        // prototype for this controller
-        node.parentNode.local_scripts = true;
-        return true;
-      }
-      var uri = prototype.get_absolute_uri(node.getAttribute("href"));
-      var content = uri ? "" : node.textContent;
-      var elem = prototype.dest_body.ownerDocument.createElement("script");
-      if (uri) {
-        elem.onload = function() { bender.notify(prototype, "@bender-load"); };
-        elem.onerror = function(e) {
-          bender.notify(prototype, "@bender-error", e);
-        };
-        elem.setAttribute("src", uri);
-      } else {
-        elem.textContent = content;
-      }
-      find_body(prototype.dest_body.ownerDocument).appendChild(elem);
-      return !uri;
-    },
-
-    // We don't wait for stylesheets to load; we'll let the host application
-    // handle that.
-    stylesheet: function(node, prototype)
-    {
-      var uri = prototype.get_absolute_uri(node.getAttribute("href"));
-      var elem = uri ?
-        flexo.elem(prototype.dest_body.namespaceURI, "link",
-            { rel: "stylesheet", type: "text/css", href: uri }) :
-        flexo.elem(prototype.dest_body.namespaceURI, "style", {},
-            node.textContent);
-      find_head(prototype.dest_body.ownerDocument).appendChild(elem);
-      return true;
-    },
-
-    // Store the title node in the component prototype
-    title: function(node, prototype)
-    {
-      prototype.metadata.title = node;
-      return true;
-    },
-
-    // Keep track of the view node
-    view: function(node, prototype)
-    {
-      if (prototype.view_node) throw "Redefinition of view";
-      prototype.view_node = node;
-      return true;
-    },
-
-    // Prepare the watch nodes
-    watch: function(node, prototype)
-    {
-      var w = { node: node, hash: flexo.hash("watch"), children: [], get: [],
-        set: [], parent: prototype };
-      if (is_bender_node(node.parentNode, "watch")) {
-        var p = prototype.watches[prototype.watches.length - 1];
-        w.parent = p.node === node.parentNode ? p : p.parent;
-        w.parent.children.push(w);
-      }
-      prototype.watches.push(w);
-      return true;
-    },
-
-    get: function(node, prototype)
-    {
-      var p = prototype.watches[prototype.watches.length - 1];
-      if (p) p.get.push(node);
-      return true;
-    },
-
-    set: function(node, prototype)
-    {
-      var p = prototype.watches[prototype.watches.length - 1];
-      if (p) p.set.push(node);
-      return true;
-    },
-
-  };
-
-  var did_load_element =
-  {
-    // Setup the default view and main controller nodes if they haven't
-    // been explicitely set
-    app: function(node, prototype)
-    {
-      if (!prototype.view_node) prototype.view_node = node;
-      set_parameters_from_attributes(node, prototype);
-    },
-
-    // Definition nodes behave like app
-    component: function(node, prototype)
-    {
-      if (node._is_definition) did_load_element.app(node, prototype);
-    }
-  };
-
-  // Return the head element (for HTML documents) or by default the
-  // documentElement (for SVG or generic documents)
-  var find_head = function(doc) { return doc.head || doc.documentElement; };
-
-  // Render the different elements; this means creating component objects,
-  // controller delegates, and DOM nodes for concrete nodes.
-  // The node argument is the current node in the XML definition; the instance
-  // argument is the current component instance.
-  // We may want to skip rendering, e.g. for inline component definitions, so
-  // we check the result of will_render_element() calls to see if we should
-  // proceed with the contents of the current node or not.
-  var render_component = function(node, instance)
-  {
-    if (node.namespaceURI === bender.NS &&
-        will_render_element.hasOwnProperty(node.localName)) {
-      if (!will_render_element[node.localName](node, instance)) return;
-    }
-    for (var ch = node.firstElementChild; ch; ch = ch.nextElementSibling) {
-      render_component(ch, instance);
-    }
-    if (node.namespaceURI === bender.NS &&
-        did_render_element.hasOwnProperty(node.localName)) {
-      did_render_element[node.localName](node, instance);
-    }
-  };
-
-  var will_render_element =
-  {
-    // Create new component instances for references; don't do rendering for
-    // definitions
-    component: function(node, instance)
-    {
-      if (node._is_definition && node !== instance.root) {
-        return false;
-      } else if (!node._is_definition) {
-        var uri = instance.get_uri_for_node(node);
-        if (!uri) {
-          var href = node.getAttribute("href");
-          if (href) throw "Could not get URI for href=\"{0}\"".fmt(href);
-          throw "Could not get URI for ref=\"{0}\""
-            .fmt(node.getAttribute("ref"));
-        }
-        var prototype = instance.app.uri_map[uri];
-        if (!prototype) throw "No prototype for component at URI {0}".fmt(uri);
-        var id = node.getAttribute("id");
-        if (typeof node._instances !== "object") node._instances = [];
-        var instance_ = prototype.instantiate_and_render(id);
-        instance_.parent = instance;
-        instance.children.push(instance_);
-        node._instances.push(instance_);
-        if (id) instance.views[id] = instance_;
-      }
-      return true;
-    },
-
-    // Local scripts are executed in the context of the parent delegate:
-    // the text content is wrapped into a function binding the special variable
-    // $_ to the prototype of the controller delegate, thus allowing to
-    // redefine methods; e.g., $_.handleEvent = function(e) { ... };
-    script: function(node, instance)
-    {
-      var p = node.parentNode;
-      if (is_bender_node(p, "controller")) {
-        var prototype = node_prototype(p, bender.controller);
-        (new Function("$_", node.textContent)).call(instance, prototype);
-      }
-      return true;
-    }
-  };
-
-  var did_render_element =
-  {
-    app: function(node, instance)
-    {
-      did_render_element.component(node, instance);
-      // Render metadata and view to the output document only for the main
-      // app (i.e. not for components or included app)
-      if (!instance.parent) {
-        flexo.remove_children(instance.dest_body);
-        render_metadata(instance);
-        render_content(instance.view_node, instance.dest_body, instance);
-      }
-    },
-
-    // Make sure that a component has a default controller
-    component: function(node, instance)
-    {
-      if (!instance.controllers[""]) {
-        did_render_element.controller(node, instance, true);
-      }
-    },
-
-    // Create new delegates for controllers.
-    controller: function(node, instance, skip_id)
-    {
-      var prototype = node_prototype(node, bender.controller);
-      var delegate = bender.create_controller(node, instance, prototype);
-      var id = !skip_id && node.getAttribute("id") || "";
-      if (instance.controllers[id]) {
-        throw "Redefinition of {0}controller{1}"
-          .fmt(id ? "main " : "", id ? " " + id : "");
-      }
-      instance.controllers[id] = delegate;
-    }
-  };
-
-
-  // Find the prototype for the name of an instance
-  // i.e. "bender.controller" -> bender.controller
-  // Use the default_prototype argument if not found (or if there was no
-  // instance-of argument to start with)
-  // This is used to instantiate controller nodes with the correct prototype
-  var find_prototype = function(name, default_prototype)
-  {
-    if (!name) return default_prototype;
-    var p = flexo.global_object();
-    var derefs = name.split(".");
-    for (var i = 0, n = derefs.length; i < n && p; ++i) {
-      p = typeof p === "object" && derefs[i] in p ? p[derefs[i]] : "";
-    }
-    if (!p) bender.warn("No prototype found for \"{0}\"".fmt(name));
-    return p || default_prototype;
-  };
 
   // Find the prototype for a node using its "instance-of" attribute (and
   // calling find_prototype above), but memoize it on the node.
@@ -963,5 +1066,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       });
     bender.notify(instance.controllers[""], "@rendered");
   };
+
+  */
 
 })(typeof exports === "object" ? exports : this.bender = {});

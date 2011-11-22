@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender application launcher</title>
+    <meta charset="UTF-8">
+    <style>
+      body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="flexo.js"></script>
+    <script src="bender.js"></script>
+  </head>
+  <body>
+    <h1>Bender application launcher</h1>
+    <div id="bender"/>
+    <script>
+
+      bender.DEBUG_LEVEL = 1;
+      var context = bender.create_context(document);
+      var app_node = context.create_element("app");
+      var view_node = context.create_element("view", {},
+        [flexo.html("p", { id: "p" }, "Hello, world!")]);
+      context.append_child(app_node, view_node);
+      app_node._component.target = document.getElementById("bender");
+
+    </script>
+  </body>
+</html>
+

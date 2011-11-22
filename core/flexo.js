@@ -117,12 +117,16 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Find the current global object
   flexo.global_object = function() { return (function() { return this; })(); };
 
-  // Return a hash string based on a prefix and a counter
+  flexo.hashes = {};
+
+  // Return a hash string and store the object in the tracked hashes object.
+  // Use a prefix and a counter for simple hash codes.
   flexo.hash = (function() {
     var counter = 0;
-    return function(prefix)
+    return function(obj, prefix)
     {
-      return "{0}-{1}".fmt(prefix || "object", counter++);
+      obj.hash = "{0}_{1}".fmt(prefix || "object", counter++);
+      flexo.hashes[obj.hash] = obj;
     };
   })();
 

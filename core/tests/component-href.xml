@@ -1,14 +1,14 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Including component with href</title>
-  <controller>
-    <listen view="ok-button" event="@pushed">
-      alert("OK");
-    </listen>
-  </controller>
   <view>
     <html:p>
       Click this button: <component href="../../lib/button.xml"
         id="ok-button">OK</component>
     </html:p>
   </view>
+  <watch>
+    <get view="ok-button" event="@pushed">
+      alert("OK");
+    </get>
+  </watch>
 </app>

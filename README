@@ -44,13 +44,15 @@ Install and run Bender
 
 Release Notes
 
-  This is a very early release of Bender (v0.2.1, 2011-11-xx) and as such is
+  This is a very early release of Bender (v0.3.0, 2011-11-xx) and as such is
   more of a sneak preview than an actual release. Thank you for your interest!
   Please contact bender@igel.co.jp for comments, questions, etc.
 
-  Changes in v0.2.2 (2011-11-xx)
+  Changes in v0.3.0 (2011-11-xx)
 
     * Removed <listen> (replaced by <watch>/<get event="...">)
+    * Replacing app object with context object
+    * Adding dynamic tree building methods
 
   Changes in v0.2.1 (2011-11-15)
 

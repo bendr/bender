@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-11-21 (v0.2.2)
+Bender TODO list as of 2011-11-21 (v0.3.0)
 
 
 * Bugs
@@ -9,8 +9,8 @@ Bender TODO list as of 2011-11-21 (v0.2.2)
 
 * Core Features
 
-[ ] Tree modification
-    [ ] Pull components into an existing document
+[/] Tree modification
+    [/] Pull components into an existing document
 [/] Replace <bind> with <watch>/<get>/<set>
     [x] remove <listen>
     [/] add action to <get> (core/tests/svg-clock)
