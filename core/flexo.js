@@ -57,14 +57,13 @@ Function.prototype.trampoline = function()
 Function.prototype.get_thunk = function() { return [this, arguments]; };
 
 
-(function (flexo) {
-
+(function (flexo)
+{
   // Useful XML namespaces
   flexo.SVG_NS = "http://www.w3.org/2000/svg";
   flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
   flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
   flexo.XML_NS = "http://www.w3.org/1999/xml";
-
 
   // Identity function
   flexo.id = function(x) { return x; };
@@ -85,10 +84,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   };
 
   // Chop the last character of a string if it's a newline
-  flexo.chomp = function(string)
-  {
-    return string.replace(/\n$/, "");
-  };
+  flexo.chomp = function(string) { return string.replace(/\n$/, ""); };
 
   // Object.create replacement; necessary for Opera or Vidualize.
   // Extra arguments are definitions of additional properties.
@@ -119,20 +115,24 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   }
 
   // Find the current global object
-  flexo.global_object = function()
-  {
-    return (function() { return this; })();
-  };
+  flexo.global_object = function() { return (function() { return this; })(); };
 
   // Return a hash string based on a prefix and a counter
-  (function() {
+  flexo.hash = (function() {
     var counter = 0;
-    flexo.hash = function(prefix)
+    return function(prefix)
     {
-      if (!prefix) prefix = "object";
-      return "{0}-{1}".fmt(prefix, counter++);
+      return "{0}-{1}".fmt(prefix || "object", counter++);
     };
   })();
+
+  // Pad a string to the given length
+  flexo.pad = function(string, length, padding)
+  {
+    if (typeof padding !== "string") padding = "0";
+    var l = length + 1 - string.length;
+    return l > 0 ? (Array(l).join(padding)) + string : string;
+  };
 
   // Simple wrapper for XMLHttpRequest GET request with no data; call back with
   // the request object on success, throw an exception on error.
@@ -146,7 +146,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
         if (req.status === 200 || req.status === 0) {
           f(req);
         } else {
-          throw "get_uri failed for {0}: {1}".fmt(uri, req.status);
+          throw "flexo.request_uri failed for {0}: {1}".fmt(uri, req.status);
         }
       }
     };
@@ -186,7 +186,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     if (!ns) ns = flexo.global_object();
     var first = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm$_";
-    var all = first + "123456789";
+    var all = first + "1234567890";
     var name = flexo.random_element(first);
     for (var i = 1; i < n; ++i) name += flexo.random_element(all);
     return name in ns ? flexo.random_var(n, ns) : name;
@@ -275,7 +275,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Create a dataset attribute if not present
   flexo.dataset = function(elem)
   {
-    if (elem.dataset) return;
+    if (typeof elem.dataset === "object") return;
     elem.dataset = {};  // TODO create a DOMStringMap?
     [].forEach.call(elem.attributes, function(attr) {
         if (!attr.namespaceURI && attr.localName.indexOf("data-") === 0) {
@@ -417,14 +417,15 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
 
   // Color functions
 
-  // Convert a color from hsv space (hue in degrees, saturation and brightness
+  // Convert a color from hsv space (hue in radians, saturation and brightness
   // in the [0, 1] range) to RGB, returned as an array in the [0, 256[ range.
   flexo.hsv_to_rgb = function(h, s, v)
   {
-    var rgb;
-    if (s == 0) {
+    s = flexo.clamp(s, 0, 1);
+    v = flexo.clamp(v, 0, 1);
+    if (s === 0) {
       var v_ = Math.round(v * 255);
-      rgb = [v_, v_, v_];
+      return [v_, v_, v_];
     } else {
       h = (((h * 180 / Math.PI) + 360) % 360) / 60;
       var i = Math.floor(h);
@@ -432,17 +433,24 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       var p = v * (1 - s);
       var q = v * (1 - (s * f));
       var t = v * (1 - (s * (1 - f)));
-      rgb = [Math.round([v, q, p, p, t, v][i] * 255),
+      return [Math.round([v, q, p, p, t, v][i] * 255),
         Math.round([t, v, v, q, p, p][i] * 255),
         Math.round([p, p, t, v, v, q][i] * 255)];
     }
-    return rgb;
+  };
+
+  // Convert a color from hsv space (hue in degrees, saturation and brightness
+  // in the [0, 1] range) to an RGB hex value
+  flexo.hsv_to_hex = function(h, s, v)
+  {
+    return flexo.rgb_to_hex.apply(this, flexo.hsv_to_rgb(h, s, v));
   };
 
   // Convert an RGB color (3 values) to a hex value
   flexo.rgb_to_hex = function(r, g, b)
   {
-    return "#" + r.toString(16) + g.toString(16) + b.toString(16);
+    return "#" + [].map.call(arguments,
+      function(x) { return flexo.pad(x.toString(16), 2, "0"); }).join("");
   };
 
 
