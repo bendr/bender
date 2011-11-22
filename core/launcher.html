@@ -5,13 +5,18 @@
     <meta charset="UTF-8">
     <style>
       body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
+      #bender { background-color: #08f; color: white }
+      #bender2 { background-color: #8f0; }
+      #bender3 { background-color: #f08; color: white }
     </style>
     <script src="flexo.js"></script>
     <script src="bender.js"></script>
   </head>
   <body>
     <h1>Bender application launcher</h1>
-    <div id="bender"/>
+    <div id="bender"></div>
+    <div id="bender2"></div>
+    <div id="bender3"></div>
     <script>
 
       bender.DEBUG_LEVEL = 1;
@@ -20,7 +25,18 @@
       var view_node = context.create_element("view", {},
         [flexo.html("p", { id: "p" }, "Hello, world!")]);
       context.append_child(app_node, view_node);
-      app_node._component.target = document.getElementById("bender");
+
+      var app_instance = app_node._component.instantiate();
+      app_instance.target = document.getElementById("bender");
+
+      var instance2 = app_node._component.instantiate();
+      instance2.target = document.getElementById("bender2");
+
+      var app3 = context.create_element("app", {},
+        [context.create_element("view", {},
+          [flexo.html("p", { id: "q" }, "Goodbye for now")])]);
+      var instance3 = app3._component.instantiate();
+      instance3.target = document.getElementById("bender3");
 
     </script>
   </body>
