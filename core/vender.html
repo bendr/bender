@@ -28,8 +28,8 @@
       app.appendChild(view);
       view.appendChild(flexo.html("p", { id: "p" }, "Hello, world!"));
 
-      app.render(document.getElementById("bender"));
-      app.render(document.getElementById("bender2"));
+      app.instantiate().render(document.getElementById("bender"));
+      app.instantiate().render(document.getElementById("bender2"));
 
       var app_ = context.createElement("app");
       context.documentElement.appendChild(app_);
@@ -37,7 +37,7 @@
       app_.appendChild(view_);
       view_.appendChild(flexo.html("p", { id: "q", "class": "strong" },
         "Goodbye for now"));
-      app_.render(document.getElementById("bender3"));
+      app_.instantiate().render(document.getElementById("bender3"));
 
     </script>
   </body>

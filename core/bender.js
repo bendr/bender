@@ -44,6 +44,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return e;
   };
 
+  // Overloading functions for Bender nodes
   var prototypes = {
 
     "": {
@@ -67,45 +68,58 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return Element.prototype.insertBefore.call(this, ch, ref);
       },
 
-      render: function(target)
+      instantiate: function()
       {
-        if (!this.view) return;
-        if (this.target === target) {
-          flexo.remove_children(target);
-        } else {
-          this.target = target;
-        }
-        (function render(source, dest) {
-          for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
-            if (ch.nodeType === 1) {
-              var d = dest.ownerDocument
-                .createElementNS(ch.namespaceURI, ch.localName);
-              for (var i = ch.attributes.length - 1; i >= 0; --i) {
-                var attr = ch.attributes[i];
-                if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
-                  && attr.localName === "id") {
-                  // TODO create a new instance before rendering!
-                  // instance.views[attr.nodeValue] = t;
-                  flexo.hash(d, d.localName);
-                  d.setAttribute("id", d.hash);
-                } else if (attr.namespaceURI) {
-                  d.setAttributeNS(attr.namespaceURI, attr.localName,
-                    attr.nodeValue);
-                } else {
-                  d.setAttribute(attr.localName, attr.nodeValue);
-                }
-              }
-              dest.appendChild(d);
-              render(ch, d);
-            } else if (ch.nodeType === 3 || ch.nodeType === 4) {
-              dest.appendChild(dest.ownerDocument
-                .createTextNode(ch.textContent));
-            }
-          }
-        })(this.view, target);
-      },
-    },
+        var instance = flexo.create_object(component);
+        flexo.hash(instance, "instance");
+        instance.node = this;
+        instance.views = {};
+        bender.log("+ New instance {0} for {1}".fmt(instance.hash, this.hash));
+        return instance;
+      }
+    }
 
+  };
+
+  // Component prototype for new instances
+  var component = {
+    render: function(target)
+    {
+      if (!this.node.view) return;
+      if (this.target === target) {
+        flexo.remove_children(target);
+      } else {
+        this.target = target;
+      }
+      var self = this;
+      (function render(source, dest) {
+        for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
+          if (ch.nodeType === 1) {
+            var d = dest.ownerDocument
+              .createElementNS(ch.namespaceURI, ch.localName);
+            for (var i = ch.attributes.length - 1; i >= 0; --i) {
+              var attr = ch.attributes[i];
+              if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
+                && attr.localName === "id") {
+                self.views[attr.nodeValue] = d;
+                flexo.hash(d, d.localName);
+                d.setAttribute("id", d.hash);
+              } else if (attr.namespaceURI) {
+                d.setAttributeNS(attr.namespaceURI, attr.localName,
+                  attr.nodeValue);
+              } else {
+                d.setAttribute(attr.localName, attr.nodeValue);
+              }
+            }
+            dest.appendChild(d);
+            render(ch, d);
+          } else if (ch.nodeType === 3 || ch.nodeType === 4) {
+            dest.appendChild(dest.ownerDocument
+              .createTextNode(ch.textContent));
+          }
+        }
+      })(this.node.view, target);
+    }
   };
 
 
