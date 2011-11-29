@@ -9,6 +9,15 @@
       #bender2 { background-color: #8f0; }
       #bender3 { background-color: #f08; color: white }
       .strong { font-weight: bold; }
+
+      .bender-button { display: inline-block; cursor: default; color: black;
+        padding: .3em .5em; background-color:#ddd; -moz-border-radius: 6px;
+        -webkit-border-radius: 6px; border-radius: 6px;
+        box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
+      .bender-button.__disabled, .bender-button.__down { opacity: 0.5; }
+      .bender-naked .bender-button { padding: 0; border: none;
+        background-color: transparent; text-shadow: 0px 0px 0px; }
+
     </style>
     <script src="flexo.js"></script>
     <script src="bender.js"></script>
@@ -26,20 +35,23 @@
       context.documentElement.appendChild(app);
       var view = context.createElement("view");
       app.appendChild(view);
-      view.appendChild(flexo.html("p", { id: "p" }, "Hello, world!"));
+      view.appendChild(flexo.html("p", { id: "p" }, "Welcome to Bender!"));
 
       app.instantiate().render(document.getElementById("bender"));
       app.instantiate().render(document.getElementById("bender2"));
 
-      var app_ = context.createElement("app");
-      context.documentElement.appendChild(app_);
+      var button = context.createElement("component");
+      button.setAttribute("id", "button");
+      context.documentElement.appendChild(button);
       var view_ = context.createElement("view");
-      app_.appendChild(view_);
-      view_.appendChild(flexo.html("p", { id: "q", "class": "strong" },
-        "Goodbye for now"));
-      app_.instantiate().render(document.getElementById("bender3"));
+      button.appendChild(view_);
+      view_.appendChild(flexo.html("div", { "class": "bender-button" },
+        "Thanks!"));
+
+      var c = context.createElement("component");
+      c.setAttribute("ref", "button");
+      view.appendChild(c);
 
     </script>
   </body>
 </html>
-

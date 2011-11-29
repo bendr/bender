@@ -28,6 +28,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return e;
     };
     wrap_element(context.documentElement);
+    context.components = {};
     return context;
   };
 
@@ -50,11 +51,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
     "": {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
       insertBefore: function(ch, ref) {
-        return Element.prototype.insertBefore.call(this, ch, ref);
+        var ch_ = Element.prototype.insertBefore.call(this, ch, ref);
+        var component = get_view_parent(ch);
+        if (component) component.update_view();
+        return ch_;
       },
       setAttribute: function(name, value) {
         return Element.prototype.setAttribute.call(this, name, value);
-      }
+      },
     },
 
     component: {
@@ -68,26 +72,47 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return Element.prototype.insertBefore.call(this, ch, ref);
       },
 
+      setAttribute: function(name, value)
+      {
+        if (name === "id") {
+          var id = this.getAttribute("id");
+          if (id && id !== value) delete this.ownerDocument.components[value];
+          this.ownerDocument.components[value] = this;
+        } else if (name === "ref") {
+          this.is_definition = false;
+          this.ref = value;
+        }
+        Element.prototype.setAttribute.call(this, name, value);
+      },
+
       instantiate: function()
       {
         var instance = flexo.create_object(component);
         flexo.hash(instance, "instance");
         instance.node = this;
         instance.views = {};
-        bender.log("+ New instance {0} for {1}".fmt(instance.hash, this.hash));
+        if (!this.instances) this.instances = {};
+        this.instances[instance.hash] = instance;
         return instance;
+      },
+
+      update_view: function()
+      {
+        if (this.instances) {
+          for (h in this.instances) this.instances[h].render();
+        }
       }
     }
-
   };
 
   // Component prototype for new instances
   var component = {
     render: function(target)
     {
+      if (!this.target && !target) return;
       if (!this.node.view) return;
-      if (this.target === target) {
-        flexo.remove_children(target);
+      if ((this.target && !target) || this.target === target) {
+        flexo.remove_children(this.target);
       } else {
         this.target = target;
       }
@@ -95,30 +120,57 @@ if (typeof require === "function") flexo = require("./flexo.js");
       (function render(source, dest) {
         for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
           if (ch.nodeType === 1) {
-            var d = dest.ownerDocument
-              .createElementNS(ch.namespaceURI, ch.localName);
-            for (var i = ch.attributes.length - 1; i >= 0; --i) {
-              var attr = ch.attributes[i];
-              if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
-                && attr.localName === "id") {
-                self.views[attr.nodeValue] = d;
-                flexo.hash(d, d.localName);
-                d.setAttribute("id", d.hash);
-              } else if (attr.namespaceURI) {
-                d.setAttributeNS(attr.namespaceURI, attr.localName,
-                  attr.nodeValue);
-              } else {
-                d.setAttribute(attr.localName, attr.nodeValue);
+            if (ch.namespaceURI === bender.NS) {
+              if (ch.localName === "component" && ch.ref) {
+                var def = ch.ownerDocument.components[ch.ref];
+                if (def) def.instantiate().render(dest);
               }
+            } else {
+              var d = dest.ownerDocument
+                .createElementNS(ch.namespaceURI, ch.localName);
+              for (var i = ch.attributes.length - 1; i >= 0; --i) {
+                var attr = ch.attributes[i];
+                if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
+                  && attr.localName === "id") {
+                  self.views[attr.nodeValue] = d;
+                  flexo.hash(d, d.localName);
+                  d.setAttribute("id", d.hash);
+                } else if (attr.namespaceURI) {
+                  d.setAttributeNS(attr.namespaceURI, attr.localName,
+                    attr.nodeValue);
+                } else {
+                  d.setAttribute(attr.localName, attr.nodeValue);
+                }
+              }
+              dest.appendChild(d);
+              render(ch, d);
             }
-            dest.appendChild(d);
-            render(ch, d);
           } else if (ch.nodeType === 3 || ch.nodeType === 4) {
             dest.appendChild(dest.ownerDocument
               .createTextNode(ch.textContent));
           }
         }
-      })(this.node.view, target);
+      })(this.node.view, this.target);
+    }
+  };
+
+
+  // Check whether the node is in the Bender namespace and has the requested
+  // local name
+  var is_bender_node = function(node, localname)
+  {
+    return node.namespaceURI === bender.NS && node.localName === localname;
+  };
+
+  // If this node is a descendant of a view element, get the parent component
+  // of said view
+  var get_view_parent = function(node)
+  {
+    var view = (function get_view(n) {
+      return n ? is_bender_node(n, "view") ? n : get_view(n.parentNode) : null;
+    })(node);
+    if (view && view.parentNode && view.parentNode.view === view) {
+      return view.parentNode;
     }
   };
 
@@ -487,12 +539,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return false;
   };
 
-  // Check whether the node is in the Bender namespace and has the requested
-  // local name
-  var is_bender_node = function(node, localname)
-  {
-    return node.namespaceURI === bender.NS && node.localName === localname;
-  };
 
   // Specific load functions for various elements. Return true if loading can
   // continue immediately, false otherwise. Default is thus to do nothing and
