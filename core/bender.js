@@ -5,7 +5,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
 (function(bender) {
 
-  bender.VERSION = "0.2.1";
+  bender.VERSION = "0.3.0";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";
@@ -13,22 +13,116 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.NS_E = bender.NS + "/e";
   bender.NS_F = bender.NS + "/f";
 
+
+  // Create a new context for Bender and add its node to the given document
+  bender.create_context = function()
+  {
+    var context = document.implementation.createDocument(bender.NS, "context");
+    context.createElement = function(name) {
+      return wrap_element(Document.prototype.createElementNS.call(context,
+          bender.NS, name));
+    };
+    context.createElementNS = function(nsuri, qname) {
+      var e = Document.prototype.createElementNS.call(context, nsuri, qname);
+      if (nsuri === bender.NS) wrap_element(e);
+      return e;
+    };
+    wrap_element(context.documentElement);
+    return context;
+  };
+
+  // Wrap a Bender node
+  var wrap_element = function(e)
+  {
+    var name = e.localName === "app" ? "component" : e.localName;
+    flexo.hash(e, e.localName);
+    var proto = prototypes[name] || {};
+    for (var p in prototypes[""]) {
+      e[p] = proto.hasOwnProperty(p) ? proto[p] : prototypes[""][p];
+    }
+    for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
+    return e;
+  };
+
+  var prototypes = {
+
+    "": {
+      appendChild: function(ch) { return this.insertBefore(ch, null); },
+      insertBefore: function(ch, ref) {
+        return Element.prototype.insertBefore.call(this, ch, ref);
+      },
+      setAttribute: function(name, value) {
+        return Element.prototype.setAttribute.call(this, name, value);
+      }
+    },
+
+    component: {
+      insertBefore: function(ch, ref) {
+        if (is_bender_node(ch, "view")) {
+          if (this.view) {
+            bender.warn("Redefinition of view in {0}".fmt(this.hash));
+          }
+          this.view = ch;
+        }
+        return Element.prototype.insertBefore.call(this, ch, ref);
+      },
+
+      render: function(target)
+      {
+        if (!this.view) return;
+        if (this.target === target) {
+          flexo.remove_children(target);
+        } else {
+          this.target = target;
+        }
+        (function render(source, dest) {
+          for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
+            if (ch.nodeType === 1) {
+              var d = dest.ownerDocument
+                .createElementNS(ch.namespaceURI, ch.localName);
+              for (var i = ch.attributes.length - 1; i >= 0; --i) {
+                var attr = ch.attributes[i];
+                if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
+                  && attr.localName === "id") {
+                  // TODO create a new instance before rendering!
+                  // instance.views[attr.nodeValue] = t;
+                  flexo.hash(d, d.localName);
+                  d.setAttribute("id", d.hash);
+                } else if (attr.namespaceURI) {
+                  d.setAttributeNS(attr.namespaceURI, attr.localName,
+                    attr.nodeValue);
+                } else {
+                  d.setAttribute(attr.localName, attr.nodeValue);
+                }
+              }
+              dest.appendChild(d);
+              render(ch, d);
+            } else if (ch.nodeType === 3 || ch.nodeType === 4) {
+              dest.appendChild(dest.ownerDocument
+                .createTextNode(ch.textContent));
+            }
+          }
+        })(this.view, target);
+      },
+    },
+
+  };
+
+
   // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die
   bender.warn = function(msg) { flexo.log("!!! WARNING: " + msg); }
 
-  var ARGS = { debug: 0 };
-
   // Log messages only in debug mode; same as bender.debug(1, ...)
   bender.log = function()
   {
-    if (ARGS.debug > 0) flexo.log.apply(flexo, arguments);
+    if (bender.DEBUG_LEVEL > 0) flexo.log.apply(flexo, arguments);
   };
 
   // Conditional debug messages following the current debug level
   bender.debug = function(level)
   {
-    if (ARGS.debug > level) {
+    if (bender.DEBUG_LEVEL > level) {
       flexo.log.apply(flexo, [].slice.call(arguments, 1));
     }
   };
@@ -113,7 +207,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       });
     args.debug = Math.max(parseInt(args.debug, 10), 0);
     args.dest = document.getElementById(args.dest);
-    ARGS.debug = args.debug;
+    bender.DEBUG_LEVEL = args.debug;
     return args;
   };
 

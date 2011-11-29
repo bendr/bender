@@ -8,35 +8,36 @@
       #bender { background-color: #08f; color: white }
       #bender2 { background-color: #8f0; }
       #bender3 { background-color: #f08; color: white }
+      .strong { font-weight: bold; }
     </style>
     <script src="flexo.js"></script>
-    <script src="vender.js"></script>
+    <script src="bender.js"></script>
   </head>
   <body>
-    <h1>Bender application launcher</h1>
+    <p>Bender application launcher</p>
     <div id="bender"></div>
     <div id="bender2"></div>
     <div id="bender3"></div>
     <script>
 
       bender.DEBUG_LEVEL = 1;
-      var context = bender.create_context(document);
-      var app_node = context.create_element("app");
-      var view_node = context.create_element("view", {},
-        [flexo.html("p", { id: "p" }, "Hello, world!")]);
-      context.append_child(app_node, view_node);
+      var context = bender.create_context();
+      var app = context.createElement("app");
+      context.documentElement.appendChild(app);
+      var view = context.createElement("view");
+      app.appendChild(view);
+      view.appendChild(flexo.html("p", { id: "p" }, "Hello, world!"));
 
-      var app_instance = app_node._component.instantiate();
-      app_instance.target = document.getElementById("bender");
+      app.render(document.getElementById("bender"));
+      app.render(document.getElementById("bender2"));
 
-      var instance2 = app_node._component.instantiate();
-      instance2.target = document.getElementById("bender2");
-
-      var app3 = context.create_element("app", {},
-        [context.create_element("view", {},
-          [flexo.html("p", { id: "q" }, "Goodbye for now")])]);
-      var instance3 = app3._component.instantiate();
-      instance3.target = document.getElementById("bender3");
+      var app_ = context.createElement("app");
+      context.documentElement.appendChild(app_);
+      var view_ = context.createElement("view");
+      app_.appendChild(view_);
+      view_.appendChild(flexo.html("p", { id: "q", "class": "strong" },
+        "Goodbye for now"));
+      app_.render(document.getElementById("bender3"));
 
     </script>
   </body>

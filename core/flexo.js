@@ -382,6 +382,15 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     flexo[(p ? "add" : "remove") + "_class"](elem, c);
   };
 
+  // Split a QName string into a [prefix, localname] array. Prefix may be empty
+  // of course.
+  flexo.split_qname = function(qname)
+  {
+    var i = qname.indexOf(":");
+    if (i >= 0) return [qname.substr(0, i), qname.substr(i + 1)];
+    return ["", qname];
+  };
+
 
   // SVG specific functions
   // TODO these work in the SVG namespace, what about inline SVG in HTML5?
