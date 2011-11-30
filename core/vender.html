@@ -33,11 +33,14 @@
       var context = bender.create_context();
       var app = context.createElement("app");
       context.documentElement.appendChild(app);
+      var title = context.createElement("title");
+      title.textContent = "Welcome to Bender!";
+      app.appendChild(title);
       var view = context.createElement("view");
       app.appendChild(view);
       view.appendChild(flexo.html("p", { id: "p" }, "Welcome to Bender!"));
 
-      app.instantiate().render(document.getElementById("bender"));
+      app.instantiate().render(document.getElementById("bender"), true);
       app.instantiate().render(document.getElementById("bender2"));
 
       var button = context.createElement("component");
@@ -45,12 +48,17 @@
       context.documentElement.appendChild(button);
       var view_ = context.createElement("view");
       button.appendChild(view_);
+      var content = context.createElement("content");
+      content.textContent = "OK?";
       view_.appendChild(flexo.html("div", { "class": "bender-button" },
-        "Thanks!"));
+        [content]));
 
       var c = context.createElement("component");
       c.setAttribute("ref", "button");
+      c.textContent = "Thanks";
       view.appendChild(c);
+
+      content.set_text_content("OK!");
 
     </script>
   </body>

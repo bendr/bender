@@ -47,27 +47,55 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Overloading functions for Bender nodes
   var prototypes = {
-
+;
     "": {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
       insertBefore: function(ch, ref) {
         var ch_ = Element.prototype.insertBefore.call(this, ch, ref);
-        var component = get_view_parent(ch);
-        if (component) component.update_view();
+        this.update_view();
         return ch_;
       },
       setAttribute: function(name, value) {
         return Element.prototype.setAttribute.call(this, name, value);
       },
+
+      set_text_content: function(text) {
+        this.textContent = text;
+        this.update_view();
+      },
+
+      update_view: function()
+      {
+        var component = get_view_parent(this);
+        if (component) component.update_view();
+      },
+    },
+
+    title:
+    {
+      set_text_content: function(text) {
+        this.textContent = text;
+        if (this.parentNode && this.parentNode.update_title) {
+          this.parentNode.update_title();
+        }
+      },
     },
 
     component: {
       insertBefore: function(ch, ref) {
-        if (is_bender_node(ch, "view")) {
-          if (this.view) {
-            bender.warn("Redefinition of view in {0}".fmt(this.hash));
+        if (ch.namespaceURI === bender.NS) {
+          if (ch.localName === "title") {
+            if (this.title) {
+              bender.warn("Redefinition of title in {0}".fmt(this.hash));
+            }
+            this.title = ch;
+            this.update_title();
+          } else if (ch.localName === "view") {
+            if (this.view) {
+              bender.warn("Redefinition of view in {0}".fmt(this.hash));
+            }
+            this.view = ch;
           }
-          this.view = ch;
         }
         return Element.prototype.insertBefore.call(this, ch, ref);
       },
@@ -96,6 +124,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return instance;
       },
 
+      update_title: function()
+      {
+        if (this.instances) {
+          for (h in this.instances) this.instances[h].render_title();
+        }
+      },
+
       update_view: function()
       {
         if (this.instances) {
@@ -107,7 +142,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Component prototype for new instances
   var component = {
-    render: function(target)
+    render: function(target, main)
     {
       if (!this.target && !target) return;
       if (!this.node.view) return;
@@ -115,6 +150,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.remove_children(this.target);
       } else {
         this.target = target;
+      }
+      if (main) {
+        var context = this.node.ownerDocument;
+        if (context.main && context.main === this) context.is_main = false;
+        context.main = this;
+        this.is_main = true;
+        this.render_title();
       }
       var self = this;
       (function render(source, dest) {
@@ -124,6 +166,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
               if (ch.localName === "component" && ch.ref) {
                 var def = ch.ownerDocument.components[ch.ref];
                 if (def) def.instantiate().render(dest);
+              } else if (ch.localName === "content") {
+                render(ch, dest);
               }
             } else {
               var d = dest.ownerDocument
@@ -151,15 +195,33 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       })(this.node.view, this.target);
+    },
+
+    render_title: function()
+    {
+      if (this.target && this.is_main && this.node.title) {
+        find_title(this.target.ownerDocument).textContent =
+          this.node.title.textContent;
+      }
     }
   };
 
 
-  // Check whether the node is in the Bender namespace and has the requested
-  // local name
-  var is_bender_node = function(node, localname)
+  // Utility functions
+
+  // Find the outermost <title> element of the (presumably) destination
+  // document
+  var find_title = function(doc)
   {
-    return node.namespaceURI === bender.NS && node.localName === localname;
+    // Use breadth-first search since we want the outermost title element
+    var q = [doc.documentElement];
+    while (q.length > 0) {
+      var node = q.shift();
+      if (typeof node !== "object") continue;
+      if (node.namespaceURI === doc.documentElement.namespaceURI &&
+          node.localName === "title") return node;
+      q.push.apply(q, children_or_text(node));
+    }
   };
 
   // If this node is a descendant of a view element, get the parent component
@@ -172,6 +234,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (view && view.parentNode && view.parentNode.view === view) {
       return view.parentNode;
     }
+  };
+
+  // Check whether the node is in the Bender namespace and has the requested
+  // local name
+  var is_bender_node = function(node, localname)
+  {
+    return node.namespaceURI === bender.NS && node.localName === localname;
   };
 
 
@@ -870,21 +939,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       } else {
         e.setAttribute("lang", app.metadata.language);
       }
-    }
-  };
-
-  // Find the outermost <title> element of the (presumably) destination
-  // document
-  var find_title = function(doc)
-  {
-    // Use breadth-first search since we want the outermost title element
-    var q = [doc.documentElement];
-    while (q.length > 0) {
-      var node = q.shift();
-      if (typeof node !== "object") continue;
-      if (node.namespaceURI === doc.documentElement.namespaceURI &&
-          node.localName === "title") return node;
-      q.push.apply(q, children_or_text(node));
     }
   };
 
