@@ -1,0 +1,167 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:e="http://bender.igel.co.jp/e" e:op=""
+  xmlns:b="http://bender.igel.co.jp/b" b:clear="false"
+  xmlns:f="http://bender.igel.co.jp/f" f:n="0">
+  <title>Simple Calculator</title>
+
+  <stylesheet>
+    body { background-color: #888; }
+    @font-face { font-family: Digital7; src: url("../apps/demos/digital-7.ttf");
+      font-weight: normal; font-style: normal; }
+    #calculator { width: 408px; background-color: #fd0; padding: 24px;
+      margin: 32px auto; -webkit-border-radius: 12px; box-shadow: 4px 4px 8px
+      #444; }
+    #screen { position: relative; text-align: right; margin-bottom: 16px;
+      height: 96px; background-color: #b3cbb3; padding: 8px;
+      box-shadow: inset 1px 1px 5px #444;
+      text-shadow: 2px 2px 0px #9ebb9e;
+      -webkit-border-radius: 8px;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    #value { font-size: 72px; font-family: Digital7, monospace; }
+    #op { position: absolute; bottom: 8px; right: 8px; font-size: 36px; }
+    .row { height: 96px; margin-top: 8px; position: relative; }
+    .row .bender-button { padding: 18px 0 0 0; margin: 0; width: 96px;
+      height: 78px; text-align: center; font-size: 48px; position: absolute;
+      box-shadow: 1px 1px 5px #444; }
+    .row .bender-button:nth-child(2) { left: 104px; }
+    .row .bender-button:nth-child(3) { left: 208px; }
+    .row .bender-button:nth-child(4) { left: 312px; }
+  </stylesheet>
+
+  <view>
+    <html:div id="calculator">
+      <html:div id="screen">
+        <html:span id="value"/>
+        <html:span id="op"/>
+      </html:div>
+      <html:div class="row">
+        <component href="../../lib/button.xml" id="7">7</component>
+        <component href="../../lib/button.xml" id="8">8</component>
+        <component href="../../lib/button.xml" id="9">9</component>
+        <component href="../../lib/button.xml" id="/">÷</component>
+      </html:div>
+      <html:div class="row">
+        <component href="../../lib/button.xml" id="4">4</component>
+        <component href="../../lib/button.xml" id="5">5</component>
+        <component href="../../lib/button.xml" id="6">6</component>
+        <component href="../../lib/button.xml" id="*">×</component>
+      </html:div>
+      <html:div class="row">
+        <component href="../../lib/button.xml" id="1">1</component>
+        <component href="../../lib/button.xml" id="2">2</component>
+        <component href="../../lib/button.xml" id="3">3</component>
+        <component href="../../lib/button.xml" id="-">-</component>
+      </html:div>
+      <html:div class="row">
+        <component href="../../lib/button.xml" id="0">0</component>
+        <component href="../../lib/button.xml" id="C">C</component>
+        <component href="../../lib/button.xml" id="=">=</component>
+        <component href="../../lib/button.xml" id="+">+</component>
+      </html:div>
+    </html:div>
+  </view>
+
+  <script>
+    var OPS = {
+      "+": function(m, n) { return m + n; },
+      "-": function(m, n) { return m - n; },
+      "*": function(m, n) { return m * n; },
+      "/": function(m, n) { return m / n; },
+      "": function(m, n) { return n; }
+    };
+  </script>
+
+  <watch>
+    <get property="n"/>
+    <set view="value"/>
+  </watch>
+
+  <watch>
+    <get property="op"/>
+    <set view="op">
+      return value === "/" ? "÷" : value === "*" ? "×" : value;
+    </set>
+  </watch>
+
+  <watch>
+    <get view="0" event="@pushed"/>
+    <get view="1" event="@pushed"/>
+    <get view="2" event="@pushed"/>
+    <get view="3" event="@pushed"/>
+    <get view="4" event="@pushed"/>
+    <get view="5" event="@pushed"/>
+    <get view="6" event="@pushed"/>
+    <get view="7" event="@pushed"/>
+    <get view="8" event="@pushed"/>
+    <get view="9" event="@pushed"/>
+    <set property="n">
+      var d = value.source.parent_id;
+        if (this.clear) {
+          this.clear = false;
+          this.m = this.n;
+          return parseInt(d, 10);
+        } else {
+          return parseInt(this.n.toString() + d, 10);
+        }
+    </set>
+  </watch>
+
+  <watch>
+    <get view="+" event="@pushed"/>
+    <get view="-" event="@pushed"/>
+    <get view="/" event="@pushed"/>
+    <get view="*" event="@pushed"/>
+    <set>
+      if (!isNaN(this.m)) {
+        var m = this.n;
+        this.n = OPS[this.op](this.m, this.n);
+        this.m = m;
+      }
+      this.op = value.source.parent_id;
+      this.clear = true;
+    </set>
+  </watch>
+
+  <watch>
+    <get view="=" event="@pushed"/>
+    <set>
+      if (!isNaN(this.m)) this.n = OPS[this.op](this.m, this.n);
+      this.op = "";
+      delete this.m;
+      this.clear = true;
+    </set>
+  </watch>
+
+  <watch>
+    <get view="C" event="@pushed"/>
+    <set>
+      this.clear = false;
+      this.op = "";
+      this.n = 0;
+      delete this.m;
+    </set>
+  </watch>
+
+  <watch>
+    <get dom-event="keydown"/>
+    <set><![CDATA[
+      if (value.keyCode >= 48 && value.keyCode <= 57) {
+        this.views[value.keyCode - 48].controllers[""].push();
+      } else if (value.keyCode === 67) {
+        this.views.C.controllers[""].push();
+      } else if (value.keyCode === 68) {  // D for Divide
+        this.views["/"].controllers[""].push();
+      } else if (value.keyCode === 77) {  // M for Minus
+        this.views["-"].controllers[""].push();
+      } else if (value.keyCode === 80) {  // P for Plus
+        this.views["+"].controllers[""].push();
+      } else if (value.keyCode === 84) {  // T for Times
+        this.views["*"].controllers[""].push();
+      } else if (value.keyCode === 13) {
+        this.views["="].controllers[""].push();
+      }
+    ]]></set>
+  </watch>
+
+</app>
