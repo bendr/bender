@@ -31,6 +31,8 @@ with each other through events. A Bender application is itself a component.
 Here is the complete XML _description_ of a Bender application. It shows a
 message ("Welcome to Bender!") and a button labeled "Thanks". When the user
 clicks the button, an alert box pops up with the message "You're welcome!".
+You can [see the application live at Bender's
+website](http://bendr.github.com/core/bender.html?app=apps/welcome).
 
 ```xml
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
