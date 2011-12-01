@@ -22,6 +22,21 @@
     </html:div>
   </view>
 
+  <controller>
+    <script>
+      // Simulate a push of the button
+      $_.push = function()
+      {
+        var component = this.component;
+        flexo.add_class(component.views.b, "__down");
+        setTimeout(function() {
+            flexo.remove_class(component.views.b, "__down");
+            setTimeout(function() { bender.notify(component, "@pushed"); }, 0);
+          }, 100);
+      };
+    </script>
+  </controller>
+
   <watch>
     <get property="enabled">
       flexo.set_class_iff(this.views.b, "__disabled", !value);
@@ -68,12 +83,7 @@
       if (this.enabled) {
         if (value.keyCode === 13) {
           value.preventDefault();
-          flexo.add_class(this.views.b, "__down");
-          setTimeout((function() {
-              flexo.remove_class(this.views.b, "__down");
-              setTimeout((function() { bender.notify(this, "@pushed"); })
-                .bind(this), 0);
-            }).bind(this), 150);
+          this.controllers[""].push();
         } else if (value.keyCode === 27) {
           value.preventDefault();
           this.views.b.blur();
