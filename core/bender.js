@@ -47,7 +47,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Overloading functions for Bender nodes
   var prototypes = {
-;
+
     "": {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
       insertBefore: function(ch, ref) {
@@ -147,6 +147,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (!this.target && !target) return;
       if (!this.node.view) return;
       if ((this.target && !target) || this.target === target) {
+        bender.log("--- {0}: clearing".fmt(this.hash), this.target);
         flexo.remove_children(this.target);
       } else {
         this.target = target;
@@ -357,7 +358,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     load_uri(url, args.dest, function(prototype) {
         var app = prototype.instantiate_and_render();
         set_parameters_from_args(app, args);
-        connect(app);
         build_watch_graph(app);
         if (f) f(app);
         bender.notify(app.controllers[""], "@ready");
@@ -1172,40 +1172,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           });
       });
     bender.notify(instance.controllers[""], "@rendered");
-  };
-
-  // Connect Bender and DOM event listeners
-  var connect = function(instance)
-  {
-    instance.children.forEach(connect);
-    for (var id in instance.controllers) {
-      var controller = instance.controllers[id];
-      for (var ch = controller.node.firstElementChild; ch;
-          ch = ch.nextElementSibling) {
-        if (is_bender_node(ch, "listen")) {
-          var source = view_or_controller(instance, ch);
-          var once = ch.getAttribute("once") === "true";
-          var ev = ch.getAttribute("event");
-          var h = ch.getAttribute("handler");
-          var handler;
-          if (h) {
-            handler = controller[h].bind(controller);
-          } else {
-            h = ch.textContent;
-            handler = (h ? new Function("event", h) : controller.handleEvent)
-              .bind(controller);
-          }
-          if (ev) {
-            if (!source) source = controller;
-          } else {
-            ev = ch.getAttribute("dom-event");
-            if (!ev) throw "Listen with no event or dom-event attribute";
-            if (!source) source = instance.dest_body.ownerDocument;
-          }
-          bender.listen(source, ev, handler, once);
-        }
-      }
-    }
   };
 
 })(typeof exports === "object" ? exports : this.bender = {});

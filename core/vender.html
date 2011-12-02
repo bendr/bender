@@ -39,6 +39,8 @@
       var view = context.createElement("view");
       app.appendChild(view);
       view.appendChild(flexo.html("p", { id: "p" }, "Welcome to Bender!"));
+      var p = flexo.html("p");
+      view.appendChild(p);
 
       app.instantiate().render(document.getElementById("bender"), true);
       app.instantiate().render(document.getElementById("bender2"));
@@ -56,7 +58,8 @@
       var c = context.createElement("component");
       c.setAttribute("ref", "button");
       c.textContent = "Thanks";
-      view.appendChild(c);
+      p.appendChild(c);
+      view.update_view();
 
       content.set_text_content("OK!");
 
