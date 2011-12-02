@@ -26,8 +26,10 @@ Bender should be run from a Web server since its runtime relies on
 XMLHttpRequest to load documents. Some browsers will allow accessing documents
 through the file system so YMMV. You can simply make the `bender` directory
 accessible through your website or run the simplistic
-[Node.js](http://nodejs.org) server found in [misc/server.js](misc/server.js)
-which will serve files on port 8910.
+[Node.js](http://nodejs.org) server found in
+[misc/server.js](https://github.com/bendr/bender/blob/master/misc/server.js)
+which will serve files on port 8910. (Run it from the root of the Bender
+directory.)
 
 There are two runtimes, one for HTML-based applications, and one for SVG-based
 applications (these will be merged into a single runtime to simplify things.)
@@ -39,9 +41,10 @@ http://localhost:8910/core/bender.html?app=apps/welcome
 
 where `http://localhost:8910/core/bender.html` is the path to the runtime
 itself (the location may change depending on where you install Bender), and
-querystring part of the URL is used to give arguments. The `app` argument is
-mandatory as it specifies which application file to run. Additional arguments
-can be passed as follows:
+querystring part of the URL is used to give arguments. To run SVG applications,
+replace the `.html` extension to `.svg`.  The `app` argument is mandatory as it
+specifies which application file to run. Additional arguments can be passed as
+follows:
 
 - `app`: required; path to the app to run;
 - `path`: relative path from the runtime (defaults to `../` since the runtime
@@ -49,6 +52,25 @@ can be passed as follows:
 - `suffix`: suffix of the application file (defaults to `.xml`);
 - `dest`: id of the destination element for rendering; `document` if none;
 - `debug`: debug level (0, 1, etc.)
+
+Arguments are separated by an `&` sign, so if you want to run the above
+application in debug mode:
+
+```
+http://localhost:8910/core/bender.html?app=apps/welcome&debug=1
+```
+
+Some applications have properties that can be set through the querystring of
+the URL as well. For instance the [Arrows
+demo](http://bendr.github.com/core/bender.svg?app=apps/demos/arrows) accepts
+the following parameters:
+
+- `f:width`: width in number of arrows;
+- `f:height`: height in number of arrows;
+- `e:color`: color of the arrows
+
+You can modify these parameters through the URL, for example [a taller window
+of white arrows](http://bendr.github.com/core/bender.svg?app=apps/demos/arrows&f:width=8&f:height=16&e:color=white).
 
 A more friendly runtime is of course on our [TODO](TODO) list.
 
