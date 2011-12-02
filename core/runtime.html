@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender runtime</title>
+    <meta charset="UTF-8">
+    <style>
+      body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <h1>Bender runtime</h1>
+    <script>
+      var reader = new FileReader();
+      var parser = new DOMParser();
+      function open_file(event) {
+        var file = event.target.files[0];
+        if (file) {
+          reader.onload = function(e) {
+            var doc = parser.parseFromString(e.target.result, "text/xml");
+            console.log(parser);
+          };
+          reader.readAsText(file);
+        }
+      }
+    </script>
+    <input type="file" onchange="open_file(event)"/>
+  </body>
+</html>
+
