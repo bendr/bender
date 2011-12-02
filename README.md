@@ -5,9 +5,10 @@ Copyright © 2011, [IGEL Co., Ltd.](http://www.igel.co.jp/bender/)
 
 Bender is a declarative framework to build web applications and reusable
 components. It is free software and is released under the Apache License v2.0
-(see included [LICENSE](blob/master/LICENSE) file.) The goal of Bender is to
-make authoring Web applications easier through better and higher level
-abstractions, and being itself a foundation for more powerful authoring tools.
+(see included [LICENSE](https://github.com/bendr/bender/blob/master/LICENSE)
+file.) The goal of Bender is to make authoring Web applications easier through
+better and higher level abstractions, and being itself a foundation for more
+powerful authoring tools.
 
 The Bender framework consists of:
 
@@ -27,8 +28,9 @@ XMLHttpRequest to load documents. Some browsers will allow accessing documents
 through the file system so YMMV. You can simply make the `bender` directory
 accessible through your website or run the simplistic
 [Node.js](http://nodejs.org) server found in
-[misc/server.js](blob/master/misc/server.js) which will serve files on port 8910.
-(Run it from the root of the Bender directory.)
+[misc/server.js](https://github.com/bendr/bender/blob/master/misc/server.js)
+which will serve files on port 8910. (Run it from the root of the Bender
+directory.)
 
 There are two runtimes, one for HTML-based applications, and one for SVG-based
 applications (these will be merged into a single runtime to simplify things.)
@@ -71,7 +73,8 @@ the following parameters:
 You can modify these parameters through the URL, for example [a taller window
 of white arrows](http://bendr.github.com/core/bender.svg?app=apps/demos/arrows&f:width=8&f:height=16&e:color=white).
 
-A more friendly runtime is of course on our [TODO](blob/master/TODO) list.
+A more friendly runtime is of course on our
+[TODO](https://github.com/bendr/bender/blob/master/TODO) list.
 
 
 ### Bender Basics
