@@ -11,13 +11,46 @@ itself a foundation for more powerful authoring tools.
 
 The Bender framework consists of:
 
-  1. a markup language based on XML for application and component description;
-  2. Javascript support libraries;
-  3. runtimes for different Web browsers and SVG players.
+1. a markup language based on XML for application and component description;
+2. Javascript support libraries;
+3. runtimes for different Web browsers and SVG players.
 
 The design and implementation of Bender are currently evolving very quickly.
 When a more stable specification is reached, a component library and authoring
 tools will be added.
+
+
+### Installing and running Bender
+
+Bender should be run from a Web server since its runtime relies on
+XMLHttpRequest to load documents. Some browsers will allow accessing documents
+through the file system so YMMV. You can simply make the `bender` directory
+accessible through your website or run the simplistic
+[Node.js](http://nodejs.org) server found in [misc/server.js](misc/server.js)
+which will serve files on port 8910.
+
+There are two runtimes, one for HTML-based applications, and one for SVG-based
+applications (these will be merged into a single runtime to simplify things.)
+The HTML-based runtime can be run as:
+
+```
+http://localhost:8910/core/bender.html?app=apps/welcome
+```
+
+where `http://localhost:8910/core/bender.html` is the path to the runtime
+itself (the location may change depending on where you install Bender), and
+querystring part of the URL is used to give arguments. The `app` argument is
+mandatory as it specifies which application file to run. Additional arguments
+can be passed as follows:
+
+- `app`: required; path to the app to run;
+- `path`: relative path from the runtime (defaults to `../` since the runtime
+  is in the `core` directory);
+- `suffix`: suffix of the application file (defaults to `.xml`);
+- `dest`: id of the destination element for rendering; `document` if none;
+- `debug`: debug level (0, 1, etc.)
+
+A more friendly runtime is of course on our [TODO](TODO) list.
 
 
 ### Bender Basics
