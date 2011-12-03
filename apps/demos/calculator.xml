@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:e="http://bender.igel.co.jp/e" e:op=""
   xmlns:b="http://bender.igel.co.jp/b" b:clear="false"
-  xmlns:f="http://bender.igel.co.jp/f" f:n="0">
+  xmlns:f="http://bender.igel.co.jp/f" f:n="0" f:rotate="0">
   <title>Simple Calculator</title>
 
   <stylesheet>
@@ -9,13 +9,13 @@
     @font-face { font-family: Digital7; src: url("../apps/demos/digital-7.ttf");
       font-weight: normal; font-style: normal; }
     #calculator { width: 408px; background-color: #fd0; padding: 24px;
-      margin: 32px auto; -webkit-border-radius: 12px; box-shadow: 4px 4px 8px
-      #444; }
+      margin: 32px auto; -webkit-border-radius: 12px; -moz-border-radius: 12px;
+      border-radius: 12px; box-shadow: 4px 4px 8px #444; }
     #screen { position: relative; text-align: right; margin-bottom: 16px;
       height: 96px; background-color: #b3cbb3; padding: 8px;
       box-shadow: inset 1px 1px 5px #444;
       text-shadow: 2px 2px 0px #9ebb9e;
-      -webkit-border-radius: 8px;
+      -webkit-border-radius: 8px; -moz-border-radius: 8px;
       overflow: hidden; text-overflow: ellipsis;
     }
     #value { font-size: 72px; font-family: Digital7, monospace; }
@@ -162,6 +162,15 @@
         this.views["="].controllers[""].push();
       }
     ]]></set>
+  </watch>
+
+  <watch>
+    <get property="rotate"/>
+    <set>
+      this.views.calculator.style.WebkitTransform = "rotate({0}deg)".fmt(value);
+      this.views.calculator.style.MozTransform = "rotate({0}deg)".fmt(value);
+      this.views.calculator.style.OTransform = "rotate({0}deg)".fmt(value);
+    </set>
   </watch>
 
 </app>

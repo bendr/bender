@@ -221,7 +221,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (typeof node !== "object") continue;
       if (node.namespaceURI === doc.documentElement.namespaceURI &&
           node.localName === "title") return node;
-      q.push.apply(q, children_or_text(node));
+      var ch = children_or_text(node);
+      if (typeof ch === "object" && ch.length) {
+        q.push.apply(q, children_or_text(node));
+      }
     }
   };
 
