@@ -42,12 +42,10 @@
       var p = flexo.html("p");
       view.appendChild(p);
 
-      app.instantiate().render(document.getElementById("bender"), true);
-      app.instantiate().render(document.getElementById("bender2"));
 
       var button = context.createElement("component");
       button.setAttribute("id", "button");
-      context.documentElement.appendChild(button);
+      app.appendChild(button);
       var view_ = context.createElement("view");
       button.appendChild(view_);
       var content = context.createElement("content");
@@ -59,9 +57,13 @@
       c.setAttribute("ref", "button");
       c.textContent = "Thanks";
       p.appendChild(c);
-      view.update_view();
+      //view.update_view();
+
+      app.instantiate().render(document.getElementById("bender"), true);
+      //app.instantiate().render(document.getElementById("bender2"));
 
       content.set_text_content("OK!");
+      //console.log(context.documentElement);
 
     </script>
   </body>

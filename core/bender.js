@@ -19,12 +19,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     var context = document.implementation.createDocument(bender.NS, "context",
       null);
-    context.super_createElementNS = context.createElementNS;
+    var createElementNS = context.createElementNS;
     context.createElement = function(name) {
-      return wrap_element(this.super_createElementNS(bender.NS, name));
+      return wrap_element(createElementNS.call(this, bender.NS, name));
     };
     context.createElementNS = function(nsuri, qname) {
-      var e = this.super_createElementNS(context, nsuri, qname);
+      var e = createElementNS.call(this, nsuri, qname);
       if (nsuri === bender.NS) wrap_element(e);
       return e;
     };
@@ -51,8 +51,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
         if (node.localName === "view") in_view = true;
       }
-      var n = wrap_element(parent.ownerDocument.importNode(node, false));
+      var n = parent.ownerDocument
+        .createElementNS(node.namespaceURI, node.localName);
       parent.appendChild(n);
+      for (var i = 0, m = node.attributes.length; i < m; ++i) {
+        var attr = node.attributes[i];
+        if (attr.namespaceURI) {
+          n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+        } else {
+          n.setAttribute(attr.localName, attr.nodeValue);
+        }
+      }
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         import_node(n, ch, in_view);
       }
@@ -153,6 +162,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           var id = this.getAttribute("id");
           if (id && id !== value) delete this.ownerDocument.components[value];
           this.ownerDocument.components[value] = this;
+          flexo.log("+ new component definition \"{0}\"".fmt(value));
         } else if (name === "ref") {
           this.is_definition = false;
           this.ref = value;
@@ -191,14 +201,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
   var component = {
     render: function(target, main)
     {
-      if (!this.target && !target) return;
-      if (!this.node.view) return;
+      if (!this.target && !target) {
+        flexo.log("Component {0} has no target; not rendering.".fmt(this.hash));
+        return;
+      }
+      if (!this.node.view) {
+        flexo.log("Component {0} has no view; not rendering.".fmt(this.hash));
+        return;
+      }
       if ((this.target && !target) || this.target === target) {
         bender.log("--- {0}: clearing".fmt(this.hash), this.target);
         flexo.remove_children(this.target);
       } else {
         this.target = target;
       }
+      flexo.log("Component {0} rendering in".fmt(this.hash), this.target);
       if (main) {
         var context = this.node.ownerDocument;
         if (context.main && context.main === this) context.is_main = false;
@@ -208,6 +225,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       var self = this;
       (function render(source, dest) {
+        flexo.log("... render", source, "in", dest);
         for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
           if (ch.nodeType === 1) {
             if (ch.namespaceURI === bender.NS) {
