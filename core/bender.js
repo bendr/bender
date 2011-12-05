@@ -17,13 +17,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Create a new context for Bender and add its node to the given document
   bender.create_context = function()
   {
-    var context = document.implementation.createDocument(bender.NS, "context");
+    var context = document.implementation.createDocument(bender.NS, "context",
+      null);
+    context.super_createElementNS = context.createElementNS;
     context.createElement = function(name) {
-      return wrap_element(Document.prototype.createElementNS.call(context,
-          bender.NS, name));
+      return wrap_element(this.super_createElementNS(bender.NS, name));
     };
     context.createElementNS = function(nsuri, qname) {
-      var e = Document.prototype.createElementNS.call(context, nsuri, qname);
+      var e = this.super_createElementNS(context, nsuri, qname);
       if (nsuri === bender.NS) wrap_element(e);
       return e;
     };
@@ -84,6 +85,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     flexo.hash(e, e.localName);
     var proto = prototypes[name] || {};
     for (var p in prototypes[""]) {
+      e["super_" + p] = e[p];
       e[p] = proto.hasOwnProperty(p) ? proto[p] : prototypes[""][p];
     }
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
@@ -96,12 +98,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
     "": {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
       insertBefore: function(ch, ref) {
-        var ch_ = Element.prototype.insertBefore.call(this, ch, ref);
+        var ch_ = this.super_insertBefore(ch, ref);
         this.update_view();
         return ch_;
       },
       setAttribute: function(name, value) {
-        return Element.prototype.setAttribute.call(this, name, value);
+        return this.super_setAttribute(name, value);
       },
 
       set_text_content: function(text) {
@@ -142,7 +144,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             this.view = ch;
           }
         }
-        return Element.prototype.insertBefore.call(this, ch, ref);
+        return this.super_insertBefore(ch, ref);
       },
 
       setAttribute: function(name, value)
@@ -155,7 +157,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.is_definition = false;
           this.ref = value;
         }
-        Element.prototype.setAttribute.call(this, name, value);
+        this.super_setAttribute(name, value);
       },
 
       instantiate: function()
