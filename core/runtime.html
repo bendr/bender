@@ -6,7 +6,8 @@
     <style>
       body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
       #bender-target { width: 640px; height: 480px; padding: 8px;
-        border: dashed thin black; }
+        border: dashed thin black; -webkit-border-radius: 8px;
+        -moz-border-radius: 8px; }
       #error span { background-color: red; padding: 4px; color: white; }
     </style>
     <script src="flexo.js"></script>
@@ -14,13 +15,18 @@
   </head>
   <body>
     <h1>Bender runtime</h1>
+    <input type="file" onchange="open_file(event)"/>
+    <p id="error"></p>
+    <div id="bender-target"/>
     <script>
+
       var reader = new FileReader();
       var parser = new DOMParser();
-      var app;
-      function open_file(event) {
+      var target = document.getElementById("bender-target");
+
+      function open_file(event)
+      {
         error();
-        var target = document.getElementById("bender-target");
         var file = event.target.files[0];
         if (file) {
           target.innerHTML = "";
@@ -30,15 +36,15 @@
           reader.onload = function(e) {
             var doc = parser.parseFromString(e.target.result, "text/xml");
             if (doc && doc.documentElement) {
-              //try {
+              try {
                 var context = bender.create_context();
-                app = context.import(doc.documentElement);
+                var app = context.import(doc.documentElement);
                 app.instantiate().render(target, true);
-              //} catch (e) {
-              //  error(e.message);
-              //  target.appendChild(document.importNode(doc.documentElement,
-              //    true));
-              //}
+              } catch (e) {
+                error(e.message);
+                target.appendChild(document.importNode(doc.documentElement,
+                  true));
+              }
             } else {
               error("Could not read file as XML.");
             }
@@ -57,9 +63,6 @@
       }
 
     </script>
-    <input type="file" onchange="open_file(event)"/>
-    <p id="error"></p>
-    <div id="bender-target"/>
   </body>
 </html>
 

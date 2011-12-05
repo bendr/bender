@@ -8,13 +8,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
   bender.VERSION = "0.3.0";
 
   // Bender's namespaces
-  bender.NS = "http://bender.igel.co.jp";
-  bender.NS_B = bender.NS + "/b";
-  bender.NS_E = bender.NS + "/e";
-  bender.NS_F = bender.NS + "/f";
+  bender.NS = "http://bender.igel.co.jp";  // Bender elements
+  bender.NS_B = bender.NS + "/b";          // boolean variables
+  bender.NS_E = bender.NS + "/e";          // scalar (string) variables
+  bender.NS_F = bender.NS + "/f";          // float variables
 
 
-  // Create a new context for Bender and add its node to the given document
+  // Create a new context document for Bender with a <context> root element
   bender.create_context = function()
   {
     var context = document.implementation.createDocument(bender.NS, "context",
@@ -28,22 +28,47 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (nsuri === bender.NS) wrap_element(e);
       return e;
     };
+    context.render_head = function(head, force)
+    {
+      this.stylesheets.forEach(function(stylesheet) {
+          if (force) delete stylesheet.target;
+          if (!stylesheet.target) {
+            var ns = head.namespaceURI;
+            var href = stylesheet.getAttribute("href");
+            if (href) {
+              stylesheet.target = ns ?
+                head.ownerDocument.createElementNS(ns, "link") :
+                head.ownerDocument.createElement("link");
+              stylesheet.target.setAttribute("rel", "stylesheet");
+              stylesheet.target.setAttribute("href", href);
+            } else {
+              stylesheet.target = ns ?
+                head.ownerDocument.createElementNS(ns, "style") :
+                head.ownerDocument.createElement("style");
+              stylesheet.target.textContent = stylesheet.textContent;
+            }
+            head.appendChild(stylesheet.target);
+          }
+        });
+    };
     wrap_element(context.documentElement);
     context.components = {};
+    context.stylesheets = [];
     context.import = import_node.bind(context,
         context.documentElement);
     return context;
   };
 
+  // Import a node from a document (e.g., as obtained by a FileReader or
+  // XMLHttpRequest) into a Bender context. Parent is the parent in the Bender
+  // tree, node is the current node to be imported, and in_view is a flag set
+  // once we enter the scope of a view element so that we keep foreign nodes
+  // (they are discarded otherwise.)
   function import_node(parent, node, in_view)
   {
     if (node.nodeType === 1) {
       if (node.namespaceURI !== bender.NS) {
-        if (!in_view) {
-          bender.warn("Skipped foreign content: {{0}}:{1}"
-              .fmt(node.namespaceURI, node.localName));
-          return;
-        }
+        if (!in_view) return;
       } else {
         if (!can_has_text_content.hasOwnProperty(node.localName)) {
           bender.warn("Unknown bender element {0}".fmt(node.localName));
@@ -74,20 +99,28 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
   }
 
+  // If the value is true then nodes with that name (in the Bender namespace)
+  // allow text content, otherwise it is simply discarded and only element
+  // nodes are kept
   var can_has_text_content =
   {
     app: false,
     component: false,
     content: true,
-    // desc: true,
+    desc: true,
     // get: true,
+    // include: false,
+    // local: true,
+    // script: true,
+    // set: true,
+    stylesheet: true,
     title: true,
     view: true,
-    // set: true,
-    // watch: false,
+    // watch: false
   };
 
-  // Wrap a Bender node
+  // Wrap a Bender node with its specific functions, and kepp track of nodes
+  // with global scope (stylesheet, etc.)
   var wrap_element = function(e)
   {
     var name = e.localName === "app" ? "component" : e.localName;
@@ -98,6 +131,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       e[p] = proto.hasOwnProperty(p) ? proto[p] : prototypes[""][p];
     }
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
+    if (e.localName === "stylesheet") e.ownerDocument.stylesheets.push(e);
     return e;
   };
 
@@ -127,16 +161,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       },
     },
 
-    title:
-    {
-      set_text_content: function(text) {
-        this.textContent = text;
-        if (this.parentNode && this.parentNode.update_title) {
-          this.parentNode.update_title();
-        }
-      },
-    },
-
     component: {
       insertBefore: function(ch, ref) {
         if (ch.namespaceURI === bender.NS) {
@@ -162,7 +186,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           var id = this.getAttribute("id");
           if (id && id !== value) delete this.ownerDocument.components[value];
           this.ownerDocument.components[value] = this;
-          flexo.log("+ new component definition \"{0}\"".fmt(value));
         } else if (name === "ref") {
           this.is_definition = false;
           this.ref = value;
@@ -194,30 +217,61 @@ if (typeof require === "function") flexo = require("./flexo.js");
           for (h in this.instances) this.instances[h].render();
         }
       }
+    },
+
+    stylesheet:
+    {
+      insertBefore: function(ch, ref) {
+        var ch_ = this.super_insertBefore(ch, ref);
+        if ((ch.nodeType === 3 || ch.nodeType === 4) && this.target &&
+            !this.getAttribute("href")) {
+          this.target.textContent = this.textContent;
+        }
+        return ch_;
+      },
+
+      setAttribute: function(name, value) {
+        if (name === "href" && this.target) {
+          this.target.href = value;
+        }
+        return this.super_setAttribute(name, value);
+      },
+
+      set_text_content: function(text) {
+        this.textContent = text;
+        if (this.target && !this.getAttribute("href")) {
+          this.target.textContent = text;
+        }
+      }
+    },
+
+    title:
+    {
+      set_text_content: function(text) {
+        this.textContent = text;
+        if (this.parentNode && this.parentNode.update_title) {
+          this.parentNode.update_title();
+        }
+      },
     }
+
   };
 
   // Component prototype for new instances
   var component = {
     render: function(target, main)
     {
-      if (!this.target && !target) {
-        flexo.log("Component {0} has no target; not rendering.".fmt(this.hash));
-        return;
-      }
-      if (!this.node.view) {
-        flexo.log("Component {0} has no view; not rendering.".fmt(this.hash));
-        return;
-      }
+      if (!this.target && !target) return;
+      if (!this.node.view) return;
       if ((this.target && !target) || this.target === target) {
         bender.log("--- {0}: clearing".fmt(this.hash), this.target);
         flexo.remove_children(this.target);
       } else {
         this.target = target;
       }
-      flexo.log("Component {0} rendering in".fmt(this.hash), this.target);
       if (main) {
         var context = this.node.ownerDocument;
+        context.render_head(find_head(this.target.ownerDocument));
         if (context.main && context.main === this) context.is_main = false;
         context.main = this;
         this.is_main = true;
@@ -225,7 +279,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       var self = this;
       (function render(source, dest) {
-        flexo.log("... render", source, "in", dest);
         for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
           if (ch.nodeType === 1) {
             if (ch.namespaceURI === bender.NS) {
