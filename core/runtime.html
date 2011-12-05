@@ -5,25 +5,60 @@
     <meta charset="UTF-8">
     <style>
       body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
+      #bender-target { background-color: #888; width: 640px; height: 480px; }
+      #error span { background-color: red; padding: 4px; color: white; }
     </style>
+    <script src="flexo.js"></script>
+    <script src="bender.js"></script>
   </head>
   <body>
     <h1>Bender runtime</h1>
     <script>
       var reader = new FileReader();
       var parser = new DOMParser();
+      var app;
       function open_file(event) {
+        error();
+        var target = document.getElementById("bender-target");
         var file = event.target.files[0];
         if (file) {
+          target.innerHTML = "";
+          reader.onerror = function(e) {
+            error("Could not read file as text.");
+          };
           reader.onload = function(e) {
             var doc = parser.parseFromString(e.target.result, "text/xml");
-            console.log(parser);
+            if (doc && doc.documentElement) {
+              try {
+                var context = bender.create_context();
+                app = context.import(doc.documentElement);
+                app.instantiate().render(target, true);
+              } catch (e) {
+                error(e.message);
+                target.appendChild(document.importNode(doc.documentElement,
+                  true));
+              }
+            } else {
+              error("Could not read file as XML.");
+            }
           };
           reader.readAsText(file);
         }
       }
+
+      function error(message)
+      {
+        app = null;
+        var e = document.getElementById("error");
+        e.innerHTML = message ?
+          "<strong>Error</strong>: <span>{0}</span>".fmt(message) :
+          "";
+      }
+
     </script>
     <input type="file" onchange="open_file(event)"/>
+    <p id="error"></p>
+    <div id="bender-target"/>
   </body>
 </html>
 

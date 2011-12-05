@@ -29,7 +29,52 @@ if (typeof require === "function") flexo = require("./flexo.js");
     };
     wrap_element(context.documentElement);
     context.components = {};
+    context.import = import_node.bind(context,
+        context.documentElement);
     return context;
+  };
+
+  function import_node(parent, node, in_view)
+  {
+    if (node.nodeType === 1) {
+      if (node.namespaceURI !== bender.NS) {
+        if (!in_view) {
+          bender.warn("Skipped foreign content: {{0}}:{1}"
+              .fmt(node.namespaceURI, node.localName));
+          return;
+        }
+      } else {
+        if (!can_has_text_content.hasOwnProperty(node.localName)) {
+          bender.warn("Unknown bender element {0}".fmt(node.localName));
+          return;
+        }
+        if (node.localName === "view") in_view = true;
+      }
+      var n = wrap_element(parent.ownerDocument.importNode(node, false));
+      parent.appendChild(n);
+      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+        import_node(n, ch, in_view);
+      }
+      return n;
+    } else if (node.nodeType === 3 || node.nodeType === 4) {
+      if (in_view || can_has_text_content[parent.localName]) {
+        var n = parent.ownerDocument.importNode(node, false);
+        parent.appendChild(n);
+      }
+    }
+  }
+
+  var can_has_text_content =
+  {
+    app: false,
+    component: false,
+    content: true,
+    // desc: true,
+    // get: true,
+    title: true,
+    view: true,
+    // set: true,
+    // watch: false,
   };
 
   // Wrap a Bender node
