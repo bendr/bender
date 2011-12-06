@@ -121,7 +121,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Wrap a Bender node with its specific functions, and kepp track of nodes
   // with global scope (stylesheet, etc.)
-  var wrap_element = function(e)
+  function wrap_element(e)
   {
     var name = e.localName === "app" ? "component" : e.localName;
     flexo.hash(e, e.localName);
@@ -133,7 +133,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
     if (e.localName === "stylesheet") e.ownerDocument.stylesheets.push(e);
     return e;
-  };
+  }
 
   // Overloading functions for Bender nodes
   var prototypes = {
@@ -314,6 +314,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       })(this.node.view, this.target);
+      return this.target;
     },
 
     render_title: function()

@@ -1,0 +1,22 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Welcome to Bender!</title>
+  <view>
+    <html:p>Welcome to Bender!</html:p>
+    <html:p>
+      <component ref="button">Thanks</component>
+    </html:p>
+  </view>
+  <component id="button">
+    <stylesheet>
+      .bender-button { display: inline-block; cursor: default;
+        padding: .3em .5em; background-color:#ddd; -moz-border-radius: 6px;
+        -webkit-border-radius: 6px; border-radius: 6px;
+        box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
+    </stylesheet>
+    <view>
+      <html:div class="bender-button">
+        <content>OK</content>
+      </html:div>
+    </view>
+  </component>
+</app>

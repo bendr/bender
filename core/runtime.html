@@ -4,63 +4,141 @@
     <title>Bender runtime</title>
     <meta charset="UTF-8">
     <style>
-      body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
-      #bender-target { width: 640px; height: 480px; padding: 8px;
-        border: dashed thin black; -webkit-border-radius: 8px;
-        -moz-border-radius: 8px; }
-      #error span { background-color: red; padding: 4px; color: white; }
+      html, body { height: 100% }
+      body { font-family: "Helvetica Neue", Helvetica, sans-serif;
+        font-size: 16px; background-color: #888; margin: 0;
+        background-color: #ff4040; }
+      a { color: #102040; text-decoration: none; }
+      #top { background-color: #102040; color: white; }
+      #tool-bar { background-color: #40bfff; }
+      #output { background-color: white; }
+      #status.error { background-color: #f00; color: white; }
+      #status.warning { background-color: #ff7f40; color: white; }
+      #status.ok { background-color: #40ff40; }
+      #bottom { color: white; background-color: #ff4040; font-size: 12px;
+        text-align: center; }
+      #top p, #tool-bar p, #bottom p, #status p { margin: 0; padding: 8px; }
+      .CodeMirror { font-family: Menlo, monospace !important;
+        background-color: white; font-size: 14px; }
+      .CodeMirror-scroll { height: auto !important; overflow-y: hidden;
+        overflow-x: auto; width: 100%; }
+      #bender-target { background-color: white; display: inline-block;
+        margin: 8px;}
+      .hidden { display: none !important; }
     </style>
     <script src="flexo.js"></script>
     <script src="bender.js"></script>
+    <script src="../misc/CodeMirror2/lib/codemirror.js"></script>
+    <link href="../misc/CodeMirror2/lib/codemirror.css" rel="stylesheet">
+    <script src="../misc/CodeMirror2/mode/xmlpure/xmlpure.js"></script>
   </head>
   <body>
-    <h1>Bender runtime</h1>
-    <input type="file" onchange="open_file(event)"/>
-    <p id="error"></p>
-    <div id="bender-target"/>
+    <div id="top">
+      <p>Bender runtime</p>
+    </div>
+    <div id="tool-bar">
+      <p>
+        <input type="file" onchange="file_select(event)"/>
+      </p>
+    </div>
+    <div id="output">
+      <div id="bender-target" class="hidden"/>
+    </div>
+    <div id="status" class="warning">
+      <p>Not ready.</p>
+    </div>
+    <div id="input">
+    </div>
+    <div id="bottom">
+      <p>
+        Copyright © 2011, <a href="http://www.igel.co.jp">IGEL Co., Ltd.</a>
+      </p>
+    </div>
     <script>
-
+      var editor = CodeMirror(document.getElementById("input"),
+        { lineNumbers: true });
       var reader = new FileReader();
       var parser = new DOMParser();
       var target = document.getElementById("bender-target");
 
-      function open_file(event)
+      document.body.addEventListener("dragover", dragover, false);
+      document.body.addEventListener("drop", drop, false);
+
+      function dragover(e)
       {
-        error();
-        var file = event.target.files[0];
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+      }
+
+      function drop(e)
+      {
+        e.preventDefault();
+        e.stopPropagation();
+        open_file(e.dataTransfer.files[0]);
+      }
+
+      function file_select(event)
+      {
+        open_file(event.target.files[0]);
+      }
+
+      function open_file(file)
+      {
         if (file) {
+          warn("Loading {0}...".fmt(file.filename));
           target.innerHTML = "";
+          flexo.add_class(target, "hidden");
           reader.onerror = function(e) {
-            error("Could not read file as text.");
+            error("{0}: Could not read file as text.".fmt(file.fileName));
           };
           reader.onload = function(e) {
+            editor.setValue(e.target.result);
             var doc = parser.parseFromString(e.target.result, "text/xml");
             if (doc && doc.documentElement) {
               try {
                 var context = bender.create_context();
                 var app = context.import(doc.documentElement);
-                app.instantiate().render(target, true);
+                if (app.instantiate().render(target, true)) {
+                  flexo.remove_class(target, "hidden");
+                  ok("{0}: OK.".fmt(file.fileName));
+                } else {
+                  warn("{0}: Component has no view.".fmt(file.fileName));
+                }
               } catch (e) {
                 error(e.message);
                 target.appendChild(document.importNode(doc.documentElement,
                   true));
               }
             } else {
-              error("Could not read file as XML.");
+              error("{0}: Could not read file as XML.".fmt(file.fileName));
             }
           };
           reader.readAsText(file);
         }
       }
 
+      var status_ = document.getElementById("status");
+
+      function ok(message)
+      {
+        status_.className = "ok";
+        status_.innerHTML = "<p>{0}</p>".fmt(message);
+      }
+
+      function warn(message)
+      {
+        status_.className = "warning";
+        status_.innerHTML = "<p>{0}</p>".fmt(message);
+      }
+
       function error(message)
       {
-        app = null;
-        var e = document.getElementById("error");
-        e.innerHTML = message ?
-          "<strong>Error</strong>: <span>{0}</span>".fmt(message) :
-          "";
+        status_.className = "error";
+        status_.innerHTML = "<p>{0}</p>".fmt(message);
       }
+
+      ok("⚑ Please select a file to run.");
 
     </script>
   </body>
