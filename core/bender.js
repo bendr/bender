@@ -82,7 +82,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
       for (var i = 0, m = node.attributes.length; i < m; ++i) {
         var attr = node.attributes[i];
         if (attr.namespaceURI) {
-          n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+          if (attr.namespaceURI === flexo.XMLNS_NS &&
+              attr.localName !== "xmlns") {
+            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
+          } else {
+            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+          }
         } else {
           n.setAttribute(attr.localName, attr.nodeValue);
         }
