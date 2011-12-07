@@ -149,6 +149,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
     if (e.localName === "stylesheet") e.ownerDocument.stylesheets.push(e);
     e.uri = e.ownerDocument.uri;
+    e.init();
     return e;
   }
 
@@ -157,21 +158,26 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     "": {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
-      insertBefore: function(ch, ref) {
+
+      insertBefore: function(ch, ref)
+      {
         var ch_ = this.super_insertBefore(ch, ref);
         this.update_view();
         return ch_;
       },
 
-      setAttribute: function(name, value) {
+      setAttribute: function(name, value)
+      {
         return this.super_setAttribute(name, value);
       },
 
-      setAttributeNS: function(ns, qname, value) {
+      setAttributeNS: function(ns, qname, value)
+      {
         return this.super_setAttributeNS(ns, qname, value);
       },
 
-      set_text_content: function(text) {
+      set_text_content: function(text)
+      {
         this.textContent = text;
         this.update_view();
       },
@@ -181,12 +187,27 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var component = get_view_parent(this);
         if (component) component.update_view();
       },
+
+      init: function() {},
     },
 
     component: {
-      insertBefore: function(ch, ref) {
+      init: function()
+      {
+        this.instances = {};
+        this.watches = [];
+        this.properties = {};
+      },
+
+      insertBefore: function(ch, ref)
+      {
         if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "title") {
+          if (ch.localName === "desc") {
+            if (this.desc) {
+              bender.warn("Redefinition of desc in {0}".fmt(this.hash));
+            }
+            this.desc = ch;
+          } else if (ch.localName === "title") {
             if (this.title) {
               bender.warn("Redefinition of title in {0}".fmt(this.hash));
             }
@@ -197,6 +218,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
               bender.warn("Redefinition of view in {0}".fmt(this.hash));
             }
             this.view = ch;
+          } else if (ch.localName === "watch") {
+            this.watches.push(ch);
+            ch.component = this;
           }
         }
         return this.super_insertBefore(ch, ref);
@@ -217,15 +241,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttributeNS: function(ns, qname, value)
       {
+        this.super_setAttributeNS(ns, qname, value);
         if (ns === bender.NS_E) {
+          this.properties[qname] = "e";
           this[qname] = value;
         } else if (ns === bender.NS_F) {
+          this.properties[qname] = "f";
           this[qname] = parseFloat(value);
         } else if (ns === bender.NS_B) {
-          this[qname] = value.replace(/^\s*/, "").replace(/\s*$/, "")
-            .toLowerCase() === "true";
+          this.properties[qname] = "b";
+          this[qname] = is_true(value);
         }
-        this.super_setAttributeNS(ns, qname, value);
       },
 
       instantiate: function()
@@ -234,7 +260,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.hash(instance, "instance");
         instance.node = this;
         instance.views = {};
-        if (!this.instances) this.instances = {};
+        this.watches.forEach(function(w) { w.watch_instance(instance); });
         this.instances[instance.hash] = instance;
         return instance;
       },
@@ -256,7 +282,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     stylesheet:
     {
-      insertBefore: function(ch, ref) {
+      insertBefore: function(ch, ref)
+      {
         var ch_ = this.super_insertBefore(ch, ref);
         if ((ch.nodeType === 3 || ch.nodeType === 4) && this.target &&
             !this.getAttribute("href")) {
@@ -265,14 +292,16 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return ch_;
       },
 
-      setAttribute: function(name, value) {
+      setAttribute: function(name, value)
+      {
         if (name === "href" && this.target) {
           this.target.href = value;
         }
         return this.super_setAttribute(name, value);
       },
 
-      set_text_content: function(text) {
+      set_text_content: function(text)
+      {
         this.textContent = text;
         if (this.target && !this.getAttribute("href")) {
           this.target.textContent = text;
@@ -282,7 +311,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     title:
     {
-      set_text_content: function(text) {
+      set_text_content: function(text)
+      {
         this.textContent = text;
         if (this.parentNode && this.parentNode.update_title) {
           this.parentNode.update_title();
@@ -292,8 +322,89 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     watch:
     {
+      init: function()
+      {
+        this.gets = [];
+        this.sets = [];
+        this.watches = [];
+      },
+
+      insertBefore: function(ch, ref)
+      {
+        if (ch.namespaceURI === bender.NS) {
+          if (ch.localName === "get") {
+            this.gets.push(ch);
+            ch.watch = this;
+          } else if (ch.localName === "set") {
+            this.sets.push(ch);
+            ch.watch = this;
+          } else if (ch.localName === "watch") {
+            this.sets.push(ch);
+            ch.watch = this;
+          }
+        }
+      },
+
+      setAttribute: function(name, value)
+      {
+        if (name === "once") {
+          this.once = is_true(value);
+        } else if (name === "all") {
+          this.all = is_true(value);
+        }
+        return this.super_setAttribute(name, value);
+      },
+
+      got: function(get, instance, value, prev)
+      {
+        this.sets.forEach(function(set) { set.got(instance, value, prev); });
+      },
+
+      watch_instance: function(instance)
+      {
+        this.gets.forEach(function(get) { get.watch_instance(instance); });
+      }
     },
 
+    // <get> element
+    //   property="p": watch property "p" in the instance
+    get:
+    {
+      setAttribute: function(name, value)
+      {
+        if (name === "property") {
+          this.watch_instance = function(instance) {
+            var property;
+            var watch = this.watch;
+            flexo.getter_setter(instance, value,
+                function() { return property; },
+                function(value) {
+                  var prev = property;
+                  property = value;
+                  watch.got(this, instance, value, prev);
+                });
+          };
+        }
+      },
+
+      watch_instance: function() {},
+    },
+
+    // <set> element
+    //   view="v": set the view.textContent property to the view v
+    set:
+    {
+      setAttribute: function(name, value)
+      {
+        if (name === "view") {
+          this.got = function(instance, v, prev) {
+            instance.views[value].textContent = v;
+          };
+        }
+      },
+
+      got: function() {},
+    },
   };
 
   // Component prototype for new instances
@@ -353,6 +464,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       })(this.node.view, this.target);
+      for (var p in this.node.properties) {
+        if (this.node.properties.hasOwnProperty(p)) {
+          this[p] = this.node[p];
+        }
+      }
       return this.target;
     },
 
@@ -404,6 +520,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return node.namespaceURI === bender.NS && node.localName === localname;
   };
 
+  // Get a true or false value from a string; true if the string matches "true"
+  // in case-insensitive, whitespace-tolerating way
+  var is_true = function(string)
+  {
+    return value.replace(/^\s*/, "").replace(/\s*$/, "")
+      .toLowerCase() === "true";
+  };
 
   // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die
