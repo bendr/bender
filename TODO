@@ -10,6 +10,7 @@ Bender TODO list as of 2011-12-07 (v0.3.0)
 * Core Features
 
 [ ] base attribute for location of relative paths (when using the file chooser)
+[ ] Initialization and ordering of watches
 [/] Tree modification
     [/] Pull components into an existing document
 [/] Replace <bind> with <watch>/<get>/<set>

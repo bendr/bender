@@ -2,9 +2,8 @@
   xmlns:html="http://www.w3.org/1999/xhtml" f:n="0">
   <title>Watch: display a value from the component in two different ways</title>
   <view>
-    <html:p><html:em id="arabic"/> = <html:strong id="roman"/></html:p>
-    <html:p>Set <html:code>$APP.n</html:code> from the console to change
-      this value (when run in debug mode.)</html:p>
+    <html:p><html:code>n</html:code> = <html:em id="arabic"/>
+      (or <html:strong id="roman"/> in roman numerals)</html:p>
   </view>
   <watch>
     <get property="n"/>

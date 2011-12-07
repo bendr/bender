@@ -236,12 +236,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.is_definition = false;
           this.ref = value;
         }
-        this.super_setAttribute(name, value);
+        return this.super_setAttribute(name, value);
       },
 
       setAttributeNS: function(ns, qname, value)
       {
-        this.super_setAttributeNS(ns, qname, value);
         if (ns === bender.NS_E) {
           this.properties[qname] = "e";
           this[qname] = value;
@@ -252,6 +251,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.properties[qname] = "b";
           this[qname] = is_true(value);
         }
+        return this.super_setAttributeNS(ns, qname, value);
       },
 
       instantiate: function()
@@ -343,6 +343,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             ch.watch = this;
           }
         }
+        return this.super_insertBefore(ch, ref);
       },
 
       setAttribute: function(name, value)
@@ -378,13 +379,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var watch = this.watch;
             flexo.getter_setter(instance, value,
                 function() { return property; },
-                function(value) {
+                function(v) {
                   var prev = property;
-                  property = value;
-                  watch.got(this, instance, value, prev);
+                  property = v;
+                  watch.got(this, instance, v, prev);
                 });
           };
         }
+        return this.super_setAttribute(name, value);
       },
 
       watch_instance: function() {},
@@ -394,16 +396,44 @@ if (typeof require === "function") flexo = require("./flexo.js");
     //   view="v": set the view.textContent property to the view v
     set:
     {
+      insertBefore: function(ch, ref)
+      {
+        var ch_ = this.super_insertBefore(ch, ref);
+        if (ch.nodeType === 3 || ch.nodeType === 4) this.update_text();
+        return ch_;
+      },
+
       setAttribute: function(name, value)
       {
         if (name === "view") {
           this.got = function(instance, v, prev) {
-            instance.views[value].textContent = v;
+            instance.views[value].textContent =
+              this.transform.call(instance, v, prev);
           };
+        }
+        return this.super_setAttribute(name, value);
+      },
+
+      set_text_content: function(text)
+      {
+        this.textContent = text;
+        this.update_text();
+      },
+
+      update_text: function()
+      {
+        var text = this.textContent;
+        if (/\S/.test(text)) {
+          try {
+            this.transform = new Function("value", "previous_value", text);
+          } catch (e) {
+            bender.warn(e);
+          }
         }
       },
 
       got: function() {},
+      transform: function(v) { return v; },
     },
   };
 
