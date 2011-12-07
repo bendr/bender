@@ -15,19 +15,25 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
 
   // Create a new context document for Bender with a <context> root element
-  bender.create_context = function()
+  bender.create_context = function(target)
   {
-    var context = document.implementation.createDocument(bender.NS, "context",
+    if (!target) target = document;
+    var context = target.implementation.createDocument(bender.NS, "context",
       null);
-    var createElementNS = context.createElementNS;
+
+    // createElement in context will create Bender elements by default
+    // (otherwise just use createElementNS with a different namespace)
+    var super_createElementNS = context.createElementNS;
     context.createElement = function(name) {
-      return wrap_element(createElementNS.call(this, bender.NS, name));
+      return wrap_element(super_createElementNS.call(this, bender.NS, name));
     };
     context.createElementNS = function(nsuri, qname) {
-      var e = createElementNS.call(this, nsuri, qname);
+      var e = super_createElementNS.call(this, nsuri, qname);
       if (nsuri === bender.NS) wrap_element(e);
       return e;
     };
+
+    // Render global elements in the head of the target
     context.render_head = function(head, force)
     {
       this.stylesheets.forEach(function(stylesheet) {
@@ -51,11 +57,16 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         });
     };
+
+    // Unfortunately it doesn't seem that we can set the baseURI of the new
+    // document, so we have to have a different property
     wrap_element(context.documentElement);
+    context.documentElement.uri = target.baseURI;
+
+    context.uri = target.baseURI;
     context.components = {};
     context.stylesheets = [];
-    context.import = import_node.bind(context,
-        context.documentElement);
+    context.import = import_node.bind(context, context.documentElement);
     return context;
   };
 
@@ -113,15 +124,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
     component: false,
     content: true,
     desc: true,
-    // get: true,
+    get: true,
     // include: false,
     // local: true,
     // script: true,
-    // set: true,
+    set: true,
     stylesheet: true,
     title: true,
     view: true,
-    // watch: false
+    watch: false
   };
 
   // Wrap a Bender node with its specific functions, and kepp track of nodes
@@ -137,6 +148,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
     if (e.localName === "stylesheet") e.ownerDocument.stylesheets.push(e);
+    e.uri = e.ownerDocument.uri;
     return e;
   }
 
@@ -150,8 +162,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
         this.update_view();
         return ch_;
       },
+
       setAttribute: function(name, value) {
         return this.super_setAttribute(name, value);
+      },
+
+      setAttributeNS: function(ns, qname, value) {
+        return this.super_setAttributeNS(ns, qname, value);
       },
 
       set_text_content: function(text) {
@@ -196,6 +213,19 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.ref = value;
         }
         this.super_setAttribute(name, value);
+      },
+
+      setAttributeNS: function(ns, qname, value)
+      {
+        if (ns === bender.NS_E) {
+          this[qname] = value;
+        } else if (ns === bender.NS_F) {
+          this[qname] = parseFloat(value);
+        } else if (ns === bender.NS_B) {
+          this[qname] = value.replace(/^\s*/, "").replace(/\s*$/, "")
+            .toLowerCase() === "true";
+        }
+        this.super_setAttributeNS(ns, qname, value);
       },
 
       instantiate: function()
@@ -258,7 +288,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.parentNode.update_title();
         }
       },
-    }
+    },
+
+    watch:
+    {
+    },
 
   };
 
@@ -330,7 +364,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
     }
   };
-
 
   // Utility functions
 

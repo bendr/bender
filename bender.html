@@ -16,7 +16,8 @@
       #status.error { background-color: #ff4040; color: white; }
       #status.warning { background-color: #ff7f40; color: white; }
       #status.ok { background-color: #40ff40; }
-      #bottom { background-color: #aaa; font-size: 12px; text-align: center; }
+      #bottom { background-color: #aaa; font-size: 12px; text-align: center;
+        margin-top: 4em; }
       #top p, #tool-bar p, #bottom p, #status p { margin: 0; padding: 8px; }
       .CodeMirror { font-family: Menlo, monospace !important;
         background-color: white; font-size: 14px; }
@@ -26,11 +27,11 @@
         margin: 8px;}
       .hidden { display: none !important; }
     </style>
-    <script src="flexo.js"></script>
-    <script src="bender.js"></script>
-    <script src="../misc/CodeMirror2/lib/codemirror.js"></script>
-    <link href="../misc/CodeMirror2/lib/codemirror.css" rel="stylesheet">
-    <script src="../misc/CodeMirror2/mode/xmlpure/xmlpure.js"></script>
+    <script src="core/flexo.js"></script>
+    <script src="core/bender.js"></script>
+    <script src="misc/codemirror.js"></script>
+    <link href="misc/codemirror.css" rel="stylesheet">
+    <script src="misc/xmlpure.js"></script>
   </head>
   <body>
     <div id="top">
@@ -43,7 +44,7 @@
       </p>
     </div>
     <div id="output">
-      <div id="bender-target" class="hidden"/>
+      <div id="bender-target" class="hidden"></div>
     </div>
     <div id="status" class="warning">
       <p>Not ready.</p>
@@ -89,7 +90,6 @@
       {
         if (file) {
           warn("Loading {0}...".fmt(file.name));
-          flexo.log(file);
           target.innerHTML = "";
           flexo.add_class(target, "hidden");
           reader.onerror = function(e) {
@@ -100,11 +100,11 @@
             var doc = parser.parseFromString(e.target.result, "text/xml");
             if (doc && doc.documentElement) {
               try {
-                var context = bender.create_context();
+                var context = bender.create_context(document);
                 var app = context.import(doc.documentElement);
                 if (app.instantiate().render(target, true)) {
                   flexo.remove_class(target, "hidden");
-                  ok("{0}: OK.".fmt(file.name));
+                  ok("{0}: OK".fmt(file.name));
                 } else {
                   warn("{0}: Component has no view.".fmt(file.name));
                 }
@@ -146,4 +146,3 @@
     </script>
   </body>
 </html>
-
