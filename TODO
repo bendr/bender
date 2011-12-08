@@ -3,8 +3,7 @@ Bender TODO list as of 2011-12-08 (v0.3.0)
 
 * Bugs
 
-[ ] <include> bug inside components (within components?)
-[ ] relative URIs in included files should be relative to that file
+[ ] No SVG display?
 
 
 * Core Features

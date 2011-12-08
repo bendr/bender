@@ -1,0 +1,9 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
+  <title>Hello, world! | SVG</title>
+  <view>
+    <svg:svg viewBox="0 0 400 400">
+      <svg:text x="8" y="32" font-size="24"
+        font-family="Helvetica, sans-serif">Hello, world!</svg:text>
+    </svg:svg>
+  </view>
+</app>

@@ -1,4 +1,5 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  f:rate-ms="333">
   <title>SVG Clock</title>
 
   <view>
@@ -14,7 +15,19 @@
     </svg>
   </view>
 
-  <controller instance-of="bender.metro" id="timer" f:rate-ms="333"/>
+  <local-script>
+
+    var interval;
+
+    prototype.start_timer = function()
+    {
+      if (interval) clearInterval(interval);
+      interval =
+        setInterval((function() { bender.notify(this, "@tick"); }).bind(this),
+          this["rate-ms"]);
+    };
+
+  </local-script>
 
   <watch>
     <get event="@ready"><![CDATA[
@@ -23,12 +36,12 @@
           stroke: "white" });
         this.views.seconds.parentNode.insertBefore(c, this.views.seconds);
       }
-      this.controllers.timer.bang();
+      this.start_timer();
     ]]></get>
   </watch>
 
   <watch>
-    <get controller="timer" event="@bang">
+    <get event="@tick">
       return new Date();
     </get>
     <set view="hours" attr="transform">
