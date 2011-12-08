@@ -131,6 +131,12 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     };
   })();
 
+  // Normalize whitespace in a string
+  flexo.normalize = function(string)
+  {
+    return string.replace(/\s+/, " ").replace(/^ /, "").replace(/ $/, "");
+  };
+
   // Pad a string to the given length
   flexo.pad = function(string, length, padding)
   {

@@ -375,15 +375,24 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         if (name === "property") {
           this.watch_instance = function(instance) {
+            var prop_name = flexo.normalize(value);
             var property;
             var watch = this.watch;
-            flexo.getter_setter(instance, value,
+            flexo.getter_setter(instance, prop_name,
                 function() { return property; },
                 function(v) {
                   var prev = property;
                   property = v;
                   watch.got(this, instance, v, prev);
                 });
+          };
+        } else if (name === "event") {
+          this.watch_instance = function(instance) {
+            var watch = this.watch;
+            bender.listen(instance, value, function(e) {
+                flexo.log("got event {0} from {1}".fmt(e.type, e.source.hash));
+                watch.got(this, instance, e);
+              });
           };
         }
         return this.super_setAttribute(name, value);
@@ -432,7 +441,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
       },
 
-      got: function() {},
+      got: function(instance, v, prev)
+      {
+        return this.transform.call(instance, v, prev);
+      },
+
       transform: function(v) { return v; },
     },
   };
@@ -499,6 +512,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this[p] = this.node[p];
         }
       }
+      bender.notify(this, "@rendered");
       return this.target;
     },
 

@@ -1,0 +1,12 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Alert on @rendered events</title>
+  <view>
+    <html:p>Alert on @rendered events</html:p>
+  </view>
+  <watch>
+    <get event="@rendered"/>
+    <set>
+      alert("{0} has sent a {1} event".fmt(value.source.hash, value.type));
+    </set>
+  </watch>
+</app>

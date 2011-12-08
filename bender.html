@@ -102,9 +102,12 @@
               try {
                 var context = bender.create_context(document);
                 var app = context.import(doc.documentElement);
-                if (app.instantiate().render(target, true)) {
+                var instance = app.instantiate();
+                if (instance.render(target, true)) {
                   flexo.remove_class(target, "hidden");
                   ok("{0}: OK".fmt(file.name));
+                  setTimeout(function() { bender.notify(instance, "@ready"); },
+                    0);
                 } else {
                   warn("{0}: Component has no view.".fmt(file.name));
                 }
