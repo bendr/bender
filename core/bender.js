@@ -369,8 +369,19 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     // <get> element
     //   property="p": watch property "p" in the instance
+    //   event="e": watch event named e, by default from the instance
+    //   view="v": element with id="v" in the view is the source (TODO)
+    //   component="c": sub-component with the id="c" is the source (TODO)
+    //   text content: transform the value for the set elements
     get:
     {
+      insertBefore: function(ch, ref)
+      {
+        var ch_ = this.super_insertBefore(ch, ref);
+        if (ch.nodeType === 3 || ch.nodeType === 4) this.update_text();
+        return ch_;
+      },
+
       setAttribute: function(name, value)
       {
         if (name === "property") {
@@ -378,24 +389,49 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var prop_name = flexo.normalize(value);
             var property;
             var watch = this.watch;
+            var transform = this.transform;
             flexo.getter_setter(instance, prop_name,
                 function() { return property; },
                 function(v) {
-                  var prev = property;
-                  property = v;
-                  watch.got(this, instance, v, prev);
+                  var v_ = transform.call(instance, v, property);
+                  if (v_ !== undefined) {
+                    var prev = property;
+                    property = v_;
+                    watch.got(this, instance, v_, prev);
+                  }
                 });
           };
         } else if (name === "event") {
           this.watch_instance = function(instance) {
             var watch = this.watch;
+            var transform = this.transform;
             bender.listen(instance, value, function(e) {
-                flexo.log("got event {0} from {1}".fmt(e.type, e.source.hash));
-                watch.got(this, instance, e);
+                var v = transform.call(instance, e);
+                if (v !== undefined) watch.got(this, instance, v);
               });
           };
         }
         return this.super_setAttribute(name, value);
+      },
+
+      set_text_content: function(text)
+      {
+        this.textContent = text;
+        this.update_text();
+      },
+
+      transform: function(value) { return value; },
+
+      update_text: function()
+      {
+        var text = this.textContent;
+        if (/\S/.test(text)) {
+          try {
+            this.transform = new Function("value", "previous_value", text);
+          } catch (e) {
+            bender.warn(e);
+          }
+        }
       },
 
       watch_instance: function() {},

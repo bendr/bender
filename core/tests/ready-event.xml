@@ -4,11 +4,10 @@
     <html:p>Alert on @ready events</html:p>
   </view>
   <watch>
-    <get event="@ready"/>
-    <set>
+    <get event="@ready">
       setTimeout(function() {
           alert("{0} has sent a {1} event".fmt(value.source.hash, value.type));
         }, 0);
-    </set>
+    </get>
   </watch>
 </app>
