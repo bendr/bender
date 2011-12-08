@@ -106,8 +106,7 @@
                 if (instance.render(target, true)) {
                   flexo.remove_class(target, "hidden");
                   ok("{0}: OK".fmt(file.name));
-                  setTimeout(function() { bender.notify(instance, "@ready"); },
-                    0);
+                  bender.notify(instance, "@ready");
                 } else {
                   warn("{0}: Component has no view.".fmt(file.name));
                 }

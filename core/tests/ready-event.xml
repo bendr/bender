@@ -6,7 +6,9 @@
   <watch>
     <get event="@ready"/>
     <set>
-      alert("{0} has sent a {1} event".fmt(value.source.hash, value.type));
+      setTimeout(function() {
+          alert("{0} has sent a {1} event".fmt(value.source.hash, value.type));
+        }, 0);
     </set>
   </watch>
 </app>
