@@ -403,13 +403,19 @@ if (typeof require === "function") flexo = require("./flexo.js");
           };
         } else if (name === "event") {
           this.watch_instance = function(instance) {
+            var event_type = flexo.normalize(value);
             var watch = this.watch;
             var transform = this.transform;
-            bender.listen(instance, value, function(e) {
+            // TODO set source
+            bender.listen(instance, event_type, function(e) {
                 var v = transform.call(instance, e);
                 if (v !== undefined) watch.got(this, instance, v);
               });
           };
+        } else if (name === "view") {
+          // TODO change source
+        } else if (name === "component") {
+          // TODO change source
         }
         return this.super_setAttribute(name, value);
       },
