@@ -126,7 +126,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     desc: true,
     get: true,
     // include: false,
-    // local: true,
+    "local-script": true,
     // script: true,
     set: true,
     stylesheet: true,
@@ -191,12 +191,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
       init: function() {},
     },
 
+    // <component> element
     component: {
       init: function()
       {
         this.instances = {};
         this.watches = [];
         this.properties = {};
+        this.scripts = [];
       },
 
       insertBefore: function(ch, ref)
@@ -207,6 +209,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
               bender.warn("Redefinition of desc in {0}".fmt(this.hash));
             }
             this.desc = ch;
+          } else if (ch.localName === "local-script") {
+            ch.component = this;
+            this.scripts.push(ch);
           } else if (ch.localName === "title") {
             if (this.title) {
               bender.warn("Redefinition of title in {0}".fmt(this.hash));
@@ -257,6 +262,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
       instantiate: function()
       {
         var instance = flexo.create_object(component);
+        this.scripts.forEach(function(script) {
+            (new Function("prototype", script.textContent))(instance);
+          });
         flexo.hash(instance, "instance");
         instance.node = this;
         instance.views = {};
@@ -280,6 +288,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
     },
 
+    // <stylesheet> element
     stylesheet:
     {
       insertBefore: function(ch, ref)
@@ -320,6 +329,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       },
     },
 
+    // <watch> element
     watch:
     {
       init: function()

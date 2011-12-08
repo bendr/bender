@@ -1,0 +1,37 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:rate-ms="333">
+  <title>Timer test (local-script/watch)</title>
+  <view>
+    <html:p>The time is now: <html:strong id="time"/></html:p>
+  </view>
+  <local-script>
+
+    var interval;
+
+    prototype.start = function()
+    {
+      if (interval) clearInterval(interval);
+      interval =
+        setInterval((function() { bender.notify(this, "@tick"); }).bind(this),
+          this["rate-ms"]);
+    };
+
+    prototype.stop = function()
+    {
+      if (interval) clearInterval(interval);
+      interval = null;
+    };
+
+  </local-script>
+  <watch>
+    <get event="@ready">
+      this.start();
+    </get>
+  </watch>
+  <watch>
+    <get event="@tick"/>
+    <set view="time">
+      return (new Date).toString();
+    </set>
+  </watch>
+</app>

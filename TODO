@@ -15,21 +15,23 @@ Bender TODO list as of 2011-12-08 (v0.3.0)
     [/] Pull components into an existing document
 [/] Replace <bind> with <watch>/<get>/<set>
     [x] remove <listen>
-    [/] add action to <get> (core/tests/svg-clock)
+    [x] add action to <get> (core/tests/svg-clock)
     [ ] adapt content for set/@view with no property/attr (e.g. text vs. nodes)
-    [ ] factor code for watches
-    [ ] retrieve old value
+    [x] retrieve old value ("previous_value")
     [ ] a property changed in a component should trigger a get in another
         component looking at that property -> generate an event automatically
 [ ] Component extension
     [ ] core/tests/uber-clock*
-[ ] Generate new ids from component instances
+[x] Generate new ids from component instances
     [ ] handle stylesheets
 [ ] Metadata (at least xml:lang)
-    [ ] help/about element
-[ ] Undash names from XML
+[x] desc element
+[ ] Undash property names
+    [ ] Prefix with $ ?
 [ ] Keep namespace prefixes around for resolution of attribute names in <watch>
-[/] <local> for local scripts; for both controllers and components
+[x] <local-script> for components
+    [ ] href attribute
+    [ ] error handling
 [ ] "reuse" attribute to avoid copying elements over and over; values: "none"
       (always create), "any" (any element with the same name) "same" (same name
       and same attributes), "#id" (match an existing id.) Then copy the
