@@ -1,0 +1,22 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:f="http://bender.igel.co.jp/f">
+  <title>Über Clock</title>
+
+  <local-script>
+    var interval;
+    prototype.start = function()
+    {
+      if (interval) clearInterval(interval);
+      interval =
+        setInterval((function() { bender.notify(this, "@tick"); }).bind(this),
+          this["rate-ms"]);
+    };
+  </local-script>
+
+  <watch>
+    <get event="@rendered">
+      this.start();
+    </get>
+  </watch>
+
+</component>

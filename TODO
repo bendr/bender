@@ -34,11 +34,14 @@ Bender TODO list as of 2011-12-08 (v0.3.0)
 [x] <local-script> for components
     [ ] href attribute
     [ ] error handling
-[ ] "reuse" attribute to avoid copying elements over and over; values: "none"
+[/] "reuse" attribute to avoid copying elements over and over; values: "none"
       (always create), "any" (any element with the same name) "same" (same name
       and same attributes), "#id" (match an existing id.) Then copy the
       attributes, possibly overwriting them, as in <svg viewBox="x y w h"
           bender:reuse="any"/>. Children are appended.
+    [/] "any"
+    [ ] "same" (???)
+    [ ] "#id"
 [ ] Merge controller and component; make <view> mandatory for components with a
       view.
     [ ] Readd <connect>?

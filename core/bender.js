@@ -521,7 +521,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       if (!this.target && !target) return;
       if (!this.node.view) return;
       if ((this.target && !target) || this.target === target) {
-        bender.log("--- {0}: clearing".fmt(this.hash), this.target);
         flexo.remove_children(this.target);
       } else {
         this.target = target;
@@ -551,8 +550,20 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 render(ch, dest);
               }
             } else {
-              var d = dest.ownerDocument
-                .createElementNS(ch.namespaceURI, ch.localName);
+              var reuse = ch.getAttributeNS(bender.NS, "reuse");
+              var d;
+              if (reuse) {
+                flexo.log("!reuse={0}".fmt(reuse));
+                reuse = flexo.normalize(reuse);
+                if (reuse.toLowerCase() === "any") {
+                  d = find_first_element(dest.ownerDocument, ch.namespaceURI,
+                      ch.localName);
+                }
+              }
+              if (!d) {
+                d = dest.ownerDocument.createElementNS(ch.namespaceURI,
+                    ch.localName);
+              }
               for (var i = ch.attributes.length - 1; i >= 0; --i) {
                 var attr = ch.attributes[i];
                 if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
@@ -596,6 +607,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
   // Utility functions
+
+  var find_first_element = function(doc, ns, name)
+  {
+    // Use depth-first search to find the first element in document order
+    (function find(n) {
+      if (n.namespaceURI === ns && n.localName === name) return n;
+      for (var ch = n.firstElementChild; ch; ch = ch.nextElementSibling) {
+        var found = find(ch);
+        if (found) return found;
+      }
+    })(doc.documentElement);
+  }
 
   // Find the outermost <title> element of the (presumably) destination
   // document
