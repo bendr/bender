@@ -12,7 +12,8 @@
       #top a { color: #40bfff; }
       #top { background-color: #102040; color: white; }
       #tool-bar { background-color: #40bfff; }
-      #output { background-color: white; }
+      #output { background-color: white; width: 100% }
+      #bender-target { width: 100%; }
       #status.error { background-color: #ff4040; color: white; }
       #status.warning { background-color: #ff7f40; color: white; }
       #status.ok { background-color: #40ff40; }
@@ -23,8 +24,7 @@
         background-color: white; font-size: 14px; }
       .CodeMirror-scroll { height: auto !important; overflow-y: hidden;
         overflow-x: auto; width: 100%; }
-      #bender-target { background-color: white; display: inline-block;
-        margin: 8px;}
+      #bender-target { background-color: white; display: inline-block; }
       .hidden { display: none !important; }
     </style>
     <script src="core/flexo.js"></script>
@@ -96,7 +96,11 @@
             error("{0}: Could not read file as text.".fmt(file.name));
           };
           reader.onload = function(e) {
-            editor.setValue(e.target.result);
+            try {
+              editor.setValue(e.target.result);
+            } catch(e) {
+              bender.warn(e);
+            }
             var doc = parser.parseFromString(e.target.result, "text/xml");
             if (doc && doc.documentElement) {
               try {

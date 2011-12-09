@@ -379,7 +379,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     // <get> element
     //   property="p": watch property "p" in the instance
-    //   event="e": watch event named e, by default from the instance
+    //   event="e": watch event of type e, by default from the instance
+    //   dom-event="e": watch DOM event of type e, by default from the document
     //   view="v": element with id="v" in the view is the source (TODO)
     //   component="c": sub-component with the id="c" is the source (TODO)
     //   text content: transform the value for the set elements
@@ -411,13 +412,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
                   }
                 });
           };
-        } else if (name === "event") {
+        } else if (name === "dom-event" || name === "event") {
+          // TODO dom-event after rendering!
+          var event_type = flexo.normalize(value);
           this.watch_instance = function(instance) {
-            var event_type = flexo.normalize(value);
+            var source = name === "dom-event" ? document : instance;
             var watch = this.watch;
             var transform = this.transform;
-            // TODO set source
-            bender.listen(instance, event_type, function(e) {
+            bender.listen(source, event_type, function(e) {
                 var v = transform.call(instance, e);
                 if (v !== undefined) watch.got(this, instance, v);
               });
@@ -466,10 +468,16 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttribute: function(name, value)
       {
-        if (name === "view") {
+        if (name === "attr") {
+          this.attr = value;
+        } else if (name === "view") {
           this.got = function(instance, v, prev) {
-            instance.views[value].textContent =
-              this.transform.call(instance, v, prev);
+            var v_ = this.transform.call(instance, v, prev);
+            if (this.attr) {
+              instance.views[value].setAttribute(this.attr, v_);
+            } else {
+              instance.views[value].textContent = v_;
+            }
           };
         }
         return this.super_setAttribute(name, value);
