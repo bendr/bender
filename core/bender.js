@@ -268,7 +268,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.hash(instance, "instance");
         instance.node = this;
         instance.views = {};
-        this.watches.forEach(function(w) { w.watch_instance(instance); });
+        // this.watches.forEach(function(w) { w.watch_instance(instance); });
         this.instances[instance.hash] = instance;
         return instance;
       },
@@ -381,7 +381,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     //   property="p": watch property "p" in the instance
     //   event="e": watch event of type e, by default from the instance
     //   dom-event="e": watch DOM event of type e, by default from the document
-    //   view="v": element with id="v" in the view is the source (TODO)
+    //   view="v": element with id="v" in the view is the source
     //   component="c": sub-component with the id="c" is the source (TODO)
     //   text content: transform the value for the set elements
     get:
@@ -413,10 +413,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 });
           };
         } else if (name === "dom-event" || name === "event") {
-          // TODO dom-event after rendering!
           var event_type = flexo.normalize(value);
           this.watch_instance = function(instance) {
-            var source = name === "dom-event" ? document : instance;
+            var source;
+            if (this.source_view) source = instance.views[this.source_view];
+            if (!source) {
+              source = name === "dom-event" ?
+                instance.target.ownerDocument : instance;
+            }
             var watch = this.watch;
             var transform = this.transform;
             bender.listen(source, event_type, function(e) {
@@ -425,9 +429,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
               });
           };
         } else if (name === "view") {
-          // TODO change source
+          this.source_view = flexo.normalize(value);
         } else if (name === "component") {
-          // TODO change source
+          this.source_component = flexo.normalize(value);
         }
         return this.super_setAttribute(name, value);
       },
@@ -537,7 +541,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
             if (ch.namespaceURI === bender.NS) {
               if (ch.localName === "component" && ch.ref) {
                 var def = ch.ownerDocument.components[ch.ref];
-                if (def) def.instantiate().render(dest);
+                if (def) {
+                  var instance = def.instantiate();
+                  var id = ch.getAttribute("id");
+                  if (id) self.views[id] = instance;
+                  instance.render(dest);
+                }
               } else if (ch.localName === "content") {
                 render(ch, dest);
               }
@@ -567,6 +576,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       })(this.node.view, this.target);
+      this.node.watches.forEach(function(w) { w.watch_instance(self); });
       for (var p in this.node.properties) {
         if (this.node.properties.hasOwnProperty(p)) {
           this[p] = this.node[p];

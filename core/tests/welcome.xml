@@ -1,11 +1,6 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Welcome to Bender!</title>
-  <view>
-    <html:p>Welcome to Bender!</html:p>
-    <html:p>
-      <component ref="button">Thanks</component>
-    </html:p>
-  </view>
+
   <component id="button">
     <stylesheet>
       .bender-button { display: inline-block; cursor: default;
@@ -14,9 +9,28 @@
         box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
     </stylesheet>
     <view>
-      <html:div class="bender-button">
+      <html:div id="b" class="bender-button">
         <content>OK</content>
       </html:div>
     </view>
+    <watch>
+      <get view="b" dom-event="click">
+        bender.notify(this, "@pushed");
+      </get>
+    </watch>
   </component>
+
+  <view>
+    <html:p>Welcome to Bender!</html:p>
+    <html:p>
+      <component id="thanks-button" ref="button">Thanks</component>
+    </html:p>
+  </view>
+
+  <watch>
+    <get view="thanks-button" event="@pushed">
+      alert("You're welcome!");
+    </get>
+  </watch>
+
 </app>
