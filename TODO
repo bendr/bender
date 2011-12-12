@@ -1,9 +1,9 @@
-Bender TODO list as of 2011-12-08 (v0.3.0)
+Bender TODO list as of 2011-12-11 (v0.3.0)
 
 
 * Bugs
 
-[ ] editor bug when loading core/test/arrows.xml?
+[x] editor bug when loading core/test/arrows.xml?
 [ ] watch/get/@dom-event solved *after* rendering
 [ ] unload stylesheet when updating?
 [x] No SVG display? (width issue; fixed)

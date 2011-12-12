@@ -1,30 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Bender runtime</title>
+    <title>⚐ Bender runtime</title>
     <meta charset="UTF-8">
     <style>
       html, body { height: 100% }
       body { font-family: "Helvetica Neue", Helvetica, sans-serif;
-        font-size: 16px; background-color: #aaa; margin: 0; }
-      a { color: #102040; text-decoration: none; }
+        font-size: 16px; margin: 0; }
       #back { position: absolute; right: 0; top: 0; }
-      #top a { color: #40bfff; }
-      #top { background-color: #102040; color: white; }
-      #tool-bar { background-color: #40bfff; }
-      #output { background-color: white; width: 100% }
-      #bender-target { width: 100%; }
+      #back img { height: 32px; }
+      #top { background-color: #444; color: white; height: 32px; }
+      #tool-bar { background-color: #ccc; }
+      #output { background-color: white; width: 100%; height: 50%; }
+      #bender-target { height: 100%; }
+      svg { height: 100%; width: 100%; }
       #status.error { background-color: #ff4040; color: white; }
       #status.warning { background-color: #ff7f40; color: white; }
       #status.ok { background-color: #40ff40; }
-      #bottom { background-color: #aaa; font-size: 12px; text-align: center;
-        margin-top: 4em; }
-      #top p, #tool-bar p, #bottom p, #status p { margin: 0; padding: 8px; }
+      #status.info { background-color: #ccc; }
+      p { margin: 0; padding: 8px; }
       .CodeMirror { font-family: Menlo, monospace !important;
-        background-color: white; font-size: 14px; }
+        background-color: white; font-size: 14px; height: auto; }
       .CodeMirror-scroll { height: auto !important; overflow-y: hidden;
         overflow-x: auto; width: 100%; }
-      #bender-target { background-color: white; display: inline-block; }
       .hidden { display: none !important; }
     </style>
     <script src="core/flexo.js"></script>
@@ -35,8 +33,9 @@
   </head>
   <body>
     <div id="top">
-      <p>Bender runtime</p>
-      <p id="back"><a href="/">Back</a></p>
+      <p>⚐ Bender runtime</p>
+      <div id="back"><a href="/"><img src="misc/bender512.png" alt="Bender
+          logo"></a></div>
     </div>
     <div id="tool-bar">
       <p>
@@ -44,25 +43,30 @@
       </p>
     </div>
     <div id="output">
-      <div id="bender-target" class="hidden"></div>
+      <div id="bender-target"></div>
     </div>
     <div id="status" class="warning">
       <p>Not ready.</p>
     </div>
     <div id="input">
     </div>
-    <div id="bottom">
-      <p>
-        Copyright © 2011, <a href="http://www.igel.co.jp">IGEL Co., Ltd.</a>
-      </p>
-    </div>
     <script>
+
+      var args = { target: "bender-target", debug: 0 };
+      (typeof window === "object" && typeof window.location === "object" &&
+        typeof window.location.search === "string" ?
+          window.location.search.substring(1) : "")
+        .split("&").forEach(function(q) {
+          var sep = q.indexOf("=");
+          args[q.substr(0, sep)] = unescape(q.substr(sep + 1));
+        });
+      var target = document.getElementById(args.target) || document.body;
+      bender.DEBUG_LEVEL = args.debug;
 
       var editor = CodeMirror(document.getElementById("input"),
         { lineNumbers: true, readOnly: true });
       var reader = new FileReader();
       var parser = new DOMParser();
-      var target = document.getElementById("bender-target");
 
       document.body.addEventListener("dragover", dragover, false);
       document.body.addEventListener("drop", drop, false);
@@ -91,9 +95,8 @@
         if (file) {
           warn("Loading {0}...".fmt(file.name));
           target.innerHTML = "";
-          flexo.add_class(target, "hidden");
           reader.onerror = function(e) {
-            error("{0}: Could not read file as text.".fmt(file.name));
+            error("Could not read file as text.");
           };
           reader.onload = function(e) {
             try {
@@ -108,11 +111,10 @@
                 var app = context.import(doc.documentElement);
                 var instance = app.instantiate();
                 if (instance.render(target, true)) {
-                  flexo.remove_class(target, "hidden");
-                  ok("{0}: OK".fmt(file.name));
+                  ok("OK");
                   bender.notify(instance, "@ready");
                 } else {
-                  warn("{0}: Component has no view.".fmt(file.name));
+                  warn("Component has no view.");
                 }
               } catch (e) {
                 error(e.message);
@@ -120,34 +122,51 @@
                   true));
               }
             } else {
-              error("{0}: Could not read file as XML.".fmt(file.name));
+              error("Could not read file as XML.");
             }
           };
           reader.readAsText(file);
         }
       }
 
+      function open_url(url)
+      {
+        warn("Loading {0}...".fmt(url));
+        flexo.request_uri(url, function(req) {
+            target.innerHTML = "";
+            editor.setValue(req.responseText);
+            var context = bender.create_context(document);
+            var app = context.import(req.responseXML.documentElement);
+            var instance = app.instantiate();
+            if (instance.render(target, true)) {
+              ok("OK");
+              bender.notify(instance, "@ready");
+            } else {
+              warn("Component has no view.");
+            }
+          });
+      }
+
+      window.onerror = function(e) { error(e); }
+
       var status_ = document.getElementById("status");
 
-      function ok(message)
+      function set_status(class_, message)
       {
-        status_.className = "ok";
+        status_.className = class_;
         status_.innerHTML = "<p>{0}</p>".fmt(message);
       }
 
-      function warn(message)
-      {
-        status_.className = "warning";
-        status_.innerHTML = "<p>{0}</p>".fmt(message);
-      }
+      function info(message) { set_status("info", message); }
+      function ok(message) { set_status("ok", message); }
+      function warn(message) { set_status("warning", message); }
+      function error(message) { set_status("error", message); }
 
-      function error(message)
-      {
-        status_.className = "error";
-        status_.innerHTML = "<p>{0}</p>".fmt(message);
+      if (args.app) {
+        open_url(args.app);
+      } else {
+        info("Please select a file to run.");
       }
-
-      ok("⚑ Please select a file to run.");
 
     </script>
   </body>
