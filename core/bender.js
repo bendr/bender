@@ -561,7 +561,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Component prototype for new instances
   var component = {
-    render: function(target, main)
+    render: function(target, main, component)
     {
       if (!this.target && !target) return;
       if (!this.node.view) return;
@@ -589,10 +589,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
                   var instance = def.instantiate();
                   var id = ch.getAttribute("id");
                   if (id) self.views[id] = instance;
-                  instance.render(dest);
+                  instance.render(dest, false, ch);
                 }
               } else if (ch.localName === "content") {
-                render(ch, dest);
+                render(component.childNodes.length > 0 ? component : ch, dest);
               }
             } else {
               var once = is_true(ch.getAttributeNS(bender.NS, "render-once"));
@@ -600,8 +600,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
               var reuse = flexo
                 .normalize(ch.getAttributeNS(bender.NS, "reuse"));
               if (reuse.toLowerCase() === "any") {
-                d = find_first_element(dest.ownerDocument, ch.namespaceURI,
-                    ch.localName);
+                d = find_first_element(dest.ownerDocument.documentElement,
+                    ch.namespaceURI, ch.localName);
                 flexo.log("!reuse={0}".fmt(reuse));
               }
               if (!d) {
@@ -652,7 +652,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Utility functions
 
-  var find_first_element = function(doc, ns, name)
+  var find_first_element = function(node, ns, name)
   {
     // Use depth-first search to find the first element in document order
     (function find(n) {
@@ -661,7 +661,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var found = find(ch);
         if (found) return found;
       }
-    })(doc.documentElement);
+    })(node);
   }
 
   // Find the outermost <title> element of the (presumably) destination

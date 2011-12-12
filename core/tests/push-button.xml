@@ -93,12 +93,18 @@
   </component>
 
   <view>
-    <component ref="button" id="testing-button">Testing</component>
+    <html:p>
+      <component ref="button" id="ok-button"/>
+      <component ref="button" id="cancel-button">Cancel</component>
+    </html:p>
   </view>
 
   <watch>
-    <get event="@pushed" view="testing-button">
+    <get event="@pushed" view="ok-button">
       alert("OK");
+    </get>
+    <get event="@pushed" view="cancel-button">
+      alert("Cancel");
     </get>
   </watch>
 
