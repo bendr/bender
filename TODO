@@ -42,6 +42,7 @@ Bender TODO list as of 2011-12-08 (v0.3.0)
     [/] "any"
     [ ] "same" (???)
     [ ] "#id"
+    [ ] @bender:render-once
 [ ] Merge controller and component; make <view> mandatory for components with a
       view.
     [ ] Readd <connect>?

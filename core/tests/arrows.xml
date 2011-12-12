@@ -29,12 +29,12 @@
     {
       var x = p ? p.x : flexo.random_int(0, this.w);
       var y = p ? p.y : flexo.random_int(0, this.h);
-      var dx = x - arrow._x - this.size / 2;
-      var dy = y - arrow._y - this.size / 2;
+      var dx = x - arrow._x - this.node.$size / 2;
+      var dy = y - arrow._y - this.node.$size / 2;
       var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
       arrow.setAttribute("transform",
         "translate({0}, {1}) rotate({2}, 10, 10)".fmt(arrow._x, arrow._y, a));
-      if (!this.color) {
+      if (!this.$color) {
         var d = dx * dx + dy * dy;
         var c = "hsl({0}, {1}%, {2}%)".fmt((Math.floor(180 - a) + 360) % 360,
           Math.floor(100 * flexo.clamp(1 - d / this.r, 0, 1)),
@@ -55,16 +55,17 @@
     prototype.generate_arrows = function()
     {
       this.arrows = [];
-      this.w = this.width * this.size;
-      this.h = this.height * this.size;
+      this.w = this.$width * this.node.$size;
+      this.h = this.$height * this.node.$size;
       this.r = Math.pow(Math.max(this.w, this.h), 2);
+      flexo.log("viewBox=\"0 0 {0} {1}\"".fmt(this.w, this.h));
       this.views.root.setAttribute("viewBox", "0 0 {0} {1}"
         .fmt(this.w, this.h));
       flexo.remove_children(this.views.arrows);
-      for (var x = 0; x < this.w; x += this.size) {
-        for (var y = 0; y < this.h; y += this.size) {
+      for (var x = 0; x < this.w; x += this.node.$size) {
+        for (var y = 0; y < this.h; y += this.node.$size) {
           var arrow = flexo.svg_href("use", "#{0}".fmt(this.views.arrow.id),
-            { fill: this.color, stroke: this.color });
+            { fill: this.$color, stroke: this.$color });
           arrow._x = x;
           arrow._y = y;
           this.transform_arrow(arrow);

@@ -135,8 +135,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
     watch: false
   };
 
-  // Wrap a Bender node with its specific functions, and kepp track of nodes
-  // with global scope (stylesheet, etc.)
+  // Wrap a Bender node with its specific functions, and keep track of nodes
+  // with global scope (stylesheet for now; later: script, include)
   function wrap_element(e)
   {
     var name = e.localName === "app" ? "component" : e.localName;
@@ -197,7 +197,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         this.instances = {};
         this.watches = [];
-        this.properties = {};
         this.scripts = [];
       },
 
@@ -225,6 +224,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
             this.view = ch;
           } else if (ch.localName === "watch") {
             this.watches.push(ch);
+            // topmost watches are active by default, whereas nested watches
+            // are inactive by default
+            if (!(ch.hasOwnProperty("active"))) ch.active = true;
             ch.component = this;
           }
         }
@@ -247,14 +249,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
       setAttributeNS: function(ns, qname, value)
       {
         if (ns === bender.NS_E) {
-          this.properties[qname] = "e";
-          this[qname] = value;
+          this[property_name(qname)] = value;
+          flexo.log("* set property {0} to {1} for {2}"
+              .fmt(property_name(qname), value, this.hash));
         } else if (ns === bender.NS_F) {
-          this.properties[qname] = "f";
-          this[qname] = parseFloat(value);
+          this[property_name(qname)] = parseFloat(value);
+          flexo.log("* set float property {0} to {1} for {2}"
+              .fmt(property_name(qname), this[property_name(qname)], this.hash));
         } else if (ns === bender.NS_B) {
-          this.properties[qname] = "b";
-          this[qname] = is_true(value);
+          this[property_name(qname)] = is_true(value);
+          flexo.log("* set boolean property {0} to {1} for {2}"
+              .fmt(property_name(qname), this[property_name(qname)], this.hash));
         }
         return this.super_setAttributeNS(ns, qname, value);
       },
@@ -268,7 +273,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.hash(instance, "instance");
         instance.node = this;
         instance.views = {};
-        // this.watches.forEach(function(w) { w.watch_instance(instance); });
         this.instances[instance.hash] = instance;
         return instance;
       },
@@ -334,9 +338,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       init: function()
       {
-        this.gets = [];
-        this.sets = [];
-        this.watches = [];
+        this.gets = [];            // get child elements (inputs)
+        this.sets = [];            // set child elements (outputs)
+        this.nested = [];  // watch child elements
       },
 
       insertBefore: function(ch, ref)
@@ -349,8 +353,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
             this.sets.push(ch);
             ch.watch = this;
           } else if (ch.localName === "watch") {
-            this.sets.push(ch);
+            this.nested.push(ch);
             ch.watch = this;
+            ch.active = false;
           }
         }
         return this.super_insertBefore(ch, ref);
@@ -358,7 +363,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttribute: function(name, value)
       {
-        if (name === "once") {
+        if (name === "active") {
+          this.active = is_true(value);
+        } else if (name === "once") {
           this.once = is_true(value);
         } else if (name === "all") {
           this.all = is_true(value);
@@ -368,12 +375,39 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       got: function(get, instance, value, prev)
       {
-        this.sets.forEach(function(set) { set.got(instance, value, prev); });
+        if (this.active) {
+          this.sets.forEach(function(set) { set.got(instance, value, prev); });
+          this.nested.forEach(function(w) { w.active = true; });
+          if (this.once) {
+            // Make this watch inactive, as well as its siblings if it is a
+            // nested watch
+            this.active = false;
+            if (this.parentNode &&
+                this.parentNode.hasOwnProperty("nested")) {
+              this.parentNode.nested.forEach(function(w) { w.active = false; });
+            }
+          }
+        } else {
+          flexo.log("got ({0}, {1}) for {2} but watch is not active."
+              .fmt(value, prev, instance.hash));
+        }
       },
 
+      // Watch the given instance
       watch_instance: function(instance)
       {
         this.gets.forEach(function(get) { get.watch_instance(instance); });
+        this.nested.forEach(function(w) { w.watch_instance(instance); });
+      },
+
+      // Initialize the watched properties for the given instance
+      init_properties: function(instance)
+      {
+        this.gets.forEach(function(get) {
+          if (get.watched_property) {
+            instance[get.watched_property] = instance[get.watched_property];
+          }
+        });
       }
     },
 
@@ -397,26 +431,35 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         if (name === "property") {
           this.watch_instance = function(instance) {
-            var prop_name = flexo.normalize(value);
-            var property;
+            var prop_name = property_name(flexo.normalize(value));
+            this.watched_property = prop_name;
+            var property = instance.node[prop_name];
             var watch = this.watch;
             var transform = this.transform;
             flexo.getter_setter(instance, prop_name,
                 function() { return property; },
                 function(v) {
                   var v_ = transform.call(instance, v, property);
+                  flexo.log("? set {0}/{1} to {2} ({3}) (from {4})"
+                    .fmt(instance.hash, prop_name, v, v_, property))
                   if (v_ !== undefined) {
                     var prev = property;
                     property = v_;
                     watch.got(this, instance, v_, prev);
                   }
                 });
+            flexo.log("* watching {0}/{1} (init value from {2}: {3})"
+                .fmt(instance.hash, prop_name, instance.node.hash, property));
           };
         } else if (name === "dom-event" || name === "event") {
           var event_type = flexo.normalize(value);
           this.watch_instance = function(instance) {
             var source;
-            if (this.source_view) source = instance.views[this.source_view];
+            if (this.source_view) {
+              source = instance.views[this.source_view];
+            } else if (this.source_component) {
+              source = instance.views[this.source_component];
+            }
             if (!source) {
               source = name === "dom-event" ?
                 instance.target.ownerDocument : instance;
@@ -427,6 +470,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 var v = transform.call(instance, e);
                 if (v !== undefined) watch.got(this, instance, v);
               });
+            flexo.log("* watching {0}/{1}"
+                .fmt(instance.hash, event_type));
           };
         } else if (name === "view") {
           this.source_view = flexo.normalize(value);
@@ -550,15 +595,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 render(ch, dest);
               }
             } else {
-              var reuse = ch.getAttributeNS(bender.NS, "reuse");
-              var d;
-              if (reuse) {
+              var once = is_true(ch.getAttributeNS(bender.NS, "render-once"));
+              var d = undefined;
+              var reuse = flexo
+                .normalize(ch.getAttributeNS(bender.NS, "reuse"));
+              if (reuse.toLowerCase() === "any") {
+                d = find_first_element(dest.ownerDocument, ch.namespaceURI,
+                    ch.localName);
                 flexo.log("!reuse={0}".fmt(reuse));
-                reuse = flexo.normalize(reuse);
-                if (reuse.toLowerCase() === "any") {
-                  d = find_first_element(dest.ownerDocument, ch.namespaceURI,
-                      ch.localName);
-                }
               }
               if (!d) {
                 d = dest.ownerDocument.createElementNS(ch.namespaceURI,
@@ -587,12 +631,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       })(this.node.view, this.target);
-      this.node.watches.forEach(function(w) { w.watch_instance(self); });
-      for (var p in this.node.properties) {
-        if (this.node.properties.hasOwnProperty(p)) {
-          this[p] = this.node[p];
-        }
-      }
+      this.node.watches.forEach(function(w) {
+          w.watch_instance.call(w, self);
+        });
+      this.node.watches.forEach(function(w) {
+          w.init_properties.call(w, self);
+        });
       bender.notify(this, "@rendered");
       return this.target;
     },
@@ -661,9 +705,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // in case-insensitive, whitespace-tolerating way
   var is_true = function(string)
   {
-    return value.replace(/^\s*/, "").replace(/\s*$/, "")
-      .toLowerCase() === "true";
+    return flexo.normalize(string).toLowerCase() === "true";
   };
+
+  // Transform an XML name into the actual property name (undash and prefix with
+  // $, so that for instance "rate-ms" will become $rateMs.)
+  var property_name = function(name) { return "$" + flexo.undash(name); };
 
   // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die
