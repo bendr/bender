@@ -4,13 +4,13 @@
     <title>⚐ Bender runtime</title>
     <meta charset="UTF-8">
     <style>
-      html, body { height: 100%; margin: 0 }
-      body, input { font-family: "Helvetica Neue", Helvetica, sans-serif;
-        font-size: 16px; }
+      html, body { height: 100%; margin: 0; font-size: 16px }
+      body, input { font-family: "Helvetica Neue", Helvetica, sans-serif; }
+      input { font-size: 14px; }
       #back { position: absolute; right: 0; top: 0; }
       #back img { height: 32px; }
       #top { background-color: #444; color: white; height: 32px; }
-      #tool-bar { background-color: #ccc; }
+      #tool-bar { background-color: #ccc; padding: 4px 8px; }
       #output { background-color: white; width: 100%; height: 50%; }
       #bender-target { height: 100%; }
       svg { height: 100%; width: 100%; }
@@ -18,7 +18,7 @@
       #status.warning { background-color: #ff7f40; color: white; }
       #status.ok { background-color: #40ff40; }
       #status.info { background-color: #ccc; }
-      #url-input { border: none; width: 24em; font-size: 16px; padding: 4px; }
+      #url-input { border: none; width: 24em; padding: 4px; }
       p { margin: 0; padding: 8px; }
       .CodeMirror { font-family: Menlo, monospace !important;
         background-color: white; font-size: 14px; height: auto; }
@@ -37,13 +37,11 @@
           logo"></a></div>
     </div>
     <div id="tool-bar">
-      <p>
-        <label>Enter an URL:
-          <input type="text" onchange="url_enter(event)" id="url-input"/>
-        </label>
-        or
-        <input type="file" onchange="file_select(event)"/>
-      </p>
+      <label>Enter an URL:
+        <input type="text" onkeyup="url_enterp(event)" id="url-input"/>
+      </label>
+      or
+      <input type="file" onchange="file_select(event)"/>
     </div>
     <div id="output">
       <div id="bender-target"></div>
@@ -143,10 +141,12 @@
         }
       }
 
-      function url_enter(e)
+      function url_enterp(e)
       {
-        var args = get_args("app={0}".fmt(flexo.normalize(e.target.value)));
-        open_url(args);
+        if (e.keyCode === 13) {
+          var args = get_args("app={0}".fmt(flexo.normalize(e.target.value)));
+          open_url(args);
+        }
       }
 
       // Open a file from a URL
