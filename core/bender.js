@@ -250,16 +250,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         if (ns === bender.NS_E) {
           this[property_name(qname)] = value;
-          flexo.log("* set property {0} to {1} for {2}"
-              .fmt(property_name(qname), value, this.hash));
         } else if (ns === bender.NS_F) {
           this[property_name(qname)] = parseFloat(value);
-          flexo.log("* set float property {0} to {1} for {2}"
-              .fmt(property_name(qname), this[property_name(qname)], this.hash));
         } else if (ns === bender.NS_B) {
-          this[property_name(qname)] = is_true(value);
-          flexo.log("* set boolean property {0} to {1} for {2}"
-              .fmt(property_name(qname), this[property_name(qname)], this.hash));
+          this[property_name(qname)] = flexo.is_true(value);
         }
         return this.super_setAttributeNS(ns, qname, value);
       },
@@ -364,11 +358,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
       setAttribute: function(name, value)
       {
         if (name === "active") {
-          this.active = is_true(value);
+          this.active = flexo.is_true(value);
         } else if (name === "once") {
-          this.once = is_true(value);
+          this.once = flexo.is_true(value);
         } else if (name === "all") {
-          this.all = is_true(value);
+          this.all = flexo.is_true(value);
         }
         return this.super_setAttribute(name, value);
       },
@@ -595,7 +589,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 render(component.childNodes.length > 0 ? component : ch, dest);
               }
             } else {
-              var once = is_true(ch.getAttributeNS(bender.NS, "render-once"));
+              var once =
+                flexo.is_true(ch.getAttributeNS(bender.NS, "render-once"));
               var d = undefined;
               var reuse = flexo
                 .normalize(ch.getAttributeNS(bender.NS, "reuse"));
@@ -699,13 +694,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   var is_bender_node = function(node, localname)
   {
     return node.namespaceURI === bender.NS && node.localName === localname;
-  };
-
-  // Get a true or false value from a string; true if the string matches "true"
-  // in case-insensitive, whitespace-tolerating way
-  var is_true = function(string)
-  {
-    return flexo.normalize(string).toLowerCase() === "true";
   };
 
   // Transform an XML name into the actual property name (undash and prefix with

@@ -131,6 +131,13 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     };
   })();
 
+  // Get a true or false value from a string; true if the string matches "true"
+  // in case-insensitive, whitespace-tolerating way
+  flexo.is_true = function(string)
+  {
+    return flexo.normalize(string).toLowerCase() === "true";
+  };
+
   // Normalize whitespace in a string
   flexo.normalize = function(string)
   {

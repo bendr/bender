@@ -23,6 +23,9 @@ tools will be added.
 
 ### Installing and running Bender
 
+_There is a [new runtime](http://bendr.github.com/bender.html) which will be
+documented soon..._
+
 Bender should be run from a Web server since its runtime relies on
 XMLHttpRequest to load documents. Some browsers will allow accessing documents
 through the file system so YMMV. You can simply make the `bender` directory
