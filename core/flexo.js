@@ -417,7 +417,9 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     var p = svg.createSVGPoint();
     p.x = e.targetTouches ? e.targetTouches[0].clientX : e.clientX;
     p.y = e.targetTouches ? e.targetTouches[0].clientY : e.clientY;
-    return p.matrixTransform(svg.getScreenCTM().inverse());
+    try {
+      return p.matrixTransform(svg.getScreenCTM().inverse());
+    } catch(e) {}
   };
 
   // Find the closest <svg> ancestor for a given element
