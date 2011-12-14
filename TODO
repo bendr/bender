@@ -1,16 +1,17 @@
-Bender TODO list as of 2011-12-11 (v0.3.0)
+Bender TODO list as of 2011-12-14 (v0.3.0)
 
 
 * Bugs
 
 [x] editor bug when loading core/test/arrows.xml?
-[ ] watch/get/@dom-event solved *after* rendering
+[x] watch/get/@dom-event solved *after* rendering
 [ ] unload stylesheet when updating?
 [x] No SVG display? (width issue; fixed)
 
 
 * Core Features
 
+[/] Cleanup after rendering
 [ ] base attribute for location of relative paths (when using the file chooser)
 [ ] Initialization and ordering of watches
 [/] Tree modification
@@ -28,10 +29,10 @@ Bender TODO list as of 2011-12-11 (v0.3.0)
     [ ] handle stylesheets
 [ ] Metadata (at least xml:lang)
 [x] desc element
-[ ] Undash property names
-    [ ] Prefix with $ ?
+[x] Undash property names
+    [x] Prefix with $
 [ ] Keep namespace prefixes around for resolution of attribute names in <watch>
-[x] <local-script> for components
+[/] <local-script> for components
     [ ] href attribute
     [ ] error handling
 [/] "reuse" attribute to avoid copying elements over and over; values: "none"
@@ -52,7 +53,8 @@ Bender TODO list as of 2011-12-11 (v0.3.0)
 
 * Library
 
-[ ] Review metro -> @tick
+[/] Review metro -> @tick
+    [ ] test lib/timer.xml
 [ ] Selection controller
 [ ] Command manager controller
 [ ] Clipboard controller
@@ -77,10 +79,10 @@ Bender TODO list as of 2011-12-11 (v0.3.0)
 
 * Documentation and deployment
 
-[ ] Improve runtime
-    [ ] Merge HTML/SVG runtimes
-    [ ] Access local files through File API?
-[ ] Logo
+[x] Improve runtime
+    [x] Merge HTML/SVG runtimes
+    [x] Access local files through File API?
+[/] Logo
 [ ] Pamphlet
 [ ] Manifesto? (cf. Redis)
 [ ] Skeleton for reference manual
@@ -88,9 +90,10 @@ Bender TODO list as of 2011-12-11 (v0.3.0)
     [x] Unexpand examples
     [x] Run unexpanded examples
     [ ] Pass options (other than debug)
-[/] Sort out tests for current version
+[x] Sort out tests for current version
 [ ] Rsync for website
 [ ] Application packager (make it standalone)
+[ ] Include components in SVG documents
 
 
 * Design and open questions

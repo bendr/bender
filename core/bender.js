@@ -37,7 +37,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
     context.render_head = function(head, force)
     {
       this.stylesheets.forEach(function(stylesheet) {
-          if (force) delete stylesheet.target;
+          if (force) {
+            safe_remove(stylesheet.target);
+            delete stylesheet.target;
+          }
           if (!stylesheet.target) {
             var ns = head.namespaceURI;
             var href = stylesheet.getAttribute("href");
@@ -56,6 +59,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             head.appendChild(stylesheet.target);
           }
         });
+      // TODO scripts
     };
 
     // Unfortunately it doesn't seem that we can set the baseURI of the new
@@ -195,6 +199,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     component: {
       init: function()
       {
+        this.components = [];
         this.instances = {};
         this.watches = [];
         this.scripts = [];
@@ -203,7 +208,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
       insertBefore: function(ch, ref)
       {
         if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "desc") {
+          if (ch.localName === "component") {
+            this.components.push(ch);
+          } else if (ch.localName === "desc") {
             if (this.desc) {
               bender.warn("Redefinition of desc in {0}".fmt(this.hash));
             }
@@ -267,6 +274,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
         flexo.hash(instance, "instance");
         instance.node = this;
         instance.views = {};
+        instance.instances = {};
+        this.components.forEach(function(c) {
+            if (c.ref) {
+              var def = c.ownerDocument.components[c.ref];
+              if (def) {
+                var ch_instance = def.instantiate();
+                var id = c.getAttribute("id");
+                if (id) instance.instances[flexo.undash(id)] = ch_instance;
+              }
+            }
+          });
         this.instances[instance.hash] = instance;
         return instance;
       },
@@ -381,9 +399,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
               this.parentNode.nested.forEach(function(w) { w.active = false; });
             }
           }
-        } else {
-          flexo.log("got ({0}, {1}) for {2} but watch is not active."
-              .fmt(value, prev, instance.hash));
         }
       },
 
@@ -434,16 +449,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 function() { return property; },
                 function(v) {
                   var v_ = transform.call(instance, v, property);
-                  flexo.log("? set {0}/{1} to {2} ({3}) (from {4})"
-                    .fmt(instance.hash, prop_name, v, v_, property))
                   if (v_ !== undefined) {
                     var prev = property;
                     property = v_;
                     watch.got(this, instance, v_, prev);
                   }
                 });
-            flexo.log("* watching {0}/{1} (init value from {2}: {3})"
-                .fmt(instance.hash, prop_name, instance.node.hash, property));
           };
         } else if (name === "dom-event" || name === "event") {
           var event_type = flexo.normalize(value);
@@ -451,8 +462,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var source;
             if (this.source_view) {
               source = instance.views[this.source_view];
-            } else if (this.source_component) {
-              source = instance.views[this.source_component];
+            } else if (this.source_instance) {
+              source = instance.instances[this.source_instance];
             }
             if (!source) {
               source = name === "dom-event" ?
@@ -464,13 +475,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 var v = transform.call(instance, e);
                 if (v !== undefined) watch.got(this, instance, v);
               });
-            flexo.log("* watching {0}/{1}"
-                .fmt(instance.hash, event_type));
           };
         } else if (name === "view") {
           this.source_view = flexo.normalize(value);
-        } else if (name === "component") {
-          this.source_component = flexo.normalize(value);
+        } else if (name === "instance") {
+          this.source_instance = flexo.undash(flexo.normalize(value));
         }
         return this.super_setAttribute(name, value);
       },
@@ -597,7 +606,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
               if (reuse.toLowerCase() === "any") {
                 d = find_first_element(dest.ownerDocument.documentElement,
                     ch.namespaceURI, ch.localName);
-                flexo.log("!reuse={0}".fmt(reuse));
               }
               if (!d) {
                 d = dest.ownerDocument.createElementNS(ch.namespaceURI,
@@ -699,6 +707,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Transform an XML name into the actual property name (undash and prefix with
   // $, so that for instance "rate-ms" will become $rateMs.)
   var property_name = function(name) { return "$" + flexo.undash(name); };
+
+  // Safe removal of a node; do nothing if the node did not exist or had no
+  // parent
+  var safe_remove = function(node)
+  {
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  };
+
 
   // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die
