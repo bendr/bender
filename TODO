@@ -1,11 +1,10 @@
-Bender TODO list as of 2011-12-14 (v0.3.0)
+Bender TODO list as of 2011-12-15 (v0.3.0)
 
 
 * Bugs
 
 [x] editor bug when loading core/test/arrows.xml?
 [x] watch/get/@dom-event solved *after* rendering
-[ ] unload stylesheet when updating?
 [x] No SVG display? (width issue; fixed)
 
 
@@ -23,6 +22,7 @@ Bender TODO list as of 2011-12-14 (v0.3.0)
     [x] retrieve old value ("previous_value")
     [ ] a property changed in a component should trigger a get in another
         component looking at that property -> generate an event automatically
+    [ ] several <watch>es with the same <get>
 [ ] Component extension
     [ ] core/tests/uber-clock*
 [x] Generate new ids from component instances

@@ -194,29 +194,32 @@
             EDITOR.setValue(req.responseText);
             var context = bender.create_context(document);
             var app = context.import(req.responseXML.documentElement);
-            var instance = app.instantiate();
-            if (instance.render(args.TARGET, true)) {
-              for (var a in args) {
-                if (args.hasOwnProperty(a)) {
-                  if (a.substr(0, 2) === "e:") {
-                    prop_name = "$" + flexo.undash(a.substr(2));
-                    instance[prop_name] = args[a];
-                  } else if (a.substr(0, 2) === "f:") {
-                    prop_name = "$" + flexo.undash(a.substr(2));
-                    instance[prop_name] = parseFloat(args[a]);
-                  } else if (a.substr(0, 2) === "b:") {
-                    prop_name = "$" + flexo.undash(a.substr(2));
-                    instance[prop_name] = bender.is_true(args[a]);
-                  } else if (a.substr(0, 1) === "$") {
-                    instance[a] = args[a];
+            flexo.log("??? @loaded", app);
+            bender.listen_(app, "@loaded", function() {
+                var instance = app.instantiate();
+                if (instance.render(args.TARGET, true)) {
+                  for (var a in args) {
+                    if (args.hasOwnProperty(a)) {
+                      if (a.substr(0, 2) === "e:") {
+                        prop_name = "$" + flexo.undash(a.substr(2));
+                        instance[prop_name] = args[a];
+                      } else if (a.substr(0, 2) === "f:") {
+                        prop_name = "$" + flexo.undash(a.substr(2));
+                        instance[prop_name] = parseFloat(args[a]);
+                      } else if (a.substr(0, 2) === "b:") {
+                        prop_name = "$" + flexo.undash(a.substr(2));
+                        instance[prop_name] = bender.is_true(args[a]);
+                      } else if (a.substr(0, 1) === "$") {
+                        instance[a] = args[a];
+                      }
+                    }
                   }
+                  ok("OK");
+                  bender.notify(instance, "@ready");
+                } else {
+                  warn("Component has no view.");
                 }
-              }
-              ok("OK");
-              bender.notify(instance, "@ready");
-            } else {
-              warn("Component has no view.");
-            }
+              });
           });
       }
 
