@@ -1,0 +1,47 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" id="timer" f:rate-ms="1000">
+
+  <title>Timer</title>
+
+  <local-script>
+
+    var timeout = null;
+
+    // The timer has a running read-only property
+    prototype.init = function()
+    {
+      flexo.getter_setter(this, "running", function() { return !!timeout; });
+    };
+
+    // Start the timer; it will emit a @tick event at the interval given by
+    // rate-ms (in ms.) Restart if it was running.
+    prototype.start = function()
+    {
+      if (timeout) clearTimeout(timeout);
+      var self = this;
+      var tick = function() {
+        bender.notify(self, "@tick");
+        timeout = setTimeout(tick, self.$rateMs);
+      };
+      timeout = setTimeout(tick, self.$rateMs);
+    };
+
+    // Stop the timer. Noop if it was not running.
+    prototype.stop = function()
+    {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    };
+
+  </local-script>
+
+  <watch>
+    <get property="rate-ms">
+      var v = parseFloat(value);
+      if (v > 0) return v;
+    </get>
+  </watch>
+
+</component>

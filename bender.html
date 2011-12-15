@@ -157,13 +157,15 @@
               try {
                 var context = bender.create_context(document);
                 var app = context.import(doc.documentElement);
-                var instance = app.instantiate();
-                if (instance.render(ARGS.TARGET, true)) {
-                  ok("OK");
-                  bender.notify(instance, "@ready");
-                } else {
-                  warn("Component has no view.");
-                }
+                bender.listen_(app, "@loaded", function() {
+                    var instance = app.instantiate();
+                    if (instance.render(ARGS.TARGET, true)) {
+                      ok("OK");
+                      bender.notify(instance, "@ready");
+                    } else {
+                      warn("Component has no view.");
+                    }
+                  });
               } catch (e) {
                 error(e.message);
                 ARGS.TARGET.appendChild(document.importNode(doc.documentElement,
@@ -194,7 +196,6 @@
             EDITOR.setValue(req.responseText);
             var context = bender.create_context(document);
             var app = context.import(req.responseXML.documentElement);
-            flexo.log("??? @loaded", app);
             bender.listen_(app, "@loaded", function() {
                 var instance = app.instantiate();
                 if (instance.render(args.TARGET, true)) {

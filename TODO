@@ -49,7 +49,7 @@ Bender TODO list as of 2011-12-15 (v0.3.0)
     [ ] Readd <connect>?
         [ ] underspecified <connect> for component extension
 [ ] Search path for components
-[/] Remove component@ref, replace ref="foo" with href="#foo"
+[x] Remove component@ref, replace ref="foo" with href="#foo"
 [ ] Changing id of component
 
 

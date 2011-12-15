@@ -33,20 +33,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return e;
     };
 
-    // Load a component at the given URI
-    context.load_component = function(uri, node)
+    // Load a component at the given URI.
+    context.load_component = function(uri, f)
     {
       var u = uri.split("#");
       if (!(this.loaded.hasOwnProperty(u[0]))) {
         this.loaded[u[0]] = false;
         flexo.log("Load {0} ({1})".fmt(uri, u[0]));
         flexo.request_uri(uri, (function(req) {
-            var component = this.import(req.responseXML.documentElement);
             this.loaded[u[0]] = true;
-            check_loaded(node);
+            var component = context.import(req.responseXML.documentElement);
           }).bind(this));
-      } else {
-        flexo.log("{0} already loaded".fmt(u[0]));
       }
     };
 
@@ -78,22 +75,26 @@ if (typeof require === "function") flexo = require("./flexo.js");
       // TODO scripts
     };
 
+    // Import a node into the current context; if there is no outstanding
+    // loading to be performed, send a @loaded notification
     context.import = function(node)
     {
-      var n = import_node(this.documentElement, node, false);
-      check_loaded(n);
-      return n;
+      return this.check_loaded(import_node(this.documentElement, node, false));
     };
 
-    var check_loaded = function(node)
+    context.check_loaded = function(node)
     {
-      for (var i in context.loaded) {
-        if (context.loaded.hasOwnProperty(i) && !context.loaded[i]) return;
+      for (var i in this.loaded) {
+        if (this.loaded.hasOwnProperty(i) && !this.loaded[i]) {
+          flexo.log("{0}: {1} not loaded yet".fmt(node.hash, i));
+          return node;
+        }
       }
       setTimeout(function() {
-          flexo.log(">>> @loaded", node);
+          flexo.log("{0}: all loaded".fmt(node.hash));
           bender.notify(node, "@loaded");
         }, 0);
+      return node;
     }
 
     // Unfortunately it doesn't seem that we can set the baseURI of the new
@@ -171,9 +172,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       init: function()
       {
         this.components = [];
-        this.instances = {};
+        this.hashes = {};
         this.watches = [];
         this.scripts = [];
+        this.is_component = true;
       },
 
       insertBefore: function(ch, ref)
@@ -216,8 +218,23 @@ if (typeof require === "function") flexo = require("./flexo.js");
         if (name === "href") {
           this.is_definition = false;
           this.href = absolutize_uri(this.uri, flexo.normalize(value));
-          if (this.href.substr(0, 1) !== "#") {
-            this.ownerDocument.load_component(this.href, this.parentNode);
+          var u = this.href.split("#");
+          if (u[0]) {
+            var context = this.ownerDocument;
+            var p = this.parentNode;
+            if (!(context.loaded.hasOwnProperty(u[0]))) {
+              context.loaded[u[0]] = false;
+              flexo.request_uri(u[0], function(req) {
+                  context.loaded[u[0]] = true;
+                  var component = context.import(req.responseXML.documentElement);
+                  while (p && !p.is_component) p = p.parentNode;
+                  if (p) {
+                    bender.listen_(component, "@loaded", function() {
+                        context.check_loaded(p);
+                      });
+                  }
+                });
+            }
           }
         } else if (name === "id") {
           var id = flexo.normalize(value);
@@ -266,22 +283,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
               }
             }
           });
-        this.instances[instance.hash] = instance;
+        this.hashes[instance.hash] = instance;
         return instance;
       },
 
       update_title: function()
       {
-        if (this.instances) {
-          for (h in this.instances) this.instances[h].render_title();
-        }
+        for (h in this.hashes) this.hashes[h].render_title();
       },
 
       update_view: function()
       {
-        if (this.instances) {
-          for (h in this.instances) this.instances[h].render();
-        }
+        for (h in this.hashes) this.hashes[h].render();
       }
     },
 

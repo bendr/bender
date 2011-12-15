@@ -1,29 +1,11 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Welcome to Bender!</title>
 
-  <component id="button">
-    <stylesheet>
-      .bender-button { display: inline-block; cursor: default;
-        padding: .3em .5em; background-color:#ddd; -moz-border-radius: 6px;
-        -webkit-border-radius: 6px; border-radius: 6px;
-        box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
-    </stylesheet>
-    <view>
-      <html:div id="b" class="bender-button">
-        <content>OK</content>
-      </html:div>
-    </view>
-    <watch>
-      <get view="b" dom-event="click">
-        bender.notify(this, "@pushed");
-      </get>
-    </watch>
-  </component>
-
   <view>
     <html:p>Welcome to Bender!</html:p>
     <html:p>
-      <component id="thanks-button" href="#button">Thanks</component>
+      <component id="thanks-button"
+        href="/lib/push-button.xml#button">Thanks</component>
     </html:p>
   </view>
 

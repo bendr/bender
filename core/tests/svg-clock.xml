@@ -2,7 +2,7 @@
   f:rate-ms="333">
   <title>SVG Clock</title>
 
-  <component id="clock" href="/lib/timer.xml"/>
+  <component id="clock" href="/lib/timer.xml#timer"/>
 
   <view>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
@@ -24,7 +24,7 @@
           stroke: "white" });
         this.views.seconds.parentNode.insertBefore(c, this.views.seconds);
       }
-      this.instances.$clock.start();
+      this.instances.clock.start();
     ]]></get>
   </watch>
 
