@@ -43,7 +43,7 @@
   <watch>
     <get view="button" dom-event="click"/>
     <set property="last-name">
-      return this.$lastName.toUpperCase();
+      return previous_value.toUpperCase();
     </set>
   </watch>
 

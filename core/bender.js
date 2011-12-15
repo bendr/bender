@@ -536,6 +536,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       got: function(instance, v, prev)
       {
+        if (prev === undefined && this.property) prev = instance[this.property];
         var v_ = this.transform.call(instance, v, prev);
         if (this.view) {
           if (this.attr) {
