@@ -77,9 +77,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     // Import a node into the current context; if there is no outstanding
     // loading to be performed, send a @loaded notification
-    context.import = function(node)
+    context.import = function(node, uri)
     {
-      return this.check_loaded(import_node(this.documentElement, node, false));
+      return this
+        .check_loaded(import_node(this.documentElement, node, false, uri));
     };
 
     context.check_loaded = function(node)
@@ -100,8 +101,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // Unfortunately it doesn't seem that we can set the baseURI of the new
     // document, so we have to have a different property
     wrap_element(context.documentElement);
-    context.documentElement.uri = target.baseURI;
-    context.uri = target.baseURI;
+    var u = target.baseURI.split(/[#?]/);
+    context.documentElement.uri = u[0];
+    context.uri = u[0];
     context.loaded = {};
     context.loaded[context.uri] = true;
     context.components = {};
@@ -119,7 +121,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     content: true,
     desc: true,
     get: true,
-    // include: false,
+    "import": false,
     "local-script": true,
     // script: true,
     set: true,
@@ -165,6 +167,38 @@ if (typeof require === "function") flexo = require("./flexo.js");
       },
 
       init: function() {},
+    },
+
+    // <import> element
+    // Load a file at the given href and import its components in the current
+    // component
+    "import":
+    {
+      setAttribute: function(name, value)
+      {
+        if (name === "href") {
+          this.href = absolutize_uri(this.uri, flexo.normalize(value));
+          var u = this.href.split("#");
+          var context = this.ownerDocument;
+          var p = this.parentNode;
+          if (!(context.loaded.hasOwnProperty(u[0]))) {
+            flexo.log("Import component {0} (at {1})".fmt(this.href, u[0]));
+            context.loaded[u[0]] = false;
+            flexo.request_uri(u[0], function(req) {
+                context.loaded[u[0]] = true;
+                while (p && !p.is_component) p = p.parentNode;
+                var c = context.import(req.responseXML.documentElement,
+                  p ? p.uri : context.uri);
+                if (p) {
+                  bender.listen_(c, "@loaded", function() {
+                      context.check_loaded(p);
+                    });
+                }
+              });
+          }
+        }
+        return this.super_setAttribute(name, value);
+      }
     },
 
     // <component> element
@@ -217,19 +251,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         if (name === "href") {
           this.is_definition = false;
-          this.href = absolutize_uri(this.uri, flexo.normalize(value));
-          var u = this.href.split("#");
-          if (u[0]) {
+          var href = flexo.normalize(value);
+          this.href = absolutize_uri(this.uri, href);
+          if (href.substr(0, 1) !== "#") {
+            var u = this.href.split("#");
             var context = this.ownerDocument;
             var p = this.parentNode;
             if (!(context.loaded.hasOwnProperty(u[0]))) {
+              flexo.log("Load component {0} (at {1})".fmt(this.href, u[0]));
               context.loaded[u[0]] = false;
               flexo.request_uri(u[0], function(req) {
                   context.loaded[u[0]] = true;
-                  var component = context.import(req.responseXML.documentElement);
+                  var c = context.import(req.responseXML.documentElement);
                   while (p && !p.is_component) p = p.parentNode;
                   if (p) {
-                    bender.listen_(component, "@loaded", function() {
+                    bender.listen_(c, "@loaded", function() {
                         context.check_loaded(p);
                       });
                   }
@@ -730,7 +766,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // tree, node is the current node to be imported, and in_view is a flag set
   // once we enter the scope of a view element so that we keep foreign nodes
   // (they are discarded otherwise.)
-  function import_node(parent, node, in_view)
+  function import_node(parent, node, in_view, uri)
   {
     if (node.nodeType === 1) {
       if (node.namespaceURI !== bender.NS) {
@@ -744,7 +780,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
       var n = parent.ownerDocument
         .createElementNS(node.namespaceURI, node.localName);
-      n.uri = node.baseURI || parent.uri;
+      n.uri = uri || node.baseURI || parent.uri;
       parent.appendChild(n);
       for (var i = 0, m = node.attributes.length; i < m; ++i) {
         var attr = node.attributes[i];
@@ -760,7 +796,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
       }
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-        import_node(n, ch, in_view);
+        import_node(n, ch, in_view, uri);
       }
       return n;
     } else if (node.nodeType === 3 || node.nodeType === 4) {

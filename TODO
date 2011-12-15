@@ -48,9 +48,11 @@ Bender TODO list as of 2011-12-15 (v0.3.0)
       view.
     [ ] Readd <connect>?
         [ ] underspecified <connect> for component extension
-[ ] Search path for components
+[ ] Search path for components: name vs. href
+    [ ] import names components
 [x] Remove component@ref, replace ref="foo" with href="#foo"
 [ ] Changing id of component
+[ ] Changing parent of import
 
 
 * Library
@@ -78,6 +80,7 @@ Bender TODO list as of 2011-12-15 (v0.3.0)
 [ ] Peacock
 [ ] Bender Builder
 
+[ ] Make calculator by building the tree
 
 * Documentation and deployment
 
