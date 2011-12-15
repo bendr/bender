@@ -65,7 +65,13 @@
       var INPUT = document.getElementById("input");
       var TARGET = document.getElementById("bender-target");
 
-      var y_STATUS, h_OUTPUT, h_MAX;
+      var y_STATUS, h_OUTPUT;
+
+      var h_MAX = window.innerHeight - OUTPUT.offsetTop - STATUS_.offsetHeight;
+      OUTPUT.style.height = "{0}px".fmt(h_MAX);
+      EDITOR.getScrollerElement().style.height = "{0}px"
+        .fmt(window.innerHeight - OUTPUT.offsetTop - h_MAX -
+          STATUS_.offsetHeight);
 
       STATUS_.addEventListener("mousedown", function(event) {
           event.preventDefault();

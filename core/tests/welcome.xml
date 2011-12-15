@@ -23,7 +23,7 @@
   <view>
     <html:p>Welcome to Bender!</html:p>
     <html:p>
-      <component id="thanks-button" ref="button">Thanks</component>
+      <component id="thanks-button" href="#button">Thanks</component>
     </html:p>
   </view>
 

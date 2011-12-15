@@ -2,6 +2,8 @@
   f:rate-ms="333">
   <title>SVG Clock</title>
 
+  <component id="clock" href="/lib/timer.xml"/>
+
   <view>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
       viewBox="-220 -220 440 440">
@@ -15,20 +17,6 @@
     </svg>
   </view>
 
-  <local-script>
-
-    var interval;
-
-    prototype.start_timer = function()
-    {
-      if (interval) clearInterval(interval);
-      interval =
-        setInterval((function() { bender.notify(this, "@tick"); }).bind(this),
-          this["rate-ms"]);
-    };
-
-  </local-script>
-
   <watch>
     <get event="@ready"><![CDATA[
       for (var i = 1; i < 60; ++i) {
@@ -36,12 +24,12 @@
           stroke: "white" });
         this.views.seconds.parentNode.insertBefore(c, this.views.seconds);
       }
-      this.start_timer();
+      this.instances.$clock.start();
     ]]></get>
   </watch>
 
   <watch>
-    <get event="@tick">
+    <get instance="clock" event="@tick">
       return new Date();
     </get>
     <set view="hours" attr="transform">

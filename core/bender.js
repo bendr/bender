@@ -33,6 +33,23 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return e;
     };
 
+    // Load a component at the given URI
+    context.load_component = function(uri)
+    {
+      var u = uri.split("#");
+      if (!(this.loaded.hasOwnProperty(u[0]))) {
+        this.loaded[u[0]] = false;
+        flexo.log("Load {0} ({1})".fmt(uri, u[0]));
+        flexo.request_uri(uri, (function(req) {
+            var component = this.import(req.responseXML.documentElement);
+            this.loaded[u[0]] = true;
+            flexo.log(component);
+          }).bind(this));
+      } else {
+        flexo.log("{0} already loaded".fmt(u[0]));
+      }
+    };
+
     // Render global elements in the head of the target
     context.render_head = function(head, force)
     {
@@ -43,13 +60,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
           if (!stylesheet.target) {
             var ns = head.namespaceURI;
-            var href = stylesheet.getAttribute("href");
-            if (href) {
+            if (stylesheet.href) {
               stylesheet.target = ns ?
                 head.ownerDocument.createElementNS(ns, "link") :
                 head.ownerDocument.createElement("link");
               stylesheet.target.setAttribute("rel", "stylesheet");
-              stylesheet.target.setAttribute("href", href);
+              stylesheet.target.setAttribute("href", stylesheet.href);
             } else {
               stylesheet.target = ns ?
                 head.ownerDocument.createElementNS(ns, "style") :
@@ -68,56 +84,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     context.documentElement.uri = target.baseURI;
 
     context.uri = target.baseURI;
+    context.loaded = {};
+    context.loaded[context.uri] = true;
     context.components = {};
     context.stylesheets = [];
     context.import = import_node.bind(context, context.documentElement);
     return context;
   };
-
-  // Import a node from a document (e.g., as obtained by a FileReader or
-  // XMLHttpRequest) into a Bender context. Parent is the parent in the Bender
-  // tree, node is the current node to be imported, and in_view is a flag set
-  // once we enter the scope of a view element so that we keep foreign nodes
-  // (they are discarded otherwise.)
-  function import_node(parent, node, in_view)
-  {
-    if (node.nodeType === 1) {
-      if (node.namespaceURI !== bender.NS) {
-        if (!in_view) return;
-      } else {
-        if (!can_has_text_content.hasOwnProperty(node.localName)) {
-          bender.warn("Unknown bender element {0}".fmt(node.localName));
-          return;
-        }
-        if (node.localName === "view") in_view = true;
-      }
-      var n = parent.ownerDocument
-        .createElementNS(node.namespaceURI, node.localName);
-      parent.appendChild(n);
-      for (var i = 0, m = node.attributes.length; i < m; ++i) {
-        var attr = node.attributes[i];
-        if (attr.namespaceURI) {
-          if (attr.namespaceURI === flexo.XMLNS_NS &&
-              attr.localName !== "xmlns") {
-            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
-          } else {
-            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
-          }
-        } else {
-          n.setAttribute(attr.localName, attr.nodeValue);
-        }
-      }
-      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-        import_node(n, ch, in_view);
-      }
-      return n;
-    } else if (node.nodeType === 3 || node.nodeType === 4) {
-      if (in_view || can_has_text_content[parent.localName]) {
-        var n = parent.ownerDocument.importNode(node, false);
-        parent.appendChild(n);
-      }
-    }
-  }
 
   // If the value is true then nodes with that name (in the Bender namespace)
   // allow text content, otherwise it is simply discarded and only element
@@ -152,7 +125,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     }
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
     if (e.localName === "stylesheet") e.ownerDocument.stylesheets.push(e);
-    e.uri = e.ownerDocument.uri;
     e.init();
     return e;
   }
@@ -242,13 +214,24 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttribute: function(name, value)
       {
-        if (name === "id") {
-          var id = this.getAttribute("id");
-          if (id && id !== value) delete this.ownerDocument.components[value];
-          this.ownerDocument.components[value] = this;
-        } else if (name === "ref") {
+        if (name === "href") {
           this.is_definition = false;
-          this.ref = value;
+          this.href = absolutize_uri(this.uri, flexo.normalize(value));
+          if (this.href.substr(0, 1) !== "#") {
+            this.ownerDocument.load_component(this.href);
+          }
+        } else if (name === "id") {
+          var id = flexo.normalize(value);
+          // TODO review this
+          // if (this.id && this.id !== id) {
+          //   delete this.ownerDocument.components[this.id];
+          // }
+          if (this.id && this.id !== id) {
+            this.uri = this.uri.replace(/#.*$/, "");
+          }
+          this.uri += "#" + id;
+          this.id = id;
+          this.ownerDocument.components[this.uri] = this;
         }
         return this.super_setAttribute(name, value);
       },
@@ -276,12 +259,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
         instance.views = {};
         instance.instances = {};
         this.components.forEach(function(c) {
-            if (c.ref) {
-              var def = c.ownerDocument.components[c.ref];
+            if (c.href) {
+              var def = c.ownerDocument.components[c.href];
               if (def) {
+                flexo.log("instantiate {0} -> {1}".fmt(c.href, def.hash));
                 var ch_instance = def.instantiate();
                 var id = c.getAttribute("id");
                 if (id) instance.instances[flexo.undash(id)] = ch_instance;
+              } else {
+                bender.warn("No component for href=\"{0}\"?!".fmt(c.href));
               }
             }
           });
@@ -319,8 +305,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttribute: function(name, value)
       {
-        if (name === "href" && this.target) {
-          this.target.href = value;
+        if (name === "href") {
+          this.href = absolutize_uri(this.uri, flexo.normalize(value));
+          if (this.target) this.target.href = this.href;
         }
         return this.super_setAttribute(name, value);
       },
@@ -655,6 +642,29 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Utility functions
 
+  var absolutize_uri = function(base_uri, uri)
+  {
+    // Sometimes we don't know the base URI...
+    if (!base_uri) return uri;
+    // Start with a scheme: return as is
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+/.test(uri)) return uri;
+    // Absolute path: resolve with current host
+    if (/^\//.test(uri)) {
+      return base_uri.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+[^\/]*/) + uri;
+    }
+    // Relative path; split into path/fragment identifier
+    var abs = base_uri.replace(/#.*$/, "");
+    var p = uri.split("#");
+    if (p[0]) abs = abs.replace(/(\/?)[^\/]*$/, "$1" + p[0]);
+    var m;
+    while (m = /[^\/]+\/\.\.\//.exec(abs)) {
+      abs = abs.substr(0, m.index) + abs.substr(m.index + m[0].length);
+    }
+    if (p[1]) abs += "#" + p[1];
+    flexo.log("absolute URI: {0} + {1} -> {2}".fmt(base_uri, uri, abs));
+    return abs;
+  }
+
   var find_first_element = function(node, ns, name)
   {
     // Use depth-first search to find the first element in document order
@@ -696,6 +706,52 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return view.parentNode;
     }
   };
+
+  // Import a node from a document (e.g., as obtained by a FileReader or
+  // XMLHttpRequest) into a Bender context. Parent is the parent in the Bender
+  // tree, node is the current node to be imported, and in_view is a flag set
+  // once we enter the scope of a view element so that we keep foreign nodes
+  // (they are discarded otherwise.)
+  function import_node(parent, node, in_view)
+  {
+    if (node.nodeType === 1) {
+      if (node.namespaceURI !== bender.NS) {
+        if (!in_view) return;
+      } else {
+        if (!can_has_text_content.hasOwnProperty(node.localName)) {
+          bender.warn("Unknown bender element {0}".fmt(node.localName));
+          return;
+        }
+        if (node.localName === "view") in_view = true;
+      }
+      var n = parent.ownerDocument
+        .createElementNS(node.namespaceURI, node.localName);
+      n.uri = node.baseURI;
+      parent.appendChild(n);
+      for (var i = 0, m = node.attributes.length; i < m; ++i) {
+        var attr = node.attributes[i];
+        if (attr.namespaceURI) {
+          if (attr.namespaceURI === flexo.XMLNS_NS &&
+              attr.localName !== "xmlns") {
+            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
+          } else {
+            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+          }
+        } else {
+          n.setAttribute(attr.localName, attr.nodeValue);
+        }
+      }
+      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+        import_node(n, ch, in_view);
+      }
+      return n;
+    } else if (node.nodeType === 3 || node.nodeType === 4) {
+      if (in_view || can_has_text_content[parent.localName]) {
+        var n = parent.ownerDocument.importNode(node, false);
+        parent.appendChild(n);
+      }
+    }
+  }
 
   // Check whether the node is in the Bender namespace and has the requested
   // local name

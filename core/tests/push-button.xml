@@ -94,8 +94,8 @@
 
   <view>
     <html:p>
-      <component ref="button" id="ok-button"/>
-      <component ref="button" id="cancel-button">Cancel</component>
+      <component href="#button" id="ok-button"/>
+      <component href="#button" id="cancel-button">Cancel</component>
     </html:p>
   </view>
 
