@@ -10,7 +10,7 @@
     body { background-color: #888; font-family: sans-serif; }
     @font-face { font-family: Digital7; src: url("/apps/demos/digital-7.ttf");
       font-weight: normal; font-style: normal; }
-    .calculator { width: 400px; background-color: #fd0; padding: 24px;
+    .calculator { width: 412px; background-color: #fd0; padding: 24px;
       margin: 32px auto; -webkit-border-radius: 12px; -moz-border-radius: 12px;
       border-radius: 12px; box-shadow: 4px 4px 8px #444; }
     .screen { position: relative; text-align: right; margin-bottom: 32px;
@@ -26,11 +26,11 @@
     .row .bender-button { padding: 14px 0 0 0; margin: 0; width: 88px;
       height: 70px; text-align: center; font-size: 48px; position: absolute;
       box-shadow: 1px 1px 5px #444; }
-    .row .bender-button:nth-child(2) { left: 104px; }
-    .row .bender-button:nth-child(3) { left: 208px; }
-    .row .bender-button:nth-child(4) { left: 312px; }
+    .row .bender-button:nth-child(2) { left: 108px; }
+    .row .bender-button:nth-child(3) { left: 216px; }
+    .row .bender-button:nth-child(4) { left: 324px; }
     .bender-button.tall { padding-top: 118px; }
-    .bender-button.wide { padding-right: 104px; }
+    .bender-button.wide { padding-right: 108px; }
   </stylesheet>
 
   <view>
