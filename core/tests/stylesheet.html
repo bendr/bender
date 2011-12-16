@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Stylesheet test</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../bender.css">
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <h1>Stylesheet test</h1>
+    <ol>
+      <li>Create a context</li>
+      <li>Create an application with a view and a stylesheet</li>
+      <li>Render the application. Initially the background is red.</li>
+      <li>After one second, change the background color to green.</li>
+      <li>After one more second, remove the stylesheet: the background should
+      revert to its original color.</li>
+    </ol>
+
+    <script>
+
+      var context = bender.create_context();
+      var app = context.createElement("app");
+      context.documentElement.appendChild(app);
+      var view = context.createElement("view");
+      app.appendChild(view);
+      var stylesheet = context.createElement("stylesheet");
+      stylesheet.set_text_content("body { background-color: red; }");
+      app.appendChild(stylesheet);
+      var instance = app.instantiate();
+      instance.render(document.body, true);
+      setTimeout(function() {
+          stylesheet.set_text_content("body { background-color: green; }");
+          setTimeout(function() {
+              app.removeChild(stylesheet);
+            }, 1000);
+        }, 1000);
+
+    </script>
+  </body>
+</html>
+

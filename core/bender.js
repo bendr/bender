@@ -362,6 +362,10 @@ if (typeof require === "function") flexo = require("./flexo.js");
       remove_from_parent: function()
       {
         flexo.remove_from_array(this.ownerDocument.stylesheets, this);
+        if (this.target) {
+          safe_remove(this.target);
+          delete this.target;
+        }
       },
 
       insertBefore: function(ch, ref)
