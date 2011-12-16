@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
-  xmlns:e="http://bender.igel.co.jp/e" e:op=""
+  xmlns:e="http://bender.igel.co.jp/e" e:op="" e:input="0"
   xmlns:b="http://bender.igel.co.jp/b" b:clear="false"
-  xmlns:f="http://bender.igel.co.jp/f" f:n="0" f:rotate="0">
+  xmlns:f="http://bender.igel.co.jp/f" f:rotate="0">
   <title>Simple Calculator</title>
 
   <import href="/lib/push-button.xml"/>
@@ -84,8 +84,18 @@
   </local-script>
 
   <watch>
+    <get property="input"/>
+    <set property="n">
+      return parseFloat(value);
+    </set>
+  </watch>
+
+  <watch>
     <get property="n"/>
-    <set view="value"/>
+    <set view="value">
+      return value.toString() +
+        (this.$input[this.$input.length - 1] === "." ?  "." : "");
+    </set>
   </watch>
 
   <watch>
@@ -94,23 +104,36 @@
   </watch>
 
   <watch>
-    <get view="zero" event="@pushed" f:d="0"/>
-    <get view="one" event="@pushed" f:d="1"/>
-    <get view="two" event="@pushed" f:d="2"/>
-    <get view="three" event="@pushed" f:d="3"/>
-    <get view="four" event="@pushed" f:d="4"/>
-    <get view="five" event="@pushed" f:d="5"/>
-    <get view="six" event="@pushed" f:d="6"/>
-    <get view="seven" event="@pushed" f:d="7"/>
-    <get view="eight" event="@pushed" f:d="8"/>
-    <get view="nine" event="@pushed" f:d="9"/>
-    <set property="n">
+    <get view="period" event="@pushed"/>
+    <set property="input"><![CDATA[
       if (this.$clear) {
         this.$clear = false;
         this.$m = this.$n;
-        return parseInt(get.$d, 10);
+        return "0.";
+      } else if (this.$input.indexOf(".") < 0) {
+        return this.$input + ".";
+      }
+    ]]></set>
+  </watch>
+
+  <watch>
+    <get view="zero" event="@pushed" e:d="0"/>
+    <get view="one" event="@pushed" e:d="1"/>
+    <get view="two" event="@pushed" e:d="2"/>
+    <get view="three" event="@pushed" e:d="3"/>
+    <get view="four" event="@pushed" e:d="4"/>
+    <get view="five" event="@pushed" e:d="5"/>
+    <get view="six" event="@pushed" e:d="6"/>
+    <get view="seven" event="@pushed" e:d="7"/>
+    <get view="eight" event="@pushed" e:d="8"/>
+    <get view="nine" event="@pushed" e:d="9"/>
+    <set property="input">
+      if (this.$clear) {
+        this.$clear = false;
+        this.$m = this.$n;
+        return get.$d;
       } else {
-        return parseInt(this.$n.toString() + get.$d, 10);
+        return this.$input + get.$d;
       }
     </set>
   </watch>
@@ -120,7 +143,7 @@
     <set>
       this.$clear = false;
       this.$op = "";
-      this.$n = 0;
+      this.$input = "0";
       delete this.$m;
     </set>
   </watch>
@@ -159,6 +182,8 @@
         this.views[this.digits[value.keyCode - 48]].push();
       } else if (value.keyCode === 67 || value.keyCode === 27) {
         this.views.c.push();
+      } else if (value.keyCode === 13) {
+        this.views.eq2.push();
       }
     ]]></set>
   </watch>
