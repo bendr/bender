@@ -10,10 +10,10 @@
     body { background-color: #888; font-family: sans-serif; }
     @font-face { font-family: Digital7; src: url("/apps/demos/digital-7.ttf");
       font-weight: normal; font-style: normal; }
-    .calculator { width: 408px; background-color: #fd0; padding: 24px;
+    .calculator { width: 400px; background-color: #fd0; padding: 24px;
       margin: 32px auto; -webkit-border-radius: 12px; -moz-border-radius: 12px;
       border-radius: 12px; box-shadow: 4px 4px 8px #444; }
-    .screen { position: relative; text-align: right; margin-bottom: 16px;
+    .screen { position: relative; text-align: right; margin-bottom: 32px;
       height: 96px; background-color: #b3cbb3; padding: 8px;
       box-shadow: inset 1px 1px 5px #444;
       text-shadow: 2px 2px 0px #9ebb9e;
@@ -22,14 +22,14 @@
     }
     .value { font-size: 72px; font-family: Digital7, monospace; }
     .op { position: absolute; bottom: 8px; right: 8px; font-size: 36px; }
-    .row { height: 96px; margin-top: 8px; position: relative; }
-    .row .bender-button { padding: 18px 0 0 0; margin: 0; width: 96px;
-      height: 78px; text-align: center; font-size: 48px; position: absolute;
+    .row { height: 88px; margin-top: 16px; position: relative; }
+    .row .bender-button { padding: 14px 0 0 0; margin: 0; width: 88px;
+      height: 70px; text-align: center; font-size: 48px; position: absolute;
       box-shadow: 1px 1px 5px #444; }
     .row .bender-button:nth-child(2) { left: 104px; }
     .row .bender-button:nth-child(3) { left: 208px; }
     .row .bender-button:nth-child(4) { left: 312px; }
-    .bender-button.tall { padding-top: 122px; }
+    .bender-button.tall { padding-top: 118px; }
     .bender-button.wide { padding-right: 104px; }
   </stylesheet>
 
@@ -184,6 +184,16 @@
         this.views.c.push();
       } else if (value.keyCode === 13) {
         this.views.eq2.push();
+      } else if (value.keyCode === 186) {
+        this.views.mult.push();
+      } else if (value.keyCode === 187) {
+        this.views.add.push();
+      } else if (value.keyCode === 189) {
+        this.views.sub.push();
+      } else if (value.keyCode === 190) {
+        this.views.period.push();
+      } else if (value.keyCode === 191) {
+        this.views.div.push();
       }
     ]]></set>
   </watch>
