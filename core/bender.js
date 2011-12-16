@@ -547,7 +547,16 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttribute: function(name, value)
       {
-        if (name === "property") {
+        if (name === "delay-ms") {
+          var delay = parseFloat(value);
+          if (delay >= 0) {
+            var watch = this.watch;
+            var get = this;
+            this.watch_instance = function(instance) {
+              setTimeout(function() { watch.got(get, instance); }, delay);
+            };
+          }
+        } else if (name === "property") {
           this.watch_instance = function(instance) {
             var prop_name = property_name(flexo.normalize(value));
             this.watched_property = prop_name;

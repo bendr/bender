@@ -1,0 +1,23 @@
+<app xmlns="http://bender.igel.co.jp">
+  <title>Delay test</title>
+  <stylesheet>
+    #output { background-color: red; }
+  </stylesheet>
+  <view/>
+  <watch>
+    <get delay-ms="1000"/>
+    <set>
+      flexo.log("Green!")
+      this.node.ownerDocument.stylesheets[0]
+        .set_text_content("#output { background-color: green; }");
+    </set>
+    <watch>
+      <get delay-ms="5000"/>
+      <set>
+      flexo.log("White!");
+      var stylesheet = this.node.ownerDocument.stylesheets[0];
+      stylesheet.parentNode.removeChild(stylesheet);
+      </set>
+    </watch>
+  </watch>
+</app>

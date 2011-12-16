@@ -6,11 +6,14 @@ Bender TODO list as of 2011-12-16 (v0.3.0)
 [x] editor bug when loading core/test/arrows.xml?
 [x] watch/get/@dom-event solved *after* rendering
 [x] No SVG display? (width issue; fixed)
+[ ] transform in get/@delay? (cf. core/tests/delay.xml)
+[ ] check for active in delay (cf. core/tests/delay.xml)
 
 
 * Core Features
 
 [/] Cleanup after rendering
+    [x] Stylesheet
 [ ] base attribute for location of relative paths (when using the file chooser)
 [ ] Initialization and ordering of watches
 [/] Tree modification
@@ -23,6 +26,7 @@ Bender TODO list as of 2011-12-16 (v0.3.0)
     [ ] a property changed in a component should trigger a get in another
         component looking at that property -> generate an event automatically
     [ ] several <watch>es with the same <get>
+    [/] delay/interval for <get> -> or <set> ?
 [ ] Component extension
     [ ] core/tests/uber-clock*
 [x] Generate new ids from component instances
