@@ -1,6 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
-  xmlns:f="http://bender.igel.co.jp/f" xmlns:html="http://www.w3.org/1999/xhtml"
-  b:enabled="true" f:tabindex="0" id="button">
+  xmlns:e="http://bender.igel.co.jp/e" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  b:enabled="true" f:tabindex="0" e:class="" id="button">
 
   <title>An HTML button component that responds to both mouse and touch
     events</title>
@@ -16,7 +17,7 @@
   </stylesheet>
 
   <view>
-    <html:div class="bender-button" id="b" aria-role="button">
+    <html:div id="b" aria-role="button">
       <content/>
     </html:div>
   </view>
@@ -87,6 +88,13 @@
         }
       }
     </get>
+  </watch>
+
+  <watch>
+    <get property="class"/>
+    <set view="b" attr="class">
+      return "bender-button {0}".fmt(value);
+    </set>
   </watch>
 
 </component>

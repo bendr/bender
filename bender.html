@@ -157,7 +157,7 @@
               try {
                 var context = bender.create_context(document);
                 var app = context.import(doc.documentElement);
-                bender.listen_(app, "@loaded", function() {
+                bender.listen(app, "@loaded", function() {
                     var instance = app.instantiate();
                     if (instance.render(ARGS.TARGET, true)) {
                       ok("OK");

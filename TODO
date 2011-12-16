@@ -57,6 +57,8 @@ Bender TODO list as of 2011-12-16 (v0.3.0)
 [x] Remove component@ref, replace ref="foo" with href="#foo"
 [ ] Changing id of component
 [ ] Changing parent of import
+[ ] readyState attribute for components
+[ ] Component instantiation: map attributes to view slots
 
 
 * Library

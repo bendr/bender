@@ -5,86 +5,91 @@
 
   <title>Arrows</title>
 
+  <stylesheet>
+    svg { background-color: black; }
+  </stylesheet>
+
   <view>
-    <svg:defs>
-      <svg:g id="arrow">
-        <svg:line x1="2" y1="10" x2="14" y2="10" stroke-linecap="round"/>
-        <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
-      </svg:g>
-    </svg:defs>
-    <svg:rect width="100%" height="100%"/>
-    <svg:g id="arrows"/>
+    <svg:svg id="root">
+      <svg:defs>
+        <svg:g id="arrow">
+          <svg:line x1="2" y1="10" x2="14" y2="10" stroke-linecap="round"/>
+          <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
+        </svg:g>
+      </svg:defs>
+      <svg:g id="arrows"/>
+    </svg:svg>
   </view>
 
-  <controller>
-    <script><![CDATA[
+  <local-script><![CDATA[
 
-      // Transform an arrow so that it points toward p
-      // If no p is given (such as at the startup), a random point is chosen
-      $_.transform_arrow = function(arrow, p)
-      {
-        var x = p ? p.x : flexo.random_int(0, this.w);
-        var y = p ? p.y : flexo.random_int(0, this.h);
-        var dx = x - arrow._x - this.component.size / 2;
-        var dy = y - arrow._y - this.component.size / 2;
-        var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
-        arrow.setAttribute("transform",
-          "translate({0}, {1}) rotate({2}, 10, 10)".fmt(arrow._x, arrow._y, a));
-        if (!this.component.color) {
-          var d = dx * dx + dy * dy;
-          var c = "hsl({0}, {1}%, {2}%)".fmt((Math.floor(180 - a) + 360) % 360,
-            Math.floor(100 * flexo.clamp(1 - d / this.r, 0, 1)),
-            Math.floor(50 * flexo.clamp(1 - d / this.r, 0, 1)));
-          arrow.setAttribute("stroke", c);
-          arrow.setAttribute("fill", c);
+    // Transform an arrow so that it points toward p
+    // If no p is given (such as at the startup), a random point is chosen
+    prototype.transform_arrow = function(arrow, p)
+    {
+      var x = p ? p.x : flexo.random_int(0, this.w);
+      var y = p ? p.y : flexo.random_int(0, this.h);
+      var dx = x - arrow._x - this.node.$size / 2;
+      var dy = y - arrow._y - this.node.$size / 2;
+      var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
+      arrow.setAttribute("transform",
+        "translate({0}, {1}) rotate({2}, 10, 10)".fmt(arrow._x, arrow._y, a));
+      if (!this.$color) {
+        var d = dx * dx + dy * dy;
+        var c = "hsl({0}, {1}%, {2}%)".fmt((Math.floor(180 - a) + 360) % 360,
+          Math.floor(100 * flexo.clamp(1 - d / this.r, 0, 1)),
+          Math.floor(50 * flexo.clamp(1 - d / this.r, 0, 1)));
+        arrow.setAttribute("stroke", c);
+        arrow.setAttribute("fill", c);
+      }
+    };
+
+    prototype.transform_arrows = function(e)
+    {
+      var p = flexo.event_svg_point(e, this.views.root);
+      for (var i = this.arrows.length - 1; i >= 0; --i) {
+        this.transform_arrow(this.arrows[i], p);
+      }
+    };
+
+    prototype.generate_arrows = function()
+    {
+      this.arrows = [];
+      this.w = this.$width * this.node.$size;
+      this.h = this.$height * this.node.$size;
+      this.r = Math.pow(Math.max(this.w, this.h), 2);
+      flexo.log("viewBox=\"0 0 {0} {1}\"".fmt(this.w, this.h));
+      this.views.root.setAttribute("viewBox", "0 0 {0} {1}"
+        .fmt(this.w, this.h));
+      flexo.remove_children(this.views.arrows);
+      for (var x = 0; x < this.w; x += this.node.$size) {
+        for (var y = 0; y < this.h; y += this.node.$size) {
+          var arrow = flexo.svg_href("use", "#{0}".fmt(this.views.arrow.id),
+            { fill: this.$color, stroke: this.$color });
+          arrow._x = x;
+          arrow._y = y;
+          this.transform_arrow(arrow);
+          this.arrows.push(arrow);
+          this.views.arrows.appendChild(arrow);
         }
-      };
+      }
+    };
 
-      $_.transform_arrows = function(e)
-      {
-        var p = flexo.event_svg_point(e, this.root);
-        for (var i = this.arrows.length - 1; i >= 0; --i) {
-          this.transform_arrow(this.arrows[i], p);
-        }
-      };
-
-      $_.generate_arrows = function()
-      {
-        this.arrows = [];
-        this.root = flexo.find_svg(this.component.views.arrows);
-        this.w = this.component.width * this.component.size;
-        this.h = this.component.height * this.component.size;
-        this.r = Math.pow(Math.max(this.w, this.h), 2);
-        this.root.setAttribute("viewBox", "0 0 {0} {1}".fmt(this.w, this.h));
-        flexo.remove_children(this.component.views.arrows);
-        for (var x = 0; x < this.w; x += this.component.size) {
-          for (var y = 0; y < this.h; y += this.component.size) {
-            var arrow = flexo.svg_href("use", "#arrow",
-              { fill: this.component.color, stroke: this.component.color });
-            arrow._x = x;
-            arrow._y = y;
-            this.transform_arrow(arrow);
-            this.arrows.push(arrow);
-            this.component.views.arrows.appendChild(arrow);
-          }
-        }
-      };
-
-    ]]></script>
-  </controller>
+  ]]></local-script>
 
   <watch>
+    <get event="@ready"/>
     <get property="width"/>
     <get property="height"/>
     <get property="color"/>
     <set>
-      this.controllers[""].generate_arrows();
+      this.generate_arrows();
     </set>
   </watch>
 
   <watch>
     <get dom-event="mousemove">
-      this.controllers[""].transform_arrows(value);
+      this.transform_arrows(value);
     </get>
   </watch>
 

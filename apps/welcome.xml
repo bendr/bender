@@ -1,16 +1,18 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Welcome to Bender!</title>
+
   <view>
+    <html:p>Welcome to Bender!</html:p>
     <html:p>
-      Welcome to Bender!
-    </html:p>
-    <html:p>
-      <component href="../lib/button.xml" id="button">Thanks</component>
+      <component id="thanks-button"
+        href="/lib/push-button.xml#button">Thanks</component>
     </html:p>
   </view>
+
   <watch>
-    <get view="button" event="@pushed">
+    <get view="thanks-button" event="@pushed">
       alert("You're welcome!");
     </get>
   </watch>
+
 </app>

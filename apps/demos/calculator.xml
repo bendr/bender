@@ -4,22 +4,24 @@
   xmlns:f="http://bender.igel.co.jp/f" f:n="0" f:rotate="0">
   <title>Simple Calculator</title>
 
+  <import href="/lib/push-button.xml"/>
+
   <stylesheet>
-    body { background-color: #888; }
-    @font-face { font-family: Digital7; src: url("../apps/demos/digital-7.ttf");
+    body { background-color: #888; font-family: sans-serif; }
+    @font-face { font-family: Digital7; src: url("/apps/demos/digital-7.ttf");
       font-weight: normal; font-style: normal; }
-    #calculator { width: 408px; background-color: #fd0; padding: 24px;
+    .calculator { width: 408px; background-color: #fd0; padding: 24px;
       margin: 32px auto; -webkit-border-radius: 12px; -moz-border-radius: 12px;
       border-radius: 12px; box-shadow: 4px 4px 8px #444; }
-    #screen { position: relative; text-align: right; margin-bottom: 16px;
+    .screen { position: relative; text-align: right; margin-bottom: 16px;
       height: 96px; background-color: #b3cbb3; padding: 8px;
       box-shadow: inset 1px 1px 5px #444;
       text-shadow: 2px 2px 0px #9ebb9e;
       -webkit-border-radius: 8px; -moz-border-radius: 8px;
       overflow: hidden; text-overflow: ellipsis;
     }
-    #value { font-size: 72px; font-family: Digital7, monospace; }
-    #op { position: absolute; bottom: 8px; right: 8px; font-size: 36px; }
+    .value { font-size: 72px; font-family: Digital7, monospace; }
+    .op { position: absolute; bottom: 8px; right: 8px; font-size: 36px; }
     .row { height: 96px; margin-top: 8px; position: relative; }
     .row .bender-button { padding: 18px 0 0 0; margin: 0; width: 96px;
       height: 78px; text-align: center; font-size: 48px; position: absolute;
@@ -27,40 +29,50 @@
     .row .bender-button:nth-child(2) { left: 104px; }
     .row .bender-button:nth-child(3) { left: 208px; }
     .row .bender-button:nth-child(4) { left: 312px; }
+    .bender-button.tall { padding-top: 122px; }
+    .bender-button.wide { padding-right: 104px; }
   </stylesheet>
 
   <view>
-    <html:div id="calculator">
-      <html:div id="screen">
-        <html:span id="value"/>
-        <html:span id="op"/>
+    <html:div class="calculator" id="calculator">
+      <html:div class="screen">
+        <html:span class="value"/>
+        <html:span class="op"/>
       </html:div>
       <html:div class="row">
-        <component href="../../lib/button.xml" id="7">7</component>
-        <component href="../../lib/button.xml" id="8">8</component>
-        <component href="../../lib/button.xml" id="9">9</component>
-        <component href="../../lib/button.xml" id="/">÷</component>
+        <component href="#button" id="C">C</component>
+        <component href="#button" id="=">=</component>
+        <component href="#button" id="/">÷</component>
+        <component href="#button" id="*">×</component>
       </html:div>
       <html:div class="row">
-        <component href="../../lib/button.xml" id="4">4</component>
-        <component href="../../lib/button.xml" id="5">5</component>
-        <component href="../../lib/button.xml" id="6">6</component>
-        <component href="../../lib/button.xml" id="*">×</component>
+        <component href="#button" id="7">7</component>
+        <component href="#button" id="8">8</component>
+        <component href="#button" id="9">9</component>
+        <component href="#button" id="-">-</component>
       </html:div>
       <html:div class="row">
-        <component href="../../lib/button.xml" id="1">1</component>
-        <component href="../../lib/button.xml" id="2">2</component>
-        <component href="../../lib/button.xml" id="3">3</component>
-        <component href="../../lib/button.xml" id="-">-</component>
+        <component href="#button" id="4">4</component>
+        <component href="#button" id="5">5</component>
+        <component href="#button" id="6">6</component>
+        <component href="#button" id="+">+</component>
       </html:div>
       <html:div class="row">
-        <component href="../../lib/button.xml" id="0">0</component>
-        <component href="../../lib/button.xml" id="C">C</component>
-        <component href="../../lib/button.xml" id="=">=</component>
-        <component href="../../lib/button.xml" id="+">+</component>
+        <component href="#button" id="1">1</component>
+        <component href="#button" id="2">2</component>
+        <component href="#button" id="3">3</component>
+        <component href="#button" id="==" e:class="tall">=</component>
+      </html:div>
+      <html:div class="row">
+        <component href="#button" id="0" e:class="wide">0</component>
+        <html:span/>
+        <component href="#button" id=".">.</component>
       </html:div>
     </html:div>
   </view>
+
+
+  <!--
 
   <script>
     var OPS = {
@@ -172,5 +184,6 @@
       this.views.calculator.style.OTransform = "rotate({0}deg)".fmt(value);
     </set>
   </watch>
+-->
 
 </app>
