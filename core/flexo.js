@@ -152,6 +152,15 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return l > 0 ? (Array(l).join(padding)) + string : string;
   };
 
+  // Remove an item from an array
+  flexo.remove_from_array = function(array, item)
+  {
+    if (array) {
+      var index = array.indexOf(item);
+      if (index >= 0) return array.splice(item, 1);
+    }
+  };
+
   // Simple wrapper for XMLHttpRequest GET request with no data; call back with
   // the request object on success, throw an exception on error.
   flexo.request_uri = function(uri, f)

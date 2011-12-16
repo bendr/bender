@@ -39,7 +39,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       var u = uri.split("#");
       if (!(this.loaded.hasOwnProperty(u[0]))) {
         this.loaded[u[0]] = false;
-        flexo.log("Load {0} ({1})".fmt(uri, u[0]));
         flexo.request_uri(uri, (function(req) {
             this.loaded[u[0]] = true;
             var component = context.import(req.responseXML.documentElement);
@@ -83,6 +82,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
         .check_loaded(import_node(this.documentElement, node, false, uri));
     };
 
+    // Check that there are no components left to load. If there are any do
+    // nothing, othrwise send a @loaded event on befalf of the given node
+    // (normally the original component being loaded.)
     context.check_loaded = function(node)
     {
       for (var i in this.loaded) {
@@ -96,7 +98,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
           bender.notify(node, "@loaded");
         }, 0);
       return node;
-    }
+    };
 
     // Unfortunately it doesn't seem that we can set the baseURI of the new
     // document, so we have to have a different property
@@ -139,9 +141,16 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       insertBefore: function(ch, ref)
       {
+        if (ch.add_to_parent) ch.add_to_parent(this);
         var ch_ = this.super_insertBefore(ch, ref);
         this.update_view();
         return ch_;
+      },
+
+      removeChild: function(ch)
+      {
+        if (ch.remove_from_parent) ch.remove_from_parent(this);
+        return this.super_removeChild(ch);
       },
 
       setAttribute: function(name, value)
@@ -169,38 +178,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       init: function() {},
     },
 
-    // <import> element
-    // Load a file at the given href and import its components in the current
-    // component
-    "import":
-    {
-      setAttribute: function(name, value)
-      {
-        if (name === "href") {
-          this.href = absolutize_uri(this.uri, flexo.normalize(value));
-          var u = this.href.split("#");
-          var context = this.ownerDocument;
-          var p = this.parentNode;
-          if (!(context.loaded.hasOwnProperty(u[0]))) {
-            flexo.log("Import component {0} (at {1})".fmt(this.href, u[0]));
-            context.loaded[u[0]] = false;
-            flexo.request_uri(u[0], function(req) {
-                context.loaded[u[0]] = true;
-                while (p && !p.is_component) p = p.parentNode;
-                var c = context.import(req.responseXML.documentElement,
-                  p ? p.uri : context.uri);
-                if (p) {
-                  bender.listen_(c, "@loaded", function() {
-                      context.check_loaded(p);
-                    });
-                }
-              });
-          }
-        }
-        return this.super_setAttribute(name, value);
-      }
-    },
-
     // <component> element
     component: {
       init: function()
@@ -212,39 +189,14 @@ if (typeof require === "function") flexo = require("./flexo.js");
         this.is_component = true;
       },
 
-      insertBefore: function(ch, ref)
+      add_to_parent: function(parent)
       {
-        if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "component") {
-            this.components.push(ch);
-          } else if (ch.localName === "desc") {
-            if (this.desc) {
-              bender.warn("Redefinition of desc in {0}".fmt(this.hash));
-            }
-            this.desc = ch;
-          } else if (ch.localName === "local-script") {
-            ch.component = this;
-            this.scripts.push(ch);
-          } else if (ch.localName === "title") {
-            if (this.title) {
-              bender.warn("Redefinition of title in {0}".fmt(this.hash));
-            }
-            this.title = ch;
-            this.update_title();
-          } else if (ch.localName === "view") {
-            if (this.view) {
-              bender.warn("Redefinition of view in {0}".fmt(this.hash));
-            }
-            this.view = ch;
-          } else if (ch.localName === "watch") {
-            this.watches.push(ch);
-            // topmost watches are active by default, whereas nested watches
-            // are inactive by default
-            if (!(ch.hasOwnProperty("active"))) ch.active = true;
-            ch.component = this;
-          }
-        }
-        return this.super_insertBefore(ch, ref);
+        if (parent.components) parent.components.push(this);
+      },
+
+      remove_from_parent: function(parent)
+      {
+        flexo.remove_from_array(parent.components, this);
       },
 
       setAttribute: function(name, value)
@@ -334,9 +286,84 @@ if (typeof require === "function") flexo = require("./flexo.js");
       }
     },
 
+    // <desc> element
+    desc:
+    {
+      add_to_parent: function(parent)
+      {
+        if (parent.desc) {
+          bender.warn("Redefinition of desc in {0}".fmt(parent.hash));
+        }
+        parent.desc = this;
+      },
+
+      remove_from_parent: function(parent)
+      {
+        if (parent.desc === this) delete parent.desc;
+      }
+    },
+
+    // <import> element
+    // Load a file at the given href and import its components in the current
+    // component
+    "import":
+    {
+      setAttribute: function(name, value)
+      {
+        if (name === "href") {
+          this.href = absolutize_uri(this.uri, flexo.normalize(value));
+          var u = this.href.split("#");
+          var context = this.ownerDocument;
+          var p = this.parentNode;
+          if (!(context.loaded.hasOwnProperty(u[0]))) {
+            flexo.log("Import component {0} (at {1})".fmt(this.href, u[0]));
+            context.loaded[u[0]] = false;
+            flexo.request_uri(u[0], function(req) {
+                context.loaded[u[0]] = true;
+                while (p && !p.is_component) p = p.parentNode;
+                var c = context.import(req.responseXML.documentElement,
+                  p ? p.uri : context.uri);
+                if (p) {
+                  bender.listen_(c, "@loaded", function() {
+                      context.check_loaded(p);
+                    });
+                }
+              });
+          }
+        }
+        return this.super_setAttribute(name, value);
+      }
+    },
+
+    "local-script":
+    {
+      add_to_parent: function(parent)
+      {
+        if (parent.scripts) {
+          this.component = parent;
+          parent.scripts.push(this);
+        }
+      },
+
+      remove_from_parent: function(parent)
+      {
+        flexo.remove_from_array(parent.scripts, this);
+      }
+    },
+
     // <stylesheet> element
     stylesheet:
     {
+      add_to_parent: function()
+      {
+        this.ownerDocument.stylesheets.push(this);
+      },
+
+      remove_from_parent: function()
+      {
+        flexo.remove_from_array(this.ownerDocument.stylesheets, this);
+      },
+
       insertBefore: function(ch, ref)
       {
         var ch_ = this.super_insertBefore(ch, ref);
@@ -366,14 +393,46 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // <title> element
     title:
     {
+      add_to_parent: function(parent)
+      {
+        if (parent.title) {
+          bender.warn("Redefinition of title in {0}".fmt(parent.hash));
+        }
+        parent.title = this;
+        parent.update_title();
+      },
+
+      remove_from_parent: function(parent)
+      {
+        if (parent.title === this) delete parent.title;
+      },
+
       set_text_content: function(text)
       {
         this.textContent = text;
         if (this.parentNode && this.parentNode.update_title) {
           this.parentNode.update_title();
         }
-      },
+      }
     },
+
+    // <view> element
+    view:
+    {
+      add_to_parent: function(parent)
+      {
+        if (parent.view) {
+          bender.warn("Redefinition of view in {0}".fmt(parent.hash));
+        }
+        parent.view = this;
+      },
+
+      remove_from_parent: function(parent)
+      {
+        if (parent.view === this) delete parent.view;
+      }
+    },
+
 
     // <watch> element
     watch:
@@ -385,22 +444,25 @@ if (typeof require === "function") flexo = require("./flexo.js");
         this.nested = [];  // watch child elements
       },
 
-      insertBefore: function(ch, ref)
+      add_to_parent: function(parent)
       {
-        if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "get") {
-            this.gets.push(ch);
-            ch.watch = this;
-          } else if (ch.localName === "set") {
-            this.sets.push(ch);
-            ch.watch = this;
-          } else if (ch.localName === "watch") {
-            this.nested.push(ch);
-            ch.watch = this;
-            ch.active = false;
-          }
+        if (parent.watches) {
+          // Parent is a component: this is a topmost watch, active by default
+          parent.watches.push(this);
+          if (!(this.hasOwnProperty("active"))) this.active = true;
+          this.component = parent;
+        } else if (parent.nested) {
+          // Parent is a watch: this is a nested watch
+          parent.nested.push(this);
+          this.watch = parent;
+          this.active = false;
         }
-        return this.super_insertBefore(ch, ref);
+      },
+
+      remove_from_parent: function(parent)
+      {
+        flexo.remove_from_array(parent.watches, this) ||
+          flexo.remove_from_array(parent.nested, this);
       },
 
       setAttribute: function(name, value)
@@ -459,6 +521,19 @@ if (typeof require === "function") flexo = require("./flexo.js");
     //   text content: transform the value for the set elements
     get:
     {
+      add_to_parent: function(parent)
+      {
+        if (parent.gets) {
+          parent.gets.push(this);
+          this.watch = parent;
+        }
+      },
+
+      remove_from_parent: function(parent)
+      {
+        flexo.remove_from_array(parent.gets, this);
+      },
+
       insertBefore: function(ch, ref)
       {
         var ch_ = this.super_insertBefore(ch, ref);
@@ -546,6 +621,19 @@ if (typeof require === "function") flexo = require("./flexo.js");
     //   view="v": set the view.textContent property to the view v
     set:
     {
+      add_to_parent: function(parent)
+      {
+        if (parent.sets) {
+          parent.sets.push(this);
+          this.watch = parent;
+        }
+      },
+
+      remove_from_parent: function(parent)
+      {
+        flexo.remove_from_array(parent.sets, this);
+      },
+
       insertBefore: function(ch, ref)
       {
         var ch_ = this.super_insertBefore(ch, ref);
@@ -825,8 +913,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (node && node.parentNode) node.parentNode.removeChild(node);
   };
 
-  // Wrap a Bender node with its specific functions, and keep track of nodes
-  // with global scope (stylesheet for now; later: script, include)
+  // Wrap a Bender node with its specific functions.
   function wrap_element(e)
   {
     var name = e.localName === "app" ? "component" : e.localName;
@@ -837,7 +924,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       e[p] = proto.hasOwnProperty(p) ? proto[p] : prototypes[""][p];
     }
     for (var p in proto) if (!e.hasOwnProperty(p)) e[p] = proto[p];
-    if (e.localName === "stylesheet") e.ownerDocument.stylesheets.push(e);
     e.init();
     return e;
   }

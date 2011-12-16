@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-12-15 (v0.3.0)
+Bender TODO list as of 2011-12-16 (v0.3.0)
 
 
 * Bugs
@@ -57,8 +57,8 @@ Bender TODO list as of 2011-12-15 (v0.3.0)
 
 * Library
 
-[/] Review metro -> @tick
-    [ ] test lib/timer.xml
+[x] Review metro -> @tick
+    [x] lib/timer.xml
 [ ] Selection controller
 [ ] Command manager controller
 [ ] Clipboard controller
@@ -79,8 +79,8 @@ Bender TODO list as of 2011-12-15 (v0.3.0)
 [ ] Kanji/vocabulary application
 [ ] Peacock
 [ ] Bender Builder
-
 [ ] Make calculator by building the tree
+
 
 * Documentation and deployment
 
