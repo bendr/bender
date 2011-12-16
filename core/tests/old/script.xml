@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <script href="script.js"/>
-  <listen event="@ready" once="true">alert_event(event);</listen>
-  <root-view>
-    <html:p>Alert when the application is ready.</html:p>
-  </root-view>
-</app>
