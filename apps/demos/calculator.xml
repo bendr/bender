@@ -36,53 +36,52 @@
   <view>
     <html:div class="calculator" id="calculator">
       <html:div class="screen">
-        <html:span class="value"/>
-        <html:span class="op"/>
+        <html:span id="value" class="value"/>
+        <html:span id="op" class="op"/>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="C">C</component>
-        <component href="#button" id="=">=</component>
-        <component href="#button" id="/">÷</component>
-        <component href="#button" id="*">×</component>
+        <component href="#button" id="c">C</component>
+        <component href="#button" id="eq1">=</component>
+        <component href="#button" id="div">÷</component>
+        <component href="#button" id="mult">×</component>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="7">7</component>
-        <component href="#button" id="8">8</component>
-        <component href="#button" id="9">9</component>
-        <component href="#button" id="-">-</component>
+        <component href="#button" id="seven">7</component>
+        <component href="#button" id="eight">8</component>
+        <component href="#button" id="nine">9</component>
+        <component href="#button" id="sub">-</component>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="4">4</component>
-        <component href="#button" id="5">5</component>
-        <component href="#button" id="6">6</component>
-        <component href="#button" id="+">+</component>
+        <component href="#button" id="four">4</component>
+        <component href="#button" id="five">5</component>
+        <component href="#button" id="six">6</component>
+        <component href="#button" id="add">+</component>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="1">1</component>
-        <component href="#button" id="2">2</component>
-        <component href="#button" id="3">3</component>
-        <component href="#button" id="==" e:class="tall">=</component>
+        <component href="#button" id="one">1</component>
+        <component href="#button" id="two">2</component>
+        <component href="#button" id="three">3</component>
+        <component href="#button" id="eq2" e:class="tall">=</component>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="0" e:class="wide">0</component>
+        <component href="#button" id="zero" e:class="wide">0</component>
         <html:span/>
-        <component href="#button" id=".">.</component>
+        <component href="#button" id="period">.</component>
       </html:div>
     </html:div>
   </view>
 
-
-  <!--
-
-  <script>
-    var OPS = {
+  <local-script>
+    prototype.ops = {
       "+": function(m, n) { return m + n; },
       "-": function(m, n) { return m - n; },
-      "*": function(m, n) { return m * n; },
-      "/": function(m, n) { return m / n; },
-      "": function(m, n) { return n; }
+      "×": function(m, n) { return m * n; },
+      "÷": function(m, n) { return m / n; },
+      "": function(_, n) { return n; }
     };
-  </script>
+    prototype.digits = ["zero", "one", "two", "three", "four", "five", "six",
+      "seven", "eight", "nine"];
+  </local-script>
 
   <watch>
     <get property="n"/>
@@ -91,67 +90,65 @@
 
   <watch>
     <get property="op"/>
-    <set view="op">
-      return value === "/" ? "÷" : value === "*" ? "×" : value;
-    </set>
+    <set view="op"/>
   </watch>
 
   <watch>
-    <get view="0" event="@pushed"/>
-    <get view="1" event="@pushed"/>
-    <get view="2" event="@pushed"/>
-    <get view="3" event="@pushed"/>
-    <get view="4" event="@pushed"/>
-    <get view="5" event="@pushed"/>
-    <get view="6" event="@pushed"/>
-    <get view="7" event="@pushed"/>
-    <get view="8" event="@pushed"/>
-    <get view="9" event="@pushed"/>
+    <get view="zero" event="@pushed" f:d="0"/>
+    <get view="one" event="@pushed" f:d="1"/>
+    <get view="two" event="@pushed" f:d="2"/>
+    <get view="three" event="@pushed" f:d="3"/>
+    <get view="four" event="@pushed" f:d="4"/>
+    <get view="five" event="@pushed" f:d="5"/>
+    <get view="six" event="@pushed" f:d="6"/>
+    <get view="seven" event="@pushed" f:d="7"/>
+    <get view="eight" event="@pushed" f:d="8"/>
+    <get view="nine" event="@pushed" f:d="9"/>
     <set property="n">
-      var d = value.source.parent_id;
-        if (this.clear) {
-          this.clear = false;
-          this.m = this.n;
-          return parseInt(d, 10);
-        } else {
-          return parseInt(this.n.toString() + d, 10);
-        }
-    </set>
-  </watch>
-
-  <watch>
-    <get view="+" event="@pushed"/>
-    <get view="-" event="@pushed"/>
-    <get view="/" event="@pushed"/>
-    <get view="*" event="@pushed"/>
-    <set>
-      if (!isNaN(this.m)) {
-        var m = this.n;
-        this.n = OPS[this.op](this.m, this.n);
-        this.m = m;
+      if (this.$clear) {
+        this.$clear = false;
+        this.$m = this.$n;
+        return parseInt(get.$d, 10);
+      } else {
+        return parseInt(this.$n.toString() + get.$d, 10);
       }
-      this.op = value.source.parent_id;
-      this.clear = true;
     </set>
   </watch>
 
   <watch>
-    <get view="=" event="@pushed"/>
+    <get view="c" event="@pushed"/>
     <set>
-      if (!isNaN(this.m)) this.n = OPS[this.op](this.m, this.n);
-      this.op = "";
-      delete this.m;
-      this.clear = true;
+      this.$clear = false;
+      this.$op = "";
+      this.$n = 0;
+      delete this.$m;
     </set>
   </watch>
 
   <watch>
-    <get view="C" event="@pushed"/>
+    <get view="add" event="@pushed" e:op="+"/>
+    <get view="sub" event="@pushed" e:op="-"/>
+    <get view="div" event="@pushed" e:op="÷"/>
+    <get view="mult" event="@pushed" e:op="×"/>
     <set>
-      this.clear = false;
-      this.op = "";
-      this.n = 0;
-      delete this.m;
+      if (!isNaN(this.$m)) {
+        var m = this.$n;
+        this.$n = this.ops[this.$op](this.$m, this.$n);
+        this.$m = m;
+      }
+      this.$op = get.$op;
+      this.$clear = true;
+    </set>
+  </watch>
+
+  <watch>
+    <get view="eq1" event="@pushed"/>
+    <get view="eq2" event="@pushed"/>
+    <set>
+      if (!isNaN(this.$m)) this.$n = this.ops[this.$op](this.$m, this.$n);
+      this.$op = "";
+      delete this.$m;
+      this.$clear = true;
     </set>
   </watch>
 
@@ -159,19 +156,9 @@
     <get dom-event="keydown"/>
     <set><![CDATA[
       if (value.keyCode >= 48 && value.keyCode <= 57) {
-        this.views[value.keyCode - 48].controllers[""].push();
-      } else if (value.keyCode === 67) {
-        this.views.C.controllers[""].push();
-      } else if (value.keyCode === 68) {  // D for Divide
-        this.views["/"].controllers[""].push();
-      } else if (value.keyCode === 77) {  // M for Minus
-        this.views["-"].controllers[""].push();
-      } else if (value.keyCode === 80) {  // P for Plus
-        this.views["+"].controllers[""].push();
-      } else if (value.keyCode === 84) {  // T for Times
-        this.views["*"].controllers[""].push();
-      } else if (value.keyCode === 13) {
-        this.views["="].controllers[""].push();
+        this.views[this.digits[value.keyCode - 48]].push();
+      } else if (value.keyCode === 67 || value.keyCode === 27) {
+        this.views.c.push();
       }
     ]]></set>
   </watch>
@@ -184,6 +171,5 @@
       this.views.calculator.style.OTransform = "rotate({0}deg)".fmt(value);
     </set>
   </watch>
--->
 
 </app>

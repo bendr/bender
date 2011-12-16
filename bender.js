@@ -154,6 +154,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       setAttributeNS: function(ns, qname, value)
       {
+        if (ns === bender.NS_E) {
+          this[property_name(qname)] = value;
+        } else if (ns === bender.NS_F) {
+          this[property_name(qname)] = parseFloat(value);
+        } else if (ns === bender.NS_B) {
+          this[property_name(qname)] = flexo.is_true(value);
+        }
         return this.super_setAttributeNS(ns, qname, value);
       },
 
@@ -228,18 +235,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.ownerDocument.components[this.uri] = this;
         }
         return this.super_setAttribute(name, value);
-      },
-
-      setAttributeNS: function(ns, qname, value)
-      {
-        if (ns === bender.NS_E) {
-          this[property_name(qname)] = value;
-        } else if (ns === bender.NS_F) {
-          this[property_name(qname)] = parseFloat(value);
-        } else if (ns === bender.NS_B) {
-          this[property_name(qname)] = flexo.is_true(value);
-        }
-        return this.super_setAttributeNS(ns, qname, value);
       },
 
       instantiate: function()
@@ -477,10 +472,12 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return this.super_setAttribute(name, value);
       },
 
-      got: function(get, instance, value, prev)
+      got: function(instance, get, value, prev)
       {
         if (this.active) {
-          this.sets.forEach(function(set) { set.got(instance, value, prev); });
+          this.sets.forEach((function(set) {
+              set.got(instance, get, value, prev);
+            }).bind(this));
           this.nested.forEach(function(w) { w.active = true; });
           if (this.once) {
             // Make this watch inactive, as well as its siblings if it is a
@@ -549,7 +546,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var watch = this.watch;
             var get = this;
             this.watch_instance = function(instance) {
-              setTimeout(function() { watch.got(get, instance); }, delay);
+              setTimeout(function() { watch.got(instance, get); }, delay);
             };
           }
         } else if (name === "property") {
@@ -559,14 +556,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var property = instance.node[prop_name];
             var watch = this.watch;
             var transform = this.transform;
+            var get = this;
             flexo.getter_setter(instance, prop_name,
                 function() { return property; },
                 function(v) {
-                  var v_ = transform.call(instance, v, property);
+                  var v_ = transform.call(instance, get, v, property);
                   if (v_ !== undefined) {
                     var prev = property;
                     property = v_;
-                    watch.got(this, instance, v_, prev);
+                    watch.got(instance, get, v_, prev);
                   }
                 });
           };
@@ -586,8 +584,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
             var watch = this.watch;
             var transform = this.transform;
             var h = (function(e) {
-              var v = transform.call(instance, e);
-              if (v !== undefined) watch.got(this, instance, v);
+              var v = transform.call(instance, this, e);
+              if (v !== undefined) watch.got(instance, this, v);
             }).bind(this);
             if (dom_event) {
               source.addEventListener(event_type, h, false);
@@ -609,14 +607,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
         this.update_text();
       },
 
-      transform: function(value) { return value; },
+      transform: function(_, v) { return v; },
 
       update_text: function()
       {
         var text = this.textContent;
         if (/\S/.test(text)) {
           try {
-            this.transform = new Function("value", "previous_value", text);
+            this.transform = new Function("get", "value", "previous_value",
+                text);
           } catch (e) {
             bender.warn(e);
           }
@@ -673,17 +672,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var text = this.textContent;
         if (/\S/.test(text)) {
           try {
-            this.transform = new Function("value", "previous_value", text);
+            this.transform = new Function("get", "value", "previous_value",
+                text);
           } catch (e) {
             bender.warn(e);
           }
         }
       },
 
-      got: function(instance, v, prev)
+      got: function(instance, get, v, prev)
       {
         if (prev === undefined && this.property) prev = instance[this.property];
-        var v_ = this.transform.call(instance, v, prev);
+        var v_ = this.transform.call(instance, get, v, prev);
         if (this.view) {
           if (this.attr) {
             instance.views[this.view].setAttribute(this.attr, v_);
@@ -695,7 +695,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
       },
 
-      transform: function(v) { return v; },
+      transform: function(_, v) { return v; },
     },
   };
 
