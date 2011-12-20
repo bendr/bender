@@ -100,6 +100,23 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return f_;
   };
 
+  // Get args from an URL (can be overridden with a given string)
+  flexo.get_args = function(defaults, argstr)
+  {
+    if (!argstr) {
+      argstr =  typeof window === "object" &&
+        typeof window.location === "object" &&
+        typeof window.location.search === "string" ?
+        window.location.search.substring(1) : "";
+    }
+    var args = defaults || {};
+    argstr.split("&").forEach(function(q) {
+        var sep = q.indexOf("=");
+        args[q.substr(0, sep)] = unescape(q.substr(sep + 1));
+      });
+    return args;
+  };
+
   // Define a getter/setter for a property, using Object.defineProperty if
   // available, otherwise the deprecated __defineGetter__/__defineSetter__
   flexo.getter_setter = function(o, prop, getter, setter)

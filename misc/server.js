@@ -15,7 +15,7 @@ var fs = require("fs");
 var http = require("http");
 var url = require("url");
 var util = require("util");
-var flexo = require("../core/flexo.js");
+var flexo = require("../flexo.js");
 
 function ok()
 {

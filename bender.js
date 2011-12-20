@@ -33,6 +33,26 @@ if (typeof require === "function") flexo = require("./flexo.js");
       return e;
     };
 
+    // Check that there are no components left to load. If there are any do
+    // nothing, othrwise send a @loaded event on befalf of the given node
+    // (normally the original component being loaded.)
+    context.check_loaded = function(node)
+    {
+      for (var i in this.loaded) {
+        if (this.loaded.hasOwnProperty(i) && !this.loaded[i]) return node;
+      }
+      setTimeout(function() { bender.notify(node, "@loaded"); }, 0);
+      return node;
+    };
+
+    // Import a node into the current context; if there is no outstanding
+    // loading to be performed, send a @loaded notification
+    context.import = function(node, uri)
+    {
+      return this
+        .check_loaded(import_node(this.documentElement, node, false, uri));
+    };
+
     // Load a component at the given URI.
     context.load_component = function(uri, f)
     {
@@ -72,26 +92,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         });
       // TODO scripts
-    };
-
-    // Import a node into the current context; if there is no outstanding
-    // loading to be performed, send a @loaded notification
-    context.import = function(node, uri)
-    {
-      return this
-        .check_loaded(import_node(this.documentElement, node, false, uri));
-    };
-
-    // Check that there are no components left to load. If there are any do
-    // nothing, othrwise send a @loaded event on befalf of the given node
-    // (normally the original component being loaded.)
-    context.check_loaded = function(node)
-    {
-      for (var i in this.loaded) {
-        if (this.loaded.hasOwnProperty(i) && !this.loaded[i]) return node;
-      }
-      setTimeout(function() { bender.notify(node, "@loaded"); }, 0);
-      return node;
     };
 
     // Unfortunately it doesn't seem that we can set the baseURI of the new

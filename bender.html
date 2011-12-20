@@ -100,17 +100,8 @@
       // Get args from the URL
       function get_args(argstr)
       {
-        var args = { target: "bender-target", debug: 0 };
-        if (!argstr) {
-          argstr =  typeof window === "object" &&
-            typeof window.location === "object" &&
-            typeof window.location.search === "string" ?
-            window.location.search.substring(1) : "";
-        }
-        argstr.split("&").forEach(function(q) {
-            var sep = q.indexOf("=");
-            args[q.substr(0, sep)] = unescape(q.substr(sep + 1));
-          });
+        var args = flexo.get_args({ target: "bender-target", debug: 0 },
+          argstr);
         bender.DEBUG_LEVEL = args.debug;
         args.TARGET = document.getElementById(args.target) || document.body;
         return args;
