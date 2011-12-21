@@ -3,7 +3,7 @@
 
   <title>Timer</title>
 
-  <local-script>
+  <script>
 
     var timeout = null;
 
@@ -35,7 +35,7 @@
       }
     };
 
-  </local-script>
+  </script>
 
   <watch>
     <get property="rate-ms">

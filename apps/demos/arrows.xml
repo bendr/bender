@@ -21,7 +21,7 @@
     </svg:svg>
   </view>
 
-  <local-script><![CDATA[
+  <script><![CDATA[
 
     // Transform an arrow so that it points toward p
     // If no p is given (such as at the startup), a random point is chosen
@@ -75,7 +75,7 @@
       }
     };
 
-  ]]></local-script>
+  ]]></script>
 
   <watch>
     <get event="@ready"/>

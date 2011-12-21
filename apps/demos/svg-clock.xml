@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
   <title>SVG Clock</title>
 
-  <component id="clock" href="/lib/timer.xml#timer" f:rate-ms="333"/>
+  <use id="clock" href="../../lib/timer.xml#timer" f:rate-ms="333"/>
 
   <view>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
@@ -23,7 +23,7 @@
           stroke: "white" });
         this.views.seconds.parentNode.insertBefore(c, this.views.seconds);
       }
-      this.instances.clock.start();
+      this.uses.clock.start();
     ]]></get>
   </watch>
 

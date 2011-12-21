@@ -4,7 +4,7 @@
   xmlns:f="http://bender.igel.co.jp/f" f:rotate="0">
   <title>Simple Calculator</title>
 
-  <import href="/lib/push-button.xml"/>
+  <import href="../../lib/push-button.xml"/>
 
   <stylesheet>
     body { background-color: #888; font-family: sans-serif; }
@@ -40,38 +40,38 @@
         <html:span id="op" class="op"/>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="c">C</component>
-        <component href="#button" id="eq1">=</component>
-        <component href="#button" id="div">÷</component>
-        <component href="#button" id="mult">×</component>
+        <use href="#button" id="c">C</use>
+        <use href="#button" id="eq1">=</use>
+        <use href="#button" id="div">÷</use>
+        <use href="#button" id="mult">×</use>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="seven">7</component>
-        <component href="#button" id="eight">8</component>
-        <component href="#button" id="nine">9</component>
-        <component href="#button" id="sub">-</component>
+        <use href="#button" id="seven">7</use>
+        <use href="#button" id="eight">8</use>
+        <use href="#button" id="nine">9</use>
+        <use href="#button" id="sub">-</use>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="four">4</component>
-        <component href="#button" id="five">5</component>
-        <component href="#button" id="six">6</component>
-        <component href="#button" id="add">+</component>
+        <use href="#button" id="four">4</use>
+        <use href="#button" id="five">5</use>
+        <use href="#button" id="six">6</use>
+        <use href="#button" id="add">+</use>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="one">1</component>
-        <component href="#button" id="two">2</component>
-        <component href="#button" id="three">3</component>
-        <component href="#button" id="eq2" e:class="tall">=</component>
+        <use href="#button" id="one">1</use>
+        <use href="#button" id="two">2</use>
+        <use href="#button" id="three">3</use>
+        <use href="#button" id="eq2" e:class="tall">=</use>
       </html:div>
       <html:div class="row">
-        <component href="#button" id="zero" e:class="wide">0</component>
+        <use href="#button" id="zero" e:class="wide">0</use>
         <html:span/>
-        <component href="#button" id="period">.</component>
+        <use href="#button" id="period">.</use>
       </html:div>
     </html:div>
   </view>
 
-  <local-script>
+  <script>
     prototype.ops = {
       "+": function(m, n) { return m + n; },
       "-": function(m, n) { return m - n; },
@@ -81,7 +81,7 @@
     };
     prototype.digits = ["zero", "one", "two", "three", "four", "five", "six",
       "seven", "eight", "nine"];
-  </local-script>
+  </script>
 
   <watch>
     <get property="input"/>

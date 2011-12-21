@@ -5,7 +5,7 @@
     <html:p>Welcome to Bender!</html:p>
     <html:p>
       <use id="thanks-button"
-        href="lib/push-button.xml#button">Thanks</component>
+        href="../lib/push-button.xml#button">Thanks</use>
     </html:p>
   </view>
 

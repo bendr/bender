@@ -66,6 +66,28 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.XML_NS = "http://www.w3.org/1999/xml";
   flexo.XMLNS_NS = "http://www.w3.org/2000/xmlns/";
 
+  // Solve a relative URI and return an absolute URI
+  flexo.absolute_uri = function(base_uri, uri)
+  {
+    if (!base_uri) base_uri = "";
+    // Start with a scheme: return as is
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+/.test(uri)) return uri;
+    // Absolute path: resolve with current host
+    if (/^\//.test(uri)) {
+      return base_uri.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+[^\/]*/) + uri;
+    }
+    // Relative path; split into path/fragment identifier
+    var abs = base_uri.replace(/#.*$/, "");
+    var p = uri.split("#");
+    if (p[0]) abs = abs.replace(/(\/?)[^\/]*$/, "$1" + p[0]);
+    var m;
+    while (m = /[^\/]+\/\.\.\//.exec(abs)) {
+      abs = abs.substr(0, m.index) + abs.substr(m.index + m[0].length);
+    }
+    if (p[1]) abs += "#" + p[1];
+    return abs;
+  };
+
   // Identity function
   flexo.id = function(x) { return x; };
 
@@ -202,6 +224,13 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.undash = function(string)
   {
     return string.replace(/-(\w)/, function(_, w) { return w.toUpperCase(); });
+  };
+
+  // Get the path from a URI
+  flexo.uri_path = function(uri)
+  {
+    return uri.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/*[^\/]+/, "")
+        .replace(/^\/+/, "/");
   };
 
 

@@ -24,7 +24,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     if (!uri) {
       uri = target.baseURI;
     } else {
-      uri = absolutize_uri(target.baseURI, uri);
+      uri = flexo.absolute_uri(target.baseURI, uri);
     }
     var context = target.implementation.createDocument(bender.NS, "context",
       null);
@@ -141,6 +141,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     "": {
       addEventListener: function(type, listener, useCapture)
       {
+        bender.log("+ add event listener {0} {1}".fmt(this.hash, type));
         if (type.substr(0, 1) === "@") {
           bender.listen(this, type, listener);
         } else {
@@ -226,7 +227,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
       add_to_parent: function(parent)
       {
-        if (parent.uses) parent.uses.push(this);
         if (this.parent_component) this.parent_component.components.push(this);
       },
 
@@ -261,10 +261,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
         this.instances[instance.hash] = instance;
         instance.node = this;
         instance.views = {};
-        instance.instances = {};
+        instance.uses = {};
         this.scripts.forEach(function(script) {
-            var f = new Function("prototype", "instance", script.textContent);
-            f(instance);
+            (new Function("prototype", script.textContent))(instance);
           });
         this.uses.forEach(function(u) {
             if (u.href) {
@@ -272,7 +271,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
               if (component) {
                 var ch_instance = component.instantiate();
                 var id = u.getAttribute("id");
-                if (id) instance.instances[flexo.undash(id)] = ch_instance;
+                if (id) instance.uses[flexo.undash(id)] = ch_instance;
                 set_properties(ch_instance, u);
               } else {
                 bender.warn("No component for href=\"{0}\"".fmt(u.href));
@@ -330,7 +329,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         var p = this.parent_component;
         if (p && href) {
-          this.href = absolutize_uri(p.uri, flexo.normalize(href));
+          this.href = flexo.absolute_uri(p.uri, flexo.normalize(href));
           var u = this.href.split("#");
           var context = this.ownerDocument;
           if (!(context.loaded.hasOwnProperty(u[0]))) {
@@ -393,7 +392,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       setAttribute: function(name, value)
       {
         if (name === "href") {
-          this.href = absolutize_uri(this.parent_component.uri,
+          this.href = flexo.absolute_uri(this.parent_component.uri,
               flexo.normalize(value));
           if (this.target) this.target.href = this.href;
         }
@@ -437,9 +436,15 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // component.
     use:
     {
-      add_to_parent: function()
+      add_to_parent: function(parent)
       {
+        if (parent.uses) parent.uses.push(this);
         this.set_uri(this.getAttribute("href"));
+      },
+
+      remove_from_parent: function(parent)
+      {
+        flexo.remove_from_array(parent.uses, this);
       },
 
       setAttribute: function(name, value)
@@ -453,7 +458,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var p = this.parent_component;
         if (p && href) {
           href = flexo.normalize(href);
-          this.href = absolutize_uri(p.uri, href);
+          this.href = flexo.absolute_uri(p.uri, href);
           bender.log("{0} href={1} ({2})".fmt(this.hash, this.href, href));
           var u = this.href.split("#");
           var context = this.ownerDocument;
@@ -640,7 +645,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             if (this.source_view) {
               source = instance.views[this.source_view];
             } else if (this.source_instance) {
-              source = instance.instances[this.source_instance];
+              source = instance.uses[this.source_instance];
             }
             if (!source) {
               source = dom_event ? instance.target.ownerDocument : instance;
@@ -651,10 +656,11 @@ if (typeof require === "function") flexo = require("./flexo.js");
               var v = transform.call(instance, this, e);
               if (v !== undefined) watch.got(instance, this, v);
             }).bind(this);
-            if (typeof source.addEventListener !== "function") {
-              source = source.node;
+            if (typeof source.addEventListener === "function") {
+              source.addEventListener(event_type, h, false);
+            } else {
+              bender.listen(source, event_type, h);
             }
-            source.addEventListener(event_type, h, false);
           };
         } else if (name === "view") {
           this.source_view = flexo.undash(flexo.normalize(value));
@@ -857,27 +863,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
   // Utility functions
-
-  var absolutize_uri = function(base_uri, uri)
-  {
-    if (!base_uri) base_uri = "";
-    // Start with a scheme: return as is
-    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+/.test(uri)) return uri;
-    // Absolute path: resolve with current host
-    if (/^\//.test(uri)) {
-      return base_uri.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+[^\/]*/) + uri;
-    }
-    // Relative path; split into path/fragment identifier
-    var abs = base_uri.replace(/#.*$/, "");
-    var p = uri.split("#");
-    if (p[0]) abs = abs.replace(/(\/?)[^\/]*$/, "$1" + p[0]);
-    var m;
-    while (m = /[^\/]+\/\.\.\//.exec(abs)) {
-      abs = abs.substr(0, m.index) + abs.substr(m.index + m[0].length);
-    }
-    if (p[1]) abs += "#" + p[1];
-    return abs;
-  }
 
   // Return children as an array. In full DOM this is just the arrayfication of
   // childNodes; in µDOM context, this is either the array of element children,
