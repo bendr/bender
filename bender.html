@@ -102,7 +102,7 @@
       {
         var args = flexo.get_args({ target: "bender-target", debug: 0 },
           argstr);
-        bender.DEBUG_LEVEL = args.debug;
+        bender.DEBUG_LEVEL = parseFloat(args.debug);
         args.TARGET = document.getElementById(args.target) || document.body;
         return args;
       }
@@ -148,7 +148,7 @@
               try {
                 var context = bender.create_context(document);
                 var app = context.import(doc.documentElement);
-                bender.listen(app, "@loaded", function() {
+                app.addEventListener("@loaded", function() {
                     var instance = app.instantiate();
                     if (instance.render(ARGS.TARGET, true)) {
                       ok("OK");
@@ -156,7 +156,7 @@
                     } else {
                       warn("Component {0} has no view.".fmt(instance.hash));
                     }
-                  });
+                  }, false);
               } catch (e) {
                 error(e.message);
                 ARGS.TARGET.appendChild(document.importNode(doc.documentElement,
@@ -185,9 +185,9 @@
         flexo.request_uri(args.app, function(req) {
             args.TARGET.innerHTML = "";
             EDITOR.setValue(req.responseText);
-            var context = bender.create_context(document);
+            var context = bender.create_context(document, args.app);
             var app = context.import(req.responseXML.documentElement);
-            bender.listen(app, "@loaded", function() {
+            app.addEventListener("@loaded", function() {
                 var instance = app.instantiate();
                 if (instance.render(args.TARGET, true)) {
                   for (var a in args) {
@@ -211,7 +211,7 @@
                 } else {
                   warn("Component has no view.");
                 }
-              });
+              }, false);
           });
       }
 

@@ -18,7 +18,7 @@
       {
         var args = flexo.get_args({ target: "bender-target", debug: 0 },
           argstr);
-        bender.DEBUG_LEVEL = args.debug;
+        bender.DEBUG_LEVEL = parseFloat(args.debug);
         return args;
       }
 
@@ -27,9 +27,9 @@
       {
         flexo.request_uri(args.app, function(req) {
             document.body.innerHTML = "";
-            var context = bender.create_context(document);
+            var context = bender.create_context(document, args.app);
             var app = context.import(req.responseXML.documentElement);
-            bender.listen(app, "@loaded", function() {
+            app.addEventListener("@loaded", function() {
                 var instance = app.instantiate();
                 if (instance.render(document.body, true)) {
                   for (var a in args) {
@@ -50,7 +50,7 @@
                   }
                   bender.notify(instance, "@ready");
                 }
-              });
+              }, false);
           });
       }
 

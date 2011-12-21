@@ -4,8 +4,8 @@
   <view>
     <html:p>Welcome to Bender!</html:p>
     <html:p>
-      <component id="thanks-button"
-        href="/lib/push-button.xml#button">Thanks</component>
+      <use id="thanks-button"
+        href="lib/push-button.xml#button">Thanks</component>
     </html:p>
   </view>
 

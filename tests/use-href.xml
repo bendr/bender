@@ -1,21 +1,15 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:b="http://bender.igel.co.jp/b" xmlns:f="http://bender.igel.co.jp/f">
 
-  <import href="lib/push-button.xml"/>
-
   <view>
     <html:p>
-      <use href="#button" id="ok-button">OK</use>
-      <use href="#button" id="cancel-button">Cancel</use>
+      <use href="lib/push-button.xml#button" id="ok-button">OK</use>
     </html:p>
   </view>
 
   <watch>
     <get event="@pushed" view="ok-button">
       alert("OK");
-    </get>
-    <get event="@pushed" view="cancel-button">
-      alert("Cancel");
     </get>
   </watch>
 

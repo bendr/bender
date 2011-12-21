@@ -22,7 +22,7 @@
     </html:div>
   </view>
 
-  <local-script>
+  <script>
     // Simulate a push of the button
     prototype.push = function()
     {
@@ -33,7 +33,7 @@
           setTimeout(function() { bender.notify(self, "@pushed"); }, 0);
         }, 100);
     };
-  </local-script>
+  </script>
 
   <watch>
     <get property="enabled">
