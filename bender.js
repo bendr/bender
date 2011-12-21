@@ -368,6 +368,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
       add_to_parent: function()
       {
         this.ownerDocument.stylesheets.push(this);
+        this.update_href(this.getAttribute("href"));
+      },
+
+      setAttribute: function(name, value)
+      {
+        if (name === "href") this.update_href(value);
+        return this.super_setAttribute(name, value);
       },
 
       remove_from_parent: function()
@@ -389,20 +396,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return ch_;
       },
 
-      setAttribute: function(name, value)
-      {
-        if (name === "href") {
-          this.href = flexo.absolute_uri(this.parent_component.uri,
-              flexo.normalize(value));
-          if (this.target) this.target.href = this.href;
-        }
-        return this.super_setAttribute(name, value);
-      },
-
       set_text_content: function(text)
       {
         this.textContent = text;
         if (this.target && !this.href) this.target.textContent = text;
+      },
+
+      update_href: function(href)
+      {
+        if (this.parent_component && href) {
+          this.href = flexo.absolute_uri(this.parent_component.uri,
+              flexo.normalize(href));
+          bender.log("Stylesheet: {0} {1} -> {2}".fmt(this.parent_component.uri,
+                href, this.href));
+          if (this.target) this.target.href = this.href;
+        }
       }
     },
 

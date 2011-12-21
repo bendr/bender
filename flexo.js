@@ -72,6 +72,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     if (!base_uri) base_uri = "";
     // Start with a scheme: return as is
     if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+/.test(uri)) return uri;
+    base_uri = base_uri.split(/[#?]/)[0];
     // Absolute path: resolve with current host
     if (/^\//.test(uri)) {
       return base_uri.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/+[^\/]*/) + uri;
@@ -180,7 +181,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Normalize whitespace in a string
   flexo.normalize = function(string)
   {
-    return string.replace(/\s+/, " ").replace(/^ /, "").replace(/ $/, "");
+    return string ?
+      string.replace(/\s+/, " ").replace(/^ /, "").replace(/ $/, "") : "";
   };
 
   // Pad a string to the given length

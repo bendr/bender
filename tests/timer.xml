@@ -1,11 +1,11 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
   xmlns:html="http://www.w3.org/1999/xhtml">
 
-  <title>Timer test (local-script/watch)</title>
+  <title>Timer test (script/watch)</title>
 
   <component id="timer" f:rate-ms="1000">
     <title>Timer</title>
-    <local-script>
+    <script>
 
       var timeout = null;
 
@@ -28,16 +28,7 @@
         timeout = setTimeout(tick, self.$rateMs);
       };
 
-      // Stop the timer. Noop if it was not running.
-      prototype.stop = function()
-      {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-      };
-
-    </local-script>
+    </script>
 
     <watch>
       <get property="rate-ms">
@@ -48,14 +39,15 @@
 
   </component>
 
-  <component id="timer-component" href="#timer" f:rate-ms="250"/>
+  <use id="timer-component" href="#timer" f:rate-ms="250"/>
+
   <view>
     <html:p>The time is now: <html:strong id="time"/></html:p>
   </view>
 
   <watch>
     <get event="@ready">
-      this.instances.timerComponent.start();
+      this.uses.timerComponent.start();
     </get>
   </watch>
 

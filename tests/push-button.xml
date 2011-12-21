@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:b="http://bender.igel.co.jp/b" xmlns:f="http://bender.igel.co.jp/f">
 
-  <import href="lib/push-button.xml"/>
+  <import href="../lib/push-button.xml"/>
 
   <view>
     <html:p>
