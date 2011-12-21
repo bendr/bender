@@ -23,50 +23,41 @@ tools will be added.
 
 ### Installing and running Bender
 
-_There is a [new runtime](http://bendr.github.com/bender.html) which will be
-documented soon..._
-
 Bender should be run from a Web server since its runtime relies on
-XMLHttpRequest to load documents. Some browsers will allow accessing documents
-through the file system so YMMV. You can simply make the `bender` directory
-accessible through your website or run the simplistic
+XMLHttpRequest to load documents and resolve relative URIs. Some browsers will
+allow accessing documents through the file system so YMMV. You can simply make
+the `bender` directory accessible through your website or run the simplistic
 [Node.js](http://nodejs.org) server found in
 [misc/server.js](https://github.com/bendr/bender/blob/master/misc/server.js)
 which will serve files on port 8910. (Run it from the root of the Bender
 directory.)
 
-There are two runtimes, one for HTML-based applications, and one for SVG-based
-applications (these will be merged into a single runtime to simplify things.)
-The HTML-based runtime can be run as:
+There are two runtimes available at the moment. The first one can be accessed
+at:
 
 ```
-http://localhost:8910/core/bender.html?app=apps/welcome
+http://localhost:8910/run.html?app=apps/welcome.xml
 ```
 
-where `http://localhost:8910/core/bender.html` is the path to the runtime
-itself (the location may change depending on where you install Bender), and
-querystring part of the URL is used to give arguments. To run SVG applications,
-replace the `.html` extension to `.svg`.  The `app` argument is mandatory as it
-specifies which application file to run. Additional arguments can be passed as
-follows:
+where `http://localhost:8910/core/run.html` is the path to the runtime
+itself (the location may change depending on where you install Bender), and the
+querystring part of the URL is used to give arguments.
 
 - `app`: required; path to the app to run;
-- `path`: relative path from the runtime (defaults to `../` since the runtime
-  is in the `core` directory);
-- `suffix`: suffix of the application file (defaults to `.xml`);
-- `dest`: id of the destination element for rendering; `document` if none;
-- `debug`: debug level (0, 1, etc.)
+- `target`: id of the destination element for rendering; set `target=` (no
+  value) to use the document body as a target;
+- `debug`: debug level (use 1 for debug messages, 0 for none.)
 
 Arguments are separated by an `&` sign, so if you want to run the above
 application in debug mode:
 
 ```
-http://localhost:8910/core/bender.html?app=apps/welcome&debug=1
+http://localhost:8910/run.html?app=apps/welcome.xml&debug=1
 ```
 
 Some applications have properties that can be set through the querystring of
 the URL as well. For instance the [Arrows
-demo](http://bendr.github.com/core/bender.svg?app=apps/demos/arrows) accepts
+demo](http://bendr.github.com/run.html?app=apps/demos/arrows.xml) accepts
 the following parameters:
 
 - `f:width`: width in number of arrows;
@@ -74,10 +65,13 @@ the following parameters:
 - `e:color`: color of the arrows
 
 You can modify these parameters through the URL, for example [a taller window
-of white arrows](http://bendr.github.com/core/bender.svg?app=apps/demos/arrows&f:width=8&f:height=16&e:color=white).
+of white arrows](http://bendr.github.com/bender.html?app=apps/demos/arrows.xml&f:width=8&f:height=16&e:color=white).
 
-A more friendly runtime is of course on our
-[TODO](https://github.com/bendr/bender/blob/master/TODO) list.
+A more friendly runtime is
+
+```
+http://localhost:8910/bender.html
+```
 
 
 ### Bender Basics
