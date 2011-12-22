@@ -215,7 +215,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
     // <component> element: a component definition (note that <app> is
     // synonymous with <component>)
-    component: {
+    component:
+    {
       init: function()
       {
         this.components = [];  // child components
@@ -587,12 +588,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     },
 
     // <get> element
-    //   property="p": watch property "p" in the instance
-    //   event="e": watch event of type e, by default from the instance
-    //   dom-event="e": watch DOM event of type e, by default from the document
-    //   view="v": element with id="v" in the view is the source
-    //   component="c": sub-component with the id="c" is the source (TODO)
-    //   text content: transform the value for the set elements
     get:
     {
       add_to_parent: function(parent)
@@ -616,6 +611,21 @@ if (typeof require === "function") flexo = require("./flexo.js");
       },
 
       setAttribute: function(name, value)
+      {
+        if (name === "dom-event") {
+          this.dom_event = flexo.normalize(value);
+        } else if (name === "event") {
+          this.event = flexo.normalize(value);
+        } if (name === "property") {
+          this.property = property_name(flexo.normalize(value));
+        } else if (name === "view") {
+          this.view = flexo.undash(flexo.normalize(value));
+        } else if (name === "use") {
+          this.use = flexo.undash(flexo.normalize(value));
+        }
+      },
+
+      __setAttribute: function(name, value)
       {
         if (name === "delay-ms") {
           var delay = parseFloat(value);
@@ -777,7 +787,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
   };
 
   // Component prototype for new instances
-  var component = {
+  var component =
+  {
     render: function(target, main, use)
     {
       if (!this.target && !target) return;
@@ -851,12 +862,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       })(this.node.view, this.target);
+
+
+      /*
       this.node.watches.forEach(function(w) {
           w.watch_instance.call(w, self);
         });
       this.node.watches.forEach(function(w) {
           w.init_properties.call(w, self);
         });
+      */
+
       flexo.notify(this, "@rendered");
       return this.target;
     },
@@ -868,13 +884,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.node.title.textContent;
       }
     }
-  };
-
-  // Watch graph
-  // An instance will create a new watch graph from its watch nodes
-  var graph =
-  {
-
   };
 
   // Utility functions

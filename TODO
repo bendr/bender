@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-12-21 (v0.3.1)
+Bender TODO list as of 2011-12-22 (v0.3.1)
 
 
 * Bugs
@@ -27,6 +27,7 @@ Bender TODO list as of 2011-12-21 (v0.3.1)
         component looking at that property -> generate an event automatically
     [ ] several <watch>es with the same <get>
     [/] delay/interval for <get> -> or <set> ?
+    [*] actual graph
 [ ] Component extension
     [ ] core/tests/uber-clock*
 [x] Generate new ids from component instances
