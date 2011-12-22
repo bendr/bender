@@ -152,7 +152,7 @@
                     var instance = app.instantiate();
                     if (instance.render(ARGS.TARGET, true)) {
                       ok("OK");
-                      bender.notify(instance, "@ready");
+                      flexo.notify(instance, "@ready");
                     } else {
                       warn("Component {0} has no view.".fmt(instance.hash));
                     }
@@ -207,7 +207,7 @@
                     }
                   }
                   ok("OK");
-                  bender.notify(instance, "@ready");
+                  flexo.notify(instance, "@ready");
                 } else {
                   warn("Component has no view.");
                 }

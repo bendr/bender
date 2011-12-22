@@ -1,4 +1,4 @@
-Bender TODO list as of 2011-12-16 (v0.3.0)
+Bender TODO list as of 2011-12-21 (v0.3.1)
 
 
 * Bugs
@@ -48,7 +48,7 @@ Bender TODO list as of 2011-12-16 (v0.3.0)
     [ ] "same" (???)
     [ ] "#id"
     [ ] @bender:render-once
-[ ] Merge controller and component; make <view> mandatory for components with a
+[x] Merge controller and component; make <view> mandatory for components with a
       view.
     [ ] Readd <connect>?
         [ ] underspecified <connect> for component extension
@@ -56,7 +56,7 @@ Bender TODO list as of 2011-12-16 (v0.3.0)
     [ ] import names components
 [x] Remove component@ref, replace ref="foo" with href="#foo"
 [ ] Changing id of component
-[ ] Changing parent of import
+[x] Changing parent of import
 [ ] readyState attribute for components
 [ ] Component instantiation: map attributes to view slots
 

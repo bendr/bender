@@ -30,7 +30,7 @@
       flexo.add_class(self.views.b, "__down");
       setTimeout(function() {
           flexo.remove_class(self.views.b, "__down");
-          setTimeout(function() { bender.notify(self, "@pushed"); }, 0);
+          setTimeout(function() { flexo.notify(self, "@pushed"); }, 0);
         }, 100);
     };
   </script>
@@ -64,7 +64,7 @@
       <get view="b" dom-event="mouseup" once="true">
         if (flexo.remove_class(this.views.b, "__down")) {
           setTimeout((function() {
-              bender.notify(this, "@pushed");
+              flexo.notify(this, "@pushed");
             }).bind(this), 0);
         }
       </get>

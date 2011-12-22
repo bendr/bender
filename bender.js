@@ -5,7 +5,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
 (function(bender) {
 
-  bender.VERSION = "0.3.0";
+  bender.VERSION = "0.3.1";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";  // Bender elements
@@ -50,7 +50,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       for (var i in this.loaded) {
         if (this.loaded.hasOwnProperty(i) && !this.loaded[i]) return node;
       }
-      setTimeout(function() { bender.notify(node, "@loaded"); }, 0);
+      setTimeout(function() { flexo.notify(node, "@loaded"); }, 0);
       return node;
     };
 
@@ -143,7 +143,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         bender.log("+ add event listener {0} {1}".fmt(this.hash, type));
         if (type.substr(0, 1) === "@") {
-          bender.listen(this, type, listener);
+          flexo.listen(this, type, listener);
         } else {
           this.super_addEventListener(type, listener, useCapture);
         }
@@ -176,7 +176,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       removeEventListener: function(type, listener, useCapture)
       {
         if (type.substr(0, 1) === "@") {
-          bender.unlisten(this, type, listener);
+          flexo.unlisten(this, type, listener);
         } else {
           this.super_removeEventListener(type, listener, useCapture);
         }
@@ -667,7 +667,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
             if (typeof source.addEventListener === "function") {
               source.addEventListener(event_type, h, false);
             } else {
-              bender.listen(source, event_type, h);
+              flexo.listen(source, event_type, h);
             }
           };
         } else if (name === "view") {
@@ -857,7 +857,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       this.node.watches.forEach(function(w) {
           w.init_properties.call(w, self);
         });
-      bender.notify(this, "@rendered");
+      flexo.notify(this, "@rendered");
       return this.target;
     },
 
@@ -1014,45 +1014,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return e;
   }
 
-
-  // Can be called as notify(e), notify(source, type) or notify(source, type, e
-  bender.notify = function(source, type, e)
-  {
-    if (e) {
-      e.source = source;
-      e.type = type;
-    } else if (type) {
-      e = { source: source, type: type };
-    } else {
-      e = source;
-      if (!e.source) bender.warn("No source field for event");
-      if (!e.type) bender.warn("No type field for event");
-    }
-    if (e.type in e.source) {
-      e.source[e.type].forEach(function(listener) {
-          if (typeof listener.handleEvent === "function") {
-            listener.handleEvent.call(listener, e);
-          } else {
-            listener(e);
-          }
-        });
-    }
-  };
-
-  // Listen to a Bender event
-  bender.listen = function(target, type, listener)
-  {
-    if (!(target.hasOwnProperty(type))) target[type] = [];
-    target[type].push(listener);
-  };
-
-  // Stop listening (using removeEventListener when available, just like
-  // bender.listen)
-  bender.unlisten = function(target, type, listener)
-  {
-    var i = target[type].indexOf(listener);
-    if (i >= 0) target[type].splice(i, 1);
-  };
 
   // Warning (at development time, throw an error)
   // TODO depending on debug level: ignore, log, die

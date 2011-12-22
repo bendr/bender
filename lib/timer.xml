@@ -20,7 +20,7 @@
       if (timeout) clearTimeout(timeout);
       var self = this;
       var tick = function() {
-        bender.notify(self, "@tick");
+        flexo.notify(self, "@tick");
         timeout = setTimeout(tick, self.$rateMs);
       };
       timeout = setTimeout(tick, self.$rateMs);

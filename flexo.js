@@ -178,12 +178,42 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return flexo.normalize(string).toLowerCase() === "true";
   };
 
+  // Listen to a Bender event
+  flexo.listen = function(target, type, listener)
+  {
+    if (!(target.hasOwnProperty(type))) target[type] = [];
+    target[type].push(listener);
+  };
+
   // Normalize whitespace in a string
   flexo.normalize = function(string)
   {
     return string ?
       string.replace(/\s+/, " ").replace(/^ /, "").replace(/ $/, "") : "";
   };
+
+  // Can be called as notify(e), notify(source, type) or notify(source, type, e)
+  flexo.notify = function(source, type, e)
+  {
+    if (e) {
+      e.source = source;
+      e.type = type;
+    } else if (type) {
+      e = { source: source, type: type };
+    } else {
+      e = source;
+    }
+    if (e.type in e.source) {
+      e.source[e.type].forEach(function(listener) {
+          if (typeof listener.handleEvent === "function") {
+            listener.handleEvent.call(listener, e);
+          } else {
+            listener(e);
+          }
+        });
+    }
+  };
+
 
   // Pad a string to the given length
   flexo.pad = function(string, length, padding)
@@ -226,6 +256,13 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.undash = function(string)
   {
     return string.replace(/-(\w)/, function(_, w) { return w.toUpperCase(); });
+  };
+
+  // Stop listening
+  flexo.unlisten = function(target, type, listener)
+  {
+    var i = target[type].indexOf(listener);
+    if (i >= 0) target[type].splice(i, 1);
   };
 
   // Get the path from a URI
