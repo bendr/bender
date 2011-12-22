@@ -1,0 +1,30 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:b="http://bender.igel.co.jp/b" xmlns:html="http://www.w3.org/1999/xhtml"
+  id="checkbox" f:tabindex="0" b:checked="false">
+  <title>Check box</title>
+
+  <view>
+    <html:label>
+      <html:input type="checkbox" id="c" role="checkbox"/>
+      <content/>
+    </html:label>
+  </view>
+
+  <watch>
+    <get property="tabindex"/>
+    <set view="c" attr="tabindex"/>
+  </watch>
+
+  <watch>
+    <get dom-event="change" view="c"/>
+    <set property="checked">
+      return this.views.c.checked;
+    </set>
+  </watch>
+
+  <watch>
+    <get property="checked"/>
+    <set view="c" attr="checked"/>
+  </watch>
+
+</component>

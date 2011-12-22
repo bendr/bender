@@ -1,14 +1,14 @@
-<app xmlns="http://bender.igel.co.jp"
-  xmlns:f="http://bender.igel.co.jp/f"
-  xmlns:b="http://bender.igel.co.jp/b"
-  xmlns:svg="http://www.w3.org/2000/svg"
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:b="http://bender.igel.co.jp/b" xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:xlink="http://www.w3.org/1999/xlink">
 
   <title>Transition Timing Function Designer</title>
+  <desc>A handy tool to generate transition timing functions for CSS (and
+    SVG.)</desc>
 
-  <include href="../lib/button.xml"/>
-  <include href="../lib/check.xml"/>
+  <include href="../lib/push-button.xml#button"/>
+  <include href="../lib/check.xml#check"/>
   <include href="../lib/integer.xml"/>
 
   <component id="curve-point">

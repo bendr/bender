@@ -43,7 +43,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     };
 
     // Check that there are no components left to load. If there are any do
-    // nothing, othrwise send a @loaded event on befalf of the given node
+    // nothing, otherwise send a @loaded event on befalf of the given node
     // (normally the original component being loaded.)
     context.check_loaded = function(node)
     {
@@ -868,6 +868,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.node.title.textContent;
       }
     }
+  };
+
+  // Watch graph
+  // An instance will create a new watch graph from its watch nodes
+  var graph =
+  {
+
   };
 
   // Utility functions
