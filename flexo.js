@@ -253,6 +253,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.pad = function(string, length, padding)
   {
     if (typeof padding !== "string") padding = "0";
+    if (typeof string !== "string") string = string.toString();
     var l = length + 1 - string.length;
     return l > 0 ? (Array(l).join(padding)) + string : string;
   };
@@ -264,6 +265,17 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       var index = array.indexOf(item);
       if (index >= 0) return array.splice(item, 1);
     }
+  };
+
+  // Request an URI as an arraybuffer through XMLHttpRequest. The f callback is
+  // called with the response directly. TODO error handling
+  flexo.request_arraybuffer = function(uri, f)
+  {
+    var req = new XMLHttpRequest();
+    req.open("GET", uri, true);
+    req.responseType = "arraybuffer";
+    req.onload = function() { f(req.response); };
+    req.send("");
   };
 
   // Simple wrapper for XMLHttpRequest GET request with no data; call back with
@@ -494,12 +506,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Remove all children of an element
   flexo.remove_children = function(elem)
   {
-    var child = elem.firstElementChild;
-    while (child) {
-      var next = child.nextElementSibling;
-      elem.removeChild(child);
-      child = next;
-    }
+    while (elem.firstChild) elem.removeChild(elem.firstChild);
   };
 
   // requestAnimationFrame
