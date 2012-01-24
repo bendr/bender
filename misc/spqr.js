@@ -20,6 +20,7 @@ var TYPES = {
   pdf: "application/pdf",
   svg: "image/svg+xml",
   ttf: "application/octet-stream",
+  xml: "application/xml",
   xslt: "application/xslt+xml",
 };
 

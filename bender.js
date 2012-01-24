@@ -81,7 +81,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       this.stylesheets.forEach(function(stylesheet) {
           if (force) {
-            safe_remove(stylesheet.target);
+            flexo.safe_remove(stylesheet.target);
             delete stylesheet.target;
           }
           if (!stylesheet.target) {
@@ -382,7 +382,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         flexo.remove_from_array(this.ownerDocument.stylesheets, this);
         if (this.target) {
-          safe_remove(this.target);
+          flexo.safe_remove(this.target);
           delete this.target;
         }
       },
@@ -590,6 +590,18 @@ if (typeof require === "function") flexo = require("./flexo.js");
     // <get> element
     get:
     {
+      init: function()
+      {
+        flexo.getter_setter(this, "label", function() {
+            var label = this.view ? ("v-" + this.view) :
+              this.use ? ("u-" + this.use) : ("h-" + this.hash);
+            label += this.dom_event ? ("#" + this.dom_event) :
+              this.event ? this.event : this.property ? ("." + this.property) :
+              "";
+            return label;
+          });
+      },
+
       add_to_parent: function(parent)
       {
         if (parent.gets) {
@@ -716,6 +728,13 @@ if (typeof require === "function") flexo = require("./flexo.js");
     //   view="v": set the view.textContent property to the view v
     set:
     {
+      init: function()
+      {
+        flexo.getter_setter(this, "label", function() {
+            return 
+          });
+      },
+
       add_to_parent: function(parent)
       {
         if (parent.sets) {
@@ -744,6 +763,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.property = property_name(flexo.normalize(value));
         } else if (name === "view") {
           this.view = flexo.undash(flexo.normalize(value));
+        } else if (name === "use") {
+          this.use = flexo.undash(flexo.normalize(value));
         }
         return this.super_setAttribute(name, value);
       },
@@ -863,15 +884,20 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
       })(this.node.view, this.target);
 
+      var edges = {};
+      this.node.watches.forEach(function(watch) {
+          var out_edges = {};
+          watch.sets.forEach(function(set) {
+              var label = set.label;
 
-      /*
-      this.node.watches.forEach(function(w) {
-          w.watch_instance.call(w, self);
+            });
+          watch.gets.forEach(function(get) {
+              var label = get.label;
+              if (!edges.hasOwnProperty(label)) edges[label] = [];
+              edges[label].push({ dest: watch });
+            });
         });
-      this.node.watches.forEach(function(w) {
-          w.init_properties.call(w, self);
-        });
-      */
+      flexo.log(edges);
 
       flexo.notify(this, "@rendered");
       return this.target;
@@ -990,13 +1016,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
   // Transform an XML name into the actual property name (undash and prefix with
   // $, so that for instance "rate-ms" will become $rateMs.)
   var property_name = function(name) { return "$" + flexo.undash(name); };
-
-  // Safe removal of a node; do nothing if the node did not exist or had no
-  // parent
-  var safe_remove = function(node)
-  {
-    if (node && node.parentNode) node.parentNode.removeChild(node);
-  };
 
   // Set properties on an instance from the attributes of a node (in the b, e,
   // and f namespaces)
