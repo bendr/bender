@@ -10,7 +10,7 @@ var flexo = require("./flexo.js");
 // These can (and sometime should) be overridden
 
 // Default document root
-exports.DOCUMENTS = require("path").join(process.cwd(), "documents");
+exports.DOCUMENTS = process.cwd();
 
 // Default server name
 exports.SERVER_NAME = "MORBO";
@@ -65,7 +65,7 @@ exports.STATUS_CODES =
   206: "Partial Content",
   // 3xx Redirection
   300: "Multiple Choices", 301: "Moved Permanently", 302: "Found",
-  303: "See Other", 304: "See Other", 305: "Use Proxy", 306: "(Unused)",
+  303: "See Other", 304: "See Other", 305: "Use Proxy",
   307: "Temporary Redirect",
   // 4xx Client error
   400: "Bad Request", 401: "Unauthorized", 402: "Payment Required",
@@ -150,8 +150,6 @@ exports.TRANSACTION =
 // Run the server on the given port/ip, using the patterns list for dispatch
 // (default is simply to serve a file in the DOCUMENTS directory with the given
 // pathname)
-// TODO instead of passing the match object, pass the matched items as
-// additional arguments
 exports.run = function(ip, port)
 {
   http.createServer(function(request, response) {
@@ -196,6 +194,7 @@ function check_path(path_, root)
 // Serve a file from its actual path after we checked that it is indeed a file.
 // Pass the stats result along to fill out the headers, and the URI if it was a
 // directory request to set the Content-Location header
+// TODO improve range request stuff (factor it out?)
 function serve_file(transaction, path_, stats, uri)
 {
   var type = exports.TYPES[path.extname(path_).substr(1).toLowerCase()] || "";
@@ -301,14 +300,12 @@ function write_head(transaction, code, type, data, params)
     params["Content-Length"] = data ? Buffer.byteLength(data.toString()) : 0;
   }
   if (type && !params.hasOwnProperty("Content-Type")) {
-    /*if (!(/\bcharset=/.test(type)) &&
-        (/^(audio|image|video)\//.test(type) ||
-         type === "application/octet-stream")) {
+    if (!(/\bcharset=/.test(type)) && /script|text|xml/.test(type)) {
       type += "; charset=utf-8";
-    }*/
+    }
     params["Content-Type"] = type;
   }
-  params.Date = (new Date()).toUTCString();  // works in V8; should be stricter
+  params.Date = (new Date()).toUTCString();
   params.Server = exports.SERVER_NAME;
   transaction.response.writeHead(code, params);
 }

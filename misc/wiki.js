@@ -1,0 +1,49 @@
+var fs = require("fs");
+var path = require("path");
+var md = require("github-flavored-markdown");
+
+var WIKI_PATH = "../wiki";
+
+exports.PATTERNS =
+[
+  ["GET", /^\/wiki\/$/, function(transaction) {
+      fs.readdir(WIKI_PATH, function(error, filenames) {
+          if (error) {
+            transaction.serve_error(500, "wiki: " + error);
+          } else {
+            transaction.serve_html(head() +
+              $h1("Bender Wiki") +
+              $ul(
+                filenames.filter(function(name) { return /\.md$/.test(name); })
+                  .map(function(name) {
+                      return $ul($a({ href: "/wiki/" + name }, name));
+                    }).join("")) +
+              tail());
+          }
+        });
+    }],
+  ["GET", /^\/wiki\/(.*)$/, function(transaction, p) {
+      fs.readFile(path.join(WIKI_PATH, p), function(error, data) {
+          if (error) {
+            transaction.serve_error(500, "wiki: " + error);
+          } else {
+            transaction.serve_html(head() + md.parse(data.toString()) + tail());
+          }
+        });
+    }]
+];
+
+function head()
+{
+  return $html({ lang: "en" },
+      $head(
+        $title("Bender Wiki"),
+        $meta({ charset: "UTF-8" }, true),
+        $link({ rel: "stylesheet", href: "/bender.css" }, true)),
+      $body({ "class": "wiki", true));
+}
+
+function tail()
+{
+  return "</body></html>";
+}

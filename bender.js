@@ -63,6 +63,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     };
 
     // Load a component at the given URI.
+    // TODO where is this used?
     context.load_component = function(uri, f)
     {
       var u = uri.split("#");

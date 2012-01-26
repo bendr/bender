@@ -12,6 +12,22 @@ String.prototype.fmt = function()
     });
 };
 
+// Wrap a string to fit with the given width
+String.prototype.wrap = function(width)
+{
+  var w = width + 1;
+  return this.trim().split(/\s+/).map(function(word, i) {
+      w -= (word.length + 1);
+      if (w < 0) {
+        w = width - word.length;
+        return (i === 0 ? "" : "\n") + word;
+      } else {
+        return (i === 0 ? "" : " ") + word;
+      }
+    }).join("");
+  return out;
+};
+
 
 // Bind the function f to the object x. Additional arguments can be provided to
 // specialize the bound function.
@@ -790,124 +806,6 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
           context.closePath();
         }
       });
-  };
-
-
-  // Basic handler for pointing, with a mouse or touch
-  flexo.point_handler =
-  {
-    watch: function(elem, p)
-    {
-      if (!p) {
-        p = elem;
-        elem.addEventListener("mouseout", this, false);
-      }
-      elem.addEventListener("mousedown", this, false);
-      p.addEventListener("mousemove", this, false);
-      p.addEventListener("mouseup", this, false);
-      elem.addEventListener("touchstart", this, false);
-      elem.addEventListener("touchmove", this, false);
-      elem.addEventListener("touchend", this, false);
-    },
-
-    unwatch: function(elem, p)
-    {
-      if (!p) {
-        p = elem;
-        elem.removeEventListener("mouseout", this, false);
-      }
-      elem.removeEventListener("mousedown", this, false);
-      p.removeEventListener("mousemove", this, false);
-      p.removeEventListener("mouseup", this, false);
-      elem.removeEventListener("touchstart", this, false);
-      elem.removeEventListener("touchmove", this, false);
-      elem.removeEventListener("touchend", this, false);
-    },
-
-    // Convenience method to create a new handler watching an element
-    new_handler_for: function(elem)
-    {
-      var h = flexo.create_object(this);
-      h.watch(elem);
-      return h;
-    },
-
-    handleEvent: function(e)
-    {
-      e.preventDefault();
-      if (e.type === "mousedown" || e.type === "touchstart") {
-        this.is_down = true;
-        this.down(e);
-      } else if (e.type === "mousemove" || e.type === "touchmove") {
-        this.move(e);
-      } else if (e.type === "mouseup" || e.type === "touchend") {
-        this.up(e);
-        this.is_down = false;
-      } else if (e.type === "mouseout" || e.type === "touchcancel") {
-        this.is_down = false;
-        this.out(e);
-      }
-    },
-
-    down: function(e) {},
-    up: function(e) {},
-    move: function(e) {},
-    out: function(e) {}
-
-  };
-
-  // Basic drag and drop handler
-  flexo.dnd_handler =
-  {
-    // Attach this handler to an element
-    watch: function(elem)
-    {
-      elem.addEventListener("dragenter", this, false);
-      elem.addEventListener("dragover", this, false);
-      elem.addEventListener("dragleave", this, false);
-      elem.addEventListener("drop", this, false);
-    },
-
-    // Detach this handler from an element
-    unwatch: function(elem)
-    {
-      elem.removeEventListener("dragenter", this, false);
-      elem.removeEventListener("dragover", this, false);
-      elem.removeEventListener("dragleave", this, false);
-      elem.removeEventListener("drop", this, false);
-    },
-
-    // Convenience method to create a new handler watching an element
-    new_handler_for: function(elem)
-    {
-      var h = flexo.create_object(this);
-      h.watch(elem);
-      return h;
-    },
-
-    // Handle the drag and drop events
-    handleEvent: function(e)
-    {
-      e.preventDefault();
-      if (e.type === "dragover") {
-        this.dragover(e);
-      } else if (e.type === "dragenter") {
-        flexo.add_class(e.target, "drag");
-        this.dragenter(e);
-      } else if (e.type === "dragleave") {
-        flexo.remove_class(e.target, "drag");
-        this.dragleave(e);
-      } else if (e.type === "drop") {
-        flexo.remove_class(e.target, "drag");
-        this.drop(e);
-      }
-    },
-
-    // Customize the behavior of the handler
-    dragover: function(e) {},
-    dragenter: function(e) {},
-    dragleave: function(e) {},
-    drop: function(e) {}
   };
 
 })(typeof exports === "object" ? exports : this.flexo = {});
