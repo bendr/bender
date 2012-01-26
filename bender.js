@@ -327,6 +327,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
         return this.super_setAttribute(name, value);
       },
 
+      // TODO "deactivate" after load
+      // TODO error handling?
       _import: function(href)
       {
         var p = this.parent_component;
@@ -351,6 +353,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
     },
 
     // <script> element
+    // TODO href attribute
     script:
     {
       add_to_parent: function(parent)
@@ -594,12 +597,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       init: function()
       {
         flexo.getter_setter(this, "label", function() {
-            var label = this.view ? ("v-" + this.view) :
-              this.use ? ("u-" + this.use) : ("h-" + this.hash);
-            label += this.dom_event ? ("#" + this.dom_event) :
-              this.event ? this.event : this.property ? ("." + this.property) :
-              "";
-            return label;
+            return watch_label(this);
           });
       },
 
@@ -732,7 +730,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
       init: function()
       {
         flexo.getter_setter(this, "label", function() {
-            return 
+            return watch_label(this);
           });
       },
 
@@ -885,6 +883,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         }
       })(this.node.view, this.target);
 
+      // Build the watch graph
       var edges = {};
       this.node.watches.forEach(function(watch) {
           var out_edges = {};
@@ -1013,6 +1012,17 @@ if (typeof require === "function") flexo = require("./flexo.js");
   {
     return node.namespaceURI === bender.NS && node.localName === localname;
   };
+
+  // Return a label for a get or set node inside a watch
+  function watch_label(node)
+  {
+    var label = node.view ? ("=" + node.view) :
+      node.use ? ("-" + node.use) : ("+" + node.parent_component.hash);
+    label += node.dom_event ? ("#" + node.dom_event) :
+      node.event ? node.event : node.property ? ("." + node.property) :
+      "";
+    return label;
+  }
 
   // Transform an XML name into the actual property name (undash and prefix with
   // $, so that for instance "rate-ms" will become $rateMs.)

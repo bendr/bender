@@ -418,6 +418,14 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
   };
 
+  flexo.times = function(n, f)
+  {
+    var array = new Array(n);
+    for (var i = 0; i < n; ++i) array[i] = f(i);
+    return array;
+  };
+
+
   // Convert a number to roman numerals (integer part only; n must be positive
   // or zero.) Now that's an important function to have in any framework.
   flexo.to_roman = function(n)
@@ -548,6 +556,12 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.html = function(name, attrs, contents)
   {
     return flexo.elem(null, name, attrs, contents);
+  };
+
+  // Linear interpolation
+  flexo.lerp = function(from, to, ratio)
+  {
+    return from + (to - from) * ratio;
   };
 
   // Remove all children of an element
@@ -683,11 +697,20 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return flexo.rgb_to_hex.apply(this, flexo.hsv_to_rgb(h, s, v));
   };
 
-  // Convert an RGB color (3 values) to a hex value
+  // Convert an RGB color (3 values in the 0..255 range) to a hex value
   flexo.rgb_to_hex = function(r, g, b)
   {
     return "#" + [].map.call(arguments,
       function(x) { return flexo.pad(x.toString(16), 2, "0"); }).join("");
+  };
+
+  // Convert an sRGB color (3 values in the 0..1 range) to a hex value
+  flexo.srgb_to_hex = function(r, g, b)
+  {
+    return "#" + [].map.call(arguments,
+      function(x) {
+        return flexo.pad(Math.floor(x * 255).toString(16), 2, "0");
+      }).join("");
   };
 
 
