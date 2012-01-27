@@ -28,7 +28,7 @@
   </watch>
 
   <watch>
-    <get instance="clock" event="@tick">
+    <get use="clock" event="@tick">
       return new Date();
     </get>
     <set view="hours" attr="transform">

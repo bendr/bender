@@ -1,0 +1,18 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
+  <title>Watch: DOM event</title>
+  <view>
+    <html:p>
+      <html:span style="cursor:pointer;background-color:#ccc;padding:4px"
+        id="button">Click me!</html:span>
+    </html:p>
+  </view>
+  <watch>
+    <get view="button" dom-event="click">
+      if (value.button === 0) return true;
+    </get>
+    <set>
+      alert("Left mouse click on button");
+    </set>
+  </watch>
+</app>

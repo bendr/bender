@@ -22,7 +22,7 @@
         if (timeout) clearTimeout(timeout);
         var self = this;
         var tick = function() {
-          bender.notify(self, "@tick");
+          flexo.notify(self, "@tick");
           timeout = setTimeout(tick, self.$rateMs);
         };
         timeout = setTimeout(tick, self.$rateMs);
@@ -52,7 +52,7 @@
   </watch>
 
   <watch>
-    <get instance="timer-component" event="@tick"/>
+    <get use="timer-component" event="@tick"/>
     <set view="time">
       return (new Date).toString();
     </set>

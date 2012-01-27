@@ -515,8 +515,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       init: function()
       {
-        this.gets = [];            // get child elements (inputs)
-        this.sets = [];            // set child elements (outputs)
+        this.gets = [];    // get child elements (inputs)
+        this.sets = [];    // set child elements (outputs)
         this.nested = [];  // watch child elements
       },
 
@@ -557,7 +557,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
       {
         if (this.active) {
           this.sets.forEach((function(set) {
+              // flexo.log(">>> got", set.hash, set.watch.hash, get.hash, value);
               set.got(instance, get, value, prev);
+              // flexo.log("<<< got", set.hash, set.watch.hash, get.hash, value);
             }).bind(this));
           this.nested.forEach(function(w) { w.active = true; });
           if (this.once) {
@@ -810,26 +812,28 @@ if (typeof require === "function") flexo = require("./flexo.js");
       })(this.node.view, this.target);
 
       // Setup the watches
+      // TODO keep track of event listeners/properties so that we can remove
+      // then when re-rendering
       var gets = {};
-      this.node.watches.forEach(function(watch) {
-          watch.gets.forEach(function(get) {
-              var label = get.label;
-              if (!(gets.hasOwnProperty(label))) gets[label] = [];
-              gets[label].push(get);
-            });
-        });
+      function gather(node)
+      {
+        node.gets.forEach(function(get) {
+            var label = get.label;
+            if (!(gets.hasOwnProperty(label))) gets[label] = [];
+            gets[label].push(get);
+          });
+        node.nested.forEach(gather);
+      };
+      this.node.watches.forEach(gather);
       for (var label in gets) {
         if (gets.hasOwnProperty(label)) {
           flexo.log("Get:", label);
           // Use the first get as template
           if (gets[label][0].event) {
-            flexo.log("  - add Bender listener ({0})"
-                .fmt(gets[label][0].event));
+            watch_event_listener(this, gets[label]);
           } else if (gets[label][0].dom_event) {
-            flexo.log("  - add DOM listener ({0})"
-                .fmt(gets[label][0].dom_event));
+            watch_dom_listener(this, gets[label]);
           } else {
-            // TODO replace existing property
             watch_getter_setter(this, gets[label]);
           }
         }
@@ -952,6 +956,38 @@ if (typeof require === "function") flexo = require("./flexo.js");
     return node.namespaceURI === bender.NS && node.localName === localname;
   };
 
+  // Transform an XML name into the actual property name (undash and prefix with
+  // $, so that for instance "rate-ms" will become $rateMs.)
+  var property_name = function(name) { return "$" + flexo.undash(name); };
+
+  // Setup a DOM event listener for a watch
+  function watch_dom_listener(instance, gets)
+  {
+    var event = gets[0].dom_event;
+    // TODO make sure that document is the document that we are rendered into
+    var view = instance.views[gets[0].view] || document;
+    view.addEventListener(event, function(e) {
+        gets.forEach(function(get) {
+            var v = get.transform.call(instance, get, e);
+            if (v !== undefined) get.watch.got(instance, get, v);
+          });
+      }, false);
+  }
+
+  // Setup a Bender event listener for a watch
+  function watch_event_listener(instance, gets)
+  {
+    var event = gets[0].event;
+    var target = instance.views[gets[0].view] || instance.uses[gets[0].use] ||
+      instance;
+    flexo.listen(target, event, function(e) {
+        gets.forEach(function(get) {
+            var v = get.transform.call(instance, get, e);
+            if (v !== undefined) get.watch.got(instance, get, v);
+          });
+      }, false);
+  }
+
   // Setup getters/setters for a watch on property
   function watch_getter_setter(instance, gets)
   {
@@ -959,8 +995,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
     var target = gets[0].use ? instance.uses[gets[0].use] :
       gets[0].view ? instance.views[gets[0].view] : instance;
     var prop = target[propname];
-    flexo.log("  - add getter/setter ({0}=\"{1}\") to {2}"
-        .fmt(propname, prop, target.hash));
     flexo.getter_setter(target, propname,
         function() { return prop; },
         function(v) {
@@ -985,10 +1019,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
       "";
     return label;
   }
-
-  // Transform an XML name into the actual property name (undash and prefix with
-  // $, so that for instance "rate-ms" will become $rateMs.)
-  var property_name = function(name) { return "$" + flexo.undash(name); };
 
   // Set properties on an instance from the attributes of a node (in the b, e,
   // and f namespaces)

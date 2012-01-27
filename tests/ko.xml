@@ -13,6 +13,16 @@
   </view>
 
   <watch>
+    <get property="first-name"/>
+    <set view="first-name" attr="value"/>
+  </watch>
+
+  <watch>
+    <get property="last-name"/>
+    <set view="last-name" attr="value"/>
+  </watch>
+
+  <watch>
     <get view="first-name" dom-event="change">
       return value.target.value;
     </get>
@@ -29,12 +39,6 @@
   <watch>
     <get property="first-name"/>
     <get property="last-name"/>
-    <set view="first-name" attr="value">
-      return this.$firstName;
-    </set>
-    <set view="last-name" attr="value">
-      return this.$lastName;
-    </set>
     <set view="full-name">
       return this.$firstName + " " + this.$lastName;
     </set>
@@ -43,6 +47,7 @@
   <watch>
     <get view="button" dom-event="click"/>
     <set property="last-name">
+      flexo.log(arguments);
       return previous_value.toUpperCase();
     </set>
   </watch>

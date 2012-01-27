@@ -45,6 +45,7 @@
         this.tabindex = this.__tabindex;
         delete this.__tabindex;
       }
+      return value;
     </get>
   </watch>
 
@@ -82,6 +83,7 @@
         if (value.keyCode === 13) {
           value.preventDefault();
           this.push();
+          return value;
         } else if (value.keyCode === 27) {
           value.preventDefault();
           this.views.b.blur();
@@ -91,7 +93,10 @@
   </watch>
 
   <watch>
-    <get property="class"/>
+    <get property="class">
+      flexo.log("Class ->", value);
+      return value;
+    </get>
     <set view="b" attr="class">
       return "bender-button {0}".fmt(value);
     </set>
