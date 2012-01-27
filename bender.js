@@ -274,7 +274,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
                 var ch_instance = component.instantiate();
                 var id = u.getAttribute("id");
                 if (id) instance.uses[flexo.undash(id)] = ch_instance;
-                set_properties(ch_instance, u);
               } else {
                 bender.warn("No component for href=\"{0}\"".fmt(u.href));
               }
@@ -766,7 +765,6 @@ if (typeof require === "function") flexo = require("./flexo.js");
                   var id = flexo.normalize(ch.getAttribute("id") || "");
                   if (id) self.views[flexo.undash(id)] = instance;
                   instance.render(dest, false, ch);
-                  set_properties(instance, ch);
                 } else {
                   bender.warn("No component for href=\"{0}\"".fmt(ch.href));
                 }
@@ -836,6 +834,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
           }
         }
       }
+
+      // Initialize the properties
+      set_properties(this, this.node);
 
       flexo.notify(this, "@rendered");
       return this.target;
@@ -991,7 +992,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
 
   // Set properties on an instance from the attributes of a node (in the b, e,
   // and f namespaces)
-  var set_properties = function(instance, node)
+  function set_properties(instance, node)
   {
     for (var i = node.attributes.length - 1; i >= 0; --i) {
       var attr = node.attributes[i];
@@ -1003,7 +1004,7 @@ if (typeof require === "function") flexo = require("./flexo.js");
         instance[property_name(attr.localName)] = flexo.is_true(attr.nodeValue);
       }
     }
-  };
+  }
 
   // Wrap a Bender node with its specific functions.
   function wrap_element(e, uri)
