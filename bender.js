@@ -663,6 +663,8 @@ if (typeof require === "function") flexo = require("flexo");
     {
       init: function()
       {
+        this.params = { get: "get", value: "value",
+          previous_value: "previous_value" };
         flexo.getter_setter(this, "label", function() {
             return watch_label(this);
           });
@@ -698,6 +700,9 @@ if (typeof require === "function") flexo = require("flexo");
           this.view = flexo.undash(flexo.normalize(value));
         } else if (name === "use") {
           this.use = flexo.undash(flexo.normalize(value));
+        } else if (name === "get" || name === "value" ||
+            name === "previous_value") {
+          this.params[name] = flexo.normalize(value);
         }
         return this.super_setAttribute(name, value);
       },
@@ -713,8 +718,8 @@ if (typeof require === "function") flexo = require("flexo");
         var text = this.textContent;
         if (/\S/.test(text)) {
           try {
-            this.transform = new Function("get", "value", "previous_value",
-                text);
+            this.transform = new Function(this.params.get, this.params.value,
+                this.params.previous_value, text);
           } catch (e) {
             bender.warn(e);
           }
@@ -871,7 +876,7 @@ if (typeof require === "function") flexo = require("flexo");
       {
         flexo.notify(this, "@xhr-readystatechange", req);
         if (req.readyState === 4) {
-          if (req.status === 0 || req.status >= 200 && req.status < 300) {
+          if (req.status >= 200 && req.status < 300) {
             flexo.notify(this, "@xhr-success", req);
           } else {
             flexo.notify(this, "@xhr-error", req);
