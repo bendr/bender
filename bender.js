@@ -1,6 +1,5 @@
 // Bender core library
 
-
 if (typeof require === "function") flexo = require("flexo");
 
 (function(bender) {
@@ -190,6 +189,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttributeNS: function(ns, qname, value)
       {
+        set_property(this, ns, qname, value);
         return this.super_setAttributeNS(ns, qname, value);
       },
 
@@ -867,12 +867,15 @@ if (typeof require === "function") flexo = require("flexo");
 
     // Make an XMLHttpRequest; send Bender events while the request is being
     // made and when the result is obtained.
-    xhr: function(uri, method, data)
+    xhr: function(uri, params)
     {
-      if (data === undefined) data = "";
-      if (!method) method = "GET";
+      if (typeof params !== "object") params = {};
+      if (!params.hasOwnProperty("method")) params.method = "GET";
+      if (!params.hasOwnProperty("data")) params.data = "";
       var req = new XMLHttpRequest();
-      req.open(method, uri);
+      req._uri = uri;
+      req.open(params.method, uri);
+      if (params.responseType) req.responseType = params.responseType;
       req.onreadystatechange = (function()
       {
         flexo.notify(this, "@xhr-readystatechange", req);
@@ -884,7 +887,7 @@ if (typeof require === "function") flexo = require("flexo");
           }
         }
       }).bind(this);
-      req.send(data);
+      req.send(params.data);
     }
 
   };
@@ -1060,13 +1063,19 @@ if (typeof require === "function") flexo = require("flexo");
   {
     for (var i = node.attributes.length - 1; i >= 0; --i) {
       var attr = node.attributes[i];
-      if (attr.namespaceURI === bender.NS_E) {
-        instance[property_name(attr.localName)] = attr.nodeValue;
-      } else if (attr.namespaceURI === bender.NS_F) {
-        instance[property_name(attr.localName)] = parseFloat(attr.nodeValue);
-      } else if (attr.namespaceURI === bender.NS_B) {
-        instance[property_name(attr.localName)] = flexo.is_true(attr.nodeValue);
-      }
+      set_property(instance, attr.namespaceURI, attr.localName, attr.nodeValue);
+    }
+  }
+
+  // Set one property
+  function set_property(instance, ns, localname, value)
+  {
+    if (ns === bender.NS_E) {
+      instance[property_name(localname)] = value;
+    } else if (ns === bender.NS_F) {
+      instance[property_name(localname)] = parseFloat(value);
+    } else if (ns === bender.NS_B) {
+      instance[property_name(localname)] = flexo.is_true(value);
     }
   }
 

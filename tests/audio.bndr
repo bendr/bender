@@ -1,0 +1,20 @@
+<app xmlns="http://bender.igel.co.jp"
+  xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <title>Audio test</title>
+
+  <view>
+    <use href="../lib/waveform.bndr#waveform" id="waveform"/>
+  </view>
+
+  <watch>
+    <get event="@ready">
+      flexo.log("App ready; set waveform URI");
+      this.views.waveform.$uri = "../misc/zaboom.aif";
+    </get>
+  </watch>
+
+</app>

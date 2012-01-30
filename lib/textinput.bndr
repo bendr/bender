@@ -20,7 +20,6 @@
     <get view="form" dom-event="submit"/>
     <set value="e">
       e.preventDefault();
-      flexo.log("Input:", this.views.form.v.value);
       flexo.notify(this, "@value", { input: this.views.form.v });
     </set>
   </watch>
