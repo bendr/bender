@@ -1,6 +1,6 @@
 # Bender; or, a declarative Web application framework.
 
-Copyright © 2011, [IGEL Co., Ltd.](http://www.igel.co.jp/bender/)
+Copyright © 2011, 2012 [IGEL Co., Ltd.](http://www.igel.co.jp/bender/)
 
 
 Bender is a declarative framework to build web applications and reusable

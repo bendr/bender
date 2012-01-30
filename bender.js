@@ -190,13 +190,6 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttributeNS: function(ns, qname, value)
       {
-        if (ns === bender.NS_E) {
-          this[property_name(qname)] = value;
-        } else if (ns === bender.NS_F) {
-          this[property_name(qname)] = parseFloat(value);
-        } else if (ns === bender.NS_B) {
-          this[property_name(qname)] = flexo.is_true(value);
-        }
         return this.super_setAttributeNS(ns, qname, value);
       },
 
@@ -703,6 +696,9 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "get" || name === "value" ||
             name === "previous_value") {
           this.params[name] = flexo.normalize(value);
+        } else if (name === "return") {
+          var r = flexo.normalize(value);
+          this.transform = function() { return r; };
         }
         return this.super_setAttribute(name, value);
       },
@@ -732,7 +728,11 @@ if (typeof require === "function") flexo = require("flexo");
         var v_ = this.transform.call(instance, get, v, prev);
         if (this.view) {
           if (this.attr) {
-            instance.views[this.view].setAttribute(this.attr, v_);
+            if (v_ === null) {
+              instance.views[this.view].removeAttribute(this.attr);
+            } else {
+              instance.views[this.view].setAttribute(this.attr, v_);
+            }
           } else {
             instance.views[this.view].textContent = v_;
           }
@@ -777,6 +777,7 @@ if (typeof require === "function") flexo = require("flexo");
                   var id = flexo.normalize(ch.getAttribute("id") || "");
                   if (id) self.views[flexo.undash(id)] = instance;
                   instance.render(dest, false, ch);
+                  set_properties(instance, ch);
                 } else {
                   bender.warn("No component for href=\"{0}\"".fmt(ch.href));
                 }

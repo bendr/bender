@@ -1,4 +1,6 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml">
 
   <title>Watch/XMLHttpRequest</title>
 
@@ -7,36 +9,24 @@
   </stylesheet>
 
   <view>
-    <html:form id="form">
-      <html:p>
-        <html:label for="url">URL:</html:label>
-        <html:input type="text" name="url" autofocus=""
-          placeholder="Request URL"/>
-        <html:input type="submit" value="Go"/>
-      </html:p>
-    </html:form>
+    <use href="../lib/textinput.bndr#textinput" id="url" e:submit="Go"
+      b:autofocus="true">URL:</use>
     <html:pre id="response"/>
     <html:p id="error"/>
   </view>
 
   <watch>
-    <get view="form" dom-event="submit"/>
+    <get view="url" event="@value"/>
     <set value="e">
-      e.preventDefault();
-      this.xhr(e.currentTarget.url.value);
+      this.xhr(e.input.value);
     </set>
-    <set view="response">
-      return "";
-    </set>
-    <set view="error">
-      return "";
-    </set>
+    <set view="response" return=""/>
+    <set view="error" return=""/>
   </watch>
 
   <watch>
     <get event="@xhr-success"/>
     <set view="response" value="req">
-      flexo.log(req);
       return req.responseText || req.responseXML;
     </set>
   </watch>
