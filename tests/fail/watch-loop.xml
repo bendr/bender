@@ -1,0 +1,33 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:x="2">
+  <title>Watch: cycle</title>
+  <view>
+    <html:p><html:code>$x</html:code> = 2 * <html:code>$z</html:code> =
+      <html:em id="x"/></html:p>
+    <html:p><html:code>$y</html:code> = <html:code>$x</html:code> + 1 =
+      <html:em id="y"/></html:p>
+    <html:p><html:code>$z</html:code> = <html:code>$y</html:code> - 2 =
+      <html:em id="z"/></html:p>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set view="x"/>
+    <set property="y">
+      return value + 1;
+    </set>
+  </watch>
+  <watch>
+    <get property="y"/>
+    <set view="y"/>
+    <set property="z">
+      return value - 2;
+    </set>
+  </watch>
+  <watch>
+    <get property="z"/>
+    <set view="z"/>
+    <set property="x">
+      return 2 * value;
+    </set>
+  </watch>
+</app>

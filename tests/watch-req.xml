@@ -1,0 +1,50 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <title>Watch/XMLHttpRequest</title>
+
+  <stylesheet>
+    input[type=text] { width: 24em; }
+  </stylesheet>
+
+  <view>
+    <html:form id="form">
+      <html:p>
+        <html:label for="url">URL:</html:label>
+        <html:input type="text" name="url" autofocus=""
+          placeholder="Request URL"/>
+        <html:input type="submit" value="Go"/>
+      </html:p>
+    </html:form>
+    <html:pre id="response"/>
+    <html:p id="error"/>
+  </view>
+
+  <watch>
+    <get view="form" dom-event="submit" value="e">
+      e.preventDefault();
+      this.xhr(e.currentTarget.url.value);
+      return true;
+    </get>
+    <set view="response">
+      return "";
+    </set>
+    <set view="error">
+      return "";
+    </set>
+  </watch>
+
+  <watch>
+    <get event="@xhr-success"/>
+    <set view="response">
+      return value.responseText || value.responseXML.toString();
+    </set>
+  </watch>
+
+  <watch>
+    <get event="@xhr-error"/>
+    <set view="error">
+      return "Error: " + value.responseText || value.responseXML.toString();
+    </set>
+  </watch>
+
+</app>

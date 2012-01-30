@@ -1,7 +1,7 @@
 // Bender core library
 
 
-if (typeof require === "function") flexo = require("./flexo.js");
+if (typeof require === "function") flexo = require("flexo");
 
 (function(bender) {
 
@@ -590,6 +590,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
     {
       init: function()
       {
+        this.params = { get: "get", value: "value",
+          previous_value: "previous_value" };
         flexo.getter_setter(this, "label", function() {
             return watch_label(this);
           });
@@ -627,6 +629,9 @@ if (typeof require === "function") flexo = require("./flexo.js");
           this.view = flexo.undash(flexo.normalize(value));
         } else if (name === "use") {
           this.use = flexo.undash(flexo.normalize(value));
+        } else if (name === "get" || name === "value" ||
+            name === "previous_value") {
+          this.params[name] = flexo.normalize(value);
         }
       },
 
@@ -643,8 +648,8 @@ if (typeof require === "function") flexo = require("./flexo.js");
         var text = this.textContent;
         if (/\S/.test(text)) {
           try {
-            this.transform = new Function("get", "value", "previous_value",
-                text);
+            this.transform = new Function(this.params.get, this.params.value,
+                this.params.previous_value, text);
           } catch (e) {
             bender.warn(e);
           }
@@ -852,7 +857,30 @@ if (typeof require === "function") flexo = require("./flexo.js");
         find_title(this.target.ownerDocument).textContent =
           this.node.title.textContent;
       }
+    },
+
+    // Make an XMLHttpRequest; send Bender events while the request is being
+    // made and when the result is obtained.
+    xhr: function(uri, method, data)
+    {
+      if (data === undefined) data = "";
+      if (!method) method = "GET";
+      var req = new XMLHttpRequest();
+      req.open(method, uri);
+      req.onreadystatechange = (function()
+      {
+        flexo.notify(this, "@xhr-readystatechange", req);
+        if (req.readyState === 4) {
+          if (req.status === 0 || req.status >= 200 && req.status < 300) {
+            flexo.notify(this, "@xhr-success", req);
+          } else {
+            flexo.notify(this, "@xhr-error", req);
+          }
+        }
+      }).bind(this);
+      req.send(data);
     }
+
   };
 
   // Utility functions

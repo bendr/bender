@@ -559,10 +559,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   };
 
   // Linear interpolation
-  flexo.lerp = function(from, to, ratio)
-  {
-    return from + (to - from) * ratio;
-  };
+  flexo.lerp = function(from, to, ratio) { return from + (to - from) * ratio; };
 
   // Remove all children of an element
   flexo.remove_children = function(elem)

@@ -4,7 +4,7 @@ var http = require("http");
 var path = require("path");
 var url = require("url");
 var util = require("util");
-var flexo = require("./flexo.js");
+var flexo = require("flexo");
 
 
 // These can (and sometime should) be overridden
@@ -13,7 +13,7 @@ var flexo = require("./flexo.js");
 exports.DOCUMENTS = process.cwd();
 
 // Default server name
-exports.SERVER_NAME = "MORBO";
+exports.SERVER_NAME = "MORBO!";
 
 // Patterns for dispatch. A pattern has three parts:
 //   * the method to match (e.g. "GET", "POST", etc.)
@@ -26,14 +26,18 @@ exports.PATTERNS =
   ["GET", /^\/favicon\.ico$/, function(transaction) {
       transaction.serve_error(404, "No favicon");
     }, "favicon"],
+  ["GET", /^\/bender.js$/, function(transaction) {
+      transaction.serve_file_from_path("./node_modules/bender.js");
+    }, "bender"],
   ["GET", /^\/flexo.js$/, function(transaction) {
-      transaction.serve_file_from_path("./flexo.js");
+      transaction.serve_file_from_path("./node_modules/flexo.js");
     }, "flexo"]
 ];
 
 // Known MIME types associated with file extensions
 exports.TYPES =
 {
+  bndr: "application/xml",
   css: "text/css",
   es: "application/ecmascript",
   html: "text/html",
