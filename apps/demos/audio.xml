@@ -6,7 +6,7 @@
 
   <title>Audio test</title>
 
-  <import href="../lib/push-button.xml"/>
+  <import href="../../lib/push-button.xml"/>
 
   <stylesheet>
     body { background-color: #888; }
@@ -17,8 +17,9 @@
 
   <view>
     <html:div class="waveform">
-      <use href="../lib/waveform.bndr#waveform" id="waveform" f:scale="200"
-        f:height="200" e:uri="../misc/squiggly.mp3" b:show-rms="true"/>
+      <!-- The waveform component does the heavy lifting! -->
+      <use href="../../lib/waveform.xml#waveform" id="waveform" f:scale="200"
+        f:height="200" e:uri="apps/demos/squiggly.mp3" b:show-rms="true"/>
     </html:div>
     <html:div class="buttons">
       <use href="#button" id="play-button">Play</use>

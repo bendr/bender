@@ -1,4 +1,5 @@
 <app xmlns="http://bender.igel.co.jp">
+  <!-- FIXME delay is not implemented -->
   <title>Delay test</title>
   <stylesheet>
     #output { background-color: red; }

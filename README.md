@@ -20,17 +20,20 @@ The design and implementation of Bender are currently evolving very quickly.
 When a more stable specification is reached, a component library and authoring
 tools will be added.
 
+Read on for more or go directly [check out some
+samples](http://bendr.github.com/apps/#demos).
+
 
 ### Installing and running Bender
 
 Bender should be run from a Web server since its runtime relies on
 XMLHttpRequest to load documents and resolve relative URIs. Some browsers will
 allow accessing documents through the file system so YMMV. You can simply make
-the `bender` directory accessible through your website or run the simplistic
+the `bender` directory accessible through your website or run the simple
 [Node.js](http://nodejs.org) server found in
-[misc/server.js](https://github.com/bendr/bender/blob/master/misc/server.js)
-which will serve files on port 8910. (Run it from the root of the Bender
-directory.)
+[morbo.js](https://github.com/bendr/bender/blob/master/morbo.js), which will
+serve files on port 8910 by default. (Run it from the root of the Bender
+directory; try `node morbo.js help` for options.)
 
 There are two runtimes available at the moment. The first one can be accessed
 at:
@@ -39,7 +42,7 @@ at:
 http://localhost:8910/run.html?app=apps/welcome.xml
 ```
 
-where `http://localhost:8910/core/run.html` is the path to the runtime
+where `http://localhost:8910/run.html` is the path to the runtime
 itself (the location may change depending on where you install Bender), and the
 querystring part of the URL is used to give arguments.
 
@@ -67,7 +70,7 @@ the following parameters:
 You can modify these parameters through the URL, for example [a taller window
 of white arrows](http://bendr.github.com/bender.html?app=apps/demos/arrows.xml&f:width=8&f:height=16&e:color=white).
 
-A more friendly runtime is
+A more friendly (but not yet fully-functional) runtime is at
 
 ```
 http://localhost:8910/bender.html

@@ -109,6 +109,7 @@
       }
       if (!this.buffer) return;
       var width = this.buffer.duration * this.$scale;
+      if (width <= 0) return;
       var height = this.$height / 2;
       this.size = Math.ceil(this.buffer.length / width);  // window size
       this.views.canvas.width = width;

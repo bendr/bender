@@ -3,7 +3,7 @@
 
   <view>
     <html:p>
-      <use href="lib/push-button.xml#button" id="ok-button">OK</use>
+      <use href="../lib/push-button.xml#button" id="ok-button">OK</use>
     </html:p>
   </view>
 

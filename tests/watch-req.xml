@@ -9,7 +9,7 @@
   </stylesheet>
 
   <view>
-    <use href="../lib/textinput.bndr#textinput" id="url" e:submit="Go"
+    <use href="../lib/textinput.xml#textinput" id="url" e:submit="Go"
       b:autofocus="true">URL:</use>
     <html:pre id="response"/>
     <html:p id="error"/>
