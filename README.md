@@ -82,8 +82,7 @@ http://localhost:8910/bender.html
 The basic building block in Bender is the _component_. Components are meant to
 be reusable, composable and extensible. A component has _properties_, may have
 a _view_ describing how it gets rendered, and may be scripted to define its
-behavior. Components are defined in terms of other components, and communicate
-with each other through events. A Bender application is itself a component.
+behavior. Components are defined in terms of other components, and communicate with each other through events. A Bender application is itself a component.
 
 Here is the complete XML _description_ of a Bender application. It shows a
 message ("Welcome to Bender!") and a button labeled "Thanks". When the user
@@ -99,7 +98,7 @@ website](http://bendr.github.com/core/bender.html?app=apps/welcome).
       Welcome to Bender!
     </html:p>
     <html:p>
-      <component href="../lib/button.xml" id="button">Thanks</component>
+      <use href="../lib/push-button.xml#button" id="button">Thanks</use>
     </html:p>
   </view>
   <watch>
@@ -139,11 +138,10 @@ markup that the host runtime is able to display. This means that HTML (using
 an XML serialization), SVG, MathML, or any other language may be used.
 
 The view here mixes HTML elements (using a namespace prefix) and a Bender
-`component` element. When a `component` element contains a `ref` or `href`
-attribute that points to the ID or the URL of a component definition, its role
-is to create a new _instance_ of that component. In the context of view, this
-also means that the view of the new instance gets rendered in place of the
-`component` element.
+`use` element. `use` elements have a `href` attribute that points to the URL of
+a component definition; its role is to create a new _instance_ of that
+component. In the context of view, this also means that the view of the new
+instance gets rendered in place of the `use` element.
 
 Here we have an URL reference to a file that contains the definition of an HTML
 button component. Let's have a look at its view:
@@ -162,7 +160,7 @@ being the content of the `component` element that was used for its
 instantiation. Since the instantiating element was:
 
 ```xml
-<component href="../lib/button.xml" id="button">Thanks</component>
+<use href="../lib/push-button.xml#button" id="button">Thanks</use>
 ```
 
 the contents of which is a text node ("Thanks"), the resulting view will be:
