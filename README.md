@@ -68,7 +68,7 @@ the following parameters:
 - `e:color`: color of the arrows
 
 You can modify these parameters through the URL, for example [a taller window
-of white arrows](http://bendr.github.com/bender.html?app=apps/demos/arrows.xml&f:width=8&f:height=16&e:color=white).
+of white arrows](http://bendr.github.com/run.html?app=apps/demos/arrows.xml&f:width=8&f:height=16&e:color=white).
 
 A more friendly (but not yet fully-functional) runtime is at
 
@@ -88,7 +88,7 @@ Here is the complete XML _description_ of a Bender application. It shows a
 message ("Welcome to Bender!") and a button labeled "Thanks". When the user
 clicks the button, an alert box pops up with the message "You're welcome!".
 You can [see the application live at Bender's
-website](http://bendr.github.com/core/bender.html?app=apps/welcome).
+website](http://bendr.github.com/run.html?app=apps/welcome).
 
 ```xml
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
