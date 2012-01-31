@@ -6,14 +6,35 @@
 
   <title>Audio test</title>
 
+  <import href="../lib/push-button.xml"/>
+
+  <stylesheet>
+    body { background-color: #888; }
+    .waveform { background-color: white; width: 100%; overflow: auto; }
+    .bender-button { font-family: Verdana, sans-serif; }
+    .buttons { margin: 8px; }
+  </stylesheet>
+
   <view>
-    <use href="../lib/waveform.bndr#waveform" id="waveform"/>
+    <html:div class="waveform">
+      <use href="../lib/waveform.bndr#waveform" id="waveform" f:scale="200"
+        f:height="200" e:uri="../misc/squiggly.mp3" b:show-rms="true"/>
+    </html:div>
+    <html:div class="buttons">
+      <use href="#button" id="play-button">Play</use>
+      <use href="#button" id="stop-button">Stop</use>
+    </html:div>
   </view>
 
   <watch>
-    <get event="@ready">
-      flexo.log("App ready; set waveform URI");
-      this.views.waveform.$uri = "../misc/zaboom.aif";
+    <get view="play-button" event="@pushed">
+      this.views.waveform.play();
+    </get>
+  </watch>
+
+  <watch>
+    <get view="stop-button" event="@pushed">
+      this.views.waveform.stop();
     </get>
   </watch>
 

@@ -20,8 +20,8 @@
     <set value="e">
       this.xhr(e.input.value);
     </set>
-    <set view="response" return=""/>
-    <set view="error" return=""/>
+    <set view="response" e:return=""/>
+    <set view="error" e:return=""/>
   </watch>
 
   <watch>

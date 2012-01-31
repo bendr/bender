@@ -1,36 +1,59 @@
-<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+<component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:e="http://bender.igel.co.jp/e" xmlns:f="http://bender.igel.co.jp/f"
   xmlns:html="http://www.w3.org/1999/xhtml" id="waveform"
-  f:scale="400" f:height="400">
+  f:scale="9" f:height="120" b:can-play="false">
 
   <title>Waveform display and playback</title>
 
+  <stylesheet>
+    .bender-waveform { position: relative; padding: 0; margin: 0; }
+    .bender-waveform * { position: absolute; }
+  </stylesheet>
+
   <view>
-    <html:canvas id="canvas"/>
-    <html:audio id="audio"/>
+    <html:div id="div" class="bender-waveform">
+      <html:img id="bg"/>
+      <html:canvas id="canvas"/>
+    </html:div>
   </view>
+
+  <watch>
+    <get property="scale"/>
+    <set>
+      this.draw_waveform();
+    </set>
+  </watch>
 
   <watch>
     <get property="height"/>
     <set view="canvas" attr="height"/>
+    <set view="div" css-property="height" e:return="{0}px"/>
+    <set>
+      this.draw_waveform();
+    </set>
   </watch>
 
   <watch>
-    <get property="uri">
-      flexo.log("Got new URI", value);
-      return value;
+    <get event="@rendered">
+      this.ac = new webkitAudioContext;
+      this.gc = this.views.canvas.getContext("2d");
     </get>
+  </watch>
+
+  <watch>
+    <get property="uri"/>
     <set value="uri">
-      flexo.log("Set URI to", uri);
       if (uri) this.xhr(uri, { responseType: "arraybuffer" });
     </set>
-    <set view="canvas" attr="width" return="0"/>
+    <set view="canvas" attr="width" f:return="0"/>
+    <set property="can-play" b:return="false"/>
   </watch>
 
   <watch>
     <get event="@xhr-success" value="req">
-      this.draw_waveform(req.response);
-      //this.views.audio.src = req._uri;
+      return this.draw_waveform(req.response);
     </get>
+    <set property="can-play"/>
   </watch>
 
   <watch>
@@ -42,83 +65,93 @@
 
   <script><![CDATA[
 
+    prototype.play = function()
+    {
+      if (this.$canPlay) {
+        if (this.playing) this.playing.noteOff(0);
+        this.playing = this.ac.createBufferSource();
+        this.playing.buffer = this.buffer;
+        this.playing.connect(this.ac.destination);
+        var offset = this.ac.currentTime;
+        var waveform = this;
+        var animate_cursor = function()
+        {
+          var t = waveform.ac.currentTime - offset;
+          var x = t * waveform.ac.sampleRate / waveform.size;
+          waveform.gc.clearRect(0, 0, waveform.views.canvas.width,
+            waveform.views.canvas.height);
+          if (waveform.playing) {
+            waveform.gc.beginPath();
+            waveform.gc.moveTo(x + 0.5, 0);
+            waveform.gc.lineTo(x + 0.5, waveform.views.canvas.height);
+            waveform.gc.strokeStyle = "#ff4040";
+            waveform.gc.stroke();
+            requestAnimationFrame(animate_cursor);
+          }
+        };
+        this.playing.noteOn(0);
+        requestAnimationFrame(animate_cursor);
+      } else {
+        flexo.log("Cannot play!");
+      }
+    };
+
+    prototype.stop = function()
+    {
+      if (this.playing) this.playing.noteOff(0);
+      delete this.playing;
+    };
+
     prototype.draw_waveform = function(arraybuffer)
     {
-      flexo.log("Drawing...");
-      var ac = new webkitAudioContext;
-      var gc = this.views.canvas.getContext("2d");
-      var buffer = ac.createBuffer(arraybuffer, true)
-      var width = buffer.duration * this.$scale;
+      if (arraybuffer) {
+        this.buffer = this.ac.createBuffer(arraybuffer, true)
+      }
+      if (!this.buffer) return;
+      var width = this.buffer.duration * this.$scale;
       var height = this.$height / 2;
-      var size = Math.ceil(buffer.length / width);  // window size
+      this.size = Math.ceil(this.buffer.length / width);  // window size
       this.views.canvas.width = width;
-      for (var x = 0, j = 0; x < width; ++x) {
+      this.views.canvas.parentNode.style.width = "{0}px".fmt(width);
+      // Show peak amplitude
+      this.gc.beginPath();
+      for (var x = 0, j = 0; j < this.buffer.length; ++x) {
         var min = 1;
         var max = -1;
-        var p = 0;
-        for (var i = 0; i < size; ++i) {
-          var val = buffer.getChannelData(0)[j++];
-          p += val * val;
+        for (var i = 0; i < this.size; ++i) {
+          var val = this.buffer.getChannelData(0)[j++];
           if (val < min) min = val;
           if (val > max) max = val;
-          // TODO RMS in addition to peak amplitude
         }
-        gc.fillStyle = "#444";
-        gc.fillRect(x, height * (1 - max), 1, height * (max - min));
-        var rms = p / size;
-        gc.fillStyle = "#08f";
-        gc.fillRect(x, height * (1 - rms), 1, height * 2 * rms);
+        this.gc.moveTo(x + 0.5, height * (1 - max) + 0.5);
+        this.gc.lineTo(x + 0.5, height * (1 - min) + 0.5);
       }
-      flexo.log("...OK");
-    }
-
-    /*
-    flexo.log("Drawing...");
-    this.buffer = this.context.createBuffer(this.arraybuffer, true);
-    var canvas = document.createElement("canvas");
-    var gc = canvas.getContext("2d");
-    this.width = this.buffer.duration * this.fps * this.scale;
-    canvas.width = this.width;
-    canvas.height = this.height;
-    var h = canvas.height / 2;
-    gc.fillStyle = "#444";
-    this.sz = Math.ceil(this.buffer.length / canvas.width);
-    for (var x = 0, j = 0; x < canvas.width; ++x) {
-      var min = 1;
-      var max = -1;
-      for (var i = 0; i < this.sz; ++i) {
-        var val = this.buffer.getChannelData(0)[j++];
-        if (val < min) min = val;
-        if (val > max) max = val;
+      this.gc.strokeStyle = "#f67968";
+      this.gc.stroke();
+      if (this.$showRms) {
+        // Show RMS power
+        this.gc.beginPath();
+        for (var x = 0, j = 0; j < this.buffer.length; ++x) {
+          var p = 0;
+          for (var i = 0; i < this.size; ++i) {
+            p += Math.pow(this.buffer.getChannelData(0)[j++], 2);
+          }
+          var rms = Math.sqrt(p / this.size);
+          this.gc.moveTo(x + 0.5, height * (1 - rms / 2) + 0.5);
+          this.gc.lineTo(x + 0.5, height * (1 + rms / 2) + 0.5);
+        }
+        this.gc.strokeStyle = "#f6a168";
+        this.gc.stroke();
       }
-      gc.fillRect(x, h * (1 - max), 1, h * (max - min));
-    }
-    div.innerHTML = "";
-    div.style.width = "{0}px".fmt(this.width);
-    div.style.height = "{0}px".fmt(this.height);
-    var img = document.createElement("img");
-    img.alt = "Waveform for {0}".fmt(this.uri);
-    img.src = canvas.toDataURL();
-    div.appendChild(img);
-    var svg = flexo.svg("svg",
-        { viewBox: "0 0 {0} {1}".fmt(this.width, this.height) });
-    svg.style.width = "{0}px".fmt(this.width);
-    svg.style.height = "{0}px".fmt(this.height);
-    div.appendChild(svg);
-    this.cursor = flexo.svg("line", { stroke: "#ff4040",
-      y1: 0, y2: this.height });
-    svg.appendChild(this.cursor);
-    this.sample_rate = this.buffer.sampleRate;
-    this.context = null;
-    this.buffer = null;
-    delete this.context;
-    delete this.buffer;
-    Wave.cursor.setAttribute("x1", 100);
-    Wave.cursor.setAttribute("x2", 100);
-    requestAnimationFrame(this.animate_cursor);
-    flexo.log("... drawn.");
-    return div;
-    */
+      this.gc.beginPath();
+      this.gc.moveTo(0, height + 0.5);
+      this.gc.lineTo(width, height + 0.5);
+      this.gc.strokeStyle = "#f6c968";
+      this.gc.stroke();
+      this.views.bg.src = this.views.canvas.toDataURL();
+      this.gc.clearRect(0, 0, width, this.$height);
+      return true;
+    };
 
   ]]></script>
 

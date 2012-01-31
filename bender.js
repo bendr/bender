@@ -657,7 +657,7 @@ if (typeof require === "function") flexo = require("flexo");
       init: function()
       {
         this.params = { get: "get", value: "value",
-          previous_value: "previous_value" };
+          previous_value: "previous_value", set: "set", target: "target" };
         flexo.getter_setter(this, "label", function() {
             return watch_label(this);
           });
@@ -687,6 +687,8 @@ if (typeof require === "function") flexo = require("flexo");
       {
         if (name === "attr") {
           this.attr = flexo.normalize(value);
+        } else if (name === "css-property") {
+          this.css = flexo.undash(flexo.normalize(value));
         } else if (name === "property") {
           this.property = property_name(flexo.normalize(value));
         } else if (name === "view") {
@@ -694,13 +696,24 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "use") {
           this.use = flexo.undash(flexo.normalize(value));
         } else if (name === "get" || name === "value" ||
-            name === "previous_value") {
+            name === "previous_value" || name === "set" || name === "target") {
           this.params[name] = flexo.normalize(value);
-        } else if (name === "return") {
-          var r = flexo.normalize(value);
-          this.transform = function() { return r; };
         }
         return this.super_setAttribute(name, value);
+      },
+
+      setAttributeNS: function(ns, qname, value)
+      {
+        if (qname === "return") {
+          if (ns === bender.NS_E) {
+            this.transform = function(_, _, v) { return value.fmt(v); };
+          } else if (ns === bender.NS_F) {
+            this.transform = function() { return parseFloat(value); };
+          } else if (ns === bender.NS_B) {
+            this.transform = function() { return flexo.is_true(value); };
+          }
+        }
+        return this.super_setAttributeNS(ns, qname, value);
       },
 
       set_text_content: function(text)
@@ -714,8 +727,9 @@ if (typeof require === "function") flexo = require("flexo");
         var text = this.textContent;
         if (/\S/.test(text)) {
           try {
-            this.transform = new Function(this.params.get, this.params.value,
-                this.params.previous_value, text);
+            this.transform = new Function(this.params.get, this.params.set,
+                this.params.value, this.params.previous_value,
+                this.params.target, text);
           } catch (e) {
             bender.warn(e);
           }
@@ -725,7 +739,9 @@ if (typeof require === "function") flexo = require("flexo");
       got: function(instance, get, v, prev)
       {
         if (prev === undefined && this.property) prev = instance[this.property];
-        var v_ = this.transform.call(instance, get, v, prev);
+        var target = this.view ? instance.views[this.view] :
+          this.property ? instance[this.property] : undefined;
+        var v_ = this.transform.call(instance, get, this, v, prev, target);
         if (this.view) {
           if (this.attr) {
             if (v_ === null) {
@@ -733,6 +749,9 @@ if (typeof require === "function") flexo = require("flexo");
             } else {
               instance.views[this.view].setAttribute(this.attr, v_);
             }
+          } else if (this.css) {
+            flexo.log("Set CSS property {0} to {1}".fmt(this.css, v_));
+            instance.views[this.view].style[this.css] = v_;
           } else {
             instance.views[this.view].textContent = v_;
           }
@@ -741,7 +760,7 @@ if (typeof require === "function") flexo = require("flexo");
         }
       },
 
-      transform: function(_, v) { return v; },
+      transform: function(_, _, v) { return v; },
     },
   };
 
