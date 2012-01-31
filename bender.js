@@ -4,7 +4,7 @@ if (typeof require === "function") flexo = require("flexo");
 
 (function(bender) {
 
-  bender.VERSION = "0.3.1";
+  bender.VERSION = "0.3.2";
 
   // Bender's namespaces
   bender.NS = "http://bender.igel.co.jp";  // Bender elements
