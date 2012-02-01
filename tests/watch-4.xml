@@ -10,14 +10,16 @@
         id="v3"/> = <html:code>eulav$</html:code></html:p>
   </view>
   <watch>
-    <get property="value"/>
-    <set view="v"/>
-  </watch>
-  <watch>
     <get property="value">
       return [].splice.call(value, 0).reverse().join("");
     </get>
     <set view="v2"/>
     <set view="v3"/>
+  </watch>
+  <!-- Be careful of oredering here: if we exchange the two watches, the final
+       value will be reversed! -->
+  <watch>
+    <get property="value"/>
+    <set view="v"/>
   </watch>
 </app>

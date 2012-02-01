@@ -151,6 +151,7 @@
                 app.addEventListener("@loaded", function() {
                     var instance = app.instantiate();
                     if (instance.render(ARGS.TARGET, true)) {
+                      instance.init_properties();
                       ok("OK");
                       flexo.notify(instance, "@ready");
                     } else {
@@ -190,6 +191,7 @@
             app.addEventListener("@loaded", function() {
                 var instance = app.instantiate();
                 if (instance.render(args.TARGET, true)) {
+                  instance.init_properties();
                   for (var a in args) {
                     if (args.hasOwnProperty(a)) {
                       if (a.substr(0, 2) === "e:") {

@@ -32,6 +32,8 @@
             app.addEventListener("@loaded", function() {
                 var instance = app.instantiate();
                 if (instance.render(document.body, true)) {
+                  bender.log("Rendered, initializing...");
+                  instance.init_properties();
                   for (var a in args) {
                     if (args.hasOwnProperty(a)) {
                       if (a.substr(0, 2) === "e:") {

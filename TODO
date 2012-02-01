@@ -3,7 +3,8 @@ TODO list as of 2012-02-01 (v0.3.2)
 
 BUGS
 
-[ ] Checkbox test: keep track of the current instance for <set> elements
+[x] Checkbox test
+[ ] Initial setup of component properties
 [ ] Watch loops
 
 
@@ -15,6 +16,7 @@ FEATURES
 [ ] Signals
 [ ] Attribute and content bindings
 [ ] Component inheritance
+[ ] Removing nodes
 
 
 COMPONENTS

@@ -5,22 +5,16 @@
 
   <view>
     <html:p>
-      <use href="../lib/checkbox.xml#checkbox" id="c">Check</use>
+      <use href="../lib/checkbox.xml#checkbox" id="checkbox">Check</use>
     </html:p>
     <html:p>Checked? <html:span id="status"/></html:p>
   </view>
 
   <watch>
-    <get view="c" property="checked">
-      flexo.log("Checked ? {0}".fmt(value), this);
-      return value;
-    </get>
-    <!-- FIXME this get called with the checkbox instance, and not the app
-         instance, so the status view is out of scope.
+    <get view="checkbox" property="checked"/>
     <set view="status">
       return value ? "yes" : "no";
     </set>
-    -->
   </watch>
 
 </app>
