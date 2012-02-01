@@ -1,0 +1,33 @@
+TODO list as of 2012-02-01 (v0.3.2)
+
+
+BUGS
+
+[ ] Checkbox test: keep track of the current instance for <set> elements
+[ ] Watch loops
+
+
+FEATURES
+
+[ ] <and> element (in <watch>)
+[ ] <repeat> element (in <watch>)
+[ ] Watch delays
+[ ] Signals
+[ ] Attribute and content bindings
+[ ] Component inheritance
+
+
+COMPONENTS
+
+[ ] Full-fledged audio component: scrubbing, scrolling, time display, zooming...
+[/] Prompt with autocompletion
+[ ] Calendar
+[ ] Sound for buttons
+[ ] Draggable div
+[ ] Resizable div
+
+
+MORBO
+
+[ ] Fix sound serving for Quicktime
+[ ] Pages for errors
