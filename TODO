@@ -4,7 +4,8 @@ TODO list as of 2012-02-01 (v0.3.2)
 BUGS
 
 [x] Checkbox test
-[ ] Initial setup of component properties
+[ ] Setting b:checked property in the URL bar does not set the checkbox properly
+[x] Initial setup of component properties
 [ ] Watch loops
 
 

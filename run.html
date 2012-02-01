@@ -44,7 +44,7 @@
                         instance[prop_name] = parseFloat(args[a]);
                       } else if (a.substr(0, 2) === "b:") {
                         prop_name = "$" + flexo.undash(a.substr(2));
-                        instance[prop_name] = bender.is_true(args[a]);
+                        instance[prop_name] = flexo.is_true(args[a]);
                       } else if (a.substr(0, 1) === "$") {
                         instance[a] = args[a];
                       }
