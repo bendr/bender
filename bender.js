@@ -55,7 +55,7 @@ if (typeof require === "function") flexo = require("flexo");
 
     // Import a node into the current context; if there is no outstanding
     // loading to be performed, send a @loaded notification
-    context.import = function(node, uri)
+    context["import"] = function(node, uri)
     {
       return this.check_loaded(import_node(this.documentElement, node, false,
             uri || this.uri));
@@ -70,7 +70,7 @@ if (typeof require === "function") flexo = require("flexo");
         this.loaded[u[0]] = false;
         flexo.request_uri(uri, (function(req) {
             this.loaded[u[0]] = true;
-            var component = context.import(req.responseXML.documentElement,
+            var component = context["import"](req.responseXML.documentElement,
               u[0]);
           }).bind(this));
       }
@@ -334,7 +334,7 @@ if (typeof require === "function") flexo = require("flexo");
             context.loaded[u[0]] = false;
             flexo.request_uri(u[0], function(req) {
                 context.loaded[u[0]] = true;
-                var c = context.import(req.responseXML.documentElement);
+                var c = context["import"](req.responseXML.documentElement);
                 if (p) {
                   c.addEventListener("@loaded", function() {
                       context.check_loaded(p);
@@ -475,7 +475,7 @@ if (typeof require === "function") flexo = require("flexo");
             flexo.request_uri(u[0], function(req) {
                 context.loaded[u[0]] = true;
                 bender.log("Import component from URI={0}".fmt(u[0]));
-                var c = context.import(req.responseXML.documentElement, u[0]);
+                var c = context["import"](req.responseXML.documentElement, u[0]);
                 if (p) {
                   c.addEventListener("@loaded", function() {
                       context.check_loaded(p);

@@ -22,10 +22,6 @@ exports.SERVER_NAME = "MORBO!";
 //   * an optional name parameter so that the pattern can be overriden
 exports.PATTERNS =
 [
-  // TODO default favicon
-  ["GET", /^\/favicon\.ico$/, function(transaction) {
-      transaction.serve_error(404, "No favicon");
-    }, "favicon"],
   ["GET", /^\/bender.js$/, function(transaction) {
       transaction.serve_file_from_path("./node_modules/bender.js");
     }, "bender"],
@@ -121,8 +117,9 @@ exports.TRANSACTION =
   },
 
   // Serve file from a known pathname
-  serve_file_from_path: function(path_)
+  serve_file_from_path: function(path_, rel)
   {
+    if (rel) path_ = path.resolve(exports.DOCUMENTS, path_);
     fs.stat(path_, (function(error, stats) {
         if (error) {
           this.serve_error(500, "serve_file_from_path: " + error);
@@ -157,6 +154,7 @@ exports.TRANSACTION =
 exports.run = function(ip, port)
 {
   http.createServer(function(request, response) {
+      flexo.log(request.headers);
       var transaction = Object.create(exports.TRANSACTION)
         .init(exports, request, response);
       var pathname = decodeURIComponent(transaction.url.pathname);
@@ -201,6 +199,14 @@ function check_path(path_, root)
 // TODO improve range request stuff (factor it out?)
 function serve_file(transaction, path_, stats, uri)
 {
+  if (transaction.request.headers.hasOwnProperty("if-modified-since")) {
+    var d = new Date(transaction.request.headers["if-modified-since"]);
+    if (stats.mtime <= d) {
+      transaction.serve_data(304);
+      return;
+    }
+  }
+  // TODO If-None-Match
   var type = exports.TYPES[path.extname(path_).substr(1).toLowerCase()] || "";
   var params = { "Last-Modified": stats.mtime.toUTCString(),
     ETag: "\"{0}-{1}-{2}\"".fmt(stats.ino.toString(16),
@@ -212,7 +218,6 @@ function serve_file(transaction, path_, stats, uri)
       var from = parseInt(m[1], 10);
       var to = m[2] ? parseInt(m[2], 10) : stats.size - 1;
       var size = to - from + 1;
-      params["Accept-Ranges"] = "bytes";
       if (size < stats.size) {
         var buffers = [];
         var length = 0;
@@ -235,7 +240,7 @@ function serve_file(transaction, path_, stats, uri)
             if (transaction.request.method.toUpperCase() === "HEAD") {
               transaction.response.end();
             } else {
-              transaction.response.write(buffer.slice(from, size));
+              transaction.response.write(buffer.slice(from, from + size));
             }
           });
         return;
@@ -300,6 +305,9 @@ function serve_file_or_index(transaction, uri, index)
 function write_head(transaction, code, type, data, params)
 {
   if (typeof params !== "object") params = {};
+  if (!params.hasOwnProperty("Accept-Ranges")) {
+    params["Accept-Ranges"] = "bytes";
+  }
   if (!params.hasOwnProperty("Content-Length")) {
     params["Content-Length"] = data ? Buffer.byteLength(data.toString()) : 0;
   }
@@ -312,6 +320,7 @@ function write_head(transaction, code, type, data, params)
   params.Date = (new Date()).toUTCString();
   params.Server = exports.SERVER_NAME;
   transaction.response.writeHead(code, params);
+  flexo.log(transaction.response._header);
 }
 
 

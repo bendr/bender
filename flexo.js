@@ -457,6 +457,12 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }
   };
 
+  flexo.yyyymmdd = function(date)
+  {
+    if (!date) date = new Date;
+    return "{0}{1}{2}".fmt(1900 + date.getYear(),
+        flexo.pad(1 + date.getMonth(), 2), flexo.pad(date.getDate(), 2));
+  };
 
   // DOM related functions
 

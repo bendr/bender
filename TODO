@@ -1,4 +1,4 @@
-TODO list as of 2012-02-01 (v0.3.2)
+TODO list as of 2012-02-02 (v0.3.2)
 
 
 BUGS
@@ -17,7 +17,12 @@ FEATURES
 [ ] Signals
 [ ] Attribute and content bindings
 [ ] Component inheritance
+[ ] Adding nodes
 [ ] Removing nodes
+[ ] Refer to content node (draggable)
+[ ] Get matching a specific value?
+[ ] Script ran on instantiation?
+[ ] Eval attribute values with {}?
 
 
 COMPONENTS
@@ -26,11 +31,11 @@ COMPONENTS
 [/] Prompt with autocompletion
 [ ] Calendar
 [ ] Sound for buttons
-[ ] Draggable div
+[/] Draggable div -> lib/draggable.xml
 [ ] Resizable div
 
 
 MORBO
 
-[ ] Fix sound serving for Quicktime
+[/] Fix sound serving for Quicktime
 [ ] Pages for errors
