@@ -1,4 +1,4 @@
-TODO list as of 2012-02-02 (v0.3.2)
+TODO list as of 2012-02-03 (v0.3.2)
 
 
 BUGS
@@ -21,7 +21,8 @@ FEATURES
 [ ] Removing nodes
 [ ] Refer to content node (draggable)
 [ ] Get matching a specific value?
-[ ] Script ran on instantiation?
+[ ] Script ran on instantiation -> <set> within views/uses
+[ ] on-event attribute -> similar to watch/get@event/set
 [ ] Eval attribute values with {}?
 
 
@@ -30,7 +31,7 @@ COMPONENTS
 [ ] Full-fledged audio component: scrubbing, scrolling, time display, zooming...
 [/] Prompt with autocompletion
 [ ] Calendar
-[ ] Sound for buttons
+[/] Sound for buttons
 [/] Draggable div -> lib/draggable.xml
 [ ] Resizable div
 

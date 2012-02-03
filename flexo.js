@@ -283,15 +283,20 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }
   };
 
-  // Request an URI as an arraybuffer through XMLHttpRequest. The f callback is
-  // called with the response directly. TODO error handling
-  flexo.request_arraybuffer = function(uri, f)
+  // Make an XMLHttpRequest with params and a callback when done
+  flexo.ez_xhr = function(uri, params, f)
   {
+    if (f === undefined) {
+      f = params;
+      params = {};
+    }
+    if (!params.hasOwnProperty("method")) params.method = "GET";
+    if (!params.hasOwnProperty("data")) params.data = "";
     var req = new XMLHttpRequest();
-    req.open("GET", uri, true);
-    req.responseType = "arraybuffer";
-    req.onload = function() { f(req.response); };
-    req.send("");
+    req.open(params.method, uri);
+    if (params.responseType) req.responseType = params.responseType;
+    req.onload = function() { f(req); };
+    req.send(params.data);
   };
 
   // Simple wrapper for XMLHttpRequest GET request with no data; call back with

@@ -95,6 +95,15 @@ exports.TRANSACTION =
     return this;
   },
 
+  // Get data from the request
+  get_data: function(f)
+  {
+    var data = "";
+    this.request.on("data", function(chunk) { data += chunk.toString(); });
+    this.request.on("error", function() { f(); });
+    this.request.on("end", function() { f(data); });
+  },
+
   // Serve data by writing the correct headers (plus the ones already given, if
   // any) and the data
   serve_data: function(code, type, data, params)
