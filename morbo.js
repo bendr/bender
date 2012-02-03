@@ -379,7 +379,6 @@ function html_tag(tag)
 
 var APPS = [];
 var PORT = 8910;
-var REDIS_PORT;
 var IP = "";
 var HELP = false;
 
@@ -390,8 +389,6 @@ function parse_args(args)
   args.forEach(function(arg) {
       if (m = arg.match(/^port=(\d+)/)) {
         PORT = parseInt(m[1], 10);
-      } else if (m = arg.match(/^redis=(\d+)/)) {
-        REDIS_PORT = parseInt(m[1], 10);
       } else if (m = arg.match(/^ip=(\S*)/)) {
         IP = m[1];
       } else if (arg.match(/^h(elp)?$/i)) {
@@ -413,41 +410,25 @@ function show_help(node, name)
   console.log("  help:                 show this help message");
   console.log("  ip=<ip address>:      IP address to listen to");
   console.log("  port=<port number>:   port number for the server");
-  console.log("  redis=<port number>:  port number for the Redis server");
   console.log("");
   process.exit(0);
 }
 
-parse_args(process.argv.slice(2));
+var args = process.argv.slice(2);
+parse_args(args);
 if (HELP) show_help.apply(null, process.argv);
 
-APPS.forEach(function(a) {
-    var app = require(a);
-    [].push.apply(exports.PATTERNS, app.PATTERNS);
-  });
-
-if (REDIS_PORT) {
-  var redis = require("redis").createClient(REDIS_PORT);
-  exports.TRANSACTION.redis = redis;
-  exports.TRANSACTION.rwrap = function(f)
-  {
-    var transaction = this;
-    return function(err) {
-        if (err) {
-          transaction.serve_error(500, "Redis error: " + err);
-        } else {
-          f.apply(transaction, [].slice.call(arguments, 1));
-        }
-      };
-  };
-  redis.on("error", function(err) {
-      util.log("Redis error:", err);
-      process.exit(1);
-    });
-  redis.on("ready", function() {
-      util.log("redis ready ({0})".fmt(redis.port));
-      exports.run(IP, PORT);
-    });
-} else {
-  exports.run(IP, PORT);
-}
+var n = APPS.length;
+(function add_app(i) {
+  if (i >= n) {
+    exports.run(IP, PORT);
+  } else {
+    var app = require(APPS[i]);
+    [].unshift.apply(exports.PATTERNS, app.PATTERNS);
+    if (app.init) {
+      app.init(exports, args, function() { add_app(i + 1); });
+    } else {
+      add_app(i + 1);
+    }
+  }
+})(0);

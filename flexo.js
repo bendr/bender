@@ -402,6 +402,14 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return min + Math.random() * (max - min);
   };
 
+  // times(n, f) = [0, ..., n].apply(f)
+  flexo.times = function(n, f)
+  {
+    var array = new Array(n);
+    for (var i = 0; i < n; ++i) array[i] = f(i);
+    return array;
+  };
+
 
   // Transforming values
 
@@ -416,13 +424,6 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.remap = function(value, istart, istop, ostart, ostop)
   {
     return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
-  };
-
-  flexo.times = function(n, f)
-  {
-    var array = new Array(n);
-    for (var i = 0; i < n; ++i) array[i] = f(i);
-    return array;
   };
 
 
