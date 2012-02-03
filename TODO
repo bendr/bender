@@ -11,25 +11,26 @@ BUGS
 
 FEATURES
 
+[ ] <get attr="...">
+[ ] Attribute binding (cf. tests/fail/button.xml)
 [ ] <and> element (in <watch>)
 [ ] <repeat> element (in <watch>)
 [ ] Watch delays
 [ ] Signals
-[ ] Attribute and content bindings
 [ ] Component inheritance
 [ ] Adding nodes
 [ ] Removing nodes
 [ ] Refer to content node (draggable)
 [ ] Get matching a specific value?
 [x] Script ran on instantiation -> <set> within views/uses
+    [ ] insert text in the right location
 [x] on-event attribute -> similar to watch/get@event/set
-[ ] Eval attribute values with {}?
 [ ] Set attributes on <use> even when not set in the original component
 
 
 COMPONENTS
 
-[ ] Full-fledged audio component: scrubbing, scrolling, time display, zooming...
+[/] Full-fledged audio component: scrubbing, scrolling, time display, zooming...
 [/] Prompt with autocompletion
 [ ] Calendar
 [/] Sound for buttons
