@@ -443,6 +443,11 @@ if (typeof require === "function") flexo = require("flexo");
     // component.
     use:
     {
+      init: function()
+      {
+        this.on = {};
+      },
+
       add_to_parent: function(parent)
       {
         if (parent.uses) parent.uses.push(this);
@@ -456,7 +461,11 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
-        if (name === "href") this.set_uri(value);
+        if (name === "href") {
+          this.set_uri(value);
+        } else if (name.indexOf("on-") === 0) {
+          this.on["@" + name.substr(3)] = value;
+        }
         return this.super_setAttribute(name, value);
       },
 
@@ -847,6 +856,17 @@ if (typeof require === "function") flexo = require("flexo");
           }
         }
       })(this, this.node.view, this.target);
+
+      // Setup event listeners for on-event attributes
+      if (this.parent_use) {
+        for (var e in this.parent_use.on) {
+          if (this.parent_use.on.hasOwnProperty(e)) {
+            var on = this.parent_use.on[e];
+            bender.log("*** on {0}: {1}".fmt(e, on));
+            flexo.listen(this, e, new Function("event", on));
+          }
+        }
+      }
 
       // Setup the watches
       // TODO keep track of event listeners/properties so that we can remove

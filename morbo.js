@@ -19,15 +19,14 @@ exports.SERVER_NAME = "MORBO!";
 //   * the method to match (e.g. "GET", "POST", etc.)
 //   * the pathname to match as a regex
 //   * the callback function for a succesful match f(transaction, matches)
-//   * an optional name parameter so that the pattern can be overriden
 exports.PATTERNS =
 [
   ["GET", /^\/bender.js$/, function(transaction) {
       transaction.serve_file_from_path("./node_modules/bender.js");
-    }, "bender"],
+    }],
   ["GET", /^\/flexo.js$/, function(transaction) {
       transaction.serve_file_from_path("./node_modules/flexo.js");
-    }, "flexo"]
+    }],
 ];
 
 // Known MIME types associated with file extensions

@@ -93,10 +93,7 @@
   </watch>
 
   <watch>
-    <get property="class">
-      flexo.log("Class ->", value);
-      return value;
-    </get>
+    <get property="class"/>
     <set view="b" attr="class">
       return "bender-button {0}".fmt(value);
     </set>
