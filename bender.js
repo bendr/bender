@@ -813,10 +813,10 @@ if (typeof require === "function") flexo = require("flexo");
                   bender.log("!!! New instance {0} < {1}".fmt(instance.hash,
                       parent_instance.hash));
                   parent_instance.child_instances.push(instance);
+                  instance.parent_instance = parent_instance;
                   var id = flexo.normalize(ch.getAttribute("id") || "");
                   if (id) self.views[flexo.undash(id)] = instance;
                   instance.render(dest, false, ch);
-                  // set_properties(instance, ch);
                 } else {
                   bender.warn("No component for href=\"{0}\"".fmt(ch.href));
                 }
@@ -870,7 +870,8 @@ if (typeof require === "function") flexo = require("flexo");
           if (this.parent_use.on.hasOwnProperty(e)) {
             var on = this.parent_use.on[e];
             bender.log("*** on {0}: {1}".fmt(e, on));
-            flexo.listen(this, e, new Function("event", on));
+            flexo.listen(this, e, new Function("event", on)
+                .bind(this.parent_instance));
           }
         }
       }
