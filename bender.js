@@ -258,6 +258,7 @@ if (typeof require === "function") flexo = require("flexo");
         instance.node = this;
         instance.views = {};
         instance.uses = {};
+        instance.sets = [];
         instance.child_instances = [];
         this.scripts.forEach(function(script) {
             (new Function("prototype", script.textContent))(instance);
@@ -775,6 +776,10 @@ if (typeof require === "function") flexo = require("flexo");
     {
       this.child_instances.forEach(function(ch) { ch.init_properties(); });
       set_properties(this, this.node, this.parent_use);
+      this.sets.forEach((function(set) {
+          var v = (new Function(set.set.textContent)).call(this);
+          if (v !== undefined) set.dest.textContent += v;
+        }).bind(this));
       flexo.notify(this, "@initialized");
     },
 
@@ -818,6 +823,8 @@ if (typeof require === "function") flexo = require("flexo");
               } else if (ch.localName === "content") {
                 render(parent_instance, use.childNodes.length > 0 ? use : ch,
                   dest);
+              } else if (ch.localName === "set") {
+                parent_instance.sets.push({ set: ch, dest: dest });
               }
             } else {
               var once =

@@ -1,0 +1,21 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <title>Test for inline set</title>
+  <import href="../lib/push-button.xml"/>
+
+  <component id="yyyymmdd" e:date="">
+    <view><html:span><set>
+      return this.$date ? flexo.yyyymmdd(new Date(this.$date)) :
+        flexo.yyyymmdd();
+    </set></html:span></view>
+  </component>
+
+  <view>
+    <html:p>
+      Today's date is: <use href="#yyyymmdd"/>.
+      Some other date: <use href="#yyyymmdd" e:date="2012-01-20"/>.
+    </html:p>
+  </view>
+
+</app>
