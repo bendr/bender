@@ -27,9 +27,7 @@
 
   <watch>
     <get property="checked"/>
-    <set view="c" attr="checked">
-      return value ? "" : null;
-    </set>
+    <set view="c" property="checked"/>
   </watch>
 
 </component>

@@ -631,7 +631,9 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
-        if (name === "dom-event") {
+        if (name === "attr") {
+          this.attr = flexo.normalize(value);
+        } else if (name === "dom-event") {
           this.dom_event = flexo.normalize(value);
         } else if (name === "event") {
           this.event = flexo.normalize(value);
@@ -865,6 +867,10 @@ if (typeof require === "function") flexo = require("flexo");
                   d.setAttributeNS(attr.namespaceURI, attr.localName,
                     attr.nodeValue);
                 } else {
+                  if (/\{/.test(attr.nodeValue)) {
+                    flexo.log("Possible binding: {0}={1}".fmt(attr.localName,
+                          attr.nodeValue));
+                  }
                   d.setAttribute(attr.localName, attr.nodeValue);
                 }
               }
@@ -915,6 +921,8 @@ if (typeof require === "function") flexo = require("flexo");
                 watch_dom_listener(instance, target, get, label);
               } else if (get.event) {
                 watch_event_listener(instance, target, get, label);
+              } else if (get.attr) {
+                watch_attr(instance, target, get, label);
               } else {
                 watch_getter_setter(instance, target, get, label);
               }
@@ -1070,6 +1078,26 @@ if (typeof require === "function") flexo = require("flexo");
   // Transform an XML name into the actual property name (undash and prefix with
   // $, so that for instance "rate-ms" will become $rateMs.)
   var property_name = function(name) { return "$" + flexo.undash(name); };
+
+  // TODO initialize attributes properly
+  function watch_attr(instance, target, get, label)
+  {
+    bender.log(">>> watch_attr for {0} on {1}"
+        .fmt(label, instance.hash));
+    var gets = instance.node.ownerDocument.gets[label];
+    var super_setAttribute = target.setAttribute;
+    target.setAttribute = function(name, value)
+    {
+      var attr = super_setAttribute.call(this, name, value);
+      if (name === get.attr) {
+        gets.forEach(function(g) {
+            var v = g.get.transform.call(g.instance, g.get, value);
+            if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+          });
+      }
+      return attr;
+    }
+  }
 
   // Setup a DOM event listener for a watch
   function watch_dom_listener(instance, target, get, label)

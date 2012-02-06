@@ -1,0 +1,8 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:tabindex="1">
+  <title>Bind a value to a DOM node attribute</title>
+  <view>
+    <html:p><html:input id="t" type="text" value="Hello"
+        tabindex="{$tabindex}"/></html:p>
+  </view>
+</app>
