@@ -1,0 +1,21 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
+  <title>Watch a component property and set a view accordingly</title>
+  <view>
+    <html:p>
+      <html:code>$value</html:code> = <html:input type="text" id="v"/> =
+      <html:span id="check"/>
+    </html:p>
+  </view>
+  <watch id="set-prop">
+    <get property="value"/>
+    <set view="v" property="value"/>
+    <set view="check"/>
+  </watch>
+  <watch id="set-attr">
+    <get view="v" dom-event="change" value="e">
+      return e.target.value;
+    </get>
+    <set property="value"/>
+  </watch>
+</app>

@@ -708,7 +708,7 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "css-property") {
           this.css = flexo.undash(flexo.normalize(value));
         } else if (name === "property") {
-          this.property = property_name(flexo.normalize(value));
+          this.property = flexo.normalize(value);
         } else if (name === "view") {
           this.view = flexo.undash(flexo.normalize(value));
         } else if (name === "use") {
@@ -769,11 +769,13 @@ if (typeof require === "function") flexo = require("flexo");
             }
           } else if (this.css) {
             instance.views[this.view].style[this.css] = v_;
+          } else if (this.property) {
+            instance.views[this.view][this.property] = v_;
           } else {
             instance.views[this.view].textContent = v_;
           }
         } else if (this.property) {
-          instance[this.property] = v_;
+          instance[property_name(this.property)] = v_;
         }
       },
 

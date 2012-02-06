@@ -2,9 +2,6 @@
   xmlns:e="http://bender.igel.co.jp/e" e:first-name="Bert"
   e:last-name="Bertington">
 
-  <!-- FIXME setting caps does not properly update the last name box (but it
-       does the full name display -->
-
   <title>Knockout tutorial ported to Bender</title>
   <desc>From http://learn.knockoutjs.com/#/?tutorial=intro</desc>
 
@@ -17,12 +14,12 @@
 
   <watch>
     <get property="first-name"/>
-    <set view="first-name" attr="value"/>
+    <set view="first-name" property="value"/>
   </watch>
 
   <watch>
     <get property="last-name"/>
-    <set view="last-name" attr="value"/>
+    <set view="last-name" property="value"/>
   </watch>
 
   <watch>
@@ -50,7 +47,7 @@
   <watch>
     <get view="button" dom-event="click"/>
     <set property="last-name">
-      return previous_value.toUpperCase();
+      return this.$lastName.toUpperCase();
     </set>
   </watch>
 

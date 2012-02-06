@@ -12,6 +12,7 @@ BUGS
 FEATURES
 
 [ ] <get attr="...">
+[/] <set view="..." property="...">
 [ ] Attribute binding (cf. tests/fail/button.xml)
 [/] <and> element (in <watch>) (tests/watch-and.xml)
 [ ] <repeat> element (in <watch>)
