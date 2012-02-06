@@ -1,6 +1,5 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
   xmlns:html="http://www.w3.org/1999/xhtml" f:x="2">
-  <!-- FIXME detect loops in watch activations! -->
   <title>Watch: cycle</title>
   <view>
     <html:p><html:code>$x</html:code> = 2 * <html:code>$z</html:code> =
@@ -10,21 +9,21 @@
     <html:p><html:code>$z</html:code> = <html:code>$y</html:code> - 2 =
       <html:em id="z"/></html:p>
   </view>
-  <watch>
+  <watch id="xx">
     <get property="x"/>
     <set view="x"/>
     <set property="y">
       return value + 1;
     </set>
   </watch>
-  <watch>
+  <watch id="yy">
     <get property="y"/>
     <set view="y"/>
     <set property="z">
       return value - 2;
     </set>
   </watch>
-  <watch>
+  <watch id="zz">
     <get property="z"/>
     <set view="z"/>
     <set property="x">

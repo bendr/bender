@@ -1,4 +1,4 @@
-TODO list as of 2012-02-03 (v0.3.2)
+TODO list as of 2012-02-04 (v0.3.2)
 
 
 BUGS
@@ -6,14 +6,14 @@ BUGS
 [x] Checkbox test
 [ ] Setting b:checked property in the URL bar does not set the checkbox properly
 [x] Initial setup of component properties
-[ ] Watch loops
+[x] Watch loops (more tests needed!)
 
 
 FEATURES
 
 [ ] <get attr="...">
 [ ] Attribute binding (cf. tests/fail/button.xml)
-[ ] <and> element (in <watch>)
+[/] <and> element (in <watch>) (tests/watch-and.xml)
 [ ] <repeat> element (in <watch>)
 [ ] Watch delays
 [ ] Signals
@@ -26,6 +26,7 @@ FEATURES
     [ ] insert text in the right location
 [x] on-event attribute -> similar to watch/get@event/set
 [ ] Set attributes on <use> even when not set in the original component
+[ ] Sequencing watches: store/recall presets
 
 
 COMPONENTS

@@ -554,6 +554,8 @@ if (typeof require === "function") flexo = require("flexo");
           this.once = flexo.is_true(value);
         } else if (name === "all") {
           this.all = flexo.is_true(value);
+        } else if (name === "id") {
+          this.id = flexo.normalize(value);
         }
         return this.super_setAttribute(name, value);
       },
@@ -561,6 +563,16 @@ if (typeof require === "function") flexo = require("flexo");
       got: function(instance, get, value, prev)
       {
         if (this.active) {
+          if (this.__activated) {
+            bender.log("!!! {0} already active".fmt(this.id));
+            return;
+          }
+          this.__activated = true;
+          bender.log(">>> {0} activating...".fmt(this.id));
+          setTimeout((function() {
+              bender.log("<<< {0} deactivated.".fmt(this.id));
+              delete this.__activated;
+            }).bind(this), 0);
           this.sets.forEach((function(set) {
               set.got(instance, get, value, prev);
             }).bind(this));
