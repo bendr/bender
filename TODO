@@ -7,13 +7,15 @@ BUGS
 [ ] Setting b:checked property in the URL bar does not set the checkbox properly
 [x] Initial setup of component properties
 [x] Watch loops (more tests needed!)
+[ ] Button regression
 
 
 FEATURES
 
 [x] <get attr="...">
 [x] <set view="..." property="...">
-[ ] Attribute binding (cf. tests/fail/button.xml)
+[x] Attribute binding (cf. tests/fail/button.xml)
+    [ ] use {} formatting for the attribute value (e.g. class for button)
 [/] <and> element (in <watch>) (tests/watch-and.xml)
 [ ] <repeat> element (in <watch>)
 [ ] Watch delays

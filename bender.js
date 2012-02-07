@@ -885,7 +885,12 @@ if (typeof require === "function") flexo = require("flexo");
         }
       })(this, this.node.view, this.target);
 
-      // Setup event listeners for on-event attributes
+      // Setup the watches
+      // TODO keep track of event listeners/properties so that we can remove
+      // then when re-rendering
+
+      // Setup watch nodes for on-event attributes
+      // TODO maybe this is overkill? Let's keep the simple listener here
       if (this.parent_use) {
         for (var e in this.parent_use.on) {
           if (this.parent_use.on.hasOwnProperty(e)) {
@@ -896,10 +901,6 @@ if (typeof require === "function") flexo = require("flexo");
           }
         }
       }
-
-      // Setup the watches
-      // TODO keep track of event listeners/properties so that we can remove
-      // then when re-rendering
 
       // Check for bindings
       (function solve_bindings(node) {
