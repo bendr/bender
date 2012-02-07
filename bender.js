@@ -185,6 +185,11 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
+        var m = value.match(/\{([\w-]+)\}/);
+        if (m) {
+          if (!this._bindings) this._bindings = {};
+          this._bindings[name] = m[1];
+        }
         return this.super_setAttribute(name, value);
       },
 
@@ -867,10 +872,6 @@ if (typeof require === "function") flexo = require("flexo");
                   d.setAttributeNS(attr.namespaceURI, attr.localName,
                     attr.nodeValue);
                 } else {
-                  if (/\{/.test(attr.nodeValue)) {
-                    flexo.log("Possible binding: {0}={1}".fmt(attr.localName,
-                          attr.nodeValue));
-                  }
                   d.setAttribute(attr.localName, attr.nodeValue);
                 }
               }
@@ -899,6 +900,44 @@ if (typeof require === "function") flexo = require("flexo");
       // Setup the watches
       // TODO keep track of event listeners/properties so that we can remove
       // then when re-rendering
+
+      // Check for bindings
+      (function solve_bindings(node) {
+        if (node._bindings) {
+          if (!node.id) {
+            node.id = flexo.random_id(6, node.ownerDocument);
+            self.views[node.id] = node;
+          }
+          for (var attr in node._bindings) {
+            if (node._bindings.hasOwnProperty(attr)) {
+              var w1 = self.node.ownerDocument.createElement("watch");
+              var g1 = self.node.ownerDocument.createElement("get");
+              g1.setAttribute("view", node.id);
+              g1.setAttribute("attr", attr);
+              var s1 = self.node.ownerDocument.createElement("set");
+              s1.setAttribute("property", node._bindings[attr]);
+              w1.appendChild(g1);
+              w1.appendChild(s1);
+              self.node.appendChild(w1);
+              var w2 = self.node.ownerDocument.createElement("watch");
+              var g2 = self.node.ownerDocument.createElement("get");
+              g2.setAttribute("property", node._bindings[attr]);
+              var s2 = self.node.ownerDocument.createElement("set");
+              s2.setAttribute("view", node.id);
+              s2.setAttribute("attr", attr);
+              w2.appendChild(g2);
+              w2.appendChild(s2);
+              self.node.appendChild(w2);
+            }
+          }
+          bender.log("Solved bindings for", node);
+          delete node._bindings;
+        }
+        for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+          if (ch.nodeType === 1) solve_bindings(ch);
+        }
+      })(this.node.view);
+
       var gets = this.node.ownerDocument.gets;
       var gather = function(node)
       {
