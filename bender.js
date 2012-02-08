@@ -187,8 +187,10 @@ if (typeof require === "function") flexo = require("flexo");
       {
         var m = value.match(/\{([\w-]+)\}/);
         if (m) {
-          if (!this._bindings) this._bindings = {};
-          this._bindings[name] = m[1];
+          if (!this.bindings) this.bindings = {};
+          value = value.replace(/\{[\w-]+\}/, "{0}");
+          flexo.log("%%%%%% replaced:", value);
+          this.bindings[name] = [m[1], value];
         }
         return this.super_setAttribute(name, value);
       },
@@ -572,12 +574,14 @@ if (typeof require === "function") flexo = require("flexo");
             bender.log("!!! {0} already active".fmt(this.id));
             return;
           }
+          /*
           this.__activated = true;
           bender.log(">>> {0} activating...".fmt(this.id));
           setTimeout((function() {
               bender.log("<<< {0} deactivated.".fmt(this.id));
               delete this.__activated;
             }).bind(this), 0);
+            */
           this.sets.forEach((function(set) {
               set.got(instance, get, value, prev);
             }).bind(this));
@@ -904,35 +908,37 @@ if (typeof require === "function") flexo = require("flexo");
 
       // Check for bindings
       (function solve_bindings(node) {
-        if (node._bindings) {
+        if (node.bindings) {
           if (!node.id) {
             node.id = flexo.random_id(6, node.ownerDocument);
             self.views[node.id] = node;
           }
-          for (var attr in node._bindings) {
-            if (node._bindings.hasOwnProperty(attr)) {
-              var w1 = self.node.ownerDocument.createElement("watch");
+          for (var attr in node.bindings) {
+            if (node.bindings.hasOwnProperty(attr)) {
+              /*var w1 = self.node.ownerDocument.createElement("watch");
               var g1 = self.node.ownerDocument.createElement("get");
               g1.setAttribute("view", node.id);
               g1.setAttribute("attr", attr);
               var s1 = self.node.ownerDocument.createElement("set");
-              s1.setAttribute("property", node._bindings[attr]);
+              s1.setAttribute("property", node.bindings[attr][0]);
               w1.appendChild(g1);
               w1.appendChild(s1);
-              self.node.appendChild(w1);
+              self.node.appendChild(w1);*/
               var w2 = self.node.ownerDocument.createElement("watch");
               var g2 = self.node.ownerDocument.createElement("get");
-              g2.setAttribute("property", node._bindings[attr]);
+              g2.setAttribute("property", node.bindings[attr][0]);
               var s2 = self.node.ownerDocument.createElement("set");
               s2.setAttribute("view", node.id);
               s2.setAttribute("attr", attr);
+              s2.set_text_content("return \"{0}\".fmt(value);"
+                  .fmt(node.bindings[attr][1]));
               w2.appendChild(g2);
               w2.appendChild(s2);
               self.node.appendChild(w2);
             }
           }
           bender.log("Solved bindings for", node);
-          delete node._bindings;
+          delete node.bindings;
         }
         for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
           if (ch.nodeType === 1) solve_bindings(ch);

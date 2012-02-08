@@ -1,12 +1,17 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
-  xmlns:b="http://bender.igel.co.jp/b" xmlns:f="http://bender.igel.co.jp/f">
+  xmlns:e="http://bender.igel.co.jp/e">
 
   <import href="../lib/push-button.xml"/>
 
+  <stylesheet>
+    .ok { background-color: #8f0 !important; }
+    .cancel { background-color: #ff4040 !important; }
+  </stylesheet>
+
   <view>
     <html:p>
-      <use href="#button" id="ok-button">OK</use>
-      <use href="#button" id="cancel-button">Cancel</use>
+      <use href="#button" id="ok-button" e:class="ok">OK</use>
+      <use href="#button" id="cancel-button" e:class="cancel">Cancel</use>
     </html:p>
   </view>
 

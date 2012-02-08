@@ -1,4 +1,4 @@
-TODO list as of 2012-02-04 (v0.3.2)
+TODO list as of 2012-02-08 (v0.3.2)
 
 
 BUGS
@@ -7,7 +7,8 @@ BUGS
 [ ] Setting b:checked property in the URL bar does not set the checkbox properly
 [x] Initial setup of component properties
 [x] Watch loops (more tests needed!)
-[ ] Button regression
+    [ ] Setting properties in a row
+[x] Button regression
 
 
 FEATURES
