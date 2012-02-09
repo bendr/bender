@@ -7,41 +7,55 @@
 
   <title>Boxes</title>
 
+  <component id="box">
+    <stylesheet>
+      .box { position: absolute; width: 300px; height: 150px;
+        background-color: #08f; }
+    </stylesheet>
+    <view>
+      <html:div id="box" class="box"/>
+    </view>
+    <watch>
+      <get view="box" dom-event="mousedown" value="e">
+        if (e.button === 0) {
+          e.preventDefault();
+          var p = flexo.event_client_pos(e);
+          this.__moving = { target: target, x: p.x - target.offsetLeft,
+            y: p.y - target.offsetTop,
+            max_x: target.offsetParent.offsetWidth - target.offsetWidth,
+            max_y: target.offsetParent.offsetHeight - target.offsetHeight };
+          flexo.log(this.__moving)
+          return e;
+        }
+      </get>
+      <watch>
+        <get dom-event="mousemove" value="e">
+          var p = flexo.event_client_pos(e);
+          this.__moving.target.style.left = "{0}px"
+            .fmt(flexo.clamp(p.x - this.__moving.x, 0, this.__moving.max_x));
+          this.__moving.target.style.top = "{0}px"
+            .fmt(flexo.clamp(p.y - this.__moving.y, 0, this.__moving.max_y));
+        </get>
+        <get dom-event="mouseup" disable="true">
+          delete this.__moving;
+          return false;
+        </get>
+      </watch>
+    </watch>
+  </component>
+
   <stylesheet>
+    html, body { height: 100%; margin: 0 }
+    .workspace { width: 400px; height: 400px; margin: 20px 40px;
+      background-color: #8f0; position: relative; }
     .box { position: absolute; width: 300px; height: 150px;
       background-color: #08f; }
   </stylesheet>
 
   <view>
-    <html:div id="box" class="box"/>
+    <html:div class="workspace">
+      <use href="#box"/>
+    </html:div>
   </view>
-
-  <watch>
-    <get view="box" dom-event="mousedown" value="e">
-      if (e.button === 0) {
-        e.preventDefault();
-        var rect = target.getBoundingClientRect();
-        var p = flexo.event_client_pos(e);
-        this.__moving = { target: target, x: rect.left - p.x,
-          max_x: window.innerWidth - rect.width,
-          y: rect.top - p.y,
-          max_y: window.innerHeight - rect.height };
-        return e;
-      }
-    </get>
-    <watch>
-      <get dom-event="mousemove" value="e">
-        var p = flexo.event_client_pos(e);
-        this.__moving.target.style.WebkitTransform =
-          "translate3d({0}px, {1}px, 0)"
-            .fmt(flexo.clamp(p.x + this.__moving.x, 0, this.__moving.max_x),
-              flexo.clamp(p.y + this.__moving.y, 0, this.__moving.max_y));
-      </get>
-      <get dom-event="mouseup" disable="true">
-        delete this.__moving;
-        return true;
-      </get>
-    </watch>
-  </watch>
 
 </app>

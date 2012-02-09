@@ -539,13 +539,11 @@ if (typeof require === "function") flexo = require("flexo");
           parent.watches.push(this);
           if (!(this.hasOwnProperty("enabled"))) this.enabled = true;
           this.component = parent;
-          flexo.log("Top-level watch: enabled={0}".fmt(this.enabled));
         } else if (parent.nested) {
           // Parent is a watch: this is a nested watch
           parent.nested.push(this);
           this.watch = parent;
           this.enabled = false;
-          flexo.log("Nested watch: enabled={0}".fmt(this.enabled));
         }
       },
 
@@ -567,10 +565,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       got: function(instance, get, value, prev)
       {
-        if (!this.enabled) {
-          flexo.log("get -> disabled watch");
-          return;
-        }
+        if (!this.enabled) return;
           /*
           if (this.__activated) {
             bender.log("!!! {0} already active".fmt(this.id));
@@ -586,19 +581,13 @@ if (typeof require === "function") flexo = require("flexo");
         this.sets.forEach((function(set) {
             set.got(instance, get, value, prev);
           }).bind(this));
-        this.nested.forEach(function(w) {
-            flexo.log("Enabling watch", w);
-            w.enabled = true;
-          });
+        this.nested.forEach(function(w) { w.enabled = true; });
         if (get.disable) {
           // Disabled this watch, as well as its siblings if it is nested
           this.enabled = false;
           if (this.parentNode &&
               this.parentNode.hasOwnProperty("nested")) {
-            this.parentNode.nested.forEach(function(w) {
-                w.enabled = false;
-                flexo.log("Disabling watch", w);
-              });
+            this.parentNode.nested.forEach(function(w) { w.enabled = false; });
           }
         }
       },
