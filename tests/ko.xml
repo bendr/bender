@@ -8,7 +8,8 @@
   <view>
     <html:p>Full name: <html:span id="full-name"/></html:p>
     <html:p>First name: <html:input type="text" id="first-name"/></html:p>
-    <html:p>Last name: <html:input type="text" id="last-name"/></html:p>
+    <html:p>Last name: <html:input type="text" id="last-name"
+        value="{last-name}"/></html:p>
     <html:p><html:button id="button">Go Caps</html:button></html:p>
   </view>
 
@@ -16,24 +17,11 @@
     <get property="first-name"/>
     <set view="first-name" property="value"/>
   </watch>
-
   <watch>
-    <get property="last-name"/>
-    <set view="last-name" property="value"/>
-  </watch>
-
-  <watch>
-    <get view="first-name" dom-event="change">
-      return value.target.value;
-    </get>
-    <set property="first-name"/>
-  </watch>
-
-  <watch>
-    <get view="last-name" dom-event="change">
-      return value.target.value;
-    </get>
-    <set property="last-name"/>
+    <get view="first-name" dom-event="change"/>
+    <set property="first-name">
+      return get.target.value;
+    </set>
   </watch>
 
   <watch>

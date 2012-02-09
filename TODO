@@ -1,4 +1,4 @@
-TODO list as of 2012-02-08 (v0.3.2)
+TODO list as of 2012-02-09 (v0.3.2)
 
 
 BUGS
@@ -9,10 +9,14 @@ BUGS
 [x] Watch loops (more tests needed!)
     [ ] Setting properties in a row
 [x] Button regression
+[x] Get transformed called even on disabled watches
 
 
 FEATURES
 
+[x] watches: get/disable instead of watch/once
+[ ] watches: everything goes through events
+[ ] binding rules?
 [x] <get attr="...">
 [x] <set view="..." property="...">
 [x] Attribute binding (cf. tests/fail/button.xml)

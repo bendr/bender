@@ -425,6 +425,13 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return Math.max(Math.min(value, max), min);
   };
 
+  // Right linear fold
+  flexo.foldr = function(f, z, a)
+  {
+    for (var i = 0, n = a.length; i < n; ++ i) z = f(z, a[i]);
+    return z;
+  };
+
   // Remap a value from a given range to another range (from Processing)
   flexo.remap = function(value, istart, istop, ostart, ostop)
   {
@@ -533,8 +540,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.event_page_pos = function(e)
   {
     var p = flexo.event_client_pos(e);
-    return { x: p.x + document.body.scrollLeft,
-      y: p.y + document.body.scrollTop };
+    return { x: p.x + window.pageXOffset, y: p.y + window.pageYOffset };
   };
 
   // Shortcut for flexo.html: no namespace; text content is interpreted as

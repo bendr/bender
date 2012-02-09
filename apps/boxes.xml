@@ -1,0 +1,47 @@
+<app xmlns="http://bender.igel.co.jp"
+  xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:svg="http://www.w3.org/2000/svg">
+
+  <title>Boxes</title>
+
+  <stylesheet>
+    .box { position: absolute; width: 300px; height: 150px;
+      background-color: #08f; }
+  </stylesheet>
+
+  <view>
+    <html:div id="box" class="box"/>
+  </view>
+
+  <watch>
+    <get view="box" dom-event="mousedown" value="e">
+      if (e.button === 0) {
+        e.preventDefault();
+        var rect = target.getBoundingClientRect();
+        var p = flexo.event_client_pos(e);
+        this.__moving = { target: target, x: rect.left - p.x,
+          max_x: window.innerWidth - rect.width,
+          y: rect.top - p.y,
+          max_y: window.innerHeight - rect.height };
+        return e;
+      }
+    </get>
+    <watch>
+      <get dom-event="mousemove" value="e">
+        var p = flexo.event_client_pos(e);
+        this.__moving.target.style.WebkitTransform =
+          "translate3d({0}px, {1}px, 0)"
+            .fmt(flexo.clamp(p.x + this.__moving.x, 0, this.__moving.max_x),
+              flexo.clamp(p.y + this.__moving.y, 0, this.__moving.max_y));
+      </get>
+      <get dom-event="mouseup" disable="true">
+        delete this.__moving;
+        return true;
+      </get>
+    </watch>
+  </watch>
+
+</app>

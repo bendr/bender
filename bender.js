@@ -535,15 +535,17 @@ if (typeof require === "function") flexo = require("flexo");
       add_to_parent: function(parent)
       {
         if (parent.watches) {
-          // Parent is a component: this is a topmost watch, active by default
+          // Parent is a component: this is a topmost watch, enabled by default
           parent.watches.push(this);
-          if (!(this.hasOwnProperty("active"))) this.active = true;
+          if (!(this.hasOwnProperty("enabled"))) this.enabled = true;
           this.component = parent;
+          flexo.log("Top-level watch: enabled={0}".fmt(this.enabled));
         } else if (parent.nested) {
           // Parent is a watch: this is a nested watch
           parent.nested.push(this);
           this.watch = parent;
-          this.active = false;
+          this.enabled = false;
+          flexo.log("Nested watch: enabled={0}".fmt(this.enabled));
         }
       },
 
@@ -555,12 +557,8 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
-        if (name === "active") {
-          this.active = flexo.is_true(value);
-        } else if (name === "once") {
-          this.once = flexo.is_true(value);
-        } else if (name === "all") {
-          this.all = flexo.is_true(value);
+        if (name === "enabled") {
+          this.enabled = flexo.is_true(value);
         } else if (name === "id") {
           this.id = flexo.normalize(value);
         }
@@ -569,12 +567,15 @@ if (typeof require === "function") flexo = require("flexo");
 
       got: function(instance, get, value, prev)
       {
-        if (this.active) {
+        if (!this.enabled) {
+          flexo.log("get -> disabled watch");
+          return;
+        }
+          /*
           if (this.__activated) {
             bender.log("!!! {0} already active".fmt(this.id));
             return;
           }
-          /*
           this.__activated = true;
           bender.log(">>> {0} activating...".fmt(this.id));
           setTimeout((function() {
@@ -582,18 +583,22 @@ if (typeof require === "function") flexo = require("flexo");
               delete this.__activated;
             }).bind(this), 0);
             */
-          this.sets.forEach((function(set) {
-              set.got(instance, get, value, prev);
-            }).bind(this));
-          this.nested.forEach(function(w) { w.active = true; });
-          if (this.once) {
-            // Make this watch inactive, as well as its siblings if it is a
-            // nested watch
-            this.active = false;
-            if (this.parentNode &&
-                this.parentNode.hasOwnProperty("nested")) {
-              this.parentNode.nested.forEach(function(w) { w.active = false; });
-            }
+        this.sets.forEach((function(set) {
+            set.got(instance, get, value, prev);
+          }).bind(this));
+        this.nested.forEach(function(w) {
+            flexo.log("Enabling watch", w);
+            w.enabled = true;
+          });
+        if (get.disable) {
+          // Disabled this watch, as well as its siblings if it is nested
+          this.enabled = false;
+          if (this.parentNode &&
+              this.parentNode.hasOwnProperty("nested")) {
+            this.parentNode.nested.forEach(function(w) {
+                w.enabled = false;
+                flexo.log("Disabling watch", w);
+              });
           }
         }
       },
@@ -615,7 +620,7 @@ if (typeof require === "function") flexo = require("flexo");
       init: function()
       {
         this.params = { get: "get", value: "value",
-          previous_value: "previous_value" };
+          previous_value: "previous_value", target: "target" };
       },
 
       add_to_parent: function(parent)
@@ -656,6 +661,10 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "get" || name === "value" ||
             name === "previous_value") {
           this.params[name] = flexo.normalize(value);
+        } else if (name === "target") {
+          this.params[target] = flexo.undash(flexo.normalize(value));
+        } else if (name === "disable") {
+          this.disable = flexo.is_true(value);
         }
         this.super_setAttribute(name, value);
       },
@@ -674,7 +683,7 @@ if (typeof require === "function") flexo = require("flexo");
         if (/\S/.test(text)) {
           try {
             this.transform = new Function(this.params.get, this.params.value,
-                this.params.previous_value, text);
+                this.params.previous_value, this.params.target, text);
           } catch (e) {
             bender.warn(e);
           }
@@ -915,21 +924,24 @@ if (typeof require === "function") flexo = require("flexo");
           }
           for (var attr in node.bindings) {
             if (node.bindings.hasOwnProperty(attr)) {
-              /*var w1 = self.node.ownerDocument.createElement("watch");
+              // TODO rules for different kinds of nodes?
+              var w1 = self.node.ownerDocument.createElement("watch");
               var g1 = self.node.ownerDocument.createElement("get");
               g1.setAttribute("view", node.id);
-              g1.setAttribute("attr", attr);
+              // g1.setAttribute("attr", attr);
+              g1.setAttribute("dom-event", "change");
+              g1.set_text_content("return value.target.value;");
               var s1 = self.node.ownerDocument.createElement("set");
               s1.setAttribute("property", node.bindings[attr][0]);
               w1.appendChild(g1);
               w1.appendChild(s1);
-              self.node.appendChild(w1);*/
+              self.node.appendChild(w1);
               var w2 = self.node.ownerDocument.createElement("watch");
               var g2 = self.node.ownerDocument.createElement("get");
               g2.setAttribute("property", node.bindings[attr][0]);
               var s2 = self.node.ownerDocument.createElement("set");
               s2.setAttribute("view", node.id);
-              s2.setAttribute("attr", attr);
+              s2.setAttribute("property", attr);
               s2.set_text_content("return \"{0}\".fmt(value);"
                   .fmt(node.bindings[attr][1]));
               w2.appendChild(g2);
@@ -1134,11 +1146,15 @@ if (typeof require === "function") flexo = require("flexo");
     var super_setAttribute = target.setAttribute;
     target.setAttribute = function(name, value)
     {
+      var prev = this.getAttribute(name);
       var attr = super_setAttribute.call(this, name, value);
       if (name === get.attr) {
         gets.forEach(function(g) {
-            var v = g.get.transform.call(g.instance, g.get, value);
-            if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+            if (g.get.watch.enabled) {
+              var v = g.get.transform.call(g.instance,
+                g.get, value, prev, target);
+              if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+            }
           });
       }
       return attr;
@@ -1153,8 +1169,11 @@ if (typeof require === "function") flexo = require("flexo");
     var gets = instance.node.ownerDocument.gets[label];
     target.addEventListener(get.dom_event, function(e) {
         gets.forEach(function(g) {
-            var v = g.get.transform.call(g.instance, g.get, e);
-            if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+            if (g.get.watch.enabled) {
+              var v = g.get.transform.call(g.instance,
+                g.get, e, undefined, target);
+              if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+            }
           });
       }, false);
   }
@@ -1167,8 +1186,11 @@ if (typeof require === "function") flexo = require("flexo");
     var gets = instance.node.ownerDocument.gets[label];
     flexo.listen(target, get.event, function(e) {
         gets.forEach(function(g) {
-            var v = g.get.transform.call(g.instance, g.get, e);
-            if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+            if (g.get.watch.enabled) {
+              var v = g.get.transform.call(g.instance,
+                g.get, e, undefined, target);
+              if (v !== undefined) g.get.watch.got(g.instance, g.get, v);
+            }
           });
       }, false);
   }
@@ -1185,11 +1207,14 @@ if (typeof require === "function") flexo = require("flexo");
         function() { return prop; },
         function(v) {
           gets.forEach(function(g) {
-              var v_ = g.get.transform.call(g.instance, g.get, v, prop);
-              if (v_ === undefined) return;
-              var prev = prop;
-              prop = v_;
-              g.get.watch.got(g.instance, g.get, v_, prev);
+              if (g.get.watch.enabled) {
+                var v_ = g.get.transform.call(g.instance, g.get, v, prop,
+                  target);
+                if (v_ === undefined) return;
+                var prev = prop;
+                prop = v_;
+                g.get.watch.got(g.instance, g.get, v_, prev);
+              }
             });
         });
   }
