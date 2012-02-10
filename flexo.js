@@ -418,6 +418,40 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
 
   // Transforming values
 
+  // Sample usage:
+  // flexo.async_foreach.trampoline(function(g, x, i) {
+  //     console.log("a[{0}] = {1}".fmt(i, x));
+  //     return g.get_thunk();
+  //   }, [2, 4, 6], function() { console.log("done."); })
+  flexo.async_foreach = function(f, a, k)
+  {
+    var n = a.length;
+    var i = 0;
+    return (function iter() {
+      return i < n ? f.get_thunk(iter, a[i], i++, a) : k.get_thunk();
+    }).get_thunk();
+  };
+
+  // Sample usage:
+  // flexo.async_map.trampoline(function(f, x) { return f.get_thunk(x * 2); },
+  //   [0, 1, 2, 3], function(a) { console.log(a); })
+  flexo.async_map = function(f, a, k)
+  {
+    var n = a.length;
+    var m = new Array(n);
+    return (function map(i)
+    {
+      if (i < n) {
+        return f.get_thunk(function(v) {
+            m[i] = v;
+            return map.get_thunk(i + 1);
+          }, a[i], i, a);
+      } else {
+        return k.get_thunk(m);
+      }
+    }).get_thunk(0);
+  };
+
   // Return the value constrained between min and max.
   flexo.clamp = function(value, min, max)
   {
@@ -425,10 +459,17 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return Math.max(Math.min(value, max), min);
   };
 
+  // Left linear fold
+  flexo.foldl = function(f, z, a)
+  {
+    for (var i = 0, n = a.length; i < n; ++i) z = f(z, a[i]);
+    return z;
+  };
+
   // Right linear fold
   flexo.foldr = function(f, z, a)
   {
-    for (var i = 0, n = a.length; i < n; ++ i) z = f(z, a[i]);
+    for (var i = a.length - 1; i >= 0; --i) z = f(a[i], z);
     return z;
   };
 
