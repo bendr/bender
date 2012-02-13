@@ -6,7 +6,7 @@ var WIKI_PATH = "../wiki";
 
 exports.PATTERNS =
 [
-  ["GET", /^\/wiki\/$/, function(transaction) {
+  [/^\/wiki\/$/, { GET: function(transaction) {
       fs.readdir(WIKI_PATH, function(error, filenames) {
           if (error) {
             transaction.serve_error(500, "wiki: " + error);
@@ -21,8 +21,8 @@ exports.PATTERNS =
               tail());
           }
         });
-    }],
-  ["GET", /^\/wiki\/(.*)$/, function(transaction, p) {
+    }} ],
+  [/^\/wiki\/(.*)$/, { GET: function(transaction, p) {
       fs.readFile(path.join(WIKI_PATH, p), function(error, data) {
           if (error) {
             transaction.serve_error(500, "wiki: " + error);
@@ -30,7 +30,7 @@ exports.PATTERNS =
             transaction.serve_html(head() + md.parse(data.toString()) + tail());
           }
         });
-    }]
+    }} ]
 ];
 
 function head()

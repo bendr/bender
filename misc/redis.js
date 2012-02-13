@@ -2,7 +2,7 @@ var util = require("util");
 
 var PORT = 6379;  // default Redis server port
 
-exports.init = function(morbo, args, f)
+exports.init = function(morbo, args, k)
 {
   args.forEach(function(arg) {
       if (m = arg.match(/^redis=(\d+)/)) {
@@ -23,11 +23,11 @@ exports.init = function(morbo, args, f)
       };
   };
   redis.on("error", function(err) {
-      util.log("Redis error:", err);
+      util.log("Redis error: " + err);
       process.exit(1);
     });
   redis.on("ready", function() {
       util.log("redis ready ({0})".fmt(redis.port));
-      f();
+      k.trampoline();
     });
 };

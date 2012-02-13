@@ -225,10 +225,10 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // in case-insensitive, whitespace-tolerating way
   flexo.is_true = function(string)
   {
-    return flexo.normalize(string).toLowerCase() === "true";
+    return string.trim().toLowerCase() === "true";
   };
 
-  // Listen to a Bender event
+  // Listen to a custom event
   flexo.listen = function(target, type, listener)
   {
     if (!(target.hasOwnProperty(type))) target[type] = [];
@@ -238,8 +238,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // Normalize whitespace in a string
   flexo.normalize = function(string)
   {
-    return string ?
-      string.replace(/\s+/, " ").replace(/^ /, "").replace(/ $/, "") : "";
+    return string ? string.replace(/\s+/, " ").trim() : "";
   };
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
@@ -418,11 +417,19 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
 
   // Transforming values
 
-  // Sample usage:
-  // flexo.async_foreach.trampoline(function(g, x, i) {
-  //     console.log("a[{0}] = {1}".fmt(i, x));
-  //     return g.get_thunk();
-  //   }, [2, 4, 6], function() { console.log("done."); })
+  // Asynchronous foldl
+  flexo.async_foldl = function(f, z, a, k)
+  {
+    var n = a.length;
+    return (function iter(i) {
+      return i < n ? f.get_thunk(function(v) {
+          z = v;
+          return iter.get_thunk(i + 1);
+        }, z, a[i], i, a) : k.get_thunk(z);
+    }).get_thunk(0);
+  };
+
+  // Asynchronous foreach
   flexo.async_foreach = function(f, a, k)
   {
     var n = a.length;
@@ -432,24 +439,13 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }).get_thunk();
   };
 
-  // Sample usage:
-  // flexo.async_map.trampoline(function(f, x) { return f.get_thunk(x * 2); },
-  //   [0, 1, 2, 3], function(a) { console.log(a); })
+  // Asynchronous map
   flexo.async_map = function(f, a, k)
   {
-    var n = a.length;
-    var m = new Array(n);
-    return (function map(i)
-    {
-      if (i < n) {
-        return f.get_thunk(function(v) {
-            m[i] = v;
-            return map.get_thunk(i + 1);
-          }, a[i], i, a);
-      } else {
-        return k.get_thunk(m);
-      }
-    }).get_thunk(0);
+    return flexo.async_foldl.get_thunk(function(k_, m, x, i, a_) {
+        return f.get_thunk(function(v) { m[i] = v; return k_.get_thunk(m); },
+          x, i, a_);
+      }, [], a, k);
   };
 
   // Return the value constrained between min and max.
@@ -471,6 +467,18 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     for (var i = a.length - 1; i >= 0; --i) z = f(a[i], z);
     return z;
+  };
+
+  flexo.range = function(from, to, step)
+  {
+    if (step === undefined) step = 1;
+    if (to === undefined) {
+      to = from;
+      from = 0;
+    }
+    var r = [];
+    for (var i = from; i <= to; i += step) r.push(i);
+    return r;
   };
 
   // Remap a value from a given range to another range (from Processing)
@@ -555,7 +563,11 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     var elem = ns ? document.createElementNS(ns, name) :
       document.createElement(name);
-    for (attr in attrs) elem.setAttribute(attr, attrs[attr]);
+    for (attr in attrs) {
+      if (attrs.hasOwnProperty(attr) && attrs[attr] !== undefined) {
+        elem.setAttribute(attr, attrs[attr]);
+      }
+    }
     if (typeof contents === "string") {
       elem.textContent = contents;
     } else if (contents && contents.forEach) {
@@ -700,6 +712,22 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       elem.localName === "svg" ? elem : flexo.find_svg(elem.parentNode);
   };
 
+  // Get an attribute as a trait with a default value if not present
+  // The default default value is the empty string
+  flexo.get_trait = function(elem, attr, default_)
+  {
+    var a = elem.getAttribute(attr);
+    return a === null ? default_ || "" : a;
+  };
+
+  // Get an attribute as a float with a default value if not present
+  // The default default value is 0
+  flexo.get_float_trait = function(elem, attr, default_)
+  {
+    var a = parseFloat(elem.getAttribute(attr));
+    return isNaN(a) ? default_ || 0 : a;
+  };
+
   // True if rects ra and rb intersect
   flexo.intersect_rects = function(ra, rb)
   {
@@ -723,6 +751,24 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
 
 
   // Color functions
+
+  // Yes, these are the colors from d3.js in case anybody asks
+  // https://github.com/mbostock/d3/wiki/Ordinal-Scales#wiki-category10
+  flexo.get_color_10 = function(n)
+  {
+    var colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+      "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+    return colors[Math.abs(n % colors.length)];
+  };
+
+  flexo.get_color_20 = function(n)
+  {
+    var colors = ["#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c",
+      "#98df8a", "#d62728", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b",
+      "#c49c94", "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7", "#bcbd22",
+      "#dbdb8d", "#17becf", "#9edae5"];
+    return colors[Math.abs(n % colors.length)];
+  };
 
   // Convert a color from hsv space (hue in radians, saturation and brightness
   // in the [0, 1] range) to RGB, returned as an array in the [0, 256[ range.

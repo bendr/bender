@@ -21,18 +21,17 @@ exports.SERVER_NAME = "MORBO!";
 //   * the callback function for a succesful match f(transaction, matches)
 exports.PATTERNS =
 [
-  ["GET", /^\/bender.js$/, function(transaction) {
+  [/^\/bender.js$/, { GET: function(transaction) {
       transaction.serve_file_from_path("./node_modules/bender.js");
-    }],
-  ["GET", /^\/flexo.js$/, function(transaction) {
+    }} ],
+  [/^\/flexo.js$/, { GET: function(transaction) {
       transaction.serve_file_from_path("./node_modules/flexo.js");
-    }],
+    }} ],
 ];
 
 // Known MIME types associated with file extensions
 exports.TYPES =
 {
-  bndr: "application/xml",
   css: "text/css",
   es: "application/ecmascript",
   html: "text/html",
@@ -170,20 +169,28 @@ exports.run = function(ip, port)
       if (method === "HEAD") method = "GET";
       var m;
       for (var i = 0, n = exports.PATTERNS.length; i < n; ++i) {
-        if (method === exports.PATTERNS[i][0].toUpperCase() &&
-          (m = pathname.match(exports.PATTERNS[i][1]))) {
-          var args = m.slice(1);
-          args.unshift(transaction);
-          return exports.PATTERNS[i][2].apply(exports, args);
+        if (m = pathname.match(exports.PATTERNS[i][0])) {
+          var methods = exports.PATTERNS[i][1];
+          if (!methods.hasOwnProperty(method)) {
+            var allowed = [];
+            if (methods.hasOwnProperty("GET")) allowed.push("HEAD");
+            [].push.apply(allowed, Object.keys(methods));
+            transaction.response.setHeader("Allow", allowed.sort().join(", "));
+            return transaction.serve_error(405,
+              "Method {0} not allowed for {1}".fmt(method, pathname));
+          } else {
+            var args = m.slice(1);
+            args.unshift(transaction);
+            return methods[method].apply(exports, args);
+          }
         }
       }
       if (method === "GET") {
         serve_file_or_index(transaction, pathname);
       } else {
-        util.log("Method {0} not allowed for {1}".fmt(method, pathname));
-        // TODO find out all allowed methods
         transaction.response.setHeader("Allow", "GET, HEAD");
-        transaction.serve_error(405);
+        transaction.serve_error(405,
+          "Method {0} not allowed for {1}".fmt(method, pathname));
       }
     }).listen(port, ip, function() {
       util.log("http://{0}:{1} ready".fmt(ip || "localhost", port));
@@ -426,17 +433,13 @@ var args = process.argv.slice(2);
 parse_args(args);
 if (HELP) show_help.apply(null, process.argv);
 
-var n = APPS.length;
-(function add_app(i) {
-  if (i >= n) {
-    exports.run(IP, PORT);
-  } else {
-    var app = require(APPS[i]);
+flexo.async_foreach.trampoline(function(k, appname) {
+    util.log("App: " + appname);
+    var app = require(appname);
     [].unshift.apply(exports.PATTERNS, app.PATTERNS);
     if (app.init) {
-      app.init(exports, args, function() { add_app(i + 1); });
+      return app.init.get_thunk(exports, args, k);
     } else {
-      add_app(i + 1);
+      return k.get_thunk();
     }
-  }
-})(0);
+  }, APPS, function() { exports.run(IP, PORT); });

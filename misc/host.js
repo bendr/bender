@@ -3,9 +3,9 @@ var url = require("url");
 
 exports.PATTERNS =
 [
-  ["GET", "^\/fs\/readdir$", readdir],
-  ["GET", "^\/fs\/readFile$", readFile],
-  ["PUT", "^\/fs\/writeFile$", writeFile],
+  [/^\/fs\/readdir$/, { GET: readdir }],
+  [/^\/fs\/readFile$/, { GET: readFile }],
+  [/^\/fs\/writeFile$/, { PUT: writeFile }],
 ];
 
 function get_params(transaction, required)
