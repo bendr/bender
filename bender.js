@@ -579,7 +579,8 @@ if (typeof require === "function") flexo = require("flexo");
               bender.log("get handler for {0} on".fmt(instance.hash),
                 target.hash || target);
               if (instance.enabled) {
-                var v = get.transform.call(component_instance, e.value, e.prev,
+                var value = get.dom_event || get.event ? e : e.value;
+                var v = get.transform.call(component_instance, value, e.prev,
                   target);
                 if (v !== undefined) {
                   instance.got(v, e.prev, target, get.disable);
