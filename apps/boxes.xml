@@ -9,7 +9,7 @@
 
   <component id="box">
     <stylesheet>
-      .box { position: absolute; width: 300px; height: 150px;
+      .box { position: absolute; width: 100px; height: 50px;
         background-color: #08f; }
     </stylesheet>
     <view>
@@ -48,12 +48,11 @@
     html, body { height: 100%; margin: 0 }
     .workspace { width: 400px; height: 400px; margin: 20px 40px;
       background-color: #8f0; position: relative; }
-    .box { position: absolute; width: 300px; height: 150px;
-      background-color: #08f; }
   </stylesheet>
 
   <view>
     <html:div class="workspace">
+      <use href="#box"/>
       <use href="#box"/>
     </html:div>
   </view>

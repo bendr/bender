@@ -89,7 +89,7 @@ exports.TRANSACTION =
     this.server = server;
     this.request = request;
     this.response = response;
-    this.url = url.parse(request.url);
+    this.url = url.parse(request.url, true);
     return this;
   },
 
@@ -151,6 +151,18 @@ exports.TRANSACTION =
   {
     var data = raw ? result : JSON.stringify(result);
     this.serve_data(200, exports.TYPES.json, data);
+  },
+
+  // Serve a string as plain text
+  serve_text: function(text)
+  {
+    this.serve_data(200, exports.TYPES.text, text);
+  },
+
+  // Serve a string as an SVG document
+  serve_svg: function(svg)
+  {
+    this.serve_data(200, exports.TYPES.svg, svg);
   }
 };
 
@@ -339,25 +351,53 @@ function write_head(transaction, code, type, data, params)
 }
 
 
-// HTML creation
+// HTML and SVG creation
 
-// Shortcut for HTML elements: the element name prefixed by a $ sign
-// See http://dev.w3.org/html5/spec/Overview.html#elements-1
-["a", "abbr", "address", "area", "article", "aside", "audio", "b", "base",
-  "bdi", "bdo", "blockquote", "body", "br", "button", "canvas", "caption",
-  "cit", "code", "col", "colgroup", "command", "datalist", "dd", "del",
-  "details", "dfn", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption",
-  "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head",
-  "header", "hgroup", "hr", "html", "i", "iframe", "img", "input", "ins",
-  "kbd", "keygen", "label", "legend", "li", "link", "map", "mark", "menu",
-  "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option",
-  "output", "p", "param", "pre", "progress", "q", "rp", "rt", "ruby", "s",
-  "samp", "script", "section", "select", "small", "source", "span", "strong",
-  "style", "sub", "summary", "sup", "table", "tbody", "td", "textarea",
-  "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul", "var",
-  "video", "wbr"].forEach(function(tag) {
+// Shortcut for HTML and SVG elements: the element name prefixed by a $ sign
+// See http://dev.w3.org/html5/spec/Overview.html#elements-1 (HTML)
+// and http://www.w3.org/TR/SVG/eltindex.html (SVG, excluding names using -)
+["a", "abbr", "address", "altGlyph", "altGlyphDef", "altGlyphItem", "animate",
+  "animateColor", "animateMotion", "animateTransform", "area", "article",
+  "aside", "audio", "b", "base", "bdi", "bdo", "blockquote", "body", "br",
+  "button", "canvas", "caption", "circle", "cit", "clipPath", "code", "col",
+  "colgroup", "command", "cursor", "datalist", "dd", "defs", "del", "desc",
+  "details", "dfn", "div", "dl", "dt", "ellipse", "em", "embed", "feBlend",
+  "feColorMatrix", "feComponentTransfer", "feComposite", "feConvolveMatrix",
+  "feDiffuseLighting", "feDisplacementMap", "feDistantLight", "feFlood",
+  "feFuncA", "feFuncB", "feFuncG", "feFuncR", "feGaussianBlur", "feImage",
+  "feMerge", "feMergeNode", "feMorphology", "feOffset", "fePointLight",
+  "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence", "fieldset",
+  "figcaption", "figure", "filter", "font", "footer", "foreignObject", "form",
+  "g", "glyph", "glyphRef", "h1", "h2", "h3", "h4", "h5", "h6", "head",
+  "header", "hgroup", "hkern", "hr", "html", "i", "iframe", "image", "img",
+  "input", "ins", "kbd", "keygen", "label", "legend", "li", "line",
+  "linearGradient", "link", "map", "mark", "marker", "mask", "menu", "meta",
+  "metadata", "meter", "mpath", "nav", "noscript", "object", "ol", "optgroup",
+  "option", "output", "p", "param", "path", "pattern", "polygon", "polyline",
+  "pre", "progress", "q", "radialGradient", "rect", "rp", "rt", "ruby", "s",
+  "samp", "script", "section", "select", "set", "small", "source", "span",
+  "stop", "strong", "style", "sub", "summary", "sup", "svg", "switch", "symbol",
+  "table", "tbody", "td", "text", "textarea", "textPath", "tfoot", "th",
+  "thead", "time", "title", "tr", "tref", "tspan", "track", "u", "ul", "use",
+  "var", "video", "view", "vkern", "wbr"].forEach(function(tag) {
     this["$" + tag] = html_tag.bind(this, tag);
   });
+
+// Some more shortcuts
+(function() {
+
+  this.$$script = function(src)
+  {
+    return html_tag("script", { src: src });
+  };
+
+  this.$$stylesheet = function(href)
+  {
+    return html_tag("link",
+      { rel: "stylesheet", type: "text/css", href: href }, true);
+  };
+
+})();
 
 // Make a (text) HTML tag; the first argument is the tag name. Following
 // arguments are the contents (as text; must be properly escaped.) If the last

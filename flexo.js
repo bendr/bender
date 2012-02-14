@@ -696,7 +696,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   // closest svg element by default)
   flexo.event_svg_point = function(e, svg)
   {
-    if (!svg) svg = flexo.find_svg(e);
+    if (!svg) svg = flexo.find_svg(e.target);
     var p = svg.createSVGPoint();
     p.x = e.targetTouches ? e.targetTouches[0].clientX : e.clientX;
     p.y = e.targetTouches ? e.targetTouches[0].clientY : e.clientY;
