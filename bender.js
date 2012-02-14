@@ -781,9 +781,8 @@ if (typeof require === "function") flexo = require("flexo");
         var text = this.textContent;
         if (/\S/.test(text)) {
           try {
-            this.transform = new Function(this.params.get, this.params.set,
-                this.params.value, this.params.previous_value,
-                this.params.target, text);
+            this.transform = new Function(this.params.value,
+                this.params.previous_value, this.params.target, text);
           } catch (e) {
             bender.warn(e);
           }
