@@ -631,7 +631,7 @@ if (typeof require === "function") flexo = require("flexo");
 
         // Instantiate nested watches
         instance.children = this.nested.map(function(watch) {
-            var wi = watch.instance(component_instance);
+            var wi = watch.instantiate(component_instance);
             wi.parent = instance;
             return wi;
           }, this);
