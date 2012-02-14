@@ -594,31 +594,38 @@ if (typeof require === "function") flexo = require("flexo");
             } else if (get.event) {
               flexo.listen(target, get.event, h);
             } else if (get.attr) {
-              if (!target.watched_attributes[get.attr]) {
+              var ev = "@{0}@{1}".fmt(target.hash, get.attr);
+              if (!target.watched_attributes) target.watched_attributes = {};
+              if (!target.watched_attributes.hasOwnProperty(get.attr)) {
+                bender.log("get attr: {0} for".fmt(ev), get);
                 var super_setAttribute = target.setAttribute;
                 target.setAttribute = function(name, value) {
                   var prev = this.getAttribute(name);
                   var attr = super_setAttribute.call(this, name, value);
                   if (name === get.attr) {
-                    flexo.notify(this, "@attr", { value: value, prev: prev });
+                    flexo.notify(this, ev, { value: value, prev: prev });
                   }
                 };
                 target.watched_attributes[get.attr] = true;
               }
-              flexo.listen(target, "@attr", h);
+              bender.log("{0}: listen to {1}".fmt(target.hash, ev));
+              flexo.listen(target, ev, h);
             } else if (get.property) {
-              if (!target.watched_properties[get.property]) {
+              var ev = "@{0}.{1}".fmt(target.hash, get.property);
+              if (!target.watched_properties.hasOwnProperty(get.property)) {
+                bender.log("get event: {0} for".fmt(ev), get);
                 var value = target[get.property];
                 flexo.getter_setter(target, get.property,
                     function() { return value; },
                     function(v) {
                       var prev = value;
                       value = v;
-                      flexo.notify(this, "@property", { value: v, prev: prev });
+                      flexo.notify(this, ev, { value: v, prev: prev });
                     });
                 target.watched_properties[get.property] = true;
               }
-              flexo.listen(target, "@property", h);
+              bender.log("{0}: listen to {1}".fmt(target.hash, ev));
+              flexo.listen(target, ev, h);
             }
         });
 
@@ -679,7 +686,7 @@ if (typeof require === "function") flexo = require("flexo");
           this.use = flexo.undash(flexo.normalize(value));
         } else if (name === "value" || name === "previous_value" ||
             name === "target") {
-          this.params[target] = flexo.undash(flexo.normalize(value));
+          this.params[name] = flexo.undash(flexo.normalize(value));
         } else if (name === "disable") {
           this.disable = flexo.is_true(value);
         }
