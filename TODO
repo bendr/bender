@@ -3,12 +3,14 @@ TODO list as of 2012-02-15 (v0.3.2)
 
 BUGS
 
+[ ] Watches through component boundaries (regression)
 [!] Watch loops (more tests needed!)
     [ ] Setting properties in a row
 [!] Checkbox test
 [x] Initial setup of component properties
 [x] Button regression
 [x] Get transformed called even on disabled watches
+[ ] Some styles not applied properly with external stylesheets
 
 
 FEATURES
@@ -38,6 +40,7 @@ FEATURES
 [ ] Set attributes on <use> even when not set in the original component
 [ ] Sequencing watches: store/recall presets
 [ ] Parameters for <use> (cf. test/fails/ko-params.xml)
+[ ] Change <content> of component (e.g. change button label)
 
 
 COMPONENTS

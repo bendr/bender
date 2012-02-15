@@ -628,7 +628,7 @@ if (typeof require === "function") flexo = require("flexo");
                     function(v) {
                       var prev = value;
                       value = v;
-                      flexo.notify(this, ev, { value: v, prev: prev });
+                      flexo.notify(target, ev, { value: v, prev: prev });
                     });
                 target.watched_properties[get.property] = true;
               }

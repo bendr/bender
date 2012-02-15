@@ -8,21 +8,24 @@
   <view>
     <html:p>Full name: <html:span textContent="{{first-name}}"/>
       <html:span textContent="{{last-name}}"/></html:p>
-    <use href="#field" e:name="first" e:v="first-name">First name:</use>
-    <use href="#field" e:name="last" e:v="last-name">Last name:</use>
+    <use href="#field" e:name="first" id="first">First name:</use>
+    <use href="#field" e:name="last">Last name:</use>
     <html:p><html:button
         onclick="this.$lastName = this.$lastName.toUpperCase();">Go
         Caps</html:button></html:p>
   </view>
+  <watch>
+    <get property="first-name"/>
+    <set view="first" property="value"/>
+  </watch>
 
-  <component id="field" e:name="" e:v="">
+  <component id="field" e:name="" e:value="">
     <view>
       <html:p>
         <html:label for="{name}">
           <content/>
         </html:label>
-        <html:input type="text" name="{name}" value="{{|{v}|}}"
-          onchange="this.$|{v}| = event.target.value;"/>
+        <html:input type="text" name="{name}" value="{{value}}"/>
       </html:p>
     </view>
   </component>

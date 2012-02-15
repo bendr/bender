@@ -1,0 +1,28 @@
+<app xmlns="http://bender.igel.co.jp"
+  xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:x="2">
+  <title>Watch: across components</title>
+
+  <component e:name="" f:value="" id="show">
+    <view>
+      <html:p>$<html:span textContent="{{name}}"/> =
+        <html:span textContent="{{value}}"/></html:p>
+    </view>
+  </component>
+
+  <view>
+    <use href="#show" e:name="x" id="show-x"/>
+  </view>
+  <watch>
+    <get property="x">
+      flexo.log("Get property x = {0}".fmt(value));
+      return value;
+    </get>
+    <set view="show-x" property="value">
+      flexo.log("Set property value = {0}".fmt(value));
+      return value;
+    </set>
+  </watch>
+
+</app>
