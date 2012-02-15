@@ -26,7 +26,7 @@
     </view>
     <watch>
       <get view="input" dom-event="change"/>
-      <set property="v">
+      <set property="{v}">
         return target.value;
       </set>
     </watch>

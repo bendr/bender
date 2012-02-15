@@ -8,26 +8,18 @@
 
   <view>
     <html:label>
-      <html:input type="checkbox" id="c" aria-role="checkbox"/>
+      <html:input type="checkbox" id="c" aria-role="checkbox"
+        tabindex="{tabindex}"
+        checked="{{checked}}" onchange="this.$checked = event.target.checked;"/>
       <content/>
     </html:label>
   </view>
 
-  <watch>
-    <get property="tabindex"/>
-    <set view="c" attr="tabindex"/>
-  </watch>
-
-  <watch>
-    <get dom-event="change" view="c"/>
-    <set property="checked">
-      return this.views.c.checked;
-    </set>
-  </watch>
-
+  <!--
   <watch>
     <get property="checked"/>
     <set view="c" property="checked"/>
   </watch>
+-->
 
 </component>

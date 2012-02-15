@@ -9,7 +9,8 @@
     <html:p>Full name: <html:span textContent="{{first-name}}"/>
       <html:span textContent="{{last-name}}"/></html:p>
     <html:p>First name: <html:input type="text" id="first-name"
-        value="{{first-name}}"/></html:p>
+        value="{{first-name}}" onchange="this.$firstName=event.target.value"/>
+    </html:p>
     <html:p>Last name: <html:input type="text" id="last-name"
         value="{{last-name}}"/></html:p>
     <html:p><html:button id="button">Go Caps</html:button></html:p>

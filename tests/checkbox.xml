@@ -1,5 +1,4 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
-  xmlns:b="http://bender.igel.co.jp/b" xmlns:f="http://bender.igel.co.jp/f">
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
 
   <title>Checkbox test</title>
 

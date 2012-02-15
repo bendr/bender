@@ -5,8 +5,7 @@ BUGS
 
 [!] Watch loops (more tests needed!)
     [ ] Setting properties in a row
-[x] Checkbox test
-[ ] Setting b:checked property in the URL bar does not set the checkbox properly
+[!] Checkbox test
 [x] Initial setup of component properties
 [x] Button regression
 [x] Get transformed called even on disabled watches
@@ -34,8 +33,8 @@ FEATURES
 [ ] Get matching a specific value?
 [x] Script ran on instantiation -> <set> within views/uses
     [ ] insert text in the right location
-[!] on-event attribute -> similar to watch/get@event/set
-[ ] on... attributes -> override with addEventListener to set this property
+[x] on-event attribute -> similar to watch/get@event/set
+[x] on... attributes -> override with addEventListener to set this property
 [ ] Set attributes on <use> even when not set in the original component
 [ ] Sequencing watches: store/recall presets
 [ ] Parameters for <use> (cf. test/fails/ko-params.xml)

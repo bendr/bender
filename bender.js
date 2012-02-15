@@ -947,6 +947,11 @@ if (typeof require === "function") flexo = require("flexo");
                 } else if (attr.namespaceURI) {
                   d.setAttributeNS(attr.namespaceURI, attr.localName,
                     attr.nodeValue);
+                } else if (attr.localName.substr(0, 2) === "on") {
+                  // Hijack "on" attributes
+                  d.addEventListener(attr.localName.substr(2),
+                      (new Function("event", attr.nodeValue))
+                        .bind(parent_instance), false);
                 } else {
                   d.setAttribute(attr.localName, attr.nodeValue);
                 }
@@ -963,7 +968,6 @@ if (typeof require === "function") flexo = require("flexo");
 
       // Setup the watches
 
-      /*
       // Setup watch nodes for on-event attributes
       // TODO maybe this is overkill? Let's keep the simple listener here
       if (this.parent_use) {
@@ -976,7 +980,6 @@ if (typeof require === "function") flexo = require("flexo");
           }
         }
       }
-      */
 
       // Check for bindings
       unsolved.forEach(function(node) {
@@ -994,8 +997,10 @@ if (typeof require === "function") flexo = require("flexo");
                 } else {
                   s.setAttribute("attr", attr);
                 }
-                s.set_text_content("return \"{0}\".fmt(value);"
-                  .fmt(node.bindings[attr][1]));
+                if (node.bindings[attr][1] !== "{0}") {
+                  s.set_text_content("return \"{0}\".fmt(value);"
+                    .fmt(node.bindings[attr][1]));
+                }
                 w.appendChild(s);
                 self.node.appendChild(w);
               }
