@@ -8,8 +8,8 @@
   <view>
     <html:p>Full name: <html:span textContent="{{first-name}}"/>
       <html:span textContent="{{last-name}}"/></html:p>
-    <use href="#field" e:name="first" e:v="{first-name}">First name:</use>
-    <use href="#field" e:name="last" e:v="{last-name}">Last name:</use>
+    <use href="#field" e:name="first" e:v="first-name">First name:</use>
+    <use href="#field" e:name="last" e:v="last-name">Last name:</use>
     <html:p><html:button
         onclick="this.$lastName = this.$lastName.toUpperCase();">Go
         Caps</html:button></html:p>
@@ -21,15 +21,10 @@
         <html:label for="{name}">
           <content/>
         </html:label>
-        <html:input type="text" id="input" name="{name}" value="{{v}}"/>
+        <html:input type="text" name="{name}" value="{{|{v}|}}"
+          onchange="this.$|{v}| = event.target.value;"/>
       </html:p>
     </view>
-    <watch>
-      <get view="input" dom-event="change"/>
-      <set property="{v}">
-        return target.value;
-      </set>
-    </watch>
   </component>
 
 </app>

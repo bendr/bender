@@ -185,17 +185,20 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
-        var m = value.match(/\{\{([\w-]+)\}\}/);
-        if (m) {
-          if (!this.bindings) this.bindings = {};
-          value = value.replace(/\{\{[\w-]+\}\}/, "{0}");
-          this.bindings[name] = [m[1], value, true];
-          // Don't set the attribute
-          return;
-        } else if (m = value.match(/\{([\w-]+)\}/)) {
-          if (!this.bindings) this.bindings = {};
-          value = value.replace(/\{[\w-]+\}/, "{0}");
-          this.bindings[name] = [m[1], value];
+        var m = value.match(/\|\{[\w-]+\}\|/);
+        if (!m) {
+          if (m = value.match(/\{\{([\w-]+)\}\}/)) {
+            if (!this.bindings) this.bindings = {};
+            value = value.replace(/\{\{[\w-]+\}\}/, "{0}");
+            this.bindings[name] = [m[1], value, true];
+            // Don't set the attribute
+            return;
+          } else if (m = value.match(/\{([\w-]+)\}/)) {
+            if (!this.bindings) this.bindings = {};
+            bender.log("Replace {0} in {1}".fmt(m[0], value));
+            value = value.replace(/\{[\w-]+\}/, "{0}");
+            this.bindings[name] = [m[1], value];
+          }
         }
         return this.super_setAttribute(name, value);
       },
@@ -939,21 +942,33 @@ if (typeof require === "function") flexo = require("flexo");
               }
               for (var i = ch.attributes.length - 1; i >= 0; --i) {
                 var attr = ch.attributes[i];
+                // Solve lexical bindings for attribute values: |{x}| is
+                // replaced with the value of e:x in the parent use
+                var val = attr.nodeValue.replace(/\|\{([\w-]+)\}\|/,
+                    function(_, name, index) {
+                      var v = use && use.getAttributeNS(bender.NS_E, name);
+                      if (v === null || v === undefined) {
+                        v = "";
+                      } else if (attr.nodeValue[index - 1] === "$") {
+                        v = flexo.undash(v);
+                      }
+                      bender.log("Replace |{{0}}| with \"{1}\"".fmt(name, v));
+                      return v;
+                    });
                 if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI)
                   && attr.localName === "id") {
-                  self.views[flexo.undash(flexo.normalize(attr.nodeValue))] = d;
+                  self.views[flexo.undash(flexo.normalize(val))] = d;
                   flexo.hash(d, d.localName);
                   d.setAttribute("id", d.hash);
                 } else if (attr.namespaceURI) {
-                  d.setAttributeNS(attr.namespaceURI, attr.localName,
-                    attr.nodeValue);
+                  d.setAttributeNS(attr.namespaceURI, attr.localName, val);
                 } else if (attr.localName.substr(0, 2) === "on") {
                   // Hijack "on" attributes
                   d.addEventListener(attr.localName.substr(2),
-                      (new Function("event", attr.nodeValue))
-                        .bind(parent_instance), false);
+                      (new Function("event", val)).bind(parent_instance),
+                      false);
                 } else {
-                  d.setAttribute(attr.localName, attr.nodeValue);
+                  d.setAttribute(attr.localName, val);
                 }
               }
               dest.appendChild(d);
