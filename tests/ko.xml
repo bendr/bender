@@ -6,29 +6,26 @@
   <desc>From http://learn.knockoutjs.com/#/?tutorial=intro</desc>
 
   <view>
-    <html:p>Full name: <html:span id="full-name"/></html:p>
-    <html:p>First name: <html:input type="text" id="first-name"/></html:p>
+    <html:p>Full name: <html:span textContent="{{first-name}}"/>
+      <html:span textContent="{{last-name}}"/></html:p>
+    <html:p>First name: <html:input type="text" id="first-name"
+        value="{{first-name}}"/></html:p>
     <html:p>Last name: <html:input type="text" id="last-name"
-        value="{last-name}"/></html:p>
+        value="{{last-name}}"/></html:p>
     <html:p><html:button id="button">Go Caps</html:button></html:p>
   </view>
 
   <watch>
-    <get property="first-name"/>
-    <set view="first-name" property="value"/>
-  </watch>
-  <watch>
     <get view="first-name" dom-event="change"/>
     <set property="first-name">
-      return get.target.value;
+      return target.value;
     </set>
   </watch>
 
   <watch>
-    <get property="first-name"/>
-    <get property="last-name"/>
-    <set view="full-name">
-      return this.$firstName + " " + this.$lastName;
+    <get view="last-name" dom-event="change"/>
+    <set property="last-name">
+      return target.value;
     </set>
   </watch>
 

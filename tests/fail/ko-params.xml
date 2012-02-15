@@ -1,0 +1,35 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:e="http://bender.igel.co.jp/e" e:first-name="Bert"
+  e:last-name="Bertington">
+
+  <title>Knockout tutorial ported to Bender</title>
+  <desc>From http://learn.knockoutjs.com/#/?tutorial=intro</desc>
+
+  <view>
+    <html:p>Full name: <html:span textContent="{{first-name}}"/>
+      <html:span textContent="{{last-name}}"/></html:p>
+    <use href="#field" e:name="first" e:v="{first-name}">First name:</use>
+    <use href="#field" e:name="last" e:v="{last-name}">Last name:</use>
+    <html:p><html:button
+        onclick="this.$lastName = this.$lastName.toUpperCase();">Go
+        Caps</html:button></html:p>
+  </view>
+
+  <component id="field" e:name="" e:v="">
+    <view>
+      <html:p>
+        <html:label for="{name}">
+          <content/>
+        </html:label>
+        <html:input type="text" id="input" name="{name}" value="{{v}}"/>
+      </html:p>
+    </view>
+    <watch>
+      <get view="input" dom-event="change"/>
+      <set property="v">
+        return target.value;
+      </set>
+    </watch>
+  </component>
+
+</app>

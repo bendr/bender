@@ -8,10 +8,6 @@
     </html:p>
   </view>
   <watch>
-    <get view="u" attr="tabindex"/>
-    <set property="tabindex-u"/>
-  </watch>
-  <watch>
     <get property="tabindex-u"/>
     <set view="u" attr="tabindex"/>
   </watch>

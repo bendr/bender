@@ -185,11 +185,16 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
-        var m = value.match(/\{([\w-]+)\}/);
+        var m = value.match(/\{\{([\w-]+)\}\}/);
         if (m) {
           if (!this.bindings) this.bindings = {};
+          value = value.replace(/\{\{[\w-]+\}\}/, "{0}");
+          this.bindings[name] = [m[1], value, true];
+          // Don't set the attribute
+          return;
+        } else if (m = value.match(/\{([\w-]+)\}/)) {
+          if (!this.bindings) this.bindings = {};
           value = value.replace(/\{[\w-]+\}/, "{0}");
-          flexo.log("%%%%%% replaced:", value);
           this.bindings[name] = [m[1], value];
         }
         return this.super_setAttribute(name, value);
@@ -879,8 +884,8 @@ if (typeof require === "function") flexo = require("flexo");
       } else {
         this.target = target;
       }
+      var context = this.node.ownerDocument;
       if (main) {
-        var context = this.node.ownerDocument;
         context.render_head(find_head(this.target.ownerDocument));
         if (context.main && context.main !== this) context.main.is_main = false;
         context.main = this;
@@ -888,6 +893,7 @@ if (typeof require === "function") flexo = require("flexo");
         this.render_title();
       }
       var self = this;
+      var unsolved = [];
       (function render(parent_instance, source, dest) {
         for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
           if (ch.nodeType === 1) {
@@ -926,6 +932,10 @@ if (typeof require === "function") flexo = require("flexo");
               if (!d) {
                 d = dest.ownerDocument.createElementNS(ch.namespaceURI,
                     ch.localName);
+              }
+              if (ch.bindings) {
+                unsolved.push(ch);
+                if (!ch.id) ch.id = flexo.random_id(6, ch.ownerDocument);
               }
               for (var i = ch.attributes.length - 1; i >= 0; --i) {
                 var attr = ch.attributes[i];
@@ -968,49 +978,32 @@ if (typeof require === "function") flexo = require("flexo");
       }
       */
 
-      /*
       // Check for bindings
-      (function solve_bindings(node) {
-        if (node.bindings) {
-          if (!node.id) {
-            node.id = flexo.random_id(6, node.ownerDocument);
-            self.views[node.id] = node;
-          }
-          for (var attr in node.bindings) {
-            if (node.bindings.hasOwnProperty(attr)) {
-              // TODO rules for different kinds of nodes?
-              var w1 = self.node.ownerDocument.createElement("watch");
-              var g1 = self.node.ownerDocument.createElement("get");
-              g1.setAttribute("view", node.id);
-              // g1.setAttribute("attr", attr);
-              g1.setAttribute("dom-event", "change");
-              g1.set_text_content("return value.target.value;");
-              var s1 = self.node.ownerDocument.createElement("set");
-              s1.setAttribute("property", node.bindings[attr][0]);
-              w1.appendChild(g1);
-              w1.appendChild(s1);
-              self.node.appendChild(w1);
-              var w2 = self.node.ownerDocument.createElement("watch");
-              var g2 = self.node.ownerDocument.createElement("get");
-              g2.setAttribute("property", node.bindings[attr][0]);
-              var s2 = self.node.ownerDocument.createElement("set");
-              s2.setAttribute("view", node.id);
-              s2.setAttribute("property", attr);
-              s2.set_text_content("return \"{0}\".fmt(value);"
+      unsolved.forEach(function(node) {
+          if (node.bindings) {
+            for (var attr in node.bindings) {
+              if (node.bindings.hasOwnProperty(attr)) {
+                var w = context.createElement("watch");
+                var g = context.createElement("get");
+                var s = context.createElement("set");
+                g.setAttribute("property", node.bindings[attr][0]);
+                w.appendChild(g);
+                s.setAttribute("view", node.id);
+                if (node.bindings[attr][2]) {
+                  s.setAttribute("property", attr);
+                } else {
+                  s.setAttribute("attr", attr);
+                }
+                s.set_text_content("return \"{0}\".fmt(value);"
                   .fmt(node.bindings[attr][1]));
-              w2.appendChild(g2);
-              w2.appendChild(s2);
-              self.node.appendChild(w2);
+                w.appendChild(s);
+                self.node.appendChild(w);
+              }
             }
+            bender.log("Solved bindings for", node, self.node);
+            delete node.bindings;
           }
-          bender.log("Solved bindings for", node);
-          delete node.bindings;
-        }
-        for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-          if (ch.nodeType === 1) solve_bindings(ch);
-        }
-      })(this.node.view);
-      */
+        });
 
       bender.log("Watches to instantiate: {0}".fmt(this.node.watches.length));
       this.node.watch_instances = this.node.watches.map(function(watch) {
