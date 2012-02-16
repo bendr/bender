@@ -39,6 +39,3 @@ function open_url(args)
         }, false);
     });
 }
-
-var ARGS = get_args();
-if (ARGS.app) open_url(ARGS);

@@ -10,24 +10,14 @@ var flexo = require("flexo");
 // These can (and sometime should) be overridden
 
 // Default document root
-exports.DOCUMENTS = process.cwd();
+exports.DOCUMENTS = path.join(process.cwd(), "docs");
 
 // Default server name
 exports.SERVER_NAME = "MORBO!";
 
-// Patterns for dispatch. A pattern has three parts:
-//   * the method to match (e.g. "GET", "POST", etc.)
-//   * the pathname to match as a regex
-//   * the callback function for a succesful match f(transaction, matches)
-exports.PATTERNS =
-[
-  [/^\/bender.js$/, { GET: function(transaction) {
-      transaction.serve_file_from_path("./node_modules/bender.js");
-    }} ],
-  [/^\/flexo.js$/, { GET: function(transaction) {
-      transaction.serve_file_from_path("./node_modules/flexo.js");
-    }} ],
-];
+// Patterns for dispatch: applications will add their own patterns
+// A pattern is of the form: [/path regex/, { GET: ..., PUT: ... }]
+exports.PATTERNS = [];
 
 // Known MIME types associated with file extensions
 exports.TYPES =
@@ -90,6 +80,8 @@ exports.TRANSACTION =
     this.request = request;
     this.response = response;
     this.url = url.parse(request.url, true);
+    this.log_info = "{0} {1} {2}".fmt(request.connection.remoteAddress,
+        request.method, request.url);
     return this;
   },
 
@@ -112,6 +104,7 @@ exports.TRANSACTION =
     } else {
       this.response.end(data);
     }
+    util.log(this.log_info);
   },
 
   // Return an error as text with a code and an optional debug message
@@ -173,7 +166,6 @@ exports.TRANSACTION =
 exports.run = function(ip, port)
 {
   http.createServer(function(request, response) {
-      flexo.log(request.headers);
       var transaction = Object.create(exports.TRANSACTION)
         .init(exports, request, response);
       var pathname = decodeURIComponent(transaction.url.pathname);
@@ -285,6 +277,7 @@ function serve_file(transaction, path_, stats, uri)
   } else {
     util.pump(fs.createReadStream(path_), transaction.response);
   }
+  util.log(transaction.log_info);
 }
 
 // Simply serve the requested file if found, otherwise return a 404/500 error
@@ -347,7 +340,7 @@ function write_head(transaction, code, type, data, params)
   params.Date = (new Date()).toUTCString();
   params.Server = exports.SERVER_NAME;
   transaction.response.writeHead(code, params);
-  flexo.log(transaction.response._header);
+  transaction.log_info += " {0} {1}".fmt(code, params["Content-Length"]);
 }
 
 
@@ -429,57 +422,59 @@ function html_tag(tag)
   return out;
 }
 
+if (require.main === module) {
+  // Run the server
+  var APPS = [];
+  var PORT = 8910;
+  var IP = "";
+  var HELP = false;
 
-// Run the server
+  // Parse arguments from the command line
+  function parse_args(args)
+  {
+    var m;
+    args.forEach(function(arg) {
+        if (m = arg.match(/^port=(\d+)/)) {
+          PORT = parseInt(m[1], 10);
+        } else if (m = arg.match(/^ip=(\S*)/)) {
+          IP = m[1];
+        } else if (arg.match(/^h(elp)?$/i)) {
+          HELP = true;
+        } else if (m = arg.match(/^documents=(\S+)/)) {
+          exports.DOCUMENTS = m[1];
+        } else if (m = arg.match(/^app=(\S+)/)) {
+          APPS.push(m[1]);
+        }
+      });
+  }
 
-var APPS = [];
-var PORT = 8910;
-var IP = "";
-var HELP = false;
+  // Show help info and quit
+  function show_help(node, name)
+  {
+    console.log("\nUsage: {0} {1} [options]\n\nOptions:".fmt(node, name));
+    console.log("  app=<app.js>:         path to application file");
+    console.log("  documents=<apps dir>: path to the documents directory");
+    console.log("  help:                 show this help message");
+    console.log("  ip=<ip address>:      IP address to listen to");
+    console.log("  port=<port number>:   port number for the server");
+    console.log("");
+    process.exit(0);
+  }
 
-// Parse arguments from the command line
-function parse_args(args)
-{
-  var m;
-  args.forEach(function(arg) {
-      if (m = arg.match(/^port=(\d+)/)) {
-        PORT = parseInt(m[1], 10);
-      } else if (m = arg.match(/^ip=(\S*)/)) {
-        IP = m[1];
-      } else if (arg.match(/^h(elp)?$/i)) {
-        HELP = true;
-      } else if (m = arg.match(/^documents=(\S+)/)) {
-        exports.DOCUMENTS = m[1];
-      } else if (m = arg.match(/^app=(\S+)/)) {
-        APPS.push(m[1]);
+  var args = process.argv.slice(2);
+  parse_args(args);
+  if (HELP) show_help.apply(null, process.argv);
+
+  util.log("Documents root: " + exports.DOCUMENTS);
+
+  flexo.async_foreach.trampoline(function(k, appname) {
+      util.log("App: " + appname);
+      var app = require(appname);
+      [].unshift.apply(exports.PATTERNS, app.PATTERNS);
+      if (app.init) {
+        return app.init.get_thunk(exports, args, k);
+      } else {
+        return k.get_thunk();
       }
-    });
+    }, APPS, function() { exports.run(IP, PORT); });
 }
-
-// Show help info and quit
-function show_help(node, name)
-{
-  console.log("\nUsage: {0} {1} [options]\n\nOptions:".fmt(node, name));
-  console.log("  app=<app.js>:         path to application file");
-  console.log("  documents=<apps dir>: path to the documents directory");
-  console.log("  help:                 show this help message");
-  console.log("  ip=<ip address>:      IP address to listen to");
-  console.log("  port=<port number>:   port number for the server");
-  console.log("");
-  process.exit(0);
-}
-
-var args = process.argv.slice(2);
-parse_args(args);
-if (HELP) show_help.apply(null, process.argv);
-
-flexo.async_foreach.trampoline(function(k, appname) {
-    util.log("App: " + appname);
-    var app = require(appname);
-    [].unshift.apply(exports.PATTERNS, app.PATTERNS);
-    if (app.init) {
-      return app.init.get_thunk(exports, args, k);
-    } else {
-      return k.get_thunk();
-    }
-  }, APPS, function() { exports.run(IP, PORT); });
