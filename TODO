@@ -3,7 +3,7 @@ TODO list as of 2012-02-17 (v0.3.2)
 
 BUGS
 
-[x] Watch nesting: listening to the same event (e.g. nesting @xhr-success to
+[ ] Watch nesting: listening to the same event (e.g. nesting @xhr-success to
     chain two XMLHttpRequests)
 [ ] Watches through component boundaries (regression)
 [!] Watch loops (more tests needed!)
