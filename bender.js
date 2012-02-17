@@ -586,12 +586,12 @@ if (typeof require === "function") flexo = require("flexo");
             var h = function(e) {
               bender.log("get handler for {0} on".fmt(instance.hash),
                 target.hash || target);
-              if (instance.enabled) {
+              if (instance.check_enabled(get.disable)) {
                 var value = get.dom_event || get.event ? e : e.value;
                 var v = get.transform.call(component_instance, value, e.prev,
-                  target);
+                  target, instance);
                 if (v !== undefined) {
-                  instance.got(v, e.prev, target, get.disable);
+                  instance.got(v, e.prev, target);
                 } else {
                   bender.log("  cancelled (undefined value)");
                 }
@@ -654,7 +654,7 @@ if (typeof require === "function") flexo = require("flexo");
       init: function()
       {
         this.params = { value: "value", previous_value: "previous_value",
-          target: "target" };
+          target: "target", watch: "watch" };
       },
 
       add_to_parent: function(parent)
@@ -693,7 +693,7 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "use") {
           this.use = flexo.undash(flexo.normalize(value));
         } else if (name === "value" || name === "previous_value" ||
-            name === "target") {
+            name === "target" || name === "watch") {
           this.params[name] = flexo.undash(flexo.normalize(value));
         } else if (name === "disable") {
           this.disable = flexo.is_true(value);
@@ -715,7 +715,8 @@ if (typeof require === "function") flexo = require("flexo");
         if (/\S/.test(text)) {
           try {
             this.transform = new Function(this.params.value,
-                this.params.previous_value, this.params.target, text);
+                this.params.previous_value, this.params.target,
+                this.params.watch, text);
           } catch (e) {
             bender.warn(e);
           }
@@ -836,21 +837,31 @@ if (typeof require === "function") flexo = require("flexo");
   // Watch instance associated with components
   var watch_instance =
   {
-    got: function(value, prev, target, disable)
+    check_enabled: function(disable)
+    {
+      if (this.enabled) {
+        this.children.forEach(function(w) { w.enabled = true; });
+        if (disable) {
+          // Disable this watch, as well as its siblings if it is nested
+          if (this.parent) {
+            this.parent.children.forEach(function(w) { w.enabled = false; });
+          } else {
+            delete this.current_value;
+            this.enabled = false;
+          }
+        }
+        return true;
+      }
+      return false;
+    },
+
+    got: function(value, prev, target)
     {
       // TODO check activation status for loops
+      this.current_value = value;
       this.node.sets.forEach(function(set) {
           set.got(this, value, prev, target);
         }, this);
-      this.children.forEach(function(w) { w.enabled = true; });
-      if (disable) {
-        // Disable this watch, as well as its siblings if it is nested
-        if (this.parent) {
-          this.parent.children.forEach(function(w) { w.enabled = false; });
-        } else {
-          this.enabled = false;
-        }
-      }
     },
 
     // Initialize the watched properties for the given instance
