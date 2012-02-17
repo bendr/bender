@@ -586,7 +586,7 @@ if (typeof require === "function") flexo = require("flexo");
             var h = function(e) {
               bender.log("get handler for {0} on".fmt(instance.hash),
                 target.hash || target);
-              if (instance.check_enabled(get.disable)) {
+              if (instance.enabled) {
                 var value = get.dom_event || get.event ? e : e.value;
                 var v = get.transform.call(component_instance, value, e.prev,
                   target, instance);
@@ -595,6 +595,7 @@ if (typeof require === "function") flexo = require("flexo");
                 } else {
                   bender.log("  cancelled (undefined value)");
                 }
+                instance.check_enabled(get.disable);
               }
             };
             if (get.dom_event) {
@@ -839,20 +840,16 @@ if (typeof require === "function") flexo = require("flexo");
   {
     check_enabled: function(disable)
     {
-      if (this.enabled) {
-        this.children.forEach(function(w) { w.enabled = true; });
-        if (disable) {
-          // Disable this watch, as well as its siblings if it is nested
-          if (this.parent) {
-            this.parent.children.forEach(function(w) { w.enabled = false; });
-          } else {
-            delete this.current_value;
-            this.enabled = false;
-          }
+      this.children.forEach(function(w) { w.enabled = true; });
+      if (disable) {
+        // Disable this watch, as well as its siblings if it is nested
+        if (this.parent) {
+          this.parent.children.forEach(function(w) { w.enabled = false; });
+        } else {
+          delete this.current_value;
+          this.enabled = false;
         }
-        return true;
       }
-      return false;
     },
 
     got: function(value, prev, target)
@@ -1060,6 +1057,8 @@ if (typeof require === "function") flexo = require("flexo");
       if (typeof params !== "object") params = {};
       if (!params.hasOwnProperty("method")) params.method = "GET";
       if (!params.hasOwnProperty("data")) params.data = "";
+      var success = params.success || "@xhr-success";
+      var error = params.error || "@xhr-error";
       var req = new XMLHttpRequest();
       req._uri = uri;
       req.open(params.method, uri);
@@ -1069,9 +1068,9 @@ if (typeof require === "function") flexo = require("flexo");
         flexo.notify(this, "@xhr-readystatechange", req);
         if (req.readyState === 4) {
           if (req.status >= 200 && req.status < 300) {
-            flexo.notify(this, "@xhr-success", req);
+            flexo.notify(this, success, req);
           } else {
-            flexo.notify(this, "@xhr-error", req);
+            flexo.notify(this, error, req);
           }
         }
       }).bind(this);
