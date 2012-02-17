@@ -85,6 +85,18 @@ exports.TRANSACTION =
     return this;
   },
 
+  // Get the cookies from the request
+  get_cookies: function()
+  {
+    var cookies = {};
+    this.request.headers.cookie &&
+      this.request.headers.cookie.split(";").forEach(function(cookie) {
+        var parts = cookie.split("=");
+        cookies[parts[0].trim()] = (parts[1] || "").trim();
+      });
+    return cookies;
+  },
+
   // Get data from the request
   get_data: function(f)
   {
@@ -105,14 +117,15 @@ exports.TRANSACTION =
       this.response.end(data);
     }
     util.log(this.log_info);
+    if (this.log_error) util.log(this.log_error);
   },
 
   // Return an error as text with a code and an optional debug message
   // TODO provide a function to customize error pages
-  serve_error: function(code, debug)
+  serve_error: function(code, log)
   {
     var msg = exports.STATUS_CODES[code] || "(unknown error code)";
-    if (debug) util.log("error {0}: {1} ({2})".fmt(code, msg, debug));
+    if (log) this.log_error = "{0}: {1} ({2})".fmt(code, msg, log);
     this.serve_data(code, "text/plain", "{0} {1}\n".fmt(code, msg));
   },
 
@@ -390,6 +403,31 @@ function write_head(transaction, code, type, data, params)
       { rel: "stylesheet", type: "text/css", href: href }, true);
   };
 
+  // Params should include at least "title"; "lang" and "charset" have default
+  // values. DOCTYPE can be overridden with the DOCTYPE parameter.
+  this.html_header = function(params, head)
+  {
+    if (typeof params !== "object") params = {};
+    if (head === undefined || head === null) head = "";
+    if (!params.DOCTYPE) params.DOCTYPE = "<!DOCTYPE html>";
+    if (!params.title) params.title = "Untilted";
+    if (!params.charset) params.charset = "UTF-8";
+    return params.DOCTYPE  + "\n" +
+      $html({ lang: params.lang },
+        $head(
+          $title(params.title),
+          $meta({ charset: params.charset }, true),
+          head),
+        $body(true), true);
+  };
+
+  this.html_footer = function() { return "</body></html>"; };
+
+  this.html_page = function(params, head, body)
+  {
+    return html_header(params, head) + body + html_footer();
+  };
+
 })();
 
 // Make a (text) HTML tag; the first argument is the tag name. Following
@@ -421,7 +459,6 @@ function html_tag(tag)
   if (!keep_open) out += "</{0}>".fmt(tag);
   return out;
 }
-
 if (require.main === module) {
   // Run the server
   var APPS = [];
@@ -468,7 +505,7 @@ if (require.main === module) {
   util.log("Documents root: " + exports.DOCUMENTS);
 
   flexo.async_foreach.trampoline(function(k, appname) {
-      util.log("App: " + appname);
+      util.log("App: {0} ({1})".fmt(appname, require.resolve(appname)));
       var app = require(appname);
       [].unshift.apply(exports.PATTERNS, app.PATTERNS);
       if (app.init) {
