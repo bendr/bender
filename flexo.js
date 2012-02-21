@@ -487,6 +487,19 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
   };
 
+  // Shuffle an array and return a new array
+  flexo.shuffle = function(a)
+  {
+    var shuffled = typeof a === "string" ? a : a.slice(0);
+    for (var i = shuffled.length - 1; i > 0; --i) {
+      var j = flexo.random_int(0, i);
+      var x = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = x;
+    }
+    return shuffled;
+  };
+
 
   // Convert a number to roman numerals (integer part only; n must be positive
   // or zero.) Now that's an important function to have in any framework.
@@ -596,13 +609,59 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return { x: p.x + window.pageXOffset, y: p.y + window.pageYOffset };
   };
 
+  // Simpler way to create elements, giving ns id and class directly within the
+  // name of the element (e.g. svg:rect#background.test)
+  flexo.ez_elem = function(name)
+  {
+    var argc = 1;
+    var attrs = {};
+    if (typeof arguments[1] === "object" && !(arguments[1] instanceof Node)) {
+      attrs = arguments[1];
+      argc = 2;
+    }
+    var classes = name.split(".");
+    name = classes.shift();
+    if (classes.length > 0) {
+      attrs["class"] = (attr.hasOwnProperty("class") ? attrs["class"] + " " : "")
+        + classes.join(" ");
+    }
+    var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
+    if (m) {
+      var ns = m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())];
+      var elem = ns ?
+        document.createElementNS(ns, m[2]) : document.createElement(m[2]);
+      if (m[3]) attrs.id = m[3];
+      for (a in attrs) {
+        if (attrs.hasOwnProperty(a) &&
+            attrs[a] !== undefined && attrs[a] !== null) {
+          var split = a.split(":");
+          ns = split[1] && flexo["{0}_NS".fmt(split[0].toUpperCase())];
+          if (ns) {
+            elem.setAttributeNS(ns, split[1], attrs[a]);
+          } else {
+            elem.setAttribute(a, attrs[a]);
+          }
+        }
+      }
+      [].slice.call(arguments, argc).forEach(function(ch) {
+          if (typeof ch === "string") {
+            elem.appendChild(document.createTextNode(ch));
+          } else if (ch instanceof Node) {
+            elem.appendChild(ch);
+          }
+        });
+      return elem;
+    }
+  }
+
   // Shortcut for flexo.html: no namespace; text content is interpreted as
   // innerHTML instead of textContent. Attributes are optional as well.
   flexo.ez_html = function(name)
   {
     var elem = document.createElement(name);
     var args = 1;
-    if (arguments.length > 1 && typeof arguments[1] === "object") {
+    if (arguments.length > 1 && typeof arguments[1] === "object" &&
+        !(arguments[1] instanceof Node)) {
       for (a in arguments[1]) elem.setAttribute(a, arguments[1][a]);
       args = 2;
     }
@@ -749,6 +808,36 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return elem;
   };
 
+  // Create a regular polygon with the number of sides inscribed in a circle of
+  // the given radius, with an optional starting phase (use Math.PI / 2 to have
+  // it pointing up at all times)
+  flexo.svg_polygon = function(sides, radius, phase)
+  {
+    if (!phase) phase = 0;
+    var points = [];
+    for (var i = 0; i < sides; ++i) {
+      points.push(radius * Math.cos(phase));
+      points.push(-radius * Math.sin(phase));
+      phase += 2 * Math.PI / sides;
+    }
+    return flexo.svg("polygon", { points: points.join(" ") });
+  };
+
+  // Same as above but create a star with the given inner radius
+  flexo.svg_star = function(sides, ro, ri, phase)
+  {
+    if (!phase) phase = 0;
+    sides *= 2;
+    var points = [];
+    for (var i = 0; i < sides; ++i) {
+      var r = i % 2 === 0 ? ro : ri;
+      points.push(r * Math.cos(phase));
+      points.push(-r * Math.sin(phase));
+      phase += 2 * Math.PI / sides;
+    }
+    return flexo.svg("polygon", { points: points.join(" ") });
+  };
+
 
   // Color functions
 
@@ -758,6 +847,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     var colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
       "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+    if (!n) n = flexo.random_int(0, colors.length);
     return colors[Math.abs(n % colors.length)];
   };
 
@@ -767,6 +857,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       "#98df8a", "#d62728", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b",
       "#c49c94", "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7", "#bcbd22",
       "#dbdb8d", "#17becf", "#9edae5"];
+    if (!n) n = flexo.random_int(0, colors.length);
     return colors[Math.abs(n % colors.length)];
   };
 

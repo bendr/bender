@@ -1,4 +1,11 @@
-TODO list as of 2012-02-17 (v0.3.2)
+TODO list as of 2012-02-20 (v0.3.2)
+
+
+REVIEW
+
+[ ] Watch event listeners (listener at context level?)
+[ ] Lexical vs. dynamic bindings
+[ ] Property names (dashes and $ sign)
 
 
 BUGS
@@ -18,7 +25,7 @@ BUGS
 
 FEATURES
 
-[ ] review undash/$ for property names
+[ ] get/@href for XMLHttpRequest?
 [x] watches: get/disable instead of watch/once
 [ ] watches: everything goes through events
 [ ] binding rules?
@@ -45,6 +52,7 @@ FEATURES
 [ ] Sequencing watches: store/recall presets
 [ ] Parameters for <use> (cf. test/fails/ko-params.xml)
 [ ] Change <content> of component (e.g. change button label)
+[ ] Clean up SVG demo from ET2011
 
 
 COMPONENTS
