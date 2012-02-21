@@ -459,6 +459,7 @@ function html_tag(tag)
   if (!keep_open) out += "</{0}>".fmt(tag);
   return out;
 }
+
 if (require.main === module) {
   // Run the server
   var APPS = [];
