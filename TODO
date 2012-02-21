@@ -1,11 +1,11 @@
-TODO list as of 2012-02-20 (v0.3.2)
+TODO list as of 2012-02-21 (v0.3.2)
 
 
 REVIEW
 
 [ ] Watch event listeners (listener at context level?)
 [ ] Lexical vs. dynamic bindings
-[ ] Property names (dashes and $ sign)
+[x] Property names (dashes and $ sign)
 
 
 BUGS

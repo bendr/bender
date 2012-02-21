@@ -620,18 +620,20 @@ if (typeof require === "function") flexo = require("flexo");
               bender.log("{0}: listen to {1}".fmt(target.hash, ev));
               flexo.listen(target, ev, h);
             } else if (get.property) {
-              var ev = "@{0}.{1}".fmt(target.hash, get.property);
-              if (!target.watched_properties.hasOwnProperty(get.property)) {
+              var prop = target instanceof Node ? get.property :
+                property_name(get.property);
+              var ev = "@{0}.{1}".fmt(target.hash, prop);
+              if (!target.watched_properties.hasOwnProperty(prop)) {
                 bender.log("get event: {0} for".fmt(ev), get);
-                var value = target[get.property];
-                flexo.getter_setter(target, get.property,
+                var value = target[prop];
+                flexo.getter_setter(target, prop,
                     function() { return value; },
                     function(v) {
                       var prev = value;
                       value = v;
                       flexo.notify(target, ev, { value: v, prev: prev });
                     });
-                target.watched_properties[get.property] = true;
+                target.watched_properties[prop] = true;
               }
               bender.log("{0}: listen to {1}".fmt(target.hash, ev));
               flexo.listen(target, ev, h);
@@ -687,8 +689,7 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "event") {
           this.event = flexo.normalize(value);
         } if (name === "property") {
-          this.property = property_name(flexo.normalize(value));
-          bender.log("get: property={0}".fmt(this.property), this);
+          this.property = flexo.normalize(value);
         } else if (name === "view") {
           this.view = flexo.undash(flexo.normalize(value));
         } else if (name === "use") {
@@ -811,7 +812,8 @@ if (typeof require === "function") flexo = require("flexo");
       got: function(watch_instance, value, prev, target)
       {
         var instance = watch_instance.component_instance;
-        if (prev === undefined && this.property) prev = instance[this.property];
+        var prop = property_name(this.property);
+        if (prev === undefined && this.property) prev = instance[prop];
         var v_ = this.transform.call(instance, value, prev, target,
             watch_instance);
         if (this.view) {
@@ -824,12 +826,17 @@ if (typeof require === "function") flexo = require("flexo");
           } else if (this.css) {
             instance.views[this.view].style[this.css] = v_;
           } else if (this.property) {
-            instance.views[this.view][this.property] = v_;
+            var v = instance.views[this.view];
+            if (v instanceof Node) {
+              view[this.property] = v_;
+            } else {
+              view[prop] = v_;
+            }
           } else {
             instance.views[this.view].textContent = v_;
           }
         } else if (this.property) {
-          instance[property_name(this.property)] = v_;
+          instance[prop] = v_;
         }
       },
 
@@ -1183,7 +1190,10 @@ if (typeof require === "function") flexo = require("flexo");
 
   // Transform an XML name into the actual property name (undash and prefix with
   // $, so that for instance "rate-ms" will become $rateMs.)
-  var property_name = function(name) { return "$" + flexo.undash(name); };
+  var property_name = function(name)
+  {
+    if (name) return "$" + flexo.undash(name);
+  };
 
   // Set properties on an instance from the attributes of a node (in the b, e,
   // and f namespaces)
