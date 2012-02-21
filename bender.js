@@ -612,13 +612,13 @@ if (typeof require === "function") flexo = require("flexo");
                   var prev = this.getAttribute(name);
                   var attr = super_setAttribute.call(this, name, value);
                   if (name === get.attr) {
-                    flexo.notify(this, ev, { value: value, prev: prev });
+                    flexo.notify(context, ev, { value: value, prev: prev });
                   }
                 };
                 target.watched_attributes[get.attr] = true;
               }
               bender.log("{0}: listen to {1}".fmt(target.hash, ev));
-              flexo.listen(target, ev, h);
+              flexo.listen(context, ev, h);
             } else if (get.property) {
               var prop = target instanceof Node ? get.property :
                 property_name(get.property);
@@ -631,12 +631,12 @@ if (typeof require === "function") flexo = require("flexo");
                     function(v) {
                       var prev = value;
                       value = v;
-                      flexo.notify(target, ev, { value: v, prev: prev });
+                      flexo.notify(context, ev, { value: v, prev: prev });
                     });
                 target.watched_properties[prop] = true;
               }
               bender.log("{0}: listen to {1}".fmt(target.hash, ev));
-              flexo.listen(target, ev, h);
+              flexo.listen(context, ev, h);
             }
         });
 
@@ -826,8 +826,8 @@ if (typeof require === "function") flexo = require("flexo");
           } else if (this.css) {
             instance.views[this.view].style[this.css] = v_;
           } else if (this.property) {
-            var v = instance.views[this.view];
-            if (v instanceof Node) {
+            var view = instance.views[this.view];
+            if (view instanceof Node) {
               view[this.property] = v_;
             } else {
               view[prop] = v_;
