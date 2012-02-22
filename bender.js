@@ -41,6 +41,18 @@ if (typeof require === "function") flexo = require("flexo");
           this.uri);
     };
 
+    // Add a component definition when a component is added to the tree
+    // If the id changed, remove the previous definition first
+    context.add_definition = function(node, new_id)
+    {
+      if (node.id && node.id !== new_id) {
+        delete this.definitions[node.uri + "#" + node.id];
+      }
+      this.definitions[node.uri + "#" + new_id] = node;
+      bender.log("+++ New component: {0}: {1}".fmt(node.uri + "#" + new_id,
+            node.hash));
+    };
+
     // Shortcut to create Bender elements in this context
     // Bender elements have no namespace prefix; HTML and SVG are known
     context.elem = function(name)
@@ -290,6 +302,12 @@ if (typeof require === "function") flexo = require("flexo");
       add_to_parent: function(parent)
       {
         if (this.parent_component) this.parent_component.components.push(this);
+        if (is_rooted(parent)) {
+          this.ownerDocument.add_definition(this, this.id);
+          this.components.forEach(function(c) {
+              c.ownerDocument.add_definition(c, c.id);
+            });
+        }
       },
 
       remove_from_parent: function(parent)
@@ -305,13 +323,8 @@ if (typeof require === "function") flexo = require("flexo");
       {
         if (name === "id") {
           var id = flexo.normalize(value);
-          if (this.id && this.id !== id) {
-            delete this.ownerDocument.definitions[this.uri + "#" + this.id];
-          }
+          if (is_rooted(this)) this.ownerDocument.add_definition(this, id);
           this.id = id;
-          this.ownerDocument.definitions[this.uri + "#" + id] = this;
-          bender.log("+++ New component: {0}: {1}".fmt(this.uri + "#" + id,
-                this.hash));
         }
         return this.super_setAttribute(name, value);
       },
@@ -1226,6 +1239,12 @@ if (typeof require === "function") flexo = require("flexo");
   var is_bender_node = function(node, localname)
   {
     return node.namespaceURI === bender.NS && node.localName === localname;
+  };
+
+  // Check whether a node is rooted
+  var is_rooted = function(node)
+  {
+    return !!node && (node instanceof Document || is_rooted(node.parentNode));
   };
 
   // Transform an XML name into the actual property name (undash and prefix with

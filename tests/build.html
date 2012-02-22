@@ -18,19 +18,10 @@
       bender.DEBUG_LEVEL = 1;
 
       var context = bender.create_context(document, "built");
-      var component = context.elem("component", { id: "c",
-        "e:value": "initial value" },
+      var component = context.elem("component#c",
         context.elem("view",
-          context.elem("xhtml:p",
-            context.elem("xhtml:code", "$value"),
-            " = ",
-            context.elem("xhtml:span#v.highlight",
-              { textContent: "{{value}}" }))));
-
-      var instance = component.instantiate();
-      if (instance.render(document.getElementById("here"))) {
-        instance.init_properties();
-      }
+          context.elem("xhtml:p", "Hello world!")));
+      context.documentElement.appendChild(component);
 
     </script>
   </body>
