@@ -27,6 +27,7 @@
       //flexo.safe_remove(component.firstChild);
 
       var use = context.elem("use", { href: "#hello-world" });
+      context.documentElement.appendChild(use);
       use.render_in(document.getElementById("here"));
 
       flexo.safe_remove(component);

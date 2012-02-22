@@ -570,6 +570,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       render_in: function(parent, ref)
       {
+        if (!is_rooted(this)) return;
         if (!parent.uses) parent.uses = [];
         parent.uses.push(this);
         var render = (function()
@@ -589,22 +590,22 @@ if (typeof require === "function") flexo = require("flexo");
             }
           }
         }).bind(this);
-        if (this.set_uri(true)) {
-          render(this);
+        if (this.set_uri()) {
+          render();
         } else {
           flexo.listen(context, "@loaded", render);
         }
       },
 
-      set_uri: function(force)
+      set_uri: function()
       {
-        if ((force || is_rooted(this)) && this.href) {
+        if (is_rooted(this) && this.href) {
           var context = this.context;
           var p = this.parent_component || context;
           this.href = flexo.absolute_uri(p.uri, this.href);
           bender.log("{0} href={1}".fmt(this.hash, this.href));
           var u = this.href.split("#");
-          if (context.loaded.hasOwnProperty(u[0])) return true;
+          if (context.loaded.hasOwnProperty(u[0])) return context.loaded[u[0]];
           context.loaded[u[0]] = false;
           flexo.request_uri(u[0], function(req) {
               context.loaded[u[0]] = true;

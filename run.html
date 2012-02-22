@@ -28,7 +28,7 @@
         flexo.request_uri(args.app, function(req) {
             document.body.innerHTML = "";
             var context = bender.create_context(document, args.app);
-            var app = context.import(req.responseXML.documentElement);
+            var app = context.import_(req.responseXML.documentElement);
             app.addEventListener("@loaded", function() {
                 var instance = app.instantiate();
                 if (instance.render(document.body, true)) {
