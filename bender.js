@@ -47,10 +47,23 @@ if (typeof require === "function") flexo = require("flexo");
     {
       if (node.id && node.id !== new_id) {
         delete this.definitions[node.uri + "#" + node.id];
+        bender.log("Deleted definition: {0}: {1}".fmt(node.uri + "#" + node.id,
+            node.hash));
       }
       this.definitions[node.uri + "#" + new_id] = node;
-      bender.log("+++ New component: {0}: {1}".fmt(node.uri + "#" + new_id,
+      bender.log("Added definition: {0}: {1}".fmt(node.uri + "#" + new_id,
             node.hash));
+    };
+
+    // Remove definition when a component is removed from the tree
+    context.remove_definition = function(node)
+    {
+      if (node && node.id) {
+        var uri = node.uri + "#" + node.id;
+        if (this.definitions[uri] !== node) throw "Definition mismatch!";
+        delete this.definitions[uri];
+        bender.log("Deleted definition: {0}: {1}".fmt(uri, node.hash));
+      }
     };
 
     // Shortcut to create Bender elements in this context
@@ -312,10 +325,15 @@ if (typeof require === "function") flexo = require("flexo");
 
       remove_from_parent: function(parent)
       {
-        flexo.remove_from_array(parent.uses, this);
+        flexo.remove_from_array(parent.uses, this);  // XXX check this
         if (this.parent_component) {
-          this.parent_component
-            .remove_from_array(this.parent_component.components, this);
+          flexo.remove_from_array(this.parent_component.components, this);
+        }
+        if (is_rooted(parent)) {
+          this.ownerDocument.remove_definition(this);
+          this.components.forEach(function(c) {
+              c.ownerDocument.remove_definition(c);
+            });
         }
       },
 

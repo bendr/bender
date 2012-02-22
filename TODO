@@ -41,8 +41,10 @@ FEATURES
 [ ] Watch delays
 [ ] Signals
 [ ] Component inheritance
-[ ] Adding nodes
-[ ] Removing nodes
+[/] Adding nodes
+    [x] add <component> adds to the list of definitions in the context
+[/] Removing nodes
+    [x] remove <component> deletes the definition
 [ ] Refer to content node (draggable)
 [ ] Get matching a specific value?
 [x] Script ran on instantiation -> <set> within views/uses
