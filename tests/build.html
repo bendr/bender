@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Build a Bender document</title>
+    <meta charset="UTF-8">
+    <style>
+      body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
+      #here { border: dashed thin #888; padding: 8px; }
+      .highlight { background-color: yellow; padding: 4px; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <div id="here"></div>
+    <script>
+
+      bender.DEBUG_LEVEL = 1;
+
+      var context = bender.create_context(document, "built");
+      var component = context.elem("component", { id: "c",
+        "e:value": "initial value" },
+        context.elem("view",
+          context.elem("xhtml:p",
+            context.elem("xhtml:code", "$value"),
+            " = ",
+            context.elem("xhtml:span#v.highlight",
+              { textContent: "{{value}}" }))));
+
+      var instance = component.instantiate();
+      if (instance.render(document.getElementById("here"))) {
+        instance.init_properties();
+      }
+
+    </script>
+  </body>
+</html>
+

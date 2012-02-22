@@ -19,8 +19,8 @@ if (typeof require === "function") flexo = require("flexo");
   // loading a file.)
   bender.create_context = function(target, uri)
   {
-    if (!target) target = document;
-    if (!uri) {
+    if (target === undefined) target = document;
+    if (uri === undefined) {
       uri = target.baseURI;
     } else {
       uri = flexo.absolute_uri(target.baseURI, uri);
@@ -39,6 +39,53 @@ if (typeof require === "function") flexo = require("flexo");
     context.createElementNS = function(nsuri, qname) {
       return wrap_element(super_createElementNS.call(this, nsuri, qname),
           this.uri);
+    };
+
+    // Shortcut to create Bender elements in this context
+    // Bender elements have no namespace prefix; HTML and SVG are known
+    context.elem = function(name)
+    {
+      var argc = 1;
+      var attrs = {};
+      if (typeof arguments[1] === "object" && !(arguments[1] instanceof Node)) {
+        attrs = arguments[1];
+        argc = 2;
+      }
+      var classes = name.split(".");
+      name = classes.shift();
+      if (classes.length > 0) {
+        attrs["class"] =
+          (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "")
+          + classes.join(" ");
+      }
+      var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
+      if (m) {
+        var ns = m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())];
+        var elem = ns ? this.createElementNS(ns, m[2]) :
+          this.createElement(m[2]);
+        if (m[3]) attrs.id = m[3];
+        for (a in attrs) {
+          if (attrs.hasOwnProperty(a) &&
+              attrs[a] !== undefined && attrs[a] !== null) {
+            var split = a.split(":");
+            ns = split[1] && (bender["NS_" + split[0].toUpperCase()] ||
+                flexo["{0}_NS".fmt(split[0].toUpperCase())]);
+            if (ns) {
+              elem.setAttributeNS(ns, split[1], attrs[a]);
+            } else {
+              elem.setAttribute(a, attrs[a]);
+            }
+          }
+        }
+        [].slice.call(arguments, argc).forEach(function(ch) {
+            if (typeof ch === "string") {
+              elem.appendChild(document.createTextNode(ch));
+            } else if (ch instanceof Node) {
+              elem.appendChild(ch);
+            }
+          });
+        return elem;
+      }
     };
 
     // Check that there are no components left to load. If there are any do
@@ -185,19 +232,23 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttribute: function(name, value)
       {
-        var m = value.match(/\|\{[\w-]+\}\|/);
+        var v = value.toString();
+        var m = v.match(/\|\{[\w-]+\}\|/);
         if (!m) {
-          if (m = value.match(/\{\{([\w-]+)\}\}/)) {
+          if (m = v.match(/\{\{([\w-]+)\}\}/)) {
             if (!this.bindings) this.bindings = {};
             value = value.replace(/\{\{[\w-]+\}\}/, "{0}");
             this.bindings[name] = [m[1], value, true];
-            // Don't set the attribute
+            bender.log("binding to property {0}:".fmt(name),
+                this.bindings[name]);
+            // Don't set the attribute--this just creates a binding
             return;
-          } else if (m = value.match(/\{([\w-]+)\}/)) {
+          } else if (m = v.match(/\{([\w-]+)\}/)) {
             if (!this.bindings) this.bindings = {};
-            bender.log("Replace {0} in {1}".fmt(m[0], value));
             value = value.replace(/\{[\w-]+\}/, "{0}");
             this.bindings[name] = [m[1], value];
+            bender.log("binding to attribute {0}:".fmt(name),
+                this.bindings[name]);
           }
         }
         return this.super_setAttribute(name, value);
@@ -939,19 +990,8 @@ if (typeof require === "function") flexo = require("flexo");
                 parent_instance.sets.push({ set: ch, dest: dest });
               }
             } else {
-              var once =
-                flexo.is_true(ch.getAttributeNS(bender.NS, "render-once"));
-              var d = undefined;
-              var reuse = flexo
-                .normalize(ch.getAttributeNS(bender.NS, "reuse"));
-              if (reuse.toLowerCase() === "any") {
-                d = find_first_element(dest.ownerDocument.documentElement,
-                    ch.namespaceURI, ch.localName);
-              }
-              if (!d) {
-                d = dest.ownerDocument.createElementNS(ch.namespaceURI,
-                    ch.localName);
-              }
+              var d = dest.ownerDocument
+                .createElementNS(ch.namespaceURI, ch.localName);
               if (ch.bindings) {
                 unsolved.push(ch);
                 if (!ch.id) ch.id = flexo.random_id(6, ch.ownerDocument);

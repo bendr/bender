@@ -622,7 +622,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     var classes = name.split(".");
     name = classes.shift();
     if (classes.length > 0) {
-      attrs["class"] = (attr.hasOwnProperty("class") ? attrs["class"] + " " : "")
+      attrs["class"] =
+        (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "")
         + classes.join(" ");
     }
     var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
