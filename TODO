@@ -1,11 +1,4 @@
-TODO list as of 2012-02-23 (v0.3.2; live)
-
-
-REVIEW
-
-[x] Watch event listeners (listener at context level?)
-[ ] Lexical vs. dynamic bindings
-[x] Property names (dashes and $ sign)
+TODO list as of 2012-02-23 (v0.3.2)
 
 
 BUGS
@@ -23,7 +16,15 @@ BUGS
 [ ] Some styles not applied properly with external stylesheets
 [ ] Flexo: flexo.absolute_uri("foo/bar/baz", "..") -> "/" ???
 [x] Readd "get" parameter for set/transform
-[ ] A watch/get on a property disables the previous one (tests/show-hide.xml)
+[x] (19) A watch/get on a property disables the previous one
+
+
+REVIEW
+
+[x] Watch event listeners (listener at context level?)
+[ ] Lexical vs. dynamic bindings
+[x] Property names (dashes and $ sign)
+
 
 
 FEATURES

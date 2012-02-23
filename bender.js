@@ -346,7 +346,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       instantiate: function()
       {
-        var instance = flexo.create_object(component).init();
+        var instance = Object.create(component).init();
         this.instances[instance.hash] = instance;
         instance.node = this;
         this.scripts.forEach(function(script) {
@@ -668,7 +668,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       instantiate: function(component_instance)
       {
-        var instance = flexo.create_object(watch_instance);
+        var instance = Object.create(watch_instance);
         flexo.hash(instance, "watch_instance");
         instance.node = this;
         instance.component_instance = component_instance;
@@ -724,13 +724,23 @@ if (typeof require === "function") flexo = require("flexo");
               if (!target.watched_properties.hasOwnProperty(prop)) {
                 bender.log("get event: {0} for".fmt(ev), get);
                 var value = target[prop];
-                flexo.getter_setter(target, prop,
-                    function() { return value; },
-                    function(v) {
-                      var prev = value;
-                      value = v;
-                      flexo.notify(context, ev, { value: v, prev: prev });
-                    });
+                var desc = Object.getOwnPropertyDescriptor(target, prop);
+                var getter = desc && desc.get ?
+                  function() { return desc.get.call(this); } :
+                  function() { return value; };
+                var setter = desc && desc.set ?
+                  function(v) {
+                    var prev = value;
+                    desc.set.call(this, v);
+                    value = v;
+                    flexo.notify(context, ev, { value: v, prev: prev });
+                  } :
+                  function(v) {
+                    var prev = value;
+                    value = v;
+                    flexo.notify(context, ev, { value: v, prev: prev });
+                  };
+                flexo.getter_setter(target, prop, getter, setter);
                 target.watched_properties[prop] = true;
               }
               bender.log("{0}: listen to {1}".fmt(target.hash, ev));
