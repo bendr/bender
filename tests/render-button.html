@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Build a Bender document</title>
+    <title>Render a Bender button</title>
     <meta charset="UTF-8">
     <style>
       body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
       #here { border: dashed thin #888; padding: 8px; }
-      .highlight { background-color: yellow; padding: 4px; }
     </style>
     <script src="../flexo.js"></script>
     <script src="../bender.js"></script>
@@ -18,19 +17,14 @@
       bender.DEBUG_LEVEL = 1;
 
       var context = bender.create_context(document, "built");
-      var component = context.elem("component#hello",
-        //context.elem("component#foo"),
-        context.elem("view",
-          context.elem("xhtml:p", "Hello world!")));
-      context.documentElement.appendChild(component);
-      component.setAttribute("id", "hello-world");
-      //flexo.safe_remove(component.firstChild);
-
-      var use = context.elem("use", { href: "#hello-world" });
+      var use = context.elem("use", { href: "../lib/push-button.xml#button",
+        "on-pushed": "remove_use();" }, "Remove me");
       context.documentElement.appendChild(use);
       use.render_in(document.getElementById("here"));
 
-      flexo.safe_remove(component);
+      function remove_use()
+      {
+      }
 
     </script>
   </body>

@@ -42,8 +42,12 @@ FEATURES
 [ ] Watch delays
 [ ] Signals
 [ ] Component inheritance
-[ ] Adding nodes
-[ ] Removing nodes
+[/] Adding nodes
+    [x] add <component> adds to the list of definitions in the context
+    [x] add <use> together with render_in
+[/] Removing nodes
+    [x] remove <component> deletes the definition
+    [ ] remove <use> elements
 [ ] Refer to content node (draggable)
 [ ] Get matching a specific value?
 [x] Script ran on instantiation -> <set> within views/uses
@@ -55,6 +59,7 @@ FEATURES
 [ ] Parameters for <use> (cf. test/fails/ko-params.xml)
 [ ] Change <content> of component (e.g. change button label)
 [ ] Clean up SVG demo from ET2011
+[ ] Replace app rendering with <use>/render_in
 
 
 COMPONENTS
