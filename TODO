@@ -1,4 +1,4 @@
-TODO list as of 2012-02-21 (v0.3.2)
+TODO list as of 2012-02-23 (v0.3.2; live)
 
 
 REVIEW
@@ -22,10 +22,16 @@ BUGS
 [x] Get transformed called even on disabled watches
 [ ] Some styles not applied properly with external stylesheets
 [ ] Flexo: flexo.absolute_uri("foo/bar/baz", "..") -> "/" ???
+[x] Readd "get" parameter for set/transform
+[ ] A watch/get on a property disables the previous one (tests/show-hide.xml)
 
 
 FEATURES
 
+[ ] show/hide view
+[ ] build watch graph after all (for cycle detection)
+[ ] modify content of use nodes -> update rendering
+[ ] selections (similar to D3) to handle data binding?
 [ ] get/@href for XMLHttpRequest?
 [x] watches: get/disable instead of watch/once
 [ ] watches: everything goes through events

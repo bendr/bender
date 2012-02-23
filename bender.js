@@ -346,17 +346,9 @@ if (typeof require === "function") flexo = require("flexo");
 
       instantiate: function()
       {
-        var instance = flexo.create_object(component);
-        flexo.hash(instance, "instance");
+        var instance = flexo.create_object(component).init();
         this.instances[instance.hash] = instance;
         instance.node = this;
-        instance.views = {};
-        instance.uses = {};
-        instance.sets = [];
-        instance.child_instances = [];
-        instance.watch_instances = [];
-        instance.watched_attributes = {};
-        instance.watched_properties = {};
         this.scripts.forEach(function(script) {
             (new Function("prototype", script.textContent))(instance);
           });
@@ -410,7 +402,7 @@ if (typeof require === "function") flexo = require("flexo");
     {
       add_to_parent: function()
       {
-        this._import(this.getAttribute("href"));
+        this.import_(this.getAttribute("href"));
       },
 
       setAttribute: function(name, value)
@@ -578,15 +570,16 @@ if (typeof require === "function") flexo = require("flexo");
           var component = this.context.definitions[this.href];
           if (component) {
             this.context.render_head(find_head(parent.ownerDocument));
-            var instance = component.instantiate();
-            instance.parent_use = this;
-            bender.log("New instance {0}".fmt(instance.hash));
+            this.instance = component.instantiate();
+            this.instance.parent_use = this;
+            bender.log("New instance {0}".fmt(this.instance.hash));
             // parent_instance.child_instances.push(instance);
             // instance.parent_instance = parent_instance;
             // var id = flexo.normalize(this.getAttribute("id") || "");
             // if (id) self.views[flexo.undash(id)] = instance;
-            if (instance.render(parent, false, this)) {
-              instance.init_properties();
+            if (this.instance.render(parent, false, this)) {
+              this.instance.init_properties();
+              flexo.notify(this, "@rendered");
             }
           }
         }).bind(this);
@@ -696,7 +689,7 @@ if (typeof require === "function") flexo = require("flexo");
                 var v = get.transform.call(component_instance, value, e.prev,
                   target, instance);
                 if (v !== undefined) {
-                  instance.got(v, e.prev, target);
+                  instance.got(v, e.prev, target, get);
                 } else {
                   bender.log("  cancelled (undefined value)");
                 }
@@ -838,7 +831,7 @@ if (typeof require === "function") flexo = require("flexo");
       init: function()
       {
         this.params = { value: "value", previous_value: "previous_value",
-          target: "target", watch: "watch" };
+          target: "target", watch: "watch", get: "get" };
       },
 
       add_to_parent: function(parent)
@@ -874,7 +867,7 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "use") {
           this.use = flexo.undash(flexo.normalize(value));
         } else if (name === "value" || name === "previous_value" ||
-            name === "target" || name === "watch") {
+            name === "target" || name === "watch" || name === "get") {
           this.params[name] = flexo.normalize(value);
         }
         return this.super_setAttribute(name, value);
@@ -907,20 +900,20 @@ if (typeof require === "function") flexo = require("flexo");
           try {
             this.transform = new Function(this.params.value,
                 this.params.previous_value, this.params.target,
-                this.params.watch, text);
+                this.params.watch, this.params.get, text);
           } catch (e) {
             bender.warn(e);
           }
         }
       },
 
-      got: function(watch_instance, value, prev, target)
+      got: function(watch_instance, value, prev, target, get)
       {
         var instance = watch_instance.component_instance;
         var prop = property_name(this.property);
         if (prev === undefined && this.property) prev = instance[prop];
         var v_ = this.transform.call(instance, value, prev, target,
-            watch_instance);
+            watch_instance, get);
         if (this.view) {
           if (this.attr) {
             if (v_ === null) {
@@ -965,12 +958,12 @@ if (typeof require === "function") flexo = require("flexo");
       }
     },
 
-    got: function(value, prev, target)
+    got: function(value, prev, target, get)
     {
       // TODO check activation status for loops
       this.current_value = value;
       this.node.sets.forEach(function(set) {
-          set.got(this, value, prev, target);
+          set.got(this, value, prev, target, get);
         }, this);
     },
 
@@ -988,6 +981,46 @@ if (typeof require === "function") flexo = require("flexo");
   // Component prototype for new instances
   var component =
   {
+    // Initialize a newly instantiated component
+    init: function()
+    {
+      flexo.hash(this, "instance");
+      this.views = {};
+      this.uses = {};
+      this.sets = [];
+      this.child_instances = [];
+      this.watch_instances = [];
+      this.watched_attributes = {};
+      this.watched_properties = {};
+
+      var visible = true;
+      flexo.getter_setter(this, "$visible", function() { return visible; },
+          function(v) {
+            v = !!v;
+            bender.log("{0}.$visible -> {1} ({2})".fmt(this.hash, v, visible));
+            if (v !== visible) {
+              if (v) {
+                this.view_roots.forEach(function(e) {
+                    if (e.style) {
+                      e.style.display = e.__display || "";
+                      delete e.__display;
+                    }
+                  });
+              } else {
+                this.view_roots.forEach(function(e) {
+                    if (e.style) {
+                      e.__display = e.style.display;
+                      e.style.display = "none";
+                    }
+                  });
+              }
+              visible = v;
+            }
+          });
+
+      return this;
+    },
+
     init_properties: function()
     {
       this.child_instances.forEach(function(ch) { ch.init_properties(); });
@@ -1018,7 +1051,8 @@ if (typeof require === "function") flexo = require("flexo");
       }
       var self = this;
       var unsolved = [];
-      (function render(parent_instance, source, dest) {
+      this.view_roots = [];
+      (function render(parent_instance, source, dest, root) {
         for (var ch = source.firstChild; ch; ch = ch.nextSibling) {
           if (ch.nodeType === 1) {
             if (ch.namespaceURI === bender.NS) {
@@ -1046,6 +1080,7 @@ if (typeof require === "function") flexo = require("flexo");
             } else {
               var d = dest.ownerDocument
                 .createElementNS(ch.namespaceURI, ch.localName);
+              if (root) self.view_roots.push(d);
               if (ch.bindings) {
                 unsolved.push(ch);
                 if (!ch.id) ch.id = flexo.random_id(6, ch.ownerDocument);
@@ -1089,7 +1124,7 @@ if (typeof require === "function") flexo = require("flexo");
               .createTextNode(ch.textContent));
           }
         }
-      })(this, this.node.view, this.target);
+      })(this, this.node.view, this.target, true);
 
       // Setup the watches
 
