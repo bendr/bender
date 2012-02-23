@@ -1,6 +1,25 @@
 TODO list as of 2012-02-23 (v0.3.2)
 
 
+BUGS
+
+[x] Watch nesting: listening to the same event (e.g. nesting @xhr-success to
+    chain two XMLHttpRequests)
+    [ ] (8) Make a test case to test more thoroughly
+[x] Watches through component boundaries (regression -> watch-8.xml)
+[!] Watch loops (more tests needed!)
+    [-] Setting properties in a row
+[!] Checkbox test (?)
+[x] Initial setup of component properties
+[x] Button regression
+[x] Get transformed called even on disabled watches
+[ ] (16) Some styles not applied properly with external stylesheets
+[ ] (17) Flexo: flexo.absolute_uri("foo/bar/baz", "..") -> "/" ???
+[x] Readd "get" parameter for set/transform
+[x] (19) A watch/get on a property disables the previous one
+[/] (20) Setting visible to false for the pages component doesn't hide it?
+
+
 REVIEW
 
 [x] Watch event listeners (listener at context level?)
@@ -8,25 +27,12 @@ REVIEW
 [x] Property names (dashes and $ sign)
 
 
-BUGS
-
-[x] Watch nesting: listening to the same event (e.g. nesting @xhr-success to
-    chain two XMLHttpRequests)
-    [ ] Make a test case to test more thoroughly
-[x] Watches through component boundaries (regression -> watch-8.xml)
-[!] Watch loops (more tests needed!)
-    [-] Setting properties in a row
-[!] Checkbox test
-[x] Initial setup of component properties
-[x] Button regression
-[x] Get transformed called even on disabled watches
-[ ] Some styles not applied properly with external stylesheets
-[ ] Flexo: flexo.absolute_uri("foo/bar/baz", "..") -> "/" ???
-[x] Readd "get" parameter for set/transform
-
-
 FEATURES
 
+[/] show/hide view (see bug #20)
+[ ] build watch graph after all (for cycle detection)
+[ ] modify content of use nodes -> update rendering
+[ ] selections (similar to D3) to handle data binding?
 [ ] get/@href for XMLHttpRequest?
 [x] watches: get/disable instead of watch/once
 [ ] watches: everything goes through events

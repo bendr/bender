@@ -1,0 +1,29 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  e:page="" id="pages">
+
+  <title>A component to show one page out of several pages</title>
+
+  <view>
+    <content/>
+  </view>
+
+  <watch>
+    <get event="@rendered">
+      for (v in this.views) this.views[v].$visible = false;
+    </get>
+  </watch>
+
+  <watch>
+    <get property="page">
+      if (this.views[previous_value]) {
+        this.views[previous_value].$visible = false;
+      }
+      if (this.views[value]) {
+        this.views[value].$visible = true;
+      } else {
+        this.$page = undefined;
+      }
+    </get>
+  </watch>
+
+</component>

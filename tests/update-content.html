@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Render a Bender button</title>
+    <title>Update content of a use element</title>
     <meta charset="UTF-8">
     <style>
       body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
@@ -18,10 +18,20 @@
 
       var context = bender.create_context(document, "built");
 
-      var use = context.elem("use", { href: "../lib/push-button.xml#button",
-        "on-pushed": "alert('!!!')" }, "Push me");
+      var use = context.elem("use", { href: "../lib/push-button.xml#button" },
+        "Update label");
       context.documentElement.appendChild(use);
       use.render_in(document.getElementById("here"));
+      flexo.listen(use, "@rendered", function() {
+          flexo.listen(use.instance, "@pushed", update_label);
+        });
+
+      function update_label(event)
+      {
+        var u = event.source.use;
+        u.set_text_content(u.textContent + "*");
+        flexo.log(u);
+      }
 
     </script>
   </body>
