@@ -730,15 +730,19 @@ if (typeof require === "function") flexo = require("flexo");
                   function() { return value; };
                 var setter = desc && desc.set ?
                   function(v) {
-                    var prev = value;
-                    desc.set.call(this, v);
-                    value = v;
-                    flexo.notify(context, ev, { value: v, prev: prev });
+                    if (value !== v) {
+                      var prev = value;
+                      desc.set.call(this, v);
+                      value = v;
+                      flexo.notify(context, ev, { value: v, prev: prev });
+                    }
                   } :
                   function(v) {
-                    var prev = value;
-                    value = v;
-                    flexo.notify(context, ev, { value: v, prev: prev });
+                    if (value !== v) {
+                      var prev = value;
+                      value = v;
+                      flexo.notify(context, ev, { value: v, prev: prev });
+                    }
                   };
                 flexo.getter_setter(target, prop, getter, setter);
                 target.watched_properties[prop] = true;

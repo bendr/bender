@@ -29,7 +29,7 @@ REVIEW
 
 FEATURES
 
-[ ] show/hide view
+[x] show/hide view
 [ ] build watch graph after all (for cycle detection)
 [ ] modify content of use nodes -> update rendering
 [ ] selections (similar to D3) to handle data binding?
