@@ -642,7 +642,7 @@ if (typeof require === "function") flexo = require("flexo");
                 var v = get.transform.call(component_instance, value, e.prev,
                   target, instance);
                 if (v !== undefined) {
-                  instance.got(v, e.prev, target);
+                  instance.got(v, e.prev, target, get);
                 } else {
                   bender.log("  cancelled (undefined value)");
                 }
@@ -784,7 +784,7 @@ if (typeof require === "function") flexo = require("flexo");
       init: function()
       {
         this.params = { value: "value", previous_value: "previous_value",
-          target: "target", watch: "watch" };
+          target: "target", watch: "watch", get: "get" };
       },
 
       add_to_parent: function(parent)
@@ -820,7 +820,7 @@ if (typeof require === "function") flexo = require("flexo");
         } else if (name === "use") {
           this.use = flexo.undash(flexo.normalize(value));
         } else if (name === "value" || name === "previous_value" ||
-            name === "target" || name === "watch") {
+            name === "target" || name === "watch" || name === "get") {
           this.params[name] = flexo.normalize(value);
         }
         return this.super_setAttribute(name, value);
@@ -853,20 +853,20 @@ if (typeof require === "function") flexo = require("flexo");
           try {
             this.transform = new Function(this.params.value,
                 this.params.previous_value, this.params.target,
-                this.params.watch, text);
+                this.params.watch, this.params.get, text);
           } catch (e) {
             bender.warn(e);
           }
         }
       },
 
-      got: function(watch_instance, value, prev, target)
+      got: function(watch_instance, value, prev, target, get)
       {
         var instance = watch_instance.component_instance;
         var prop = property_name(this.property);
         if (prev === undefined && this.property) prev = instance[prop];
         var v_ = this.transform.call(instance, value, prev, target,
-            watch_instance);
+            watch_instance, get);
         if (this.view) {
           if (this.attr) {
             if (v_ === null) {
@@ -911,12 +911,12 @@ if (typeof require === "function") flexo = require("flexo");
       }
     },
 
-    got: function(value, prev, target)
+    got: function(value, prev, target, get)
     {
       // TODO check activation status for loops
       this.current_value = value;
       this.node.sets.forEach(function(set) {
-          set.got(this, value, prev, target);
+          set.got(this, value, prev, target, get);
         }, this);
     },
 

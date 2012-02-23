@@ -8,7 +8,7 @@
 
   <stylesheet>
     body { background-color: #888; font-family: sans-serif; }
-    @font-face { font-family: Digital7; src: url("/apps/demos/digital-7.ttf");
+    @font-face { font-family: Digital7; src: url("apps/demos/digital-7.ttf");
       font-weight: normal; font-style: normal; }
     .calculator { width: 412px; background-color: #fd0; padding: 24px;
       margin: 32px auto; -webkit-border-radius: 12px; -moz-border-radius: 12px;

@@ -1,4 +1,4 @@
-TODO list as of 2012-02-21 (v0.3.2)
+TODO list as of 2012-02-23 (v0.3.2; master)
 
 
 REVIEW
@@ -22,6 +22,7 @@ BUGS
 [x] Get transformed called even on disabled watches
 [ ] Some styles not applied properly with external stylesheets
 [ ] Flexo: flexo.absolute_uri("foo/bar/baz", "..") -> "/" ???
+[x] Readd "get" parameter for set/transform
 
 
 FEATURES
