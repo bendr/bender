@@ -1,0 +1,55 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
+
+  <title>Instantiated test</title>
+
+  <use id="clock" href="../lib/timer.xml#timer" f:rate-ms="333"/>
+
+  <script><![CDATA[
+
+    prototype.instantiated = function()
+    {
+      var seconds = this.node.querySelector("#seconds");
+      for (var i = 1; i < 60; ++i) {
+        var c = flexo.svg("circle", { r: i * 3, "stroke-width": 2, fill: "none",
+          stroke: "white" });
+        seconds.parentNode.insertBefore(c, seconds);
+      }
+    };
+
+  ]]></script>
+
+  <view>
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
+      viewBox="-220 -220 440 440">
+      <circle r="200" fill="#a1dcff"/>
+      <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
+        stroke-opacity="0.75"/>
+      <line y1="20" y2="-180" stroke="#26521f" stroke-width="4"
+        stroke-linecap="round" id="minutes" stroke-opacity="0.8"/>
+      <line y1="8" y2="-90" stroke="#d1372f" stroke-width="8"
+        stroke-linecap="round" id="hours" stroke-opacity="0.9"/>
+    </svg>
+  </view>
+
+  <watch>
+    <get event="@ready">
+      this.uses.clock.start();
+    </get>
+  </watch>
+
+  <watch>
+    <get use="clock" event="@tick">
+      return new Date();
+    </get>
+    <set view="hours" attr="transform">
+      return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
+    </set>
+    <set view="minutes" attr="transform">
+      return "rotate({0})".fmt(value.getMinutes() * 6);
+    </set>
+    <set view="seconds" attr="r">
+      return 3 * value.getSeconds();
+    </set>
+  </watch>
+
+</app>

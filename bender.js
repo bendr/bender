@@ -363,6 +363,7 @@ if (typeof require === "function") flexo = require("flexo");
               }
             }
           });
+        instance.instantiated();
         return instance;
       },
 
@@ -1050,6 +1051,9 @@ if (typeof require === "function") flexo = require("flexo");
         }).bind(this));
       flexo.notify(this, "@initialized");
     },
+
+    // Overload this function to act after instantiation but before rendering
+    instantiated: function() {},
 
     // Render the children of a node; render the view by starting from the child
     // nodes of the <view> node.
