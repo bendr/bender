@@ -824,8 +824,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return flexo.svg("polygon", { points: points.join(" ") });
   };
 
-  // Same as above but create a star with the given inner radius
-  flexo.svg_star = function(sides, ro, ri, phase)
+  flexo.svg_star_points = function(sides, ro, ri, phase)
   {
     if (!phase) phase = 0;
     sides *= 2;
@@ -836,7 +835,14 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       points.push(-r * Math.sin(phase));
       phase += 2 * Math.PI / sides;
     }
-    return flexo.svg("polygon", { points: points.join(" ") });
+    return points.join(" ");
+  }
+
+  // Same as above but create a star with the given inner radius
+  flexo.svg_star = function(sides, ro, ri, phase)
+  {
+    return flexo.svg("polygon",
+        { points: flexo.svg_star_points(sides, ro, ri, phase) });
   };
 
 
