@@ -1,4 +1,4 @@
-TODO list as of 2012-02-23 (v0.3.2)
+TODO list as of 2012-02-29 (v0.3.2)
 
 
 BUGS
@@ -31,6 +31,8 @@ FEATURES
 
 [/] show/hide view (see bug #20)
 [ ] build watch graph after all (for cycle detection)
+[ ] modifications after loading, before instantiating
+[/] modifications after instantiation, before rendering (tests/instantiated.xml)
 [ ] modify content of use nodes -> update rendering
 [ ] selections (similar to D3) to handle data binding?
 [ ] get/@href for XMLHttpRequest?
