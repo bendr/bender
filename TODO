@@ -18,7 +18,8 @@ BUGS
 [x] Readd "get" parameter for set/transform
 [x] (19) A watch/get on a property disables the previous one
 [/] (20) Setting visible to false for the pages component doesn't hide it?
-
+[x] (21) Components not rendered have no property/watches (e.g. timer)
+[x] (22) timer.xml#rate-ms not initialized properly
 
 REVIEW
 

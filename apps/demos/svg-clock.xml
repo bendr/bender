@@ -1,7 +1,7 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f">
   <title>SVG Clock</title>
 
-  <use id="clock" href="../../lib/timer.xml#timer" f:rate-ms="333"/>
+  <use id="clock" href="../../lib/timer.xml#timer" f:rate-ms="3333"/>
 
   <view>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"

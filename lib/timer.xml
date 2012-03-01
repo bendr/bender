@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
-  xmlns:html="http://www.w3.org/1999/xhtml" id="timer" f:rate-ms="1000">
+  xmlns:b="http://bender.igel.co.jp/b" xmlns:html="http://www.w3.org/1999/xhtml"
+  b:on="false" f:rate-ms="1000" id="timer">
 
   <title>Timer</title>
 
@@ -40,7 +41,18 @@
   <watch>
     <get property="rate-ms">
       var v = parseFloat(value);
-      if (v > 0) return v;
+      if (v > 0) {
+        this.stop();
+        this.start();
+      } else {
+        this.$rateMs = previous_value;
+      }
+    </get>
+  </watch>
+
+  <watch>
+    <get property="on">
+      if (!!value) this.start(); else this.stop();
     </get>
   </watch>
 

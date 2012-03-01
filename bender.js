@@ -278,7 +278,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       setAttributeNS: function(ns, qname, value)
       {
-        set_property(this, ns, qname, value);
+        // set_property(this, ns, qname, value);
         return this.super_setAttributeNS(ns, qname, value);
       },
 
@@ -344,6 +344,7 @@ if (typeof require === "function") flexo = require("flexo");
         return this.super_setAttribute(name, value);
       },
 
+      // Create a new instance of the component
       instantiate: function(use)
       {
         var instance = Object.create(component).init(this, use);
@@ -1043,6 +1044,7 @@ if (typeof require === "function") flexo = require("flexo");
 
     init_properties: function()
     {
+      bender.log("init_properties for {0}".fmt(this.hash));
       this.child_instances.forEach(function(ch) { ch.init_properties(); });
       set_properties(this);
       this.sets.forEach((function(set) {
@@ -1149,24 +1151,36 @@ if (typeof require === "function") flexo = require("flexo");
 
     render: function(target, main)
     {
-      if (!this.target && !target) return;
-      if (!this.node.view) return;
-      if ((this.target && !target) || this.target === target) {
-        flexo.remove_children(this.target);
-      } else {
-        this.target = target;
-      }
       var context = this.node.context;
-      if (main) {
-        context.render_head(find_head(this.target.ownerDocument));
-        if (context.main && context.main !== this) context.main.is_main = false;
-        context.main = this;
-        this.is_main = true;
-        this.render_title();
-      }
       this.unsolved = [];
       this.view_roots = [];
-      this.render_children(this.node.view, this.target, true);
+
+      // Render <use> elements outside of the view
+      for (var u in this.uses) {
+        this.uses[u].render();
+        this.child_instances.push(this.uses[u]);
+      }
+
+      // Render the view if there is one
+      if (this.node.view && (this.target || target)) {
+        if ((this.target && !target) || this.target === target) {
+          flexo.remove_children(this.target);
+        } else {
+          this.target = target;
+        }
+        if (main) {
+          context.render_head(find_head(this.target.ownerDocument));
+          if (context.main && context.main !== this) {
+            context.main.is_main = false;
+          }
+          context.main = this;
+          this.is_main = true;
+          this.render_title();
+        }
+        this.render_children(this.node.view, this.target, true);
+      } else {
+        flexo.log("No view for {0}".fmt(this.hash));
+      }
 
       // Setup the watches
 
@@ -1212,7 +1226,6 @@ if (typeof require === "function") flexo = require("flexo");
         }, this);
 
       flexo.notify(this, "@rendered");
-      return this.target;
     },
 
     // Content has changed
