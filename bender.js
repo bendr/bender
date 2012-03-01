@@ -729,22 +729,26 @@ if (typeof require === "function") flexo = require("flexo");
                 var getter = desc && desc.get ?
                   function() { return desc.get.call(this); } :
                   function() { return value; };
-                var setter = desc && desc.set ?
+                var s = "set_" + prop;
+                bender.log("+++ {0}.{1}".fmt(target.hash, s));
+                target[s] = desc && desc.set ?
                   function(v) {
-                    if (value !== v) {
-                      var prev = value;
-                      desc.set.call(this, v);
-                      value = v;
-                      flexo.notify(context, ev, { value: v, prev: prev });
-                    }
+                    var prev = value;
+                    desc.set.call(this, v);
+                    value = v;
+                    return prev;
                   } :
                   function(v) {
-                    if (value !== v) {
-                      var prev = value;
-                      value = v;
-                      flexo.notify(context, ev, { value: v, prev: prev });
-                    }
+                    var prev = value;
+                    value = v;
+                    return prev;
                   };
+                var setter = function(v) {
+                  if (value !== v) {
+                    var prev = this[s](v);
+                    flexo.notify(context, ev, { value: v, prev: prev });
+                  }
+                }
                 flexo.getter_setter(target, prop, getter, setter);
                 target.watched_properties[prop] = true;
               }
@@ -924,6 +928,7 @@ if (typeof require === "function") flexo = require("flexo");
 
       got: function(watch_instance, value, prev, target, get)
       {
+        flexo.log("??? get.property=`{0}`".fmt(get.property));
         var instance = watch_instance.component_instance;
         var prop = property_name(this.property);
         if (prev === undefined && this.property) prev = instance[prop];

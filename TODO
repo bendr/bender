@@ -20,6 +20,8 @@ BUGS
 [/] (20) Setting visible to false for the pages component doesn't hide it?
 [x] (21) Components not rendered have no property/watches (e.g. timer)
 [x] (22) timer.xml#rate-ms not initialized properly
+[ ] (23) Re-setting a value (tests/watch-3b.xml: go back to previous value if
+      negative)
 
 REVIEW
 
