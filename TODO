@@ -1,4 +1,4 @@
-TODO list as of 2012-02-29 (v0.3.2)
+TODO list as of 2012-03-01 (v0.3.2)
 
 
 BUGS
@@ -78,6 +78,11 @@ COMPONENTS
 [/] Sound for buttons
 [/] Draggable div -> lib/draggable.xml
 [ ] Resizable div
+
+
+APPLICATIONS AND DEMOS
+
+[x] Update arrows demo for touch events
 
 
 MORBO

@@ -88,9 +88,13 @@
   </watch>
 
   <watch>
-    <get dom-event="mousemove">
+    <get dom-event="mousemove"/>
+    <get dom-event="touchmove"/>
+    <get dom-event="touchstart"/>
+    <set>
+      value.preventDefault();
       this.transform_arrows(value);
-    </get>
+    </set>
   </watch>
 
 </app>
