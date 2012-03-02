@@ -90,6 +90,7 @@
       this.component = component;
       component._instances.push(this);
       this.views = {};
+      this.roots = [];
       var target = undefined;
       Object.defineProperty(this, "target", { enumerable: true,
         get: function() { return target; },
@@ -99,7 +100,10 @@
 
     render: function()
     {
-      if (this.component._view) {
+      if (this.target && this.component._view) {
+        // TODO problem here: we have roots that don't have a parent anymore,
+        // probably been removed from the parent's re-rendering...
+        this.roots.forEach(function(r) { r.parentNode.removeChild(r); });
         this.roots = this.render_children(this.component._view, this.target);
         this.update_title();
       }
@@ -170,16 +174,37 @@
 
       insertBefore: function(ch, ref)
       {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch._add_to_parent) ch._add_to_parent();
-        return;
+        return ch_;
       },
 
       removeChild: function(ch)
       {
-        if (ch._remove_from_parent) ch._remove_from_parent();
-        return Object.getPrototypeOf(this).removeChild.call(this, ch);
+        var ch_ = Object.getPrototypeOf(this).removeChild.call(this, ch);
+        if (ch._remove_from_parent) ch._remove_from_parent(this);
+        return ch_;
       },
+
+      _refresh: function(parent)
+      {
+        var component = component_of(parent);
+        if (component) {
+          component._instances.forEach(function(instance_) {
+              instance_.render();
+            });
+        }
+      },
+
+      _add_to_parent: function() { this._refresh(this.parentNode); },
+
+      _remove_from_parent: function(parent) { this._refresh(parent); },
+
+      set_textContent: function(t)
+      {
+        this.textContent = t;
+        if (this.parentNode) this._refresh(this.parentNode);
+      }
     },
 
     component:
@@ -188,15 +213,6 @@
       {
         this._instances = [];   // rendered instances
         this._components = {};  // child components
-        var title = undefined;
-        Object.defineProperty(this, "_title", { enumerable: true,
-          get: function() { return title; },
-          set: function(t) {
-            title = t;
-            this._instances.forEach(function(instance_) {
-                instance_.update_title();
-              });
-          } });
       },
 
       _add_to_parent: function()
@@ -226,17 +242,12 @@
           this.parentNode.removeChild(this.parentNode._title);
         }
         this.parentNode._title = this;
+        prototypes[""]._add_to_parent.call(this);
       },
 
       _remove_from_parent: function()
       {
         this.parentNode._title = undefined;
-      },
-
-      set_textContent: function(t)
-      {
-        this.textContent = t;
-        this.parentNode._title = this;
       },
     },
 
@@ -272,14 +283,6 @@
 
   prototypes.app = prototypes.component;
 
-  function component_of(node)
-  {
-    return node ?
-      node.namespaceURI === dumber.NS &&
-        (node.localName === "component" || node.localName === "app") ?
-        node : component_of(node.parentNode) : null;
-  }
-
   function wrap_element(e)
   {
     e.context = e.ownerDocument;
@@ -293,3 +296,14 @@
   }
 
 })(typeof exports === "object" ? exports : this.dumber = {});
+
+
+
+  function component_of(node)
+  {
+    return node ?
+      node.namespaceURI === dumber.NS &&
+        (node.localName === "component" || node.localName === "app") ?
+        node : component_of(node.parentNode) : null;
+  }
+
