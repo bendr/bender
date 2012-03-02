@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      html, body { height: 100%; }
+      body, svg { margin: 0; padding: 0; }
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="dumber.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = dumber.create_context();
+      context.documentElement.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("xhtml:p", "Hello, world!"))));
+      var use = context.$("use", { q: "component" });
+      context.documentElement.appendChild(use);
+
+      use.render(document.body);
+
+    </script>
+  </body>
+</html>
