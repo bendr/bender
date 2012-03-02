@@ -10,8 +10,8 @@
 
     context.createElement = function(name)
     {
-      return wrap_element(Object.getPrototypeOf(this).createElement
-        .call(this, name));
+      return wrap_element(Object.getPrototypeOf(this).createElementNS
+        .call(this, dumber.NS, name));
     };
 
     context.createElementNS = function(ns, name)
@@ -69,6 +69,92 @@
     return context;
   };
 
+  dumber.render =  function(use, target)
+  {
+    var template = use.q ? context.querySelector(use.q) : undefined;
+    if (template) {
+      if (template.localName === "app" &&
+          use.parentNode === use.context.documentElement &&
+          template._title) {
+        target.ownerDocument.title = template._title.textContent;
+      }
+      var instance_ = Object.create(instance).init(use, template);
+      instance_.target = target;
+      return instance_;
+    } else {
+      flexo.log("No template found for", use);
+    }
+  };
+
+  var instance =
+  {
+    init: function(use, component)
+    {
+      this.use = use;
+      this.component = component;
+      this.views = {};
+      var target = undefined;
+      Object.defineProperty(this, "target", { enumerable: true,
+        get: function() { return target; },
+        set: function(t) { target = t; this.render(); } });
+      return this;
+    },
+
+    render: function()
+    {
+      if (this.component._view) {
+        this.roots = this.render_children(this.component._view, this.target);
+      }
+    },
+
+    render_children: function(node, dest)
+    {
+      var rendered = [];
+      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+        if (ch.nodeType === 1) {
+          if (ch.namespaceURI === dumber.NS) {
+            if (ch.localName === "use") {
+              var instance_ = dumber.render(ch, dest);
+              if (instance_) {
+                [].push.apply(rendered, instance_.roots);
+              }
+            } else if (ch.localName === "content") {
+              [].push.apply(rendered,
+                  this.render_children(this.use.childNodes.length > 0 ?
+                    this.use : ch, dest));
+            }
+          } else {
+            rendered.push(this.render_foreign(ch, dest));
+          }
+        } else if (ch.nodeType === 3 || ch.nodeType === 4) {
+          var t = dest.ownerDocument.createTextNode(ch.textContent);
+          rendered.push(t);
+          dest.appendChild(t);
+        }
+      }
+      return rendered;
+    },
+
+    render_foreign: function(node, dest)
+    {
+      var d = dest.ownerDocument
+                .createElementNS(node.namespaceURI, node.localName);
+      [].forEach.call(node.attributes, function(attr) {
+          if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
+            attr.localName === "id") {
+            this.views[flexo.undash(attr.value.trim())] = d;
+          } else if (attr.namespaceURI) {
+            d.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
+          } else {
+            d.setAttribute(attr.localName, attr.value);
+          }
+        });
+      dest.appendChild(d);
+      this.render_children(node, d);
+      return d;
+    },
+  };
+
   var prototypes =
   {
     "":
@@ -78,30 +164,58 @@
       insertBefore: function(ch, ref)
       {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.add_to_parent) ch.add_to_parent(this);
+        if (ch._add_to_parent) ch._add_to_parent();
         return;
       },
 
       removeChild: function(ch)
       {
-        if (ch.remove_from_parent) ch.remove_from_parent();
+        if (ch._remove_from_parent) ch._remove_from_parent();
         return Object.getPrototypeOf(this).removeChild.call(this, ch);
       },
-
-      init: function() {},
     },
 
     component:
     {
     },
 
+    title:
+    {
+      _add_to_parent: function()
+      {
+        if (this.parentNode._title) {
+          this.parentNode.removeChild(this.parentNode._title);
+        }
+        this.parentNode._title = this;
+      },
+
+      _remove_from_parent: function()
+      {
+        delete this.parentNode._title;
+      },
+    },
+
     use:
     {
-      render: function(target) {},
+      setAttribute: function(name, value)
+      {
+        if (name === "q") {
+          if (value) {
+            this.q = value.trim();
+          } else {
+            delete this.q;
+          }
+        }
+        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+      },
     },
 
     view:
     {
+      _add_to_parent: function()
+      {
+        this.parentNode._view = this;
+      },
     }
   };
 
@@ -115,7 +229,6 @@
     for (var p in prototypes[""]) {
       if (!e.hasOwnProperty(p)) e[p] = prototypes[""][p];
     }
-    e.init();
     return e;
   }
 
