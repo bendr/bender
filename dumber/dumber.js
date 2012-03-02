@@ -45,7 +45,7 @@
           if (attrs.hasOwnProperty(a) &&
               attrs[a] !== undefined && attrs[a] !== null) {
             var split = a.split(":");
-            ns = split[1] && (bender["NS_" + split[0].toUpperCase()] ||
+            ns = split[1] && (dumber["NS_" + split[0].toUpperCase()] ||
                 flexo["{0}_NS".fmt(split[0].toUpperCase())]);
             if (ns) {
               elem.setAttributeNS(ns, split[1], attrs[a]);
@@ -71,7 +71,8 @@
 
   dumber.render =  function(use, target)
   {
-    var template = use.q ? context.querySelector(use.q) : undefined;
+    var template = use.ref ? component_of(use)._components[use.ref] :
+      use.q ? context.querySelector(use.q) : undefined;
     if (template) {
       if (template.localName === "app" &&
           use.parentNode === use.context.documentElement &&
@@ -177,6 +178,28 @@
 
     component:
     {
+      _init: function()
+      {
+        this._components = {};
+      },
+
+      _add_to_parent: function()
+      {
+        if (this.id && this.parentNode._components) {
+          this.parentNode._components[this.id] = this;
+        }
+      },
+
+      setAttribute: function(name, value)
+      {
+        if (name === "id") {
+          this.id = value;
+          if (this.parentNode && this.parentNode._components) {
+            this.parentNode._components[value] = this;
+          }
+        }
+        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+      }
     },
 
     title:
@@ -205,6 +228,12 @@
           } else {
             delete this.q;
           }
+        } else if (name === "ref") {
+          if (value) {
+            this.ref = value.trim();
+          } else {
+            delete this.ref;
+          }
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
@@ -221,6 +250,14 @@
 
   prototypes.app = prototypes.component;
 
+  function component_of(node)
+  {
+    return node ?
+      node.namespaceURI === dumber.NS &&
+        (node.localName === "component" || node.localName === "app") ?
+        node : component_of(node.parentNode) : null;
+  }
+
   function wrap_element(e)
   {
     e.context = e.ownerDocument;
@@ -229,6 +266,7 @@
     for (var p in prototypes[""]) {
       if (!e.hasOwnProperty(p)) e[p] = prototypes[""][p];
     }
+    if (e._init) e._init();
     return e;
   }
 

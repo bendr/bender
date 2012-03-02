@@ -25,8 +25,8 @@
                 context.$("content", "This is a q.")))),
           context.$("view",
             context.$("xhtml:p", "This is a p."),
-            context.$("use", { q: "#q" }),
-            context.$("use", { q: "#q" }, "This is another q."))));
+            context.$("use", { ref: "q" }),
+            context.$("use", { ref: "q" }, "This is another q."))));
       var use = context.$("use", { q: "app" });
       context.documentElement.appendChild(use);
 
