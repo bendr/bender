@@ -74,11 +74,6 @@
     var template = use.ref ? component_of(use)._components[use.ref] :
       use.q ? context.querySelector(use.q) : undefined;
     if (template) {
-      if (template.localName === "app" &&
-          use.parentNode === use.context.documentElement &&
-          template._title) {
-        target.ownerDocument.title = template._title.textContent;
-      }
       var instance_ = Object.create(instance).init(use, template);
       instance_.target = target;
       return instance_;
@@ -93,6 +88,7 @@
     {
       this.use = use;
       this.component = component;
+      component._instances.push(this);
       this.views = {};
       var target = undefined;
       Object.defineProperty(this, "target", { enumerable: true,
@@ -105,6 +101,7 @@
     {
       if (this.component._view) {
         this.roots = this.render_children(this.component._view, this.target);
+        this.update_title();
       }
     },
 
@@ -154,6 +151,15 @@
       this.render_children(node, d);
       return d;
     },
+
+    update_title: function()
+    {
+      if (this.target && this.component.localName === "app" &&
+          this.use.parentNode === this.use.context.documentElement &&
+          this.component._title) {
+        this.target.ownerDocument.title = this.component._title.textContent;
+      }
+    },
   };
 
   var prototypes =
@@ -180,7 +186,17 @@
     {
       _init: function()
       {
-        this._components = {};
+        this._instances = [];   // rendered instances
+        this._components = {};  // child components
+        var title = undefined;
+        Object.defineProperty(this, "_title", { enumerable: true,
+          get: function() { return title; },
+          set: function(t) {
+            title = t;
+            this._instances.forEach(function(instance_) {
+                instance_.update_title();
+              });
+          } });
       },
 
       _add_to_parent: function()
@@ -199,7 +215,7 @@
           }
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-      }
+      },
     },
 
     title:
@@ -214,7 +230,13 @@
 
       _remove_from_parent: function()
       {
-        delete this.parentNode._title;
+        this.parentNode._title = undefined;
+      },
+
+      set_textContent: function(t)
+      {
+        this.textContent = t;
+        this.parentNode._title = this;
       },
     },
 

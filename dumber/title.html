@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      html, body { height: 100%; }
+      body, svg { margin: 0; padding: 0; }
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="dumber.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = dumber.create_context();
+      var app =
+        context.$("app",
+          context.$("view",
+            context.$("xhtml:p", "Let's change the title.")));
+      var use = context.$("use", { q: "app" });
+      context.documentElement.appendChild(app);
+      context.documentElement.appendChild(use);
+
+      dumber.render(use, document.body);
+      var title = context.$("title", "Original title");
+      app.appendChild(title);
+      title.set_textContent("New title");
+
+    </script>
+  </body>
+</html>
