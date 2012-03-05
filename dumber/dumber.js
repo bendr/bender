@@ -106,7 +106,7 @@
           } else {
             d.setAttribute(attr.localName, attr.value);
           }
-        });
+        }, this);
       dest.appendChild(d);
       if (dest === this.target) this.rendered.push(d);
       this.render_children(node, d);
