@@ -16,7 +16,7 @@
     <script>
 
       var context = dumber.create_context();
-      context.documentElement.appendChild(
+      context.appendChild(
         context.$("app",
           context.$("title", "Content test"),
           context.$("component", { id: "q" },
@@ -28,7 +28,7 @@
             context.$("use", { ref: "q" }),
             context.$("use", { ref: "q" }, "This is another q."))));
       var use = context.$("use", { q: "app" });
-      context.documentElement.appendChild(use);
+      context.appendChild(use);
 
       dumber.render(use, document.body);
 

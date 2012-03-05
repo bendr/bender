@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="dumber.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+
+      var context = dumber.create_context();
+
+      context.appendChild(context.$("app",
+          context.$("title", "Simple use"),
+          context.$("component", { id: "c" },
+            context.$("view",
+              context.$("html:p",
+                context.$("content")))),
+          context.$("view",
+            context.$("use", { ref: "c" }, "A"))));
+      dumber.render(context.appendChild(context.$("use", { q: "app" })),
+        document.getElementById("target"));
+
+      // Add "B"
+      context.querySelectorAll("view")[1]
+        .appendChild(context.$("use", { ref: "c" }, "B"));
+
+      // Add a hr to the c component
+      context.querySelector("view").appendChild(context.$("html:hr"));
+
+      // Add "C"
+      context.querySelectorAll("view")[1]
+        .appendChild(context.$("use", { ref: "c" }, "C"));
+
+      // Add a hr again to the c component
+      context.querySelector("view").appendChild(context.$("html:hr"));
+
+    </script>
+  </body>
+</html>

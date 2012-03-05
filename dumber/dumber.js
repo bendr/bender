@@ -20,59 +20,12 @@
         .call(this, ns, name));
     };
 
-    context.$ = function(name)
-    {
-      var argc = 1;
-      var attrs = {};
-      if (typeof arguments[1] === "object" && !(arguments[1] instanceof Node)) {
-        attrs = arguments[1];
-        argc = 2;
-      }
-      var classes = name.split(".");
-      name = classes.shift();
-      if (classes.length > 0) {
-        attrs["class"] =
-          (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "")
-          + classes.join(" ");
-      }
-      var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
-      if (m) {
-        var ns = m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())];
-        var elem = ns ? this.createElementNS(ns, m[2]) :
-          this.createElement(m[2]);
-        if (m[3]) attrs.id = m[3];
-        for (a in attrs) {
-          if (attrs.hasOwnProperty(a) &&
-              attrs[a] !== undefined && attrs[a] !== null) {
-            var split = a.split(":");
-            ns = split[1] && (dumber["NS_" + split[0].toUpperCase()] ||
-                flexo["{0}_NS".fmt(split[0].toUpperCase())]);
-            if (ns) {
-              elem.setAttributeNS(ns, split[1], attrs[a]);
-            } else {
-              elem.setAttribute(a, attrs[a]);
-            }
-          }
-        }
-        [].slice.call(arguments, argc).forEach(function(ch) {
-            if (typeof ch === "string") {
-              elem.appendChild(document.createTextNode(ch));
-            } else if (ch instanceof Node) {
-              elem.appendChild(ch);
-            }
-          });
-        return elem;
-      }
-    };
-
-    wrap_element(context.documentElement);
-    return context;
+    return wrap_element(context.documentElement);
   };
 
   dumber.render =  function(use, target)
   {
-    var template = use.ref ? component_of(use)._components[use.ref] :
-      use.q ? context.querySelector(use.q) : undefined;
+    var template = use._find_template();
     if (template) {
       var instance_ = Object.create(instance).init(use, template);
       instance_.target = target;
@@ -90,7 +43,7 @@
       this.component = component;
       component._instances.push(this);
       this.views = {};
-      this.roots = [];
+      this.rendered = [];  // root DOM nodes and use instances
       var target = undefined;
       Object.defineProperty(this, "target", { enumerable: true,
         get: function() { return target; },
@@ -98,43 +51,46 @@
       return this;
     },
 
+    unrender: function()
+    {
+      this.rendered.forEach(function(r) {
+        if (r instanceof Node) {
+          r.parentNode.removeChild(r);
+        } else {
+          flexo.remove_from_array(r.component._instances, r);
+          r.unrender();
+        }
+      }, this);
+      this.rendered = [];
+    },
+
     render: function()
     {
       if (this.target && this.component._view) {
-        // TODO problem here: we have roots that don't have a parent anymore,
-        // probably been removed from the parent's re-rendering...
-        this.roots.forEach(function(r) { r.parentNode.removeChild(r); });
-        this.roots = this.render_children(this.component._view, this.target);
+        this.unrender();
+        this.render_children(this.component._view, this.target);
         this.update_title();
       }
     },
 
     render_children: function(node, dest)
     {
-      var rendered = [];
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
-              var instance_ = dumber.render(ch, dest);
-              if (instance_) {
-                [].push.apply(rendered, instance_.roots);
-              }
+              this.rendered.push(dumber.render(ch, dest));
             } else if (ch.localName === "content") {
-              [].push.apply(rendered,
-                  this.render_children(this.use.childNodes.length > 0 ?
-                    this.use : ch, dest));
+              this.render_children(this.use.childNodes.length > 0 ?
+                this.use :ch, dest);
             }
           } else {
-            rendered.push(this.render_foreign(ch, dest));
+            this.render_foreign(ch, dest);
           }
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
-          var t = dest.ownerDocument.createTextNode(ch.textContent);
-          rendered.push(t);
-          dest.appendChild(t);
+          dest.appendChild(dest.ownerDocument.createTextNode(ch.textContent));
         }
       }
-      return rendered;
     },
 
     render_foreign: function(node, dest)
@@ -152,8 +108,8 @@
           }
         });
       dest.appendChild(d);
+      if (dest === this.target) this.rendered.push(d);
       this.render_children(node, d);
-      return d;
     },
 
     update_title: function()
@@ -204,6 +160,55 @@
       {
         this.textContent = t;
         if (this.parentNode) this._refresh(this.parentNode);
+      }
+    },
+
+    context:
+    {
+      $: function(name)
+      {
+        var argc = 1;
+        var attrs = {};
+        if (typeof arguments[1] === "object" &&
+            !(arguments[1] instanceof Node)) {
+          attrs = arguments[1];
+          argc = 2;
+        }
+        var classes = name.split(".");
+        name = classes.shift();
+        if (classes.length > 0) {
+          attrs["class"] =
+            (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "")
+            + classes.join(" ");
+        }
+        var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
+        if (m) {
+          var ns = m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())];
+          var elem = ns ? this.ownerDocument.createElementNS(ns, m[2]) :
+            this.ownerDocument.createElement(m[2]);
+          if (m[3]) attrs.id = m[3];
+          for (a in attrs) {
+            if (attrs.hasOwnProperty(a) &&
+                attrs[a] !== undefined && attrs[a] !== null) {
+              var split = a.split(":");
+              ns = split[1] && (dumber["NS_" + split[0].toUpperCase()] ||
+                  flexo["{0}_NS".fmt(split[0].toUpperCase())]);
+              if (ns) {
+                elem.setAttributeNS(ns, split[1], attrs[a]);
+              } else {
+                elem.setAttribute(a, attrs[a]);
+              }
+            }
+          }
+          [].slice.call(arguments, argc).forEach(function(ch) {
+              if (typeof ch === "string") {
+                elem.appendChild(document.createTextNode(ch));
+              } else if (ch instanceof Node) {
+                elem.appendChild(ch);
+              }
+            });
+          return elem;
+        }
       }
     },
 
@@ -270,6 +275,21 @@
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
+
+      _find_template: function()
+      {
+        var template = undefined;
+        if (this.ref) {
+          var component = component_of(this);
+          while (!template && component) {
+            template = component._components[this.ref];
+            component = component_of(component.parentNode);
+          }
+        } else if (this.q) {
+          template = this.parentNode && this.parentNode.querySelector(this.q);
+        }
+        return template;
+      }
     },
 
     view:

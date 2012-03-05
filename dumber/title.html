@@ -21,8 +21,8 @@
           context.$("view",
             context.$("xhtml:p", "Let's change the title.")));
       var use = context.$("use", { q: "app" });
-      context.documentElement.appendChild(app);
-      context.documentElement.appendChild(use);
+      context.appendChild(app);
+      context.appendChild(use);
 
       dumber.render(use, document.body);
       var title = context.$("title", "Original title");

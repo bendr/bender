@@ -81,6 +81,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
   flexo.XML_NS = "http://www.w3.org/1999/xml";
   flexo.XMLNS_NS = "http://www.w3.org/2000/xmlns/";
+  flexo.HTML_NS = flexo.XHTML_NS;
 
 
   // Return an absolute URI for the reference URI for a given base URI

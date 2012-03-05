@@ -16,14 +16,11 @@
     <script>
 
       var context = dumber.create_context();
-      context.documentElement.appendChild(
+      var component =
         context.$("component",
           context.$("view",
             context.$("xhtml:p", "Hello, world!"))));
-      var use = context.$("use", { q: "component" });
-      context.documentElement.appendChild(use);
-
-      dumber.render(use, document.body);
+      context.render_component(component, document.body);
 
     </script>
   </body>
