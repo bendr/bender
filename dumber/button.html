@@ -30,19 +30,23 @@
               context.$("get", { event: "click", view: "b" },
               "if (value.button === 0) flexo.notify(this, '@pushed');"))),
           context.$("view",
-            context.$("use#ok-button", { ref: "button" }, "OK")),
+            context.$("use#ok-button", { ref: "button" }, "OK"),
+            context.$("use#cancel-button", { ref: "button" }, "Cancel")),
           context.$("watch",
             context.$("get", { event: "@pushed", use: "ok-button" },
-              "alert('OK')"))));
+              "alert('OK')")),
+          context.$("watch",
+            context.$("get", { event: "@pushed", use: "cancel-button" },
+              "alert('Cancel')"))));
       dumber.render(context.appendChild(context.$("use", { q: "app" })),
         document.getElementById("target"));
 
       context.querySelectorAll("view")[1].appendChild(
-        context.$("use#cancel-button", { ref: "button" }, "Cancel"));
+        context.$("use#retry-button", { ref: "button" }, "Retry"));
       context.querySelector("app").appendChild(
         context.$("watch",
-          context.$("get", { event: "@pushed", use: "cancel-button" },
-              "alert('Cancel')")));
+          context.$("get", { event: "@pushed", use: "retry-button" },
+              "alert('Retry')")));
 
 
     </script>

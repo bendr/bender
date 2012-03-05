@@ -77,7 +77,7 @@
         this.component._watches.forEach(function(watch) {
             var instance_ = Object.create(watch_instance).init(watch, this);
             instance_.render();
-            // this.rendered.push(instance_);
+            this.rendered.push(instance_);
           }, this);
       }
     },
@@ -139,7 +139,8 @@
     {
       this.watch = watch;
       this.instance = instance;
-      instance.component._instances.push(this);
+      this.component = this.instance.component;
+      this.ungets = [];
       return this;
     },
 
@@ -149,15 +150,23 @@
           if (get._event) {
             var instance = this.instance;
             var listener = function(e) {
+              flexo.log(get);
               return (get._action || flexo.id).call(instance, e);
             };
             if (get._view) {
               // DOM event from a view
               var target = this.instance.views[get._view];
               target.addEventListener(get._event, listener, false);
+              this.ungets.push(function() {
+                  target.removeEventListener(get._event, listener, false);
+                });
             } else if (get._use) {
               var target = this.instance.uses[get._use];
               flexo.listen(target, get._event, listener);
+              this.ungets.push(function() {
+                  flexo.log("Unget", get);
+                  flexo.unlisten(target, get._event, listener);
+                });
             }
           }
         }, this);
@@ -165,11 +174,9 @@
 
     unrender: function()
     {
+      this.ungets.forEach(function(unget) { unget(); });
     }
   };
-
-  var allow_text_content = { content: true, get: true, title: true, use: true,
-    view: true };
 
   var prototypes =
   {
@@ -179,8 +186,6 @@
 
       insertBefore: function(ch, ref)
       {
-        if ((ch.nodeType === 3 || ch.nodeType === 4) &&
-            !allow_text_content[this.localName]) return;
         var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch._add_to_parent) ch._add_to_parent();
         return ch_;
@@ -209,10 +214,8 @@
 
       set_textContent: function(t)
       {
-        if (allow_text_content[this.localName]) {
-          this.textContent = t;
-          if (this.parentNode) this._refresh(this.parentNode);
-        }
+        this.textContent = t;
+        if (this.parentNode) this._refresh(this.parentNode);
       }
     },
 
@@ -405,7 +408,10 @@
 
       _add_to_parent: function()
       {
-        if (this.parentNode._watches) this.parentNode._watches.push(this);
+        if (this.parentNode._watches) {
+          this.parentNode._watches.push(this);
+          this.parentNode._refresh(this.parentNode);
+        }
       }
     }
   };
