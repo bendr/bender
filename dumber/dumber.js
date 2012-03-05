@@ -39,10 +39,12 @@
   {
     init: function(use, component)
     {
+      flexo.hash(this, "instance");
       this.use = use;
       this.component = component;
       component._instances.push(this);
-      this.views = {};
+      this.views = {};     // rendered views by id
+      this.uses = {};      // rendered uses by id
       this.rendered = [];  // root DOM nodes and use instances
       var target = undefined;
       Object.defineProperty(this, "target", { enumerable: true,
@@ -66,10 +68,17 @@
 
     render: function()
     {
-      if (this.target && this.component._view) {
+      if (this.target) {
         this.unrender();
-        this.render_children(this.component._view, this.target);
+        if (this.component._view) {
+          this.render_children(this.component._view, this.target);
+        }
         this.update_title();
+        this.component._watches.forEach(function(watch) {
+            var instance_ = Object.create(watch_instance).init(watch, this);
+            instance_.render();
+            // this.rendered.push(instance_);
+          }, this);
       }
     },
 
@@ -79,7 +88,9 @@
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
-              this.rendered.push(dumber.render(ch, dest));
+              var u = dumber.render(ch, dest);
+              this.rendered.push(u);
+              if (ch.id) this.uses[ch.id] = u;
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
                 this.use :ch, dest);
@@ -100,7 +111,7 @@
       [].forEach.call(node.attributes, function(attr) {
           if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
-            this.views[flexo.undash(attr.value.trim())] = d;
+            this.views[attr.value.trim()] = d;
           } else if (attr.namespaceURI) {
             d.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
           } else {
@@ -122,6 +133,44 @@
     },
   };
 
+  var watch_instance =
+  {
+    init: function(watch, instance)
+    {
+      this.watch = watch;
+      this.instance = instance;
+      instance.component._instances.push(this);
+      return this;
+    },
+
+    render: function()
+    {
+      this.watch._gets.forEach(function(get) {
+          if (get._event) {
+            var instance = this.instance;
+            var listener = function(e) {
+              return (get._action || flexo.id).call(instance, e);
+            };
+            if (get._view) {
+              // DOM event from a view
+              var target = this.instance.views[get._view];
+              target.addEventListener(get._event, listener, false);
+            } else if (get._use) {
+              var target = this.instance.uses[get._use];
+              flexo.listen(target, get._event, listener);
+            }
+          }
+        }, this);
+    },
+
+    unrender: function()
+    {
+    }
+  };
+
+  var allow_text_content = { content: true, get: true, title: true, use: true,
+    view: true };
+
   var prototypes =
   {
     "":
@@ -130,6 +179,8 @@
 
       insertBefore: function(ch, ref)
       {
+        if ((ch.nodeType === 3 || ch.nodeType === 4) &&
+            !allow_text_content[this.localName]) return;
         var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch._add_to_parent) ch._add_to_parent();
         return ch_;
@@ -158,8 +209,10 @@
 
       set_textContent: function(t)
       {
-        this.textContent = t;
-        if (this.parentNode) this._refresh(this.parentNode);
+        if (allow_text_content[this.localName]) {
+          this.textContent = t;
+          if (this.parentNode) this._refresh(this.parentNode);
+        }
       }
     },
 
@@ -218,6 +271,7 @@
       {
         this._instances = [];   // rendered instances
         this._components = {};  // child components
+        this._watches = [];     // child watches
       },
 
       _add_to_parent: function()
@@ -237,6 +291,54 @@
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
+    },
+
+    get:
+    {
+      insertBefore: function(ch, ref)
+      {
+        var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        if (ch.nodeType === 3 || ch.nodeType === 4) this._update_action();
+        return ch_;
+      },
+
+      setAttribute: function(name, value)
+      {
+        if (name === "event") {
+          this._event = value.trim();
+        } else if (name === "use") {
+          this._use = value.trim();
+        } else if (name === "view") {
+          this._view = value.trim();
+        }
+        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+      },
+
+      set_textContent: function(t)
+      {
+        this.textContent = t;
+        this._update_action();
+      },
+
+      _add_to_parent: function()
+      {
+        if (this.parentNode._gets) this.parentNode._gets.push(this);
+      },
+
+      _remove_from_parent: function(parent)
+      {
+        if (parent._gets) flexo.remove_from_array(parent._gets, this);
+      },
+
+      _update_action: function()
+      {
+        if (/\S/.test(this.textContent)) {
+          // TODO handle errors
+          this._action = new Function("value", this.textContent);
+        } else {
+          delete this._action;
+        }
+      }
     },
 
     title:
@@ -261,17 +363,11 @@
       setAttribute: function(name, value)
       {
         if (name === "q") {
-          if (value) {
-            this.q = value.trim();
-          } else {
-            delete this.q;
-          }
+          this.q = value.trim();
         } else if (name === "ref") {
-          if (value) {
-            this.ref = value.trim();
-          } else {
-            delete this.ref;
-          }
+          this.ref = value.trim();
+        } else if (name === "id") {
+          this.id = value.trim();
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
@@ -298,6 +394,19 @@
       {
         this.parentNode._view = this;
       },
+    },
+
+    watch:
+    {
+      _init: function()
+      {
+        this._gets = [];
+      },
+
+      _add_to_parent: function()
+      {
+        if (this.parentNode._watches) this.parentNode._watches.push(this);
+      }
     }
   };
 
