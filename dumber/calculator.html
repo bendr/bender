@@ -42,7 +42,6 @@
     <script src="dumber.js"></script>
   </head>
   <body>
-    <div id="target"></div>
     <script>
 
       var context = dumber.create_context();
@@ -61,8 +60,8 @@
               context.$("html:div.screen",
                 context.$("html:span#value.value", "12345678"),
                 context.$("html:span#op.op"))))));
-      dumber.render(context.appendChild(context.$("use", { q: "app" })),
-        document.getElementById("target"));
+      context.appendChild(context.$("use", { q: "app" }))
+        ._render(document.body);
 
       // Add buttons
       var rows =

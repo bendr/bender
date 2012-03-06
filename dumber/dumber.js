@@ -7,42 +7,26 @@
     if (target === undefined) target = document;
     var context = target.implementation.createDocument(dumber.NS, "context",
       null);
-
     context.createElement = function(name)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, dumber.NS, name));
     };
-
-    context.createElementNS = function(ns, name)
+    context.createElementNS = function(ns, qname)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
-        .call(this, ns, name));
+        .call(this, ns, qname));
     };
-
     return wrap_element(context.documentElement);
   };
 
-  dumber.render =  function(use, target)
-  {
-    var template = use._find_template();
-    if (template) {
-      var instance_ = Object.create(instance).init(use, template);
-      instance_.target = target;
-      return instance_;
-    } else {
-      flexo.log("No template found for", use);
-    }
-  };
-
-  var instance =
+  var component_instance =
   {
     init: function(use, component)
     {
-      flexo.hash(this, "instance");
       this.use = use;
       this.component = component;
-      component._instances.push(this);
+      component._rendered.push(this);
       this.views = {};     // rendered views by id
       this.uses = {};      // rendered uses by id
       this.rendered = [];  // root DOM nodes and use instances
@@ -59,7 +43,7 @@
         if (r instanceof Node) {
           r.parentNode.removeChild(r);
         } else {
-          flexo.remove_from_array(r.component._instances, r);
+          flexo.remove_from_array(r.component._rendered, r);
           r.unrender();
         }
       }, this);
@@ -88,7 +72,7 @@
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
-              var u = dumber.render(ch, dest);
+              var u = ch._render(dest);
               this.rendered.push(u);
               if (ch.id) this.uses[ch.id] = u;
             } else if (ch.localName === "content") {
@@ -142,11 +126,11 @@
 
   var watch_instance =
   {
-    init: function(watch, instance)
+    init: function(watch, component_instance)
     {
       this.watch = watch;
-      this.instance = instance;
-      this.component = this.instance.component;
+      this.component_instance = component_instance;
+      this.component = this.component_instance.component;
       this.ungets = [];
       return this;
     },
@@ -155,20 +139,20 @@
     {
       this.watch._gets.forEach(function(get) {
           if (get._event) {
-            var instance = this.instance;
+            var component_instance = this.component_instance;
             var listener = function(e) {
               flexo.log(get);
-              return (get._action || flexo.id).call(instance, e);
+              return (get._action || flexo.id).call(component_instance, e);
             };
             if (get._view) {
               // DOM event from a view
-              var target = this.instance.views[get._view];
+              var target = this.component_instance.views[get._view];
               target.addEventListener(get._event, listener, false);
               this.ungets.push(function() {
                   target.removeEventListener(get._event, listener, false);
                 });
             } else if (get._use) {
-              var target = this.instance.uses[get._use];
+              var target = this.component_instance.uses[get._use];
               flexo.listen(target, get._event, listener);
               this.ungets.push(function() {
                   flexo.unlisten(target, get._event, listener);
@@ -190,25 +174,7 @@
     {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
 
-      insertBefore: function(ch, ref)
-      {
-        var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch._add_to_parent) ch._add_to_parent();
-        return ch_;
-      },
-
-      removeChild: function(ch)
-      {
-        var ch_ = Object.getPrototypeOf(this).removeChild.call(this, ch);
-        if (ch._remove_from_parent) ch._remove_from_parent(this);
-        return ch_;
-      },
-
-      setAttribute: function(name, value)
-      {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (this._refresh) this._refresh()
-      },
+      _textContent: function(t) { this.textContent = t; },
 
       _refresh: function(parent)
       {
@@ -216,30 +182,19 @@
         if (!parent) return;
         var component = component_of(parent);
         if (component) {
-          component._instances.forEach(function(instance_) {
-              instance_.render();
-            });
+          component._rendered.forEach(function(i) { i.render(); });
         }
       },
-
-      _add_to_parent: function() { this._refresh(); },
-
-      _remove_from_parent: function(parent) { this._refresh(parent); },
 
       _serialize: function()
       {
         return (new XMLSerializer).serializeToString(this);
-      },
-
-      set_textContent: function(t)
-      {
-        this.textContent = t;
-        if (this._refresh) this._refresh();
       }
     },
 
     context:
     {
+      // TODO allow class/id in any order
       $: function(name)
       {
         var argc = 1;
@@ -285,31 +240,71 @@
           return elem;
         }
       },
-
     },
 
     component:
     {
       _init: function()
       {
-        this._instances = [];   // rendered instances
         this._components = {};  // child components
         this._watches = [];     // child watches
+        this._rendered = [];    // rendered instances
       },
 
-      _add_to_parent: function()
+      insertBefore: function(ch, ref)
       {
-        if (this.id && this.parentNode._components) {
-          this.parentNode._components[this.id] = this;
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        if (ch.namespaceURI === dumber.NS) {
+          if (ch.localName === "app" || ch.localName === "component") {
+            this._add_component(ch);
+          } else if (ch.localName === "title") {
+            if (this._title) this.removeChild(this._title);
+            this._title = ch;
+            this._rendered.forEach(function(i) { i.update_title(); });
+          } else if (ch.localName === "view") {
+            if (this._view) this.removeChild(this._view);
+            this._view = ch;
+            this._refresh();
+          } else if (ch.localName === "watch") {
+            // TODO add watch
+          }
+        }
+        return ch;
+      },
+
+      removeChild: function(ch)
+      {
+        Object.getPrototypeOf(this).removeChild.call(this, ch);
+        if (ch.namespaceURI === dumber.NS) {
+          if (ch.localName === "app" || ch.localName === "component") {
+            if (ch._id) delete this._components[ch._id];
+          } else if (ch.localName === "title") {
+            delete this._title;
+          } else if (ch.localName === "view") {
+            delete this._view;
+            this._refresh();
+          } else if (ch.localName === "watch") {
+            // TODO remove watch
+          }
+        }
+        return ch;
+      },
+
+      _add_component: function(component)
+      {
+        if (component._id) {
+          // TODO check for duplicate id
+          this._components[component._id] = component;
         }
       },
 
+      // TODO support xml:id?
       setAttribute: function(name, value)
       {
         if (name === "id") {
-          this.id = value;
-          if (this.parentNode && this.parentNode._components) {
-            this.parentNode._components[value] = this;
+          this._id = value.trim();
+          if (this.parentNode && this.parentNode._add_component) {
+            this.parentNode._add_component(this);
           }
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
@@ -318,6 +313,7 @@
 
     get:
     {
+      /*
       insertBefore: function(ch, ref)
       {
         var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
@@ -362,22 +358,16 @@
           delete this._action;
         }
       }
+      */
     },
 
     title:
     {
-      _add_to_parent: function()
+      // TODO add text nodes as well
+      set_textContent: function(t)
       {
-        if (this.parentNode._title) {
-          this.parentNode.removeChild(this.parentNode._title);
-        }
-        this.parentNode._title = this;
-        prototypes[""]._add_to_parent.call(this);
-      },
-
-      _remove_from_parent: function()
-      {
-        this.parentNode._title = undefined;
+        this.textContent = t;
+        this._refresh();
       },
     },
 
@@ -389,31 +379,70 @@
       setAttribute: function(name, value)
       {
         if (this._attributes.hasOwnProperty(name)) this[name] = value.trim();
-        return prototypes[""].setAttribute.call(this, name, value);
+        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
 
-      _find_template: function()
+      _find_component: function()
       {
-        var template = undefined;
+        var component = undefined;
         if (this.ref) {
-          var component = component_of(this);
-          while (!template && component) {
-            template = component._components[this.ref];
-            component = component_of(component.parentNode);
+          var parent_component = component_of(this);
+          while (!component && parent_component) {
+            component = parent_component._components[this.ref];
+            parent_component = component_of(parent_component.parentNode);
           }
         } else if (this.q) {
-          template = this.parentNode && this.parentNode.querySelector(this.q);
+          component = this.parentNode && this.parentNode.querySelector(this.q);
         }
-        return template;
+        return component;
       },
+
+      _render: function(target)
+      {
+        var component = this._find_component();
+        if (component) {
+          var instance = Object.create(component_instance)
+            .init(this, component);
+          instance.target = target;
+          return instance;
+        } else {
+          flexo.log("No component found for", this);
+        }
+      },
+
+      _textContent: function(t)
+      {
+        this.textContent = t;
+        this._refresh();
+      }
     },
 
     view:
     {
-      _add_to_parent: function()
+      insertBefore: function(ch, ref)
       {
-        this.parentNode._view = this;
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        if (ch.namespaceURI === dumber.NS) {
+          if (ch.localName === "use") {
+            this._refresh();
+          }
+        } else {
+          this._refresh();
+        }
+        return ch;
       },
+
+      removeChild: function(ch)
+      {
+        Object.getPrototypeOf(this).removeChild.call(this, ch);
+        this._refresh();
+      },
+
+      _textContent: function(t)
+      {
+        this.textContent = t;
+        this._refresh();
+      }
     },
 
     watch:
@@ -421,15 +450,8 @@
       _init: function()
       {
         this._gets = [];
+        this._sets = [];
       },
-
-      _add_to_parent: function()
-      {
-        if (this.parentNode._watches) {
-          this.parentNode._watches.push(this);
-          this.parentNode._refresh(this.parentNode);
-        }
-      }
     }
   };
 

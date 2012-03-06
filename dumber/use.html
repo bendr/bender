@@ -11,21 +11,19 @@
     <script src="dumber.js"></script>
   </head>
   <body>
-    <div id="target"></div>
     <script>
 
       var context = dumber.create_context();
-
       context.appendChild(context.$("app",
           context.$("title", "Simple use"),
           context.$("component", { id: "c" },
             context.$("view",
               context.$("html:p",
-                context.$("content")))),
+                context.$("content"), "---"))),
           context.$("view",
             context.$("use", { ref: "c" }, "A"))));
-      dumber.render(context.appendChild(context.$("use", { q: "app" })),
-        document.getElementById("target"));
+      context.appendChild(context.$("use", { q: "app" }))
+        ._render(document.body);
 
       // Add "B"
       context.querySelectorAll("view")[1]
@@ -34,12 +32,15 @@
       // Add a hr to the c component
       context.querySelector("view").appendChild(context.$("html:hr"));
 
-      // Add "C"
+      // Add "D" (then we will transform it to C)
       context.querySelectorAll("view")[1]
-        .appendChild(context.$("use", { ref: "c" }, "C"));
+        .appendChild(context.$("use", { ref: "c" }, "D"));
 
       // Add a hr again to the c component
+      context.querySelector("view")
+        .appendChild(context.ownerDocument.createTextNode("= = ="));
       context.querySelector("view").appendChild(context.$("html:hr"));
+
 
     </script>
   </body>

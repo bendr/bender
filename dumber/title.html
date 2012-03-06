@@ -14,18 +14,17 @@
     <script>
 
       var context = dumber.create_context();
-      var app =
+      context.appendChild(
         context.$("app",
+          context.$("title", "Original title"),
           context.$("view",
-            context.$("xhtml:p", "Let's change the title.")));
-      var use = context.$("use", { q: "app" });
-      context.appendChild(app);
-      context.appendChild(use);
+            context.$("xhtml:p", "Let's change the title."))));
+      context.appendChild(context.$("use", { q: "app" }))
+        ._render(document.body);
 
-      dumber.render(use, document.body);
-      var title = context.$("title", "Original title");
-      app.appendChild(title);
-      title.set_textContent("New title");
+      var title = context.$("title", "Newer title");
+      context.querySelector("app").appendChild(title);
+      title.set_textContent("Newest title");
 
     </script>
   </body>

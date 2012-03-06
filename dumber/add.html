@@ -11,7 +11,6 @@
     <script src="dumber.js"></script>
   </head>
   <body>
-    <div id="target"></div>
     <script>
 
       var context = dumber.create_context();
@@ -30,12 +29,12 @@
       var use = context.$("use", { q: "app" });
       context.appendChild(use);
 
-      dumber.render(use, document.getElementById("target"));
+      use._render(document.body);
 
       var q = context.$("use", { ref: "q" },
         "This one is added after rendering.");
       view.appendChild(q);
-      use_q.set_textContent("");
+      use_q._textContent("");
       use_r.parentNode.removeChild(use_r);
       view_q.appendChild(context.$("xhtml:p", "Followed by a p."));
 
