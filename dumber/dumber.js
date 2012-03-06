@@ -1,3 +1,10 @@
+// TODO
+// [ ] watch nesting, and, etc.
+// [ ] properties -> signals?
+// [ ] XML import
+// [ ] script
+// [ ] delegates for objects
+
 (function(dumber) {
 
   dumber.NS = "http://dumber.igel.co.jp";
@@ -119,7 +126,14 @@
           }
         }, this);
       dest.appendChild(d);
-      if (dest === this.target) this.rendered.push(d);
+      if (dest === this.target) {
+        [].forEach.call(this.use.attributes, function(attr) {
+            if (!this.use._attributes.hasOwnProperty(attr.localName)) {
+              d.setAttribute(attr.name, attr.value);
+            }
+          }, this);
+        this.rendered.push(d);
+      }
       this.render_children(node, d);
     },
 
@@ -363,15 +377,12 @@
 
     use:
     {
+      // Attributes interpreted by use
+      _attributes: { id: true, q: true, ref: true },
+
       setAttribute: function(name, value)
       {
-        if (name === "q") {
-          this.q = value.trim();
-        } else if (name === "ref") {
-          this.ref = value.trim();
-        } else if (name === "id") {
-          this.id = value.trim();
-        }
+        if (this._attributes.hasOwnProperty(name)) this[name] = value.trim();
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
 
@@ -388,7 +399,7 @@
           template = this.parentNode && this.parentNode.querySelector(this.q);
         }
         return template;
-      }
+      },
     },
 
     view:

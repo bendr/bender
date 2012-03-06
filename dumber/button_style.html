@@ -10,6 +10,7 @@
         padding: 4px; -moz-border-radius: 6px; -webkit-border-radius: 6px;
         border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
         text-shadow: 0px 1px 0px #fff; margin: 8px; }
+      .ok { font-weight: bold; }
     </style>
     <script src="../flexo.js"></script>
     <script src="dumber.js"></script>
@@ -30,7 +31,8 @@
               context.$("get", { event: "click", view: "b" },
               "if (value.button === 0) flexo.notify(this, '@pushed');"))),
           context.$("view",
-            context.$("use#ok-button", { ref: "button" }, "OK"),
+            context.$("use#ok-button.button.ok", { ref: "button", tabindex: 0 },
+              "OK"),
             context.$("use#cancel-button", { ref: "button" }, "Cancel")),
           context.$("watch",
             context.$("get", { event: "@pushed", use: "ok-button" },
