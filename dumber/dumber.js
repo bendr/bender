@@ -1,10 +1,3 @@
-// TODO
-// [ ] watch nesting, and, etc.
-// [ ] properties -> signals?
-// [ ] XML import
-// [ ] script
-// [ ] delegates for objects
-
 (function(dumber) {
 
   dumber.NS = "http://dumber.igel.co.jp";
@@ -178,7 +171,6 @@
               var target = this.instance.uses[get._use];
               flexo.listen(target, get._event, listener);
               this.ungets.push(function() {
-                  flexo.log("Unget", get);
                   flexo.unlisten(target, get._event, listener);
                 });
             }
@@ -212,8 +204,16 @@
         return ch_;
       },
 
+      setAttribute: function(name, value)
+      {
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        if (this._refresh) this._refresh()
+      },
+
       _refresh: function(parent)
       {
+        if (!parent) parent = this.parentNode;
+        if (!parent) return;
         var component = component_of(parent);
         if (component) {
           component._instances.forEach(function(instance_) {
@@ -222,14 +222,19 @@
         }
       },
 
-      _add_to_parent: function() { this._refresh(this.parentNode); },
+      _add_to_parent: function() { this._refresh(); },
 
       _remove_from_parent: function(parent) { this._refresh(parent); },
+
+      _serialize: function()
+      {
+        return (new XMLSerializer).serializeToString(this);
+      },
 
       set_textContent: function(t)
       {
         this.textContent = t;
-        if (this.parentNode) this._refresh(this.parentNode);
+        if (this._refresh) this._refresh();
       }
     },
 
@@ -279,7 +284,8 @@
             });
           return elem;
         }
-      }
+      },
+
     },
 
     component:
@@ -383,7 +389,7 @@
       setAttribute: function(name, value)
       {
         if (this._attributes.hasOwnProperty(name)) this[name] = value.trim();
-        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        return prototypes[""].setAttribute.call(this, name, value);
       },
 
       _find_template: function()

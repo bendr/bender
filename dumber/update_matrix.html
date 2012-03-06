@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+      a { color: #ff4040; text-decoration: none; }
+      table { border-collapse: collapse; }
+      th, td { border: solid thin black; padding: 4px; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="dumber.js"></script>
+  </head>
+  <body>
+    <h1>Dumber</h1>
+    <h2>Update matrix</h2>
+
+    <p>
+      <table>
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Child</th>
+            <th>insertBefore, set_textContent(), setAttribute</th>
+            <th>removeChild</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr>
+            <td>context</td>
+            <td>app, component</td>
+            <td>update context id map</td>
+            <td>update context id map</td>
+          </tr>
+
+          <tr>
+            <td>context</td>
+            <td>use</td>
+            <td>(nothing)</td>
+            <td>(nothing)</td>
+          </tr>
+
+          <tr>
+            <td>app</td>
+            <td>title</td>
+            <td>if app is child of context, render the title in the
+              document</td>
+            <td>(nothing)</td>
+          </tr>
+
+          <tr>
+            <td>component</td>
+            <td>@id</td>
+            <td>update id map</td>
+            <td>(nothing)</td>
+          </tr>
+
+          <tr>
+            <td>component</td>
+            <td>title</td>
+            <td>(nothing)</td>
+            <td>(nothing)</td>
+          </tr>
+
+          <tr>
+            <td>component</td>
+            <td>view</td>
+            <td>check single view; update rendered instances</td>
+            <td>unrender instances</td>
+          </tr>
+
+          <tr>
+            <td>component</td>
+            <td>watch</td>
+            <td>instantiate and render</td>
+            <td>unrender and remove from watch instances</td>
+          </tr>
+
+          <tr>
+            <td>view</td>
+            <td>content</td>
+            <td>check single content or id; update rendered instances</td>
+            <td>update rendered instances</td>
+          </tr>
+
+          <tr>
+            <td>view</td>
+            <td>use</td>
+            <td>check for reference; instantiate and render; update watches</td>
+            <td>unrender and remove from list of instances; update watches</td>
+          </tr>
+
+          <tr>
+            <td>view</td>
+            <td><em>foreign</em></td>
+            <td>update rendered instances</td>
+            <td>same</td>
+          </tr>
+
+          <tr>
+            <td>use</td>
+            <td>@id</td>
+            <td>update watches for this instance</td>
+            <td>(nothing)</td>
+          </tr>
+
+          <tr>
+            <td>use</td>
+            <td>@q, @ref, [@href]</td>
+            <td>see view/use</td>
+            <td>see view/use</td>
+          </tr>
+
+          <tr>
+            <td>use</td>
+            <td><em>foreign</em></td>
+            <td>update rendered instance</td>
+            <td>same</td>
+          </tr>
+
+          <tr>
+            <td>use</td>
+            <td>textContent()</td>
+            <td>update rendered instance</td>
+            <td>N/A</td>
+          </tr>
+
+          <tr>
+            <td>watch</td>
+            <td>get</td>
+            <td>update at context level (?)</td>
+            <td>same</td>
+          </tr>
+
+          <tr>
+            <td>watch</td>
+            <td>set</td>
+            <td>update at context level (?)</td>
+            <td>same</td>
+          </tr>
+
+          <tr>
+            <td>get</td>
+            <td>textContent()</td>
+            <td>update action</td>
+            <td>N/A</td>
+          </tr>
+
+          <tr>
+            <td>set</td>
+            <td>textContent()</td>
+            <td>update action</td>
+            <td>N/A</td>
+          </tr>
+
+          <tr>
+            <td><em>foreign</em></td>
+            <td><em>foreign</em></td>
+            <td>(in view) update rendered instances; (in use) update rendered
+              instance</td>
+            <td>same</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </p>
+
+  </body>
+</html>

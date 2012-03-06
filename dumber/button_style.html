@@ -11,6 +11,7 @@
         border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
         text-shadow: 0px 1px 0px #fff; margin: 8px; }
       .ok { font-weight: bold; }
+      .disabled { opacity: 0.5; }
     </style>
     <script src="../flexo.js"></script>
     <script src="dumber.js"></script>
@@ -49,6 +50,9 @@
         context.$("watch",
           context.$("get", { event: "@pushed", use: "retry-button" },
               "alert('Retry')")));
+
+      context.querySelectorAll("use")[1]
+        .setAttribute("class", "button disabled");
 
     </script>
   </body>
