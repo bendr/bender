@@ -393,8 +393,9 @@
 
       setAttribute: function(name, value)
       {
+        Element.prototype.setAttribute.call(this, name, value);
         if (this._attributes.hasOwnProperty(name)) this[name] = value.trim();
-        return Element.prototype.setAttribute.call(this, name, value);
+        this._refresh();
       },
 
       _find_component: function()

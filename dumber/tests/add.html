@@ -7,13 +7,13 @@
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
     </style>
-    <script src="../flexo.js"></script>
-    <script src="dumber.js"></script>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
   </head>
   <body>
     <script>
 
-      var context = dumber.create_context();
+      var context = dumber.create_context(document.body);
       var use_q = context.$("use", { ref: "q" }, "You should not see this.");
       var use_r = context.$("use", { ref: "q" }, "I should not be here.");
       var view = context.$("view", context.$("xhtml:p", "This is a p."), use_q,
@@ -28,8 +28,6 @@
           view));
       var use = context.$("use", { q: "app" });
       context.appendChild(use);
-
-      use._render(document.body);
 
       var q = context.$("use", { ref: "q" },
         "This one is added after rendering.");

@@ -34,21 +34,18 @@
         existing document.</li>
         <li><a href="tests/title.html">Title setting and updating</a>: the title bar
         should read "Newest title"</li>
-        <!--
-        <li><a href="use.html">Nested use modified at runtime</a>: display A, B, C
-        followed by - - - with 2 horizontal lines under each; <strong>BUG</strong>:
-        there should be = = = between the lines, but there's extra text at the top
-        for some reason</li>
-        <li><a href="add.html">Adding and removing components</a>: display 5
-        paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This one
-        is added after rendering.", "Followed by a p."</li>
-        <li><a href="calculator.html">Calculator (inactive buttons)</a>: display a
-        calculator and its buttons</li>
-        <li><a href="button.html">Button component</a>: display three buttons
-        "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
-        <li><a href="button_style.html">Button with style</a>: same but OK is bold
-        and Cancel is semi-transparent.</li>
-        -->
+        <li><a href="tests/use.html">Nested use modified at runtime</a>: display
+        A, B, C followed by - - - with 2 horizontal lines under each and = = =
+        between the horizontal lines</li>
+        <li><a href="tests/add.html">Adding and removing components</a>: display
+        5 paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This
+        one is added after rendering.", "Followed by a p."</li>
+        <li><a href="tests/calculator.html">Calculator (inactive buttons)</a>:
+        display a calculator and its buttons</li>
+        <li><a href="tests/button.html">Button component</a>: display three
+        buttons "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
+        <li><a href="tests/button_style.html">Button with style</a>: same but OK
+        is bold and Cancel is semi-transparent.</li>
       </ol>
     </section>
 
@@ -103,7 +100,8 @@
           which keys are attribute names and values attribute values. For
           example, <code>{ q: "app" }</code> sets the <code>q</code> attribute
           to <code>app</code> for the node being created. This parameter can be
-          omitted.</li>
+          omitted. Note that a null or undefined value for an attribute will not
+          set it.</li>
           <li>The following parameters (if any) are the contents of the node.
           Valid content is either a string, which creates a text node, and other
           nodes, usually created through the <code>context.$</code> method.</li>

@@ -8,7 +8,7 @@
       body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif;
         background-color: #888; }
       @font-face { font-family: "Digital7";
-        src: url("../apps/demos/digital-7.ttf"); font-weight: normal;
+        src: url("../../apps/demos/digital-7.ttf"); font-weight: normal;
         font-style: normal; }
       .calculator { width: 412px; background-color: #fd0; padding: 24px;
         margin: 32px auto; -webkit-border-radius: 12px; -moz-border-radius: 12px;
@@ -38,13 +38,13 @@
         box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
 
     </style>
-    <script src="../flexo.js"></script>
-    <script src="dumber.js"></script>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
   </head>
   <body>
     <script>
 
-      var context = dumber.create_context();
+      var context = dumber.create_context(document.body);
 
       context.appendChild(context.$("app",
           context.$("title", "Dynamic calculator"),
@@ -58,20 +58,26 @@
           context.$("view",
             context.$("html:div#calculator.calculator",
               context.$("html:div.screen",
-                context.$("html:span#value.value", "12345678"),
+                context.$("html:span#value.value", "0"),
                 context.$("html:span#op.op"))))));
-      context.appendChild(context.$("use", { q: "app" }))
-        ._render(document.body);
+      context.appendChild(context.$("use", { q: "app" }));
 
       // Add buttons
       var rows =
       [["C", "=", "÷", "×"], ["7", "8", "9", "−"],
-        ["4", "5", "6", "+"], ["1", "2", "3", "="], ["0", "."]];
+        ["4", "5", "6", "+"], ["1", "2", "3", "=#tall button"],
+        ["0#wide button", "", "."]];
       var body = context.querySelector(".calculator");
       rows.forEach(function(row) {
           var r = context.$("html:div.row");
           row.forEach(function(op) {
-              r.appendChild(context.$("use", { ref: "button" }, op));
+              var fields = op.split("#");
+              if (fields[0]) {
+                r.appendChild(context.$("use", { ref: "button",
+                  "class": fields[1] }, fields[0]));
+              } else {
+                r.appendChild(context.$("html:span"));
+              }
             });
           body.appendChild(r);
         });

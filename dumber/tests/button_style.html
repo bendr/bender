@@ -13,14 +13,14 @@
       .ok { font-weight: bold; }
       .disabled { opacity: 0.5; }
     </style>
-    <script src="../flexo.js"></script>
-    <script src="dumber.js"></script>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
   </head>
   <body>
     <div id="target"></div>
     <script>
 
-      var context = dumber.create_context();
+      var context = dumber.create_context(document.getElementById("target"));
 
       context.appendChild(context.$("app",
           context.$("title", "Button test"),
@@ -41,8 +41,7 @@
           context.$("watch",
             context.$("get", { event: "@pushed", use: "cancel-button" },
               "alert('Cancel')"))));
-      dumber.render(context.appendChild(context.$("use", { q: "app" })),
-        document.getElementById("target"));
+      context.appendChild(context.$("use", { q: "app" }));
 
       context.querySelectorAll("view")[1].appendChild(
         context.$("use#retry-button", { ref: "button" }, "Retry"));

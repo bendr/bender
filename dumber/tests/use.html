@@ -7,13 +7,13 @@
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
     </style>
-    <script src="../flexo.js"></script>
-    <script src="dumber.js"></script>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
   </head>
   <body>
     <script>
 
-      var context = dumber.create_context();
+      var context = dumber.create_context(document.body);
       context.appendChild(context.$("app",
           context.$("title", "Simple use"),
           context.$("component", { id: "c" },
@@ -22,8 +22,7 @@
                 context.$("content"), "---"))),
           context.$("view",
             context.$("use", { ref: "c" }, "A"))));
-      context.appendChild(context.$("use", { q: "app" }))
-        ._render(document.body);
+      context.appendChild(context.$("use", { q: "app" }));
 
       // Add "B"
       context.querySelectorAll("view")[1]
@@ -41,6 +40,8 @@
         .appendChild(context.ownerDocument.createTextNode("= = ="));
       context.querySelector("view").appendChild(context.$("html:hr"));
 
+      // Change D to C
+      context.querySelectorAll("use")[2]._textContent("C");
 
     </script>
   </body>
