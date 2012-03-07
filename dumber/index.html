@@ -11,6 +11,7 @@
       a { color: #ff4040; text-decoration: none; }
       .def { background-color: yellow; }
       .param { background-color: #8ff; }
+      .sample { margin-left: 2em; }
     </style>
   </head>
   <body>
@@ -25,6 +26,8 @@
         world!"</li>
         <li><a href="disappearer.html">Disappearer</a>: same as above but the
         content is immediately removed so nothing is displayed.</li>
+        <li><a href="insert.html">Insert</a>: insert a Dumber node in an
+        existing document.</li>
         <!--
         <li><a href="title.html">Title setting and updating</a>: the title bar
         should read "Newest title"</li>
@@ -130,6 +133,39 @@
         <p>Before a component can be rendered, it must be instantiated. Many
         instances of the same component may be created and rendered
         independently, maintaining their own state.</p>
+      </section>
+
+      <section id="manual.render-tree">
+        <h3>Rendering a Dumber tree</h3>
+        <p>A self-contained Dumber application tree can be rendered into any
+        host document by simply creating a context with the host document as
+        target, populating the tree, and having a <code>use</code> element as a
+        child of the root element pointing to the main application component.
+        Here is a simple HTML "Hello, world!" example being rendered in the body
+        of the host document:</p>
+        <pre class="sample">var context = dumber.create_context(document.body);
+context.appendChild(
+  context.$("component",
+    context.$("view",
+      context.$("html:p", "Hello, world!"))));
+context.appendChild(context.$("use", { q: "component" }));</pre>
+      </section>
+
+      <section id="manual.render-component">
+        <h3>Rendering a Dumber component in a document</h3>
+        <p>Another use case is to render individual components into an existing
+        document. The difference is that we render directly a component element
+        into the given target, using the <code
+          class="def">_render_in(target)</code> where <code
+          class="param">target</code> is the parent DOM node where the content
+        will be rendered. For example, to render a component in a
+        <code>div</code> element with the id <code>here</code>:</p>
+        <pre class="sample">var context = dumber.create_context(document);
+context.appendChild(
+  context.$("component",
+    context.$("view",
+      context.$("html:p.dumber", "But this is a Dumber component!"))));
+context.querySelector("component")._render_in(document.getElementById("here"));</pre>
       </section>
 
     </section>

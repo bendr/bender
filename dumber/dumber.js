@@ -79,7 +79,7 @@
               if (ch.id) this.uses[ch.id] = u;
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
-                this.use :ch, dest);
+                this.use: ch, dest);
             }
           } else {
             this.render_foreign(ch, dest);
@@ -308,14 +308,6 @@
         return ch;
       },
 
-      _add_component: function(component)
-      {
-        if (component._id) {
-          // TODO check for duplicate id
-          this._components[component._id] = component;
-        }
-      },
-
       // TODO support xml:id?
       setAttribute: function(name, value)
       {
@@ -326,6 +318,20 @@
           }
         }
         return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+      },
+
+      _add_component: function(component)
+      {
+        if (component._id) {
+          // TODO check for duplicate id
+          this._components[component._id] = component;
+        }
+      },
+
+      _render_in: function(target)
+      {
+        return render_component(this, target,
+            this.ownerDocument.createElement("use"));
       },
     },
 
@@ -418,11 +424,10 @@
       _render: function(target)
       {
         var component = this._find_component();
-        if (component) {
-          this._instance = Object.create(component_instance)
-            .init(this, component);
-          this._instance.target = target;
-          return this._instance;
+        var instance = render_component(this._find_component(), target, this);
+        if (instance) {
+          this._instance = instance;
+          return instance;
         } else {
           flexo.log("No component found for", this);
         }
@@ -485,6 +490,22 @@
   prototypes.app = prototypes.component;
   prototypes.context = prototypes.component;
 
+  function component_of(node)
+  {
+    return node ?
+      node.namespaceURI === dumber.NS &&
+        (node.localName === "component" || node.localName === "app") ?
+        node : component_of(node.parentNode) : null;
+  }
+
+  function render_component(component, target, use)
+  {
+    if (!component) return;
+    var instance = Object.create(component_instance).init(use, component);
+    instance.target = target;
+    return instance;
+  }
+
   function wrap_element(e)
   {
     var proto = prototypes[e.localName] || {};
@@ -497,14 +518,3 @@
   }
 
 })(typeof exports === "object" ? exports : this.dumber = {});
-
-
-
-  function component_of(node)
-  {
-    return node ?
-      node.namespaceURI === dumber.NS &&
-        (node.localName === "component" || node.localName === "app") ?
-        node : component_of(node.parentNode) : null;
-  }
-
