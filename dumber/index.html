@@ -5,37 +5,139 @@
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
     <style>
-      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+        width: 960px; margin: auto; font-size: 16px; }
+      code, pre { font-family: Menlo, Consolas, monospace; font-size: 14px; }
       a { color: #ff4040; text-decoration: none; }
+      .def { background-color: yellow; }
+      .param { background-color: #8ff; }
     </style>
-    <script src="../flexo.js"></script>
-    <script src="dumber.js"></script>
   </head>
   <body>
     <h1>Dumber</h1>
-    <h2>Tests</h2>
-    <ol>
-      <li><a href="hello.html">Hello, world!</a>: display the text "Hello,
-      world!"</li>
-      <li><a href="title.html">Title setting and updating</a>: the title bar
-      should read "Newest title"</li>
-      <li><a href="use.html">Nested use modified at runtime</a>: display A, B, C
-      followed by --- with 2 horizontal lines under each; <strong>BUG</strong>:
-      there should be = = = between the lines, but there's extra text at the top
-      for some reason</li>
-      <li><a href="add.html">Adding and removing components</a>: display 5
-      paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This one
-      is added after rendering.", "Followed by a p."</li>
-      <li><a href="calculator.html">Calculator (inactive buttons)</a>: display a
-      calculator and its buttons</li>
-      <li><a href="button.html">Button component</a>: display three buttons
-      "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
-      <li><a href="button_style.html">Button with style</a>: same but OK is bold
-      and Cancel is semi-transparent.</li>
-    </ol>
+    <p>Dumber is a simpler implementation of Bender intended to prototype
+    dynamic rendering of components.</p>
+
+    <section id="tests">
+      <h2>Tests</h2>
+      <ol>
+        <li><a href="hello.html">Hello, world!</a>: display the text "Hello,
+        world!"</li>
+        <li><a href="disappearer.html">Disappearer</a>: same as above but the
+        content is immediately removed so nothing is displayed.</li>
+        <!--
+        <li><a href="title.html">Title setting and updating</a>: the title bar
+        should read "Newest title"</li>
+        <li><a href="use.html">Nested use modified at runtime</a>: display A, B, C
+        followed by - - - with 2 horizontal lines under each; <strong>BUG</strong>:
+        there should be = = = between the lines, but there's extra text at the top
+        for some reason</li>
+        <li><a href="add.html">Adding and removing components</a>: display 5
+        paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This one
+        is added after rendering.", "Followed by a p."</li>
+        <li><a href="calculator.html">Calculator (inactive buttons)</a>: display a
+        calculator and its buttons</li>
+        <li><a href="button.html">Button component</a>: display three buttons
+        "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
+        <li><a href="button_style.html">Button with style</a>: same but OK is bold
+        and Cancel is semi-transparent.</li>
+        -->
+      </ol>
+    </section>
+
+    <section id="manual">
+      <h2>Manual</h2>
+
+      <section id="manual.context">
+        <h3>The context</h3>
+        <p>The <em>context</em> is the document hosting Dumber nodes. The root
+        of the document is a <code>context</code> element, which in turn has
+        <code>component</code> or <code>app</code> child nodes. Rendering an
+        application or a component in a target document is achieved by adding a
+        <code>use</code> node for the desired component to the tree.</p>
+        <p><code class="def">dumber.create_context(target)</code> creates a new
+        context with a rendering target specified by <code
+          class="param">target</code> (or the current document by default.)
+        Rendered nodes will be appended to the given target. The
+        <code class="param">context</code> root element is returned (not the
+        context document itself, which can be accessed through the DOM
+        <code>ownerDocument</code> property of any node in the document.) This
+        element is actually a Bender component.</p>
+      </section>
+
+      <section id="manual.nodes">
+        <h3>Dumber nodes</h3>
+        <p>Nodes in the Dumber tree overload common DOM methods so that changes
+        can be tracked and reflected after rendering was done. Component
+        elements, such as the context root element, have a convenience method
+        <code class="def">$(name, attributes, <em>contents</em>)</code> to
+        create new nodes.</p>
+        <ul>
+          <li>The <code class="param">name</code> parameter may be qualified
+          with a known namespace prefix (<code>html</code> or
+          <code>xhtml</code>, <code>svg</code>, <code>xlink</code>,
+          <code>xml</code>, <code>xmlns</code>; the Dumber namespace is used if
+          there is no prefix) and may include an id prefixed by <code>#</code>
+          and a list of class names prefixed by <code>.</code>. For example, the
+          name string <code>html:div#calculator.calculator</code> describes an
+          HTML <code>div</code> element with id <code>caculator</code> and class
+          <code>calculator</code>, while <code>use</code> describes a Dumber
+          <code>use</code> element. <strong>Note</strong>: id must come before
+          classes.</li>
+          <li>The <code class="param">attributes</code> parameters is an object
+          which keys are attribute names and values attribute values. For
+          example, <code>{ q: "app" }</code> sets the <code>q</code> attribute
+          to <code>app</code> for the node being created. This parameter can be
+          omitted.</li>
+          <li>The following parameters (if any) are the contents of the node.
+          Valid content is either a string, which creates a text node, and other
+          nodes, usually created through the <code>context.$</code> method.</li>
+        </ul>
+        <p>Node manipulation is done through the DOM methods <code
+          class="def">appendChild</code>, <code class="def">insertBefore</code>,
+        and <code class="def">setAttribute</code>. Additionally, Dumber nodes
+        have a <code class="def">_textContent(text)</code> method to replace
+        setting the <code>textContent</code> property, which can still be read
+        normally (and also be set, but changes will not cause the rendering to
+        update.) Dumber nodes have an internal method <code class="def
+          internal">_refresh(parent)</code> which will refresh the rendering for
+        the parent of this node (which defaults to <code>parentNode</code> if
+        not specified; the parameter is needed mostly for updates after a node
+        has been removed from its parent.) It should not be necessary to call
+        this method under normal circumstances.</p>
+        <p>Since a Dumber tree may be modified at runtime, it can be serialized
+        again through the <code class="def">_serialize()</code> method.</p>
+
+        <section id="manual.nodes.component">
+          <h4>The component and app nodes</h4>
+          <p>The <code>component</code> node describes a Dumber component.
+          <code>app</code> is synonymous with <code>component</code> and is
+          provided to describe the main component of a Dumber application. A
+          component may have metadata, a view, scripts, watches, and
+          sub-components. These are described by the following nodes:</p>
+          <ul>
+            <li><code>view</code> contains nodes that will be rendered in the
+            target document when this component is rendered. A component may
+            have only one view; setting a new view automatically replaces the
+            previous one.</li>
+          </ul>
+        </section>
+
+      </section>
+
+      <section id="manual.instances">
+        <h3>Component and watch instances</h3>
+        <p>Before a component can be rendered, it must be instantiated. Many
+        instances of the same component may be created and rendered
+        independently, maintaining their own state.</p>
+      </section>
+
+    </section>
+
     <h2>TODO</h2>
     <h3>Core</h3>
     <ol>
+      <li>XML loading</li>
       <li>Script</li>
     </ol>
     <h3>Dynamic rendering</h3>
@@ -45,5 +147,6 @@
     <h3>Watches</h3>
     <h3>Serialization</h3>
     <h3>Extensibility</h3>
+
   </body>
 </html>

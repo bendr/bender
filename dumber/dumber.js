@@ -5,8 +5,8 @@
   dumber.create_context = function(target)
   {
     if (target === undefined) target = document;
-    var context = target.implementation.createDocument(dumber.NS, "context",
-      null);
+    var context = (target.ownerDocument || target).implementation
+      .createDocument(dumber.NS, "context", null);
     context.createElement = function(name)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
@@ -17,7 +17,9 @@
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, ns, qname));
     };
-    return wrap_element(context.documentElement);
+    var root = wrap_element(context.documentElement);
+    root.target = target;
+    return root;
   };
 
   var component_instance =
@@ -117,7 +119,7 @@
     update_title: function()
     {
       if (this.target && this.component.localName === "app" &&
-          this.use.parentNode === this.use.context.documentElement &&
+          this.use.parentNode === this.use.ownerDocument.documentElement &&
           this.component._title) {
         this.target.ownerDocument.title = this.component._title.textContent;
       }
@@ -174,12 +176,30 @@
     {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
 
-      _textContent: function(t) { this.textContent = t; },
+      insertBefore: function(ch, ref)
+      {
+        Node.prototype.insertBefore.call(this, ch, ref);
+        this._refresh();
+        return ch;
+      },
+
+      removeChild: function(ch)
+      {
+        var parent = this.parentNode;
+        Node.protoype.removeChild.call(this, ch);
+        this._refresh(parent);
+        return ch;
+      },
+
+      _textContent: function(t)
+      {
+        this.textContent = t;
+        this._refresh();
+      },
 
       _refresh: function(parent)
       {
         if (!parent) parent = this.parentNode;
-        if (!parent) return;
         var component = component_of(parent);
         if (component) {
           component._rendered.forEach(function(i) { i.render(); });
@@ -192,8 +212,15 @@
       }
     },
 
-    context:
+    component:
     {
+      _init: function()
+      {
+        this._components = {};  // child components
+        this._watches = [];     // child watches
+        this._rendered = [];    // rendered instances
+      },
+
       // TODO allow class/id in any order
       $: function(name)
       {
@@ -232,39 +259,31 @@
           }
           [].slice.call(arguments, argc).forEach(function(ch) {
               if (typeof ch === "string") {
-                elem.appendChild(document.createTextNode(ch));
+                elem.insertBefore(this.ownerDocument.createTextNode(ch));
               } else if (ch instanceof Node) {
-                elem.appendChild(ch);
+                elem.insertBefore(ch);
               }
-            });
+            }, this);
           return elem;
         }
-      },
-    },
-
-    component:
-    {
-      _init: function()
-      {
-        this._components = {};  // child components
-        this._watches = [];     // child watches
-        this._rendered = [];    // rendered instances
       },
 
       insertBefore: function(ch, ref)
       {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        Node.prototype.insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "app" || ch.localName === "component") {
             this._add_component(ch);
           } else if (ch.localName === "title") {
-            if (this._title) this.removeChild(this._title);
+            if (this._title) Node.prototype.removeChild.call(this, this._title);
             this._title = ch;
             this._rendered.forEach(function(i) { i.update_title(); });
           } else if (ch.localName === "view") {
-            if (this._view) this.removeChild(this._view);
+            if (this._view) Node.prototype.removeChild.call(this, this._view);
             this._view = ch;
             this._refresh();
+          } else if (ch.localName === "use") {
+            this._rendered.push(ch._render(this.target));
           } else if (ch.localName === "watch") {
             // TODO add watch
           }
@@ -275,17 +294,16 @@
       removeChild: function(ch)
       {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
-        if (ch.namespaceURI === dumber.NS) {
-          if (ch.localName === "app" || ch.localName === "component") {
-            if (ch._id) delete this._components[ch._id];
-          } else if (ch.localName === "title") {
-            delete this._title;
-          } else if (ch.localName === "view") {
-            delete this._view;
-            this._refresh();
-          } else if (ch.localName === "watch") {
-            // TODO remove watch
-          }
+        if (ch._id && this._components[ch._id]) {
+          delete this._components[ch._id];
+        } else if (ch === this._title) {
+          delete this._title;
+        } else if (ch === this._view) {
+          delete this._view;
+          this._refresh();
+        } else if (ch._unrender) {
+          flexo.remove_from_array(this._rendered, ch._instance);
+          ch._unrender();
         }
         return ch;
       },
@@ -401,12 +419,20 @@
       {
         var component = this._find_component();
         if (component) {
-          var instance = Object.create(component_instance)
+          this._instance = Object.create(component_instance)
             .init(this, component);
-          instance.target = target;
-          return instance;
+          this._instance.target = target;
+          return this._instance;
         } else {
           flexo.log("No component found for", this);
+        }
+      },
+
+      _unrender: function()
+      {
+        if (this._instance) {
+          this._instance.unrender();
+          delete this._instance;
         }
       },
 
@@ -436,6 +462,7 @@
       {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
         this._refresh();
+        return ch;
       },
 
       _textContent: function(t)
@@ -456,10 +483,10 @@
   };
 
   prototypes.app = prototypes.component;
+  prototypes.context = prototypes.component;
 
   function wrap_element(e)
   {
-    e.context = e.ownerDocument;
     var proto = prototypes[e.localName] || {};
     for (var p in proto) e[p] = proto[p];
     for (var p in prototypes[""]) {
