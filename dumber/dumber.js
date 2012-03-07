@@ -59,7 +59,6 @@
         if (this.component._view) {
           this.render_children(this.component._view, this.target);
         }
-        this.update_title();
         this.component._watches.forEach(function(watch) {
             var instance_ = Object.create(watch_instance).init(watch, this);
             instance_.render();
@@ -383,16 +382,6 @@
         }
       }
       */
-    },
-
-    title:
-    {
-      // TODO add text nodes as well
-      set_textContent: function(t)
-      {
-        this.textContent = t;
-        this._refresh();
-      },
     },
 
     use:

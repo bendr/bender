@@ -6,10 +6,11 @@
     <meta http-equiv="cache-control" content="no-cache">
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
-        width: 960px; margin: auto; font-size: 16px; }
+        width: 720px; margin: auto; font-size: 16px; }
       code, pre { font-family: Menlo, Consolas, monospace; font-size: 14px; }
       a { color: #ff4040; text-decoration: none; }
-      .def { background-color: yellow; }
+      .def { background-color: #ff0; }
+      .node { background-color: #8f8; }
       .param { background-color: #8ff; }
       .sample { margin-left: 2em; }
     </style>
@@ -21,16 +22,19 @@
 
     <section id="tests">
       <h2>Tests</h2>
+      <p>These tests can be run directly in a browser.</p>
       <ol>
         <li><a href="tests/hello.html">Hello, world!</a>: display the text
         "Hello, world!"</li>
+        <li><a href="tests/hello.svg">Hello, world!</a>: display the text
+        "Hello, world!" but in SVG</li>
         <li><a href="tests/disappearer.html">Disappearer</a>: same as above but
         the content is immediately removed so nothing is displayed.</li>
         <li><a href="tests/insert.html">Insert</a>: insert a Dumber node in an
         existing document.</li>
-        <!--
-        <li><a href="title.html">Title setting and updating</a>: the title bar
+        <li><a href="tests/title.html">Title setting and updating</a>: the title bar
         should read "Newest title"</li>
+        <!--
         <li><a href="use.html">Nested use modified at runtime</a>: display A, B, C
         followed by - - - with 2 horizontal lines under each; <strong>BUG</strong>:
         there should be = = = between the lines, but there's extra text at the top
@@ -50,6 +54,14 @@
 
     <section id="manual">
       <h2>Manual</h2>
+
+      <section id="manual.start">
+        <h3>Getting started</h3>
+        <p>Using Dumber just requires including the <code>flexo.js</code> (the
+        support library for Dumber) and <code>dumber.js</code> in the host
+        document (<em>e.g.</em>, in <code>script</code> tags.) See for example
+        the above test documents.</p>
+      </section>
 
       <section id="manual.context">
         <h3>The context</h3>
@@ -112,17 +124,25 @@
         again through the <code class="def">_serialize()</code> method.</p>
 
         <section id="manual.nodes.component">
-          <h4>The component and app nodes</h4>
-          <p>The <code>component</code> node describes a Dumber component.
-          <code>app</code> is synonymous with <code>component</code> and is
-          provided to describe the main component of a Dumber application. A
-          component may have metadata, a view, scripts, watches, and
-          sub-components. These are described by the following nodes:</p>
+          <h4>The component, app and context nodes</h4>
+          <p>The <code class="node">component</code> node describes a Dumber
+          component.  <code class="node">app</code> is synonymous with
+          <code>component</code> and is provided to describe the main component
+          of a Dumber application. <code class="node">context</code> is also a
+          synonym and is used as the root of the Dumber tree (and as such should
+          not be used elsewhere.) A component may have metadata, a view,
+          scripts, watches, and sub-components. These are described by the
+          following nodes:</p>
           <ul>
-            <li><code>view</code> contains nodes that will be rendered in the
-            target document when this component is rendered. A component may
-            have only one view; setting a new view automatically replaces the
-            previous one.</li>
+            <li><code class="node">title</code> contains the title of the
+            component as plain text. This is used mostly as metadata, but gets
+            rendered as the document title when it is the child of an
+            <code>app</code> element which in turn is the child of a
+            <code>context</code> root element.</li>
+            <li><code class="node">view</code> contains foreign nodes that will
+            be rendered in the target document when this component is rendered.
+            A component may have only one view; setting a new view automatically
+            replaces the previous one.</li>
           </ul>
         </section>
 
