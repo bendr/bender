@@ -42,6 +42,8 @@
 
       context.querySelectorAll("view")[1].appendChild(
         context.$("use#retry-button", { ref: "button" }, "Retry"));
+
+        // XXX Refresh fails here?!
       context.querySelector("app").appendChild(
         context.$("watch",
           context.$("get", { event: "@pushed", use: "retry-button" },

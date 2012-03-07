@@ -43,7 +43,8 @@
         <li><a href="tests/calculator.html">Calculator (inactive buttons)</a>:
         display a calculator and its buttons</li>
         <li><a href="tests/button.html">Button component</a>: display three
-        buttons "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
+        buttons "OK", "Cancel", "Retry"; generate an alert when clicked.
+        <strong>BUG</strong>: refresh fails to add the last watch?</li>
         <li><a href="tests/button_style.html">Button with style</a>: same but OK
         is bold and Cancel is semi-transparent.</li>
       </ol>
@@ -132,16 +133,45 @@
           scripts, watches, and sub-components. These are described by the
           following nodes:</p>
           <ul>
+            <li><code class="node">desc</code> contains textual description for
+            the component. This is used as metadata; for intance, it can be used
+            to give hints at the usage of this component.</li>
+            <li><code class="node">script</code> (TODO)</li>
             <li><code class="node">title</code> contains the title of the
             component as plain text. This is used mostly as metadata, but gets
             rendered as the document title when it is the child of an
             <code>app</code> element which in turn is the child of a
             <code>context</code> root element.</li>
+            <li><code class="node">use</code> creates a new instance of a
+            component and renders it in this component's view (including in a
+            <node>context</code> node; see below.) <code>use</code> nodes should
+            appear as descendants of the <code>view</code> node of the
+            component.</li>
             <li><code class="node">view</code> contains foreign nodes that will
             be rendered in the target document when this component is rendered.
             A component may have only one view; setting a new view automatically
             replaces the previous one.</li>
+            <li><code class="node">watch</code> describes the behavior of the
+            component in the face of changes in its properties and events it
+            receives. See the section on watches below.</li>
           </ul>
+        </section>
+
+        <section id="manual.nodes.script">
+          <h4>The script node</h4>
+          <p>TODO</p>
+        </section>
+
+        <section id="manual.nodes.use">
+          <h4>The use node</h4>
+        </section>
+
+        <section id="manual.nodes.view">
+          <h4>The view and content nodes</h4>
+        </section>
+
+        <section id="manual.nodes.watch">
+          <h4>The watch, get and set nodes</h4>
         </section>
 
       </section>

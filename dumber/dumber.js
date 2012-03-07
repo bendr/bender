@@ -60,9 +60,9 @@
           this.render_children(this.component._view, this.target);
         }
         this.component._watches.forEach(function(watch) {
-            var instance_ = Object.create(watch_instance).init(watch, this);
-            instance_.render();
-            this.rendered.push(instance_);
+            var instance = Object.create(watch_instance).init(watch, this);
+            instance.render();
+            this.rendered.push(instance);
           }, this);
       }
     },
@@ -275,6 +275,9 @@
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "app" || ch.localName === "component") {
             this._add_component(ch);
+          } else if (ch.localName === "desc") {
+            if (this._desc) Node.prototype.removeChild.call(this, this._desc);
+            this._desc = ch;
           } else if (ch.localName === "title") {
             if (this._title) Node.prototype.removeChild.call(this, this._title);
             this._title = ch;
@@ -286,7 +289,8 @@
           } else if (ch.localName === "use") {
             this._rendered.push(ch._render(this.target));
           } else if (ch.localName === "watch") {
-            // TODO add watch
+            this._watches.push(ch);
+            this._refresh();
           }
         }
         return ch;
@@ -297,6 +301,8 @@
         Node.prototype.removeChild.call(this, ch);
         if (ch._id && this._components[ch._id]) {
           delete this._components[ch._id];
+        } else if (ch === this._desc) {
+          delete this._desc;
         } else if (ch === this._title) {
           delete this._title;
         } else if (ch === this._view) {
@@ -338,40 +344,25 @@
 
     get:
     {
-      /*
       insertBefore: function(ch, ref)
       {
-        var ch_ = Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        Node.prototype.insertBefore.call(this, ch, ref);
         if (ch.nodeType === 3 || ch.nodeType === 4) this._update_action();
-        return ch_;
+        return ch;
       },
 
       setAttribute: function(name, value)
       {
-        if (name === "event") {
-          this._event = value.trim();
-        } else if (name === "use") {
-          this._use = value.trim();
-        } else if (name === "view") {
-          this._view = value.trim();
+        Element.prototype.setAttribute.call(this, name, value);
+        if (name === "event" || name === "use" || name === "view") {
+          this["_" + name] = value.trim();
         }
-        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
 
-      set_textContent: function(t)
+      _textContent: function(t)
       {
         this.textContent = t;
         this._update_action();
-      },
-
-      _add_to_parent: function()
-      {
-        if (this.parentNode._gets) this.parentNode._gets.push(this);
-      },
-
-      _remove_from_parent: function(parent)
-      {
-        if (parent._gets) flexo.remove_from_array(parent._gets, this);
       },
 
       _update_action: function()
@@ -383,7 +374,6 @@
           delete this._action;
         }
       }
-      */
     },
 
     use:
@@ -463,6 +453,21 @@
       {
         this._gets = [];
         this._sets = [];
+        this._watches = [];
+      },
+
+      insertBefore: function(ch, ref)
+      {
+        Node.prototype.insertBefore.call(this, ch, ref);
+        if (ch.namespaceURI === dumber.NS) {
+          if (ch.localName === "get") {
+            this._gets.push(ch);
+          } else if (ch.localName === "set") {
+            this._sets.push(ch);
+          } else if (ch.localName === "watch") {
+            this._watches.push(ch);
+          }
+        }
       },
     }
   };
