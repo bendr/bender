@@ -220,6 +220,7 @@
         this._components = {};  // child components
         this._watches = [];     // child watches
         this._rendered = [];    // rendered instances
+        flexo.getter_setter(this, "_is_component", function() { return true; });
       },
 
       // TODO allow class/id in any order
@@ -475,12 +476,12 @@
   prototypes.app = prototypes.component;
   prototypes.context = prototypes.component;
 
+  // The component of a node is itself if it is a component node (or app or
+  // context), or the component of its parent
   function component_of(node)
   {
-    return node ?
-      node.namespaceURI === dumber.NS &&
-        (node.localName === "component" || node.localName === "app") ?
-        node : component_of(node.parentNode) : null;
+    return node ? node._is_component ? node : component_of(node.parentNode) :
+      null;
   }
 
   function render_component(component, target, use)
