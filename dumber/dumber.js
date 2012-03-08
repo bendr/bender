@@ -59,6 +59,7 @@
         if (this.component._view) {
           this.render_children(this.component._view, this.target);
         }
+        this.update_title();
         this.component._watches.forEach(function(watch) {
             var instance = Object.create(watch_instance).init(watch, this);
             instance.render();
