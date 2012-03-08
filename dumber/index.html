@@ -45,6 +45,8 @@
         <li><a href="tests/calculator_script.html">Calculator (script)</a>:
         display a calculator and its buttons; built at instantiation time from a
         script element.</li>
+        <li><a href="tests/timer.html">Timer component</a>: timer (script and
+        properties)</li>
         <li><a href="tests/button.html">Button component</a>: display three
         buttons "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
         <li><a href="tests/button_style.html">Button with style</a>: same but OK
@@ -247,6 +249,17 @@
           therefore possible to overload the base component's methods as well as
           add new methods to that component. A good entry point for
           initialization is the <code>instantiated</code> method.</p>
+          <p><strong>Properties</strong>: instances have properties (Javascript
+          values) that can be set directly from Dumber attributes. Attributes in
+          the namespace <code>http://dumber.igel.co.jp/p</code> or prefixed with
+          <code>p:</code> (when using the <code>$</code> convenience function to
+          create nodes) on <code>component</code> and <code>use</code> nodes
+          sets the value of a property with the same name as the attribute. When
+          set on a <code>component</code> node, all instances will have this
+          property with the value as default; when set on a <code>use</code>
+          node, then only that instance will have that property (or value if the
+          component also has that property.) Instances have a <code
+          class="param">properties</code> field that holds the properties.</p>
         </section>
 
         <section id="manual.nodes.watch">

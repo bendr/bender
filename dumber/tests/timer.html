@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = dumber.create_context(document.body);
+
+      context.appendChild(context.$("app",
+          context.$("component#timer", { "p:rate": 1000 },
+            context.$("script", "timer(prototype);")),
+          context.$("title", "Timer"),
+          context.$("use", { ref: "timer", "p:rate": 500 })));
+
+      context.appendChild(context.$("use", { q: "app" }));
+
+      function timer(prototype)
+      {
+        prototype.instantiated = function() { this.tick(); }
+
+        prototype.tick = function()
+        {
+          if (this.properties.rate > 0) {
+            flexo.notify(this, "@tick");
+            setTimeout(this.tick.bind(this), this.properties.rate);
+          }
+        }
+      }
+
+    </script>
+  </body>
+</html>

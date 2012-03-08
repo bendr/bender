@@ -50,10 +50,7 @@
       context.appendChild(context.$("component#button",
           context.$("view",
             context.$("html:div#b.button",
-              context.$("content"))),
-          context.$("watch",
-            context.$("get", { event: "click", view: "b" },
-            "if (value.button === 0) flexo.notify(this, '@pushed');"))));
+              context.$("content")))));
 
       // The calculator application itself
       context.appendChild(context.$("app",

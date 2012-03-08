@@ -1,6 +1,7 @@
 (function(dumber) {
 
   dumber.NS = "http://dumber.igel.co.jp";
+  dumber.NS_P = "http://dumber.igel.co.jp/p";
 
   dumber.create_context = function(target)
   {
@@ -32,10 +33,18 @@
       this.views = {};     // rendered views by id
       this.uses = {};      // rendered uses by id
       this.rendered = [];  // root DOM nodes and use instances
+      this.watchers = [];  // instances that have watches on this instance
       var target = undefined;
       Object.defineProperty(this, "target", { enumerable: true,
         get: function() { return target; },
         set: function(t) { target = t; this.render(); } });
+      this.properties = {};
+      Object.keys(component._properties).forEach(function(k) {
+          this.properties[k] = component._properties[k];
+        }, this);
+      Object.keys(use._properties).forEach(function(k) {
+          this.properties[k] = use._properties[k];
+        }, this);
       return this;
     },
 
@@ -224,6 +233,7 @@
         this._watches = [];     // child watches
         this._scripts = [];     // child scripts
         this._rendered = [];    // rendered instances
+        this._properties = {};  // properties map
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },
 
@@ -328,7 +338,6 @@
         return ch;
       },
 
-      // TODO support xml:id?
       setAttribute: function(name, value)
       {
         if (name === "id") {
@@ -337,7 +346,14 @@
             this.parentNode._add_component(this);
           }
         }
-        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+      },
+
+      // TODO support xml:id?
+      setAttributeNS: function(ns, name, value)
+      {
+        if (ns === dumber.NS_P) this._properties[name] = value;
+        Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
       _add_component: function(component)
@@ -391,27 +407,40 @@
 
     use:
     {
+      _init: function()
+      {
+        this._properties = {};
+      },
+
       // Attributes interpreted by use
       _attributes: { id: true, q: true, ref: true },
 
       setAttribute: function(name, value)
       {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (this._attributes.hasOwnProperty(name)) this[name] = value.trim();
+        if (this._attributes.hasOwnProperty(name)) {
+          this["_" + name] = value.trim();
+        }
         this._refresh();
+      },
+
+      setAttributeNS: function(ns, name, value)
+      {
+        if (ns === dumber.NS_P) this._properties[name] = value;
+        Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
       _find_component: function()
       {
         var component = undefined;
-        if (this.ref) {
+        if (this._ref) {
           var parent_component = component_of(this);
           while (!component && parent_component) {
-            component = parent_component._components[this.ref];
+            component = parent_component._components[this._ref];
             parent_component = component_of(parent_component.parentNode);
           }
-        } else if (this.q) {
-          component = this.parentNode && this.parentNode.querySelector(this.q);
+        } else if (this._q) {
+          component = this.parentNode && this.parentNode.querySelector(this._q);
         }
         return component;
       },
