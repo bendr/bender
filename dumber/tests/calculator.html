@@ -46,15 +46,18 @@
 
       var context = dumber.create_context(document.body);
 
+      // The button component (this would be loaded from a library)
+      context.appendChild(context.$("component#button",
+          context.$("view",
+            context.$("html:div#b.button",
+              context.$("content"))),
+          context.$("watch",
+            context.$("get", { event: "click", view: "b" },
+            "if (value.button === 0) flexo.notify(this, '@pushed');"))));
+
+      // The calculator application itself
       context.appendChild(context.$("app",
           context.$("title", "Dynamic calculator"),
-          context.$("component#button",
-            context.$("view",
-              context.$("html:div#b.button",
-                context.$("content"))),
-            context.$("watch",
-              context.$("get", { event: "click", view: "b" },
-              "if (value.button === 0) flexo.notify(this, '@pushed');"))),
           context.$("view",
             context.$("html:div#calculator.calculator",
               context.$("html:div.screen",

@@ -33,7 +33,8 @@
         <li><a href="tests/insert.html">Insert</a>: insert a Dumber node in an
         existing document.</li>
         <li><a href="tests/title.html">Title setting and updating</a>: the title
-        bar should read "Newest title"</li>
+        bar should read "Newest title". <strong>BUG</strong>: the last change is
+        not shown.</li>
         <li><a href="tests/use.html">Nested use modified at runtime</a>: display
         A, B, C followed by - - - with 2 horizontal lines under each and = = =
         between the horizontal lines</li>
@@ -119,7 +120,11 @@
         has been removed from its parent.) It should not be necessary to call
         this method under normal circumstances.</p>
         <p>Since a Dumber tree may be modified at runtime, it can be serialized
-        again through the <code class="def">_serialize()</code> method.</p>
+        again through the <code class="def">_serialize()</code> method. This
+        simply returns a text string of the XML serialization of the current
+        state of the Dumber tree. This method is available on any node, so it
+        may be used for instance for the main application or a given component
+        rather than the full context.</p>
 
         <section id="manual.nodes.component">
           <h4>The component, app and context nodes</h4>
@@ -135,7 +140,8 @@
             <li><code class="node">desc</code> contains textual description for
             the component. This is used as metadata; for intance, it can be used
             to give hints at the usage of this component.</li>
-            <li><code class="node">script</code> (TODO)</li>
+            <li><code class="node">script</code> allows customizing the behavior
+            of a component through Javascript.</li>
             <li><code class="node">title</code> contains the title of the
             component as plain text. This is used mostly as metadata, but gets
             rendered as the document title when it is the child of an
@@ -158,7 +164,15 @@
 
         <section id="manual.nodes.script">
           <h4>The script node</h4>
-          <p>TODO</p>
+          <p>The <code class="node">script</code> node contains custom
+          Javascript code. This code is executed when the node is first created
+          or imported into the context and defines a special variable to access
+          the <em>prototype</em> of the component that it is part of. It is
+          therefor possible to overload the base component's methods as well as
+          add new methods to that component.</p>
+          <p>Inside a <code>script</code> node the <code
+          class="param">prototype</code> variable is set to the prototype of the
+          current component.</p>
         </section>
 
         <section id="manual.nodes.use">

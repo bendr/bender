@@ -9,12 +9,12 @@
       .createDocument(dumber.NS, "context", null);
     context.createElement = function(name)
     {
-      return wrap_element(Document.prototype.createElementNS
+      return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, dumber.NS, name));
     };
     context.createElementNS = function(ns, qname)
     {
-      return wrap_element(Document.prototype.createElementNS
+      return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, ns, qname));
     };
     var root = wrap_element(context.documentElement);
@@ -179,7 +179,7 @@
 
       insertBefore: function(ch, ref)
       {
-        Node.prototype.insertBefore.call(this, ch, ref);
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         this._refresh();
         return ch;
       },
@@ -272,19 +272,25 @@
 
       insertBefore: function(ch, ref)
       {
-        Node.prototype.insertBefore.call(this, ch, ref);
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "app" || ch.localName === "component") {
             this._add_component(ch);
           } else if (ch.localName === "desc") {
-            if (this._desc) Node.prototype.removeChild.call(this, this._desc);
+            if (this._desc) {
+              Object.getPrototypeOf(this).removeChild.call(this, this._desc);
+            }
             this._desc = ch;
           } else if (ch.localName === "title") {
-            if (this._title) Node.prototype.removeChild.call(this, this._title);
+            if (this._title) {
+              Object.getPrototypeOf(this).removeChild.call(this, this._title);
+            }
             this._title = ch;
             this._rendered.forEach(function(i) { i.update_title(); });
           } else if (ch.localName === "view") {
-            if (this._view) Node.prototype.removeChild.call(this, this._view);
+            if (this._view) {
+              Object.getPrototypeOf(this).removeChild.call(this, this._view);
+            }
             this._view = ch;
             this._refresh();
           } else if (ch.localName === "use") {
@@ -299,7 +305,7 @@
 
       removeChild: function(ch)
       {
-        Node.prototype.removeChild.call(this, ch);
+        Object.getPrototypeOf(this).removeChild.call(this, ch);
         if (ch._id && this._components[ch._id]) {
           delete this._components[ch._id];
         } else if (ch === this._desc) {
@@ -325,7 +331,7 @@
             this.parentNode._add_component(this);
           }
         }
-        return Element.prototype.setAttribute.call(this, name, value);
+        return Object.getPrototypeOf(this).setAttribute.call(this, name, value);
       },
 
       _add_component: function(component)
@@ -347,14 +353,14 @@
     {
       insertBefore: function(ch, ref)
       {
-        Node.prototype.insertBefore.call(this, ch, ref);
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.nodeType === 3 || ch.nodeType === 4) this._update_action();
         return ch;
       },
 
       setAttribute: function(name, value)
       {
-        Element.prototype.setAttribute.call(this, name, value);
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "event" || name === "use" || name === "view") {
           this["_" + name] = value.trim();
         }
@@ -384,7 +390,7 @@
 
       setAttribute: function(name, value)
       {
-        Element.prototype.setAttribute.call(this, name, value);
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (this._attributes.hasOwnProperty(name)) this[name] = value.trim();
         this._refresh();
       },
@@ -429,7 +435,7 @@
     {
       insertBefore: function(ch, ref)
       {
-        Node.prototype.insertBefore.call(this, ch, ref);
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "use") {
             this._refresh();
@@ -442,7 +448,7 @@
 
       removeChild: function(ch)
       {
-        Node.prototype.removeChild.call(this, ch);
+        Object.getPrototypeOf(this).removeChild.call(this, ch);
         this._refresh();
         return ch;
       },
@@ -459,7 +465,7 @@
 
       insertBefore: function(ch, ref)
       {
-        Node.prototype.insertBefore.call(this, ch, ref);
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "get") {
             this._gets.push(ch);
