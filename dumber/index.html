@@ -11,7 +11,7 @@
       a { color: #ff4040; text-decoration: none; }
       .def { background-color: #ff0; }
       .node { background-color: #8f8; }
-      .param { background-color: #8ff; }
+      .prop, .param, .attr { background-color: #8ff; }
       .sample { margin-left: 2em; }
     </style>
   </head>
@@ -42,6 +42,9 @@
         one is added after rendering.", "Followed by a p."</li>
         <li><a href="tests/calculator.html">Calculator (inactive buttons)</a>:
         display a calculator and its buttons</li>
+        <li><a href="tests/calculator_script.html">Calculator (script)</a>:
+        display a calculator and its buttons; built at instantiation time from a
+        script element.</li>
         <li><a href="tests/button.html">Button component</a>: display three
         buttons "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
         <li><a href="tests/button_style.html">Button with style</a>: same but OK
@@ -138,7 +141,7 @@
           <ul>
             <li><code class="node">desc</code> contains textual description for
             the component. This is used as metadata; for intance, it can be used
-            to give hints at the usage of this component.</li>
+            to give hints about the usage of this component.</li>
             <li><code class="node">script</code> allows customizing the behavior
             of a component through Javascript.</li>
             <li><code class="node">title</code> contains the title of the
@@ -159,27 +162,91 @@
             component in the face of changes in its properties and events it
             receives. See the section on watches below.</li>
           </ul>
-        </section>
-
-        <section id="manual.nodes.script">
-          <h4>The script node</h4>
-          <p>The <code class="node">script</code> node contains custom
-          Javascript code. This code is executed when the node is first created
-          or imported into the context and defines a special variable to access
-          the <em>prototype</em> of the component that it is part of. It is
-          therefor possible to overload the base component's methods as well as
-          add new methods to that component.</p>
-          <p>Inside a <code>script</code> node the <code
-          class="param">prototype</code> variable is set to the prototype of the
-          current component.</p>
+          <p>All Dumber nodes may have an <code class="attr">id</code> attribute
+          which should be unique in the document where the node appears (if
+          importing nodes from different documents, nodes with the same id can
+          be distinguished by the URL of the original document.) These ids are
+          not rendered since many instances of the same component may be
+          rendered in a document.</p>
         </section>
 
         <section id="manual.nodes.use">
           <h4>The use node</h4>
+          <p>The <code class="node">use</code> node instantiates and renders a
+          component. For every <code>use</code> node, a new <em>instance</em> of
+          a component is created; if this component has a view, or has
+          <code>use</code> children that themselves have a view (at any level of
+          nesting) then the contents of the view gets rendered in its place.</p>
+          <p>The component to be instantiated is designated by one of the
+          following attributes:</p>
+          <ul>
+            <li><code class="attr">q</code> (short for <em>query
+            selector</em>) to refer to a node in the current context (TODO check
+            the exact context of the querySelector call); note that using
+            <code>#</code> for id may not work, so it is safer to use
+            <code>ref</code> below in that situation;</li>
+            <li><code class="attr">ref</code> to refer to the id of a node in
+            the current document;</li>
+            <li><code class="attr">href</code> (TODO)</li>
+          </ul>
+          <p>Additional attributes (besides <code class="attr">id</code>) and
+          contents of the <code>use</code> nodes are passed to the instantiated
+          component view during rendering as described below.</p>
         </section>
 
         <section id="manual.nodes.view">
           <h4>The view and content nodes</h4>
+          <p>The <code class="node">view</code> node contains foreign nodes
+          (<em>e.g.</em>, HTML, SVG, etc.) describing the actual rendering of a
+          component. <code>view</code> may also include <code>use</code> and
+          <code>content</code> nodes (other Dumber nodes are silently ignored),
+          as well as text nodes. Additionally, <code>use</code> nodes outside of
+          a <code>view</code> node are also rendered as siblings of the children
+          of the <code>view</code> node.</p>
+          <p>When a component is rendered, the contents of the view are copied
+          as is (minus id attributes as discussed above) into the target
+          element. <code>use</code> nodes allow to include Dumber components
+          inside another component. The <code class="node">content</code> allows
+          to customize the rendering of a node by replacing this node with the
+          contents of the original <code>use</code>. The <code>content</code>
+          node may have content of its own, which is the default content that
+          gets rendered when the <code>use</code> has no content.</p>
+          <p>Similarly, attributes of the <code>use</code> node are added to the
+          top-level elements that get rendered; this allows for instance to
+          change the class of an element to alter its rendering.</p>
+          <p>TODO: named content elements and shortcuts for bindings.</p>
+        </section>
+
+        <section id="manual.nodes.script">
+          <h4>The component instance object and the script node</h4>
+          <p>Before rendering, a component gets <em>instantiated</em>, which
+          creates a new Javascript object acting as the <em>component
+          instance</em> of this component. A component instance has the
+          following methods and properties:</p>
+          <ul>
+            <li><code class="def">init(use, component)</code> initializes the
+            component after it was created. <code class="param">use</code> is
+            the <code>use</code> node instantiating the component, and
+            <code class="param">component</code> is the component node being
+            instantiated. The instance is returned.</li>
+            <li><code class="prop">views</code> maps the id of the foreign nodes
+            inside the view of the component and the actual rendered nodes in
+            the target. Nodes that do not have an id are not included.</li>
+            <li><code class="prop">uses</code> maps the id of <code>use</code>
+            nodes inside the view of the component and the instance that was
+            created. Nodes that do not have an id are not included.</li>
+            <li><code class="def">instantiated()</code> is called <em>after</em>
+            the instance was created and initialized, and right before it will
+            be rendered. By default, it does not do anything but can be
+            overloaded for component customization.</li>
+          </ul>
+          <p>The <code class="node">script</code> node contains custom
+          Javascript code. This code is executed when the node is instantiated
+          defines a variable <code class="param">prototype</code> to access the
+          <em>prototype</em> of the component that it is part of. It is
+          therefore possible to overload the base component's methods as well as
+          add new methods to that component. A good entry point for
+          initialization is the <code>instantiated</code> method.</p>
         </section>
 
         <section id="manual.nodes.watch">

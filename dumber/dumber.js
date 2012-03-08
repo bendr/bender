@@ -39,18 +39,7 @@
       return this;
     },
 
-    unrender: function()
-    {
-      this.rendered.forEach(function(r) {
-        if (r instanceof Node) {
-          r.parentNode.removeChild(r);
-        } else {
-          flexo.remove_from_array(r.component._rendered, r);
-          r.unrender();
-        }
-      }, this);
-      this.rendered = [];
-    },
+    instantiated: function() {},
 
     render: function()
     {
@@ -116,6 +105,19 @@
         this.rendered.push(d);
       }
       this.render_children(node, d);
+    },
+
+    unrender: function()
+    {
+      this.rendered.forEach(function(r) {
+        if (r instanceof Node) {
+          r.parentNode.removeChild(r);
+        } else {
+          flexo.remove_from_array(r.component._rendered, r);
+          r.unrender();
+        }
+      }, this);
+      this.rendered = [];
     },
 
     update_title: function()
@@ -220,6 +222,7 @@
       {
         this._components = {};  // child components
         this._watches = [];     // child watches
+        this._scripts = [];     // child scripts
         this._rendered = [];    // rendered instances
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },
@@ -282,6 +285,8 @@
               Object.getPrototypeOf(this).removeChild.call(this, this._desc);
             }
             this._desc = ch;
+          } else if (ch.localName === "script") {
+            this._scripts.push(ch);
           } else if (ch.localName === "title") {
             if (this._title) {
               Object.getPrototypeOf(this).removeChild.call(this, this._title);
@@ -495,6 +500,10 @@
   {
     if (!component) return;
     var instance = Object.create(component_instance).init(use, component);
+    component._scripts.forEach(function(script) {
+        (new Function("prototype", script.textContent))(instance);
+      });
+    instance.instantiated();
     instance.target = target;
     return instance;
   }
