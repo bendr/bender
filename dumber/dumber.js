@@ -72,7 +72,7 @@
             if (ch.localName === "use") {
               var u = ch._render(dest);
               this.rendered.push(u);
-              if (ch.id) this.uses[ch.id] = u;
+              if (ch._id) this.uses[ch._id] = u;
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
                 this.use: ch, dest);
@@ -166,10 +166,14 @@
                 });
             } else if (get._use) {
               var target = this.component_instance.uses[get._use];
-              flexo.listen(target, get._event, listener);
-              this.ungets.push(function() {
-                  flexo.unlisten(target, get._event, listener);
-                });
+              if (!target) {
+                flexo.log("No view for \"{0}\"".fmt(get._use));
+              } else {
+                flexo.listen(target, get._event, listener);
+                this.ungets.push(function() {
+                    flexo.unlisten(target, get._event, listener);
+                  });
+              }
             }
           }
         }, this);

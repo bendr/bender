@@ -20,15 +20,16 @@
 
       var context = dumber.create_context(document.getElementById("target"));
 
+      context.appendChild(
+        context.$("component#button",
+          context.$("view",
+            context.$("html:div#b.button",
+              context.$("content"))),
+          context.$("watch",
+            context.$("get", { event: "click", view: "b" },
+            "if (value.button === 0) flexo.notify(this, '@pushed');"))));
       context.appendChild(context.$("app",
           context.$("title", "Button test"),
-          context.$("component#button",
-            context.$("view",
-              context.$("html:div#b.button",
-                context.$("content"))),
-            context.$("watch",
-              context.$("get", { event: "click", view: "b" },
-              "if (value.button === 0) flexo.notify(this, '@pushed');"))),
           context.$("view",
             context.$("use#ok-button", { ref: "button" }, "OK"),
             context.$("use#cancel-button", { ref: "button" }, "Cancel")),

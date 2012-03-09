@@ -236,6 +236,9 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     target[type].push(listener);
   };
 
+  // Linear interpolation
+  flexo.lerp = function(from, to, ratio) { return from + (to - from) * ratio; };
+
   // Normalize whitespace in a string
   flexo.normalize = function(string)
   {
@@ -690,13 +693,16 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return flexo.elem(null, name, attrs, contents);
   };
 
-  // Linear interpolation
-  flexo.lerp = function(from, to, ratio) { return from + (to - from) * ratio; };
-
   // Remove all children of an element
   flexo.remove_children = function(elem)
   {
     while (elem.firstChild) elem.removeChild(elem.firstChild);
+  };
+
+  // Root of a node: the furthest node up the tree.
+  flexo.root = function(node)
+  {
+    return node && node.parentNode ? flexo.root(node.parentNode) : node;
   };
 
   // requestAnimationFrame
