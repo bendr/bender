@@ -67,8 +67,8 @@
         <p>Nodes in the Dumber tree overload common DOM methods so that changes
         can be tracked and reflected after rendering was done. Component
         elements, such as the context root element, have a convenience method
-        <code class="def">$(name, attributes, <em>contents</em>)</code> to
-        create new nodes.</p>
+        <code class="def">$(name, attributes, ...)</code> to create new
+        nodes.</p>
         <ul>
           <li>The <code class="param">name</code> parameter may be qualified
           with a known namespace prefix (<code>html</code> or
@@ -76,29 +76,31 @@
           <code>xml</code>, <code>xmlns</code>; the Dumber namespace is used if
           there is no prefix) and may include an id prefixed by <code>#</code>
           and a list of class names prefixed by <code>.</code>. For example, the
-          name string <code>html:div#calculator.calculator</code> describes an
-          HTML <code>div</code> element with id <code>caculator</code> and class
+          name string <code>html:div#body.calculator</code> describes an
+          HTML <code>div</code> element with id <code>body</code> and class
           <code>calculator</code>, while <code>use</code> describes a Dumber
           <code>use</code> element. <strong>Note</strong>: id must come before
           classes.</li>
           <li>The <code class="param">attributes</code> parameters is an object
           which keys are attribute names and values attribute values. For
           example, <code>{ q: "app" }</code> sets the <code>q</code> attribute
-          to <code>app</code> for the node being created. This parameter can be
-          omitted. Note that a null or undefined value for an attribute will not
-          set it.</li>
+          to <code>app</code> for the node being created. A <code>null</code> or
+          <code>undefined</code> value for an attribute will not set it.  This
+          parameter can be omitted.</li>
           <li>The following parameters (if any) are the contents of the node.
           Valid content is either a string, which creates a text node, and other
-          nodes, usually created through the <code>context.$</code> method.</li>
+          nodes, usually created themselves through the <code>$</code>
+          method.</li>
         </ul>
         <p>Node manipulation is done through the DOM methods <code
           class="def">appendChild</code>, <code class="def">insertBefore</code>,
-        and <code class="def">setAttribute</code>. Additionally, Dumber nodes
-        have a <code class="def">_textContent(text)</code> method to replace
-        setting the <code>textContent</code> property, which can still be read
-        normally (and also be set, but changes will not cause the rendering to
-        update.) Dumber nodes have an internal method <code class="def
-          internal">_refresh(parent)</code> which will refresh the rendering for
+        <code class="def">setAttribute</code>, and <code
+        class="def">setAttributeNS</code>. Additionally, Dumber nodes have a
+        <code class="def">_textContent(text)</code> method to replace setting
+        the <code>textContent</code> property, which can still be read normally
+        (and also be set, but changes will not cause the rendering to update.)
+        Dumber nodes have an internal method <code class="def
+        internal">_refresh(parent)</code> which will refresh the rendering for
         the parent of this node (which defaults to <code>parentNode</code> if
         not specified; the parameter is needed mostly for updates after a node
         has been removed from its parent.) It should not be necessary to call
@@ -299,7 +301,7 @@ context.querySelector("component")
           <li>Animator</li>
           <li>Customizable calculator</li>
           <li>Memory game</li>
-          <li>SVG Snake game</li>
+          <li>Sketchbook</li>
           <li>SVG Arrows</li>
           <li>SVG Clock</li>
           <li>TTFD</li>
@@ -322,6 +324,8 @@ context.querySelector("component")
           <li><a href="tests/use.html">Nested use modified at runtime</a>: display
           A, B, C followed by - - - with 2 horizontal lines under each and = = =
           between the horizontal lines</li>
+          <li><a href="tests/set_attr.html">Setting attributes at runtime</a>:
+          the letter A should become red.</li>
           <li><a href="tests/add.html">Adding and removing components</a>: display
           5 paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This
           one is added after rendering.", "Followed by a p."</li>

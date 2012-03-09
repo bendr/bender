@@ -202,6 +202,18 @@
         return ch;
       },
 
+      setAttribute: function(name, value)
+      {
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        this._refresh();
+      },
+
+      setAttributeNS: function(ns, name, value)
+      {
+        Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
+        this._refresh();
+      },
+
       _textContent: function(t)
       {
         this.textContent = t;
