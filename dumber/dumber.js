@@ -52,18 +52,16 @@
 
     render: function()
     {
-      if (this.target) {
-        this.unrender();
-        if (this.component._view) {
-          this.render_children(this.component._view, this.target);
-        }
-        this.update_title();
-        this.component._watches.forEach(function(watch) {
-            var instance = Object.create(watch_instance).init(watch, this);
-            instance.render();
-            this.rendered.push(instance);
-          }, this);
+      this.unrender();
+      if (this.target instanceof Element && this.component._view) {
+        this.render_children(this.component._view, this.target);
       }
+      this.update_title();
+      this.component._watches.forEach(function(watch) {
+          var instance = Object.create(watch_instance).init(watch, this);
+          instance.render();
+          this.rendered.push(instance);
+        }, this);
     },
 
     render_children: function(node, dest)
@@ -92,8 +90,8 @@
 
     render_foreign: function(node, dest)
     {
-      var d = dest.ownerDocument
-                .createElementNS(node.namespaceURI, node.localName);
+      var d = dest.ownerDocument.createElementNS(node.namespaceURI,
+          node.localName);
       [].forEach.call(node.attributes, function(attr) {
           if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
@@ -131,7 +129,7 @@
 
     update_title: function()
     {
-      if (this.target && this.component.localName === "app" &&
+      if (this.target instanceof Node && this.component.localName === "app" &&
           this.use.parentNode === this.use.ownerDocument.documentElement &&
           this.component._title) {
         this.target.ownerDocument.title = this.component._title.textContent;
@@ -256,7 +254,7 @@
         }
         var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
         if (m) {
-          var ns = m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())];
+          var ns = m[1] && flexo[m[1].toUpperCase() + "_NS"];
           var elem = ns ? this.ownerDocument.createElementNS(ns, m[2]) :
             this.ownerDocument.createElement(m[2]);
           if (m[3]) attrs.id = m[3];
@@ -265,7 +263,7 @@
                 attrs[a] !== undefined && attrs[a] !== null) {
               var split = a.split(":");
               ns = split[1] && (dumber["NS_" + split[0].toUpperCase()] ||
-                  flexo["{0}_NS".fmt(split[0].toUpperCase())]);
+                  flexo[split[0].toUpperCase() + "_NS"]);
               if (ns) {
                 elem.setAttributeNS(ns, split[1], attrs[a]);
               } else {

@@ -6,7 +6,16 @@
     <meta http-equiv="cache-control" content="no-cache">
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
-        width: 720px; margin: auto; font-size: 16px; }
+        width: 960px; margin: auto; font-size: 16px;
+        background-color: #fef9f0; }
+      h1, h2, h3 { font-weight: normal; color: #102040; }
+      .g4, .g8, .g12 { display: inline; float: left; position: relative;
+        margin: 0 10px; }
+      .g4 { width: 300px; }
+      .g8 { width: 620px; }
+      .g12 { width: 940px; }
+      .clear { clear: both; display: block; overflow: hidden;
+        visibility: hidden; width: 0; height: 0; }
       code, pre { font-family: Menlo, Consolas, monospace; font-size: 14px; }
       a { color: #ff4040; text-decoration: none; }
       .def { background-color: #ff0; }
@@ -16,70 +25,41 @@
     </style>
   </head>
   <body>
-    <h1>Dumber</h1>
-    <p>Dumber is a simpler implementation of Bender intended to prototype
-    dynamic rendering of components.</p>
 
-    <section id="tests">
-      <h2>Tests</h2>
-      <p>These tests can be run directly in a browser.</p>
-      <ol>
-        <li><a href="tests/hello.html">Hello, world!</a>: display the text
-        "Hello, world!"</li>
-        <li><a href="tests/hello.svg">Hello, world!</a>: display the text
-        "Hello, world!" but in SVG</li>
-        <li><a href="tests/disappearer.html">Disappearer</a>: same as above but
-        the content is immediately removed so nothing is displayed.</li>
-        <li><a href="tests/insert.html">Insert</a>: insert a Dumber node in an
-        existing document.</li>
-        <li><a href="tests/title.html">Title setting and updating</a>: the title
-        bar should read "Newest title".</li>
-        <li><a href="tests/use.html">Nested use modified at runtime</a>: display
-        A, B, C followed by - - - with 2 horizontal lines under each and = = =
-        between the horizontal lines</li>
-        <li><a href="tests/add.html">Adding and removing components</a>: display
-        5 paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This
-        one is added after rendering.", "Followed by a p."</li>
-        <li><a href="tests/calculator.html">Calculator (inactive buttons)</a>:
-        display a calculator and its buttons</li>
-        <li><a href="tests/calculator_script.html">Calculator (script)</a>:
-        display a calculator and its buttons; built at instantiation time from a
-        script element.</li>
-        <li><a href="tests/timer.html">Timer component</a>: timer (script and
-        properties)</li>
-        <li><a href="tests/button.html">Button component</a>: display three
-        buttons "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
-        <li><a href="tests/button_style.html">Button with style</a>: same but OK
-        is bold and Cancel is semi-transparent.</li>
-      </ol>
-    </section>
+    <header class="g12">
+      <h1>Dumber</h1>
+      <p>Dumber is a simpler implementation of Bender intended to prototype
+      dynamic rendering of components.</p>
+    </header>
 
-    <section id="manual">
+    <section id="manual" class="g8">
       <h2>Manual</h2>
 
       <section id="manual.start">
         <h3>Getting started</h3>
-        <p>Using Dumber just requires including the <code>flexo.js</code> (the
-        support library for Dumber) and <code>dumber.js</code> in the host
-        document (<em>e.g.</em>, in <code>script</code> tags.) See for example
-        the above test documents.</p>
+        <p>Using Dumber just requires including the <a
+        href="../flexo.js"><code>flexo.js</code></a> (the support library for
+        Dumber) and <a href="dumber.js"><code>dumber.js</code></a> Javascript
+        files in the host document (<em>e.g.</em>, in <code>script</code>
+        tags.) See for example the above test documents.</p>
       </section>
 
       <section id="manual.context">
         <h3>The context</h3>
         <p>The <em>context</em> is the document hosting Dumber nodes. The root
-        of the document is a <code>context</code> element, which in turn has
-        <code>component</code> or <code>app</code> child nodes. Rendering an
-        application or a component in a target document is achieved by adding a
-        <code>use</code> node for the desired component to the tree.</p>
-        <p><code class="def">dumber.create_context(target)</code> creates a new
-        context with a rendering target specified by <code
-          class="param">target</code> (or the current document by default.)
-        Rendered nodes will be appended to the given target. The
+        of the document is a <code>context</code> element, which should only be
+        used as the root a Dumber tree. <code
+        class="def">dumber.create_context(target)</code> creates a new context
+        with a rendering target specified by <code class="param">target</code>
+        (or the current document by default.) If the target is a DOM
+        <code>Element</code> (<em>e.g.</em> the body of an HTML document, or a
+        <code>g</code> element in an SVG document), rendered nodes will be
+        appended to the given target. In other cases (<em>e.g.</em>, when the
+        target is a <code>Document</code> node, which is the default),
+        individual components may be rendered by specifying a target node. The
         <code class="param">context</code> root element is returned (not the
         context document itself, which can be accessed through the DOM
-        <code>ownerDocument</code> property of any node in the document.) This
-        element is actually a Bender component.</p>
+        <code>ownerDocument</code> property of any node in the document.)</p>
       </section>
 
       <section id="manual.nodes">
@@ -281,8 +261,8 @@
         host document by simply creating a context with the host document as
         target, populating the tree, and having a <code>use</code> element as a
         child of the root element pointing to the main application component.
-        Here is a simple HTML "Hello, world!" example being rendered in the body
-        of the host document:</p>
+        Here is <a href="tests/hello.html">a simple HTML "Hello, world!"
+        example</a> being rendered in the body of the host document:</p>
         <pre class="sample">var context = dumber.create_context(document.body);
 context.appendChild(
   context.$("component",
@@ -298,17 +278,68 @@ context.appendChild(context.$("use", { q: "component" }));</pre>
         into the given target, using the <code
           class="def">_render_in(target)</code> where <code
           class="param">target</code> is the parent DOM node where the content
-        will be rendered. For example, to render a component in a
-        <code>div</code> element with the id <code>here</code>:</p>
-        <pre class="sample">var context = dumber.create_context(document);
+        will be rendered. For example, to <a href="tests/insert.html">render a
+        component in a <code>div</code> element</a> with the id <code>here</code>:</p>
+        <pre class="sample">var context = dumber.create_context();
 context.appendChild(
   context.$("component",
     context.$("view",
       context.$("html:p.dumber", "But this is a Dumber component!"))));
-context.querySelector("component")._render_in(document.getElementById("here"));</pre>
+context.querySelector("component")
+  ._render_in(document.getElementById("here"));</pre>
       </section>
 
     </section>
+
+    <aside class="g4">
+
+      <section id="demos">
+        <h2>Demos</h2>
+        <ol>
+          <li>Animator</li>
+          <li>Customizable calculator</li>
+          <li>Memory game</li>
+          <li>SVG Snake game</li>
+          <li>SVG Arrows</li>
+          <li>SVG Clock</li>
+          <li>TTFD</li>
+        </ol>
+      </section>
+
+      <section id="tests">
+        <h2>Tests</h2>
+        <ol>
+          <li><a href="tests/hello.html">Hello, world!</a>: display the text
+          "Hello, world!"</li>
+          <li><a href="tests/hello.svg">Hello, world!</a>: display the text
+          "Hello, world!" but in SVG</li>
+          <li><a href="tests/disappearer.html">Disappearer</a>: same as above but
+          the content is immediately removed so nothing is displayed.</li>
+          <li><a href="tests/insert.html">Insert</a>: insert a Dumber node in an
+          existing document.</li>
+          <li><a href="tests/title.html">Title setting and updating</a>: the title
+          bar should read "Newest title".</li>
+          <li><a href="tests/use.html">Nested use modified at runtime</a>: display
+          A, B, C followed by - - - with 2 horizontal lines under each and = = =
+          between the horizontal lines</li>
+          <li><a href="tests/add.html">Adding and removing components</a>: display
+          5 paragraphs: "This is a p.", "This is a q.", "Followed by a p.", "This
+          one is added after rendering.", "Followed by a p."</li>
+          <li><a href="tests/calculator.html">Calculator (inactive buttons)</a>:
+          display a calculator and its buttons</li>
+          <li><a href="tests/calculator_script.html">Calculator (script)</a>:
+          display a calculator and its buttons; built at instantiation time from a
+          script element.</li>
+          <li><a href="tests/timer.html">Timer component</a>: timer (script and
+          properties)</li>
+          <li><a href="tests/button.html">Button component</a>: display three
+          buttons "OK", "Cancel", "Retry"; generate an alert when clicked.</li>
+          <li><a href="tests/button_style.html">Button with style</a>: same but OK
+          is bold and Cancel is semi-transparent.</li>
+        </ol>
+      </section>
+
+    </aside>
 
   </body>
 </html>
