@@ -106,33 +106,33 @@
         <p>Node manipulation is done through the DOM methods <code
           class="def">appendChild</code>, <code class="def">insertBefore</code>,
         <code class="def">setAttribute</code>, and <code
-        class="def">setAttributeNS</code>. Additionally, Dumber nodes have a
+        class="def">setAttributeNS</code>. Additionally, Dumber elements have a
         <code class="def">_textContent(text)</code> method to replace setting
         the <code>textContent</code> property, which can still be read normally
         (and also be set, but changes will not cause the rendering to update.)
-        Dumber nodes have an internal method <code class="def
+        Dumber elements have an internal method <code class="def
         internal">_refresh(parent)</code> which will refresh the rendering for
-        the parent of this node (which defaults to <code>parentNode</code> if
-        not specified; the parameter is needed mostly for updates after a node
-        has been removed from its parent.) It should not be necessary to call
+        the parent of this element (which defaults to <code>parentNode</code> if
+        not specified; the parameter is needed mostly for updates after an
+        element was removed from its parent.) It should not be necessary to call
         this method under normal circumstances.</p>
         <p>Since a Dumber tree may be modified at runtime, it can be serialized
         again through the <code class="def">_serialize()</code> method. This
         simply returns a text string of the XML serialization of the current
-        state of the Dumber tree. This method is available on any node, so it
+        state of the Dumber tree. This method is available on any element, so it
         may be used for instance for the main application or a given component
         rather than the full context.</p>
 
-        <section id="manual.nodes.component">
-          <h4>The component, app and context nodes</h4>
-          <p>The <code class="node">component</code> node describes a Dumber
+        <section id="manual.elements.component">
+          <h4>The component, app and context elements</h4>
+          <p>The <code class="node">component</code> element describes a Dumber
           component.  <code class="node">app</code> is synonymous with
           <code>component</code> and is provided to describe the main component
           of a Dumber application. <code class="node">context</code> is also a
           synonym and is used as the root of the Dumber tree (and as such should
           not be used elsewhere.) A component may have metadata, a view,
           scripts, watches, and sub-components. These are described by the
-          following nodes:</p>
+          following elements:</p>
           <ul>
             <li><code class="node">component</code> describes sub-components of
             this component;</li>
@@ -148,47 +148,50 @@
             <code>context</code> root element.</li>
             <li><code class="node">use</code> creates a new instance of a
             component and renders it in this component's view (including in a
-            <node>context</code> node; see below.) <code>use</code> nodes should
-            appear as descendants of the <code>view</code> node of the
+            <node>context</code> element; see below.) <code>use</code> elements
+            should appear as descendants of the <code>view</code> element of the
             component.</li>
-            <li><code class="node">view</code> contains foreign nodes that will
-            be rendered in the target document when this component is rendered.
-            A component may have only one view; setting a new view automatically
-            replaces the previous one.</li>
+            <li><code class="node">view</code> contains foreign and text nodes
+            that will be rendered in the target document when this component is
+            rendered. A component may have only one view; setting a new view
+            automatically replaces the previous one.</li>
             <li><code class="node">watch</code> describes the behavior of the
             component in the face of changes in its properties and events it
             receives. See the section on watches below.</li>
           </ul>
-          <p>All Dumber nodes may have an <code class="attr">id</code> attribute
-          which should be unique in the document where the node appears (if
-          importing nodes from different documents, nodes with the same id can
-          be distinguished by the URL of the original document.) These ids are
-          not rendered since many instances of the same component may be
-          rendered in a document.</p>
+          <p>All Dumber elements may have an <code class="attr">id</code>
+          attribute which should be unique in the document where the element
+          appears (if importing elements from different documents, elements with
+          the same id can be distinguished by the URL of the original document.)
+          These ids are not rendered since many instances of the same component
+          may be rendered in a document. Dumber elements have an
+          <code class="param">_id</code> property matching that attribute.</p>
         </section>
 
-        <section id="manual.nodes.use">
-          <h4>The use node</h4>
-          <p>The <code class="node">use</code> node instantiates and renders a
-          component. For every <code>use</code> node, a new <em>instance</em> of
-          a component is created; if this component has a view, or has
-          <code>use</code> children that themselves have a view (at any level of
-          nesting) then the contents of the view gets rendered in its place.</p>
+        <section id="manual.elements.use">
+          <h4>The use element</h4>
+          <p>The <code class="node">use</code> element instantiates and renders
+          a component. For every <code>use</code> element, a new
+          <em>instance</em> of a component is created; if this component has a
+          view, or has <code>use</code> children, then these get rendered in
+          its place.</p>
           <p>The component to be instantiated is designated by one of the
           following attributes:</p>
           <ul>
             <li><code class="attr">q</code> (short for <em>query
-            selector</em>) to refer to a node in the current context (TODO check
-            the exact context of the querySelector call); note that using
+            selector</em>) to refer to a node in the current context (<span
+            class="TODO">TODO: check the exact context of the querySelector
+            call</span>); note that using
             <code>#</code> for id may not work, so it is safer to use
             <code>ref</code> below in that situation;</li>
             <li><code class="attr">ref</code> to refer to the id of a node in
             the current document;</li>
-            <li><code class="attr">href</code> (TODO)</li>
+            <li><code class="attr">href</code> to refer to a component from an
+            XML file located at a given URL.</li>
           </ul>
           <p>Additional attributes (besides <code class="attr">id</code>) and
-          contents of the <code>use</code> nodes are passed to the instantiated
-          component view during rendering as described below.</p>
+          contents of the <code>use</code> elements are passed to the
+          instantiated component view during rendering as described below.</p>
         </section>
 
         <section id="manual.nodes.view">
@@ -336,9 +339,11 @@ context.querySelector("component")
         <h2>Tests</h2>
         <ol>
           <li><a href="tests/hello.svg">Hello, world!</a>: display the text
-          "Hello, world!" but in SVG</li>
+          "Hello, world!" in SVG</li>
           <li><a href="tests/hello.html">Hello, world!</a>: display the text
-          "Hello, world!"</li>
+          "Hello, world!" in HTML</li>
+          <li><a href="tests/hello_load.html">Hello, world!</a>: display the
+          text "Hello, world!" in HTML; loaded from an XML document.</li>
           <li><a href="tests/disappearer.html">Disappearer</a>: same as above
           but the content is immediately removed so nothing is displayed.</li>
           <li><a href="tests/insert.html">Insert</a>: insert a Dumber node in an

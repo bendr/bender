@@ -10,16 +10,38 @@
     if (target === undefined) target = document;
     var context = (target.ownerDocument || target).implementation
       .createDocument(dumber.NS, "context", null);
+
     context.createElement = function(name)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, dumber.NS, name));
     };
+
     context.createElementNS = function(ns, qname)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, ns, qname));
     };
+
+    var loaded = { "": root };  // loaded documents
+    var components = {};        // ids by component
+
+    context._load_component = function(url)
+    {
+      var split = url.split("#");
+      var locator = split[0];
+      var id = split[1];
+      if (loaded[locator]) {
+        return id ? components[url] : loaded[locator];
+      } else {
+        flexo.ez_xhr(locator, { responseType: "document" }, function(req) {
+            loaded[locator] = import_node(root, req.response.documentElement);
+            flexo.notify(context, "@loaded");
+          });
+        return true;
+      }
+    };
+
     var root = wrap_element(context.documentElement);
     root.target = target;
     return root;
@@ -72,18 +94,29 @@
       }
     },
 
+    rendered_use: function(use, instance)
+    {
+      this.rendered.push(instance);
+      if (use._id) this.uses[use._id] = instance;
+    },
+
     render_children: function(node, dest)
     {
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
-              var u = ch._render(dest);
-              this.rendered.push(u);
-              if (ch._id) this.uses[ch._id] = u;
+              var instance = ch._render(dest);
+              if (instance === true) {
+                flexo.listen(ch, "@loaded", (function() {
+                    this.rendered_use(ch, instance);
+                  }).bind(this));
+              } else if (instance) {
+                this.rendered_use(ch, instance);
+              }
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
-                this.use: ch, dest);
+                this.use : ch, dest);
             }
           } else {
             this.render_foreign(ch, dest);
@@ -306,6 +339,7 @@
         this._scripts = [];     // child scripts
         this._instances = [];   // instances of this component
         this._properties = {};  // properties map
+        this._url = "";
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },
 
@@ -335,7 +369,14 @@
             this._view = ch;
             this._refresh();
           } else if (ch.localName === "use") {
-            this._instances.push(ch._render(this.target));
+            var instance = ch._render(this.target);
+            if (instance === true) {
+              flexo.listen(ch, "@loaded", (function(e) {
+                  this._instances.push(e.instance);
+                }).bind(this));
+            } else if (instance) {
+              this._instances.push(instance);
+            }
           } else if (ch.localName === "watch") {
             this._watches.push(ch);
             this._refresh();
@@ -438,7 +479,7 @@
       },
 
       // Attributes interpreted by use
-      _attributes: { id: true, q: true, ref: true },
+      _attributes: { href: true, id: true, q: true, ref: true },
 
       setAttribute: function(name, value)
       {
@@ -464,21 +505,30 @@
             component = parent_component._components[this._ref];
             parent_component = component_of(parent_component.parentNode);
           }
+          return component;
         } else if (this._q) {
-          component = this.parentNode && this.parentNode.querySelector(this._q);
+          return this.parentNode && this.parentNode.querySelector(this._q);
+        } else if (this._href) {
+          return this.ownerDocument._load_component(this._href);
         }
-        return component;
       },
 
       _render: function(target)
       {
         var component = this._find_component();
-        var instance = render_component(this._find_component(), target, this);
-        if (instance) {
-          this._instance = instance;
-          return instance;
-        } else {
-          flexo.log("No component found for", this);
+        if (component === true) {
+          flexo.listen(this.ownerDocument, "@loaded", (function() {
+              flexo.notify(this, "@loaded", { instance: this._render(target) });
+            }).bind(this));
+          return true;
+        } else if (component) {
+          var instance = render_component(component, target, this);
+          if (instance) {
+            this._instance = instance;
+            return instance;
+          } else {
+            flexo.log("No component found for", this);
+          }
         }
       },
 
@@ -548,6 +598,36 @@
   {
     return node ? node._is_component ? node : component_of(node.parentNode) :
       null;
+  }
+
+  function import_node(parent, node, uri)
+  {
+    if (node.nodeType === 1) {
+      var n = parent.ownerDocument
+        .createElementNS(node.namespaceURI, node.localName);
+      if (n._is_component) n._uri = uri;
+      parent.appendChild(n);
+      for (var i = 0, m = node.attributes.length; i < m; ++i) {
+        var attr = node.attributes[i];
+        if (attr.namespaceURI) {
+          if (attr.namespaceURI === flexo.XMLNS_NS &&
+              attr.localName !== "xmlns") {
+            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
+          } else {
+            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+          }
+        } else {
+          n.setAttribute(attr.localName, attr.nodeValue);
+        }
+      }
+      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+        import_node(n, ch, uri);
+      }
+      return n;
+    } else if (node.nodeType === 3 || node.nodeType === 4) {
+      var n = parent.ownerDocument.importNode(node, false);
+      parent.appendChild(n);
+    }
   }
 
   function render_component(component, target, use)
