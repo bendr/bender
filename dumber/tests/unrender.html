@@ -1,29 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Insert a Dumber component</title>
+    <title>⚐ Dumber runtime</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
-      .dumber { border: dashed thin black; padding: 1em; }
     </style>
     <script src="../../flexo.js"></script>
     <script src="../dumber.js"></script>
   </head>
   <body>
-    <h1>This is a regular HTML5 document</h1>
-    <p>With a regular paragraph.</p>
-    <div id="here"></div>
-    <p>And another regular paragraph.</p>
     <script>
       var context = dumber.create_context();
       context.appendChild(
         context.$("component",
           context.$("view",
-            context.$("html:p.dumber", "But this is a Dumber component!"))));
+            context.$("html:p", "Hello, world!"))));
       var instance = context.querySelector("component")
-        ._render_in(document.getElementById("here"));
+        ._render_in(document.body);
+      instance.target = null;
     </script>
   </body>
 </html>

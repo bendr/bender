@@ -21,6 +21,7 @@
       .def { background-color: #ff0; }
       .node { background-color: #8f8; }
       .prop, .param, .attr { background-color: #8ff; }
+      .TODO { background-color: #ccc; }
       .sample { margin-left: 2em; }
     </style>
   </head>
@@ -41,14 +42,22 @@
         href="../flexo.js"><code>flexo.js</code></a> (the support library for
         Dumber) and <a href="dumber.js"><code>dumber.js</code></a> Javascript
         files in the host document (<em>e.g.</em>, in <code>script</code>
-        tags.) See for example the above test documents.</p>
+        tags.) See for example the test documents in the sidebar. Note that it
+        makes <code>flexo.js</code> the <em>de facto</em> utility library for
+        Dumber applications; but other frameworks may be used freely. <span
+        class="TODO">TODO: check with D3, Prototype, or Bootstrap, for
+        example.</span></p>
+        <p>Dumber content may then be rendered in the running document as a
+        complete application, or individual components may be inserted in the
+        document. The Dumber content may be read from XML description files or
+        created on the fly through scripting.</p>
       </section>
 
       <section id="manual.context">
         <h3>The context</h3>
-        <p>The <em>context</em> is the document hosting Dumber nodes. The root
-        of the document is a <code>context</code> element, which should only be
-        used as the root a Dumber tree. <code
+        <p>The <em>context</em> is the document hosting Dumber elements. The
+        root of the document is a <code>context</code> element, which should
+        only be used as the root a Dumber tree. <code
         class="def">dumber.create_context(target)</code> creates a new context
         with a rendering target specified by <code class="param">target</code>
         (or the current document by default.) If the target is a DOM
@@ -62,34 +71,36 @@
         <code>ownerDocument</code> property of any node in the document.)</p>
       </section>
 
-      <section id="manual.nodes">
-        <h3>Dumber nodes</h3>
-        <p>Nodes in the Dumber tree overload common DOM methods so that changes
-        can be tracked and reflected after rendering was done. Component
-        elements, such as the context root element, have a convenience method
+      <section id="manual.elements">
+        <h3>Dumber elements</h3>
+        <p>Elements in the Dumber tree overload common DOM methods so that
+        changes can be tracked and reflected after rendering was done. Dumber
+        elements, <em>i.e.</em>, all elements created through the Dumber context
+        (including foreign elements), have a convenience method
         <code class="def">$(name, attributes, ...)</code> to create new
         nodes.</p>
         <ul>
-          <li>The <code class="param">name</code> parameter may be qualified
-          with a known namespace prefix (<code>html</code> or
-          <code>xhtml</code>, <code>svg</code>, <code>xlink</code>,
-          <code>xml</code>, <code>xmlns</code>; the Dumber namespace is used if
-          there is no prefix) and may include an id prefixed by <code>#</code>
-          and a list of class names prefixed by <code>.</code>. For example, the
-          name string <code>html:div#body.calculator</code> describes an
-          HTML <code>div</code> element with id <code>body</code> and class
+          <li>The <code class="param">name</code> parameter is the name of the
+          element to be created and may be qualified by a known namespace prefix
+          (<code>html</code> or <code>xhtml</code>, <code>svg</code>,
+          <code>xlink</code>, <code>xml</code>, <code>xmlns</code>; the Dumber
+          namespace <code>http://dumber.igel.co.jp</code> is used if there is no
+          prefix) and may include an id prefixed by <code>#</code> and a list of
+          class names prefixed by <code>.</code>. For example, the name string
+          <code>html:div#body.calculator</code> describes an HTML
+          <code>div</code> element with id <code>body</code> and class
           <code>calculator</code>, while <code>use</code> describes a Dumber
-          <code>use</code> element. <strong>Note</strong>: id must come before
-          classes.</li>
+          <code>use</code> element.</li>
           <li>The <code class="param">attributes</code> parameters is an object
-          which keys are attribute names and values attribute values. For
-          example, <code>{ q: "app" }</code> sets the <code>q</code> attribute
-          to <code>app</code> for the node being created. A <code>null</code> or
-          <code>undefined</code> value for an attribute will not set it.  This
-          parameter can be omitted.</li>
-          <li>The following parameters (if any) are the contents of the node.
-          Valid content is either a string, which creates a text node, and other
-          nodes, usually created themselves through the <code>$</code>
+          in which keys are attribute names and values attribute values to be
+          set for the new element. For example, <code>{ q: "app" }</code> sets
+          the <code>q</code> attribute to <code>app</code> for the element being
+          created. A <code>null</code> or <code>undefined</code> value for an
+          attribute will not set it. This parameter may be empty or
+          omitted.</li>
+          <li>The remaining parameters, if any, are the contents of the element.
+          Valid content is either a string, which creates a text node, or other
+          elements, usually created themselves through the <code>$</code>
           method.</li>
         </ul>
         <p>Node manipulation is done through the DOM methods <code
@@ -291,6 +302,17 @@ context.appendChild(
       context.$("html:p.dumber", "But this is a Dumber component!"))));
 context.querySelector("component")
   ._render_in(document.getElementById("here"));</pre>
+        <p><code>_render_in()</code> returns the component instance that was
+        created. A ghost <code>use</code> node was also created for
+        implementation purpose but not inserted in the context tree (which
+        remains unmodified, as it should be) but this behavior should not be
+        relied on. The instance can then be unrenderd by setting its
+        <code>target</code> to null or undefined.</p>
+      </section>
+
+      <section id="manual.load-xml">
+        <h3>Loading Dumber components from XML files</h3>
+
       </section>
 
     </section>
@@ -313,19 +335,21 @@ context.querySelector("component")
       <section id="tests">
         <h2>Tests</h2>
         <ol>
-          <li><a href="tests/hello.html">Hello, world!</a>: display the text
-          "Hello, world!"</li>
           <li><a href="tests/hello.svg">Hello, world!</a>: display the text
           "Hello, world!" but in SVG</li>
-          <li><a href="tests/disappearer.html">Disappearer</a>: same as above but
-          the content is immediately removed so nothing is displayed.</li>
+          <li><a href="tests/hello.html">Hello, world!</a>: display the text
+          "Hello, world!"</li>
+          <li><a href="tests/disappearer.html">Disappearer</a>: same as above
+          but the content is immediately removed so nothing is displayed.</li>
           <li><a href="tests/insert.html">Insert</a>: insert a Dumber node in an
           existing document.</li>
-          <li><a href="tests/title.html">Title setting and updating</a>: the title
-          bar should read "Newest title".</li>
-          <li><a href="tests/use.html">Nested use modified at runtime</a>: display
-          A, B, C followed by - - - with 2 horizontal lines under each and = = =
-          between the horizontal lines</li>
+          <li><a href="tests/disappearer.html">Unrender</a>: same as above but
+          the content is immediately unrendered.</li>
+          <li><a href="tests/title.html">Title setting and updating</a>: the
+          title bar should read "Newest title".</li>
+          <li><a href="tests/use.html">Nested use modified at runtime</a>:
+          display A, B, C followed by - - - with 2 horizontal lines under each
+          and = = = between the horizontal lines</li>
           <li><a href="tests/set_attr.html">Setting attributes at runtime</a>:
           the letter A should become red.</li>
           <li><a href="tests/add.html">Adding and removing components</a>: display

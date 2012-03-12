@@ -3,6 +3,8 @@
   dumber.NS = "http://dumber.igel.co.jp";
   dumber.NS_P = "http://dumber.igel.co.jp/p";
 
+  // Create a Dumber context for the given target (document by default.) Nodes
+  // created in this context will be extended with the Dumber prototypes.
   dumber.create_context = function(target)
   {
     if (target === undefined) target = document;
@@ -23,45 +25,51 @@
     return root;
   };
 
+  // Prototype for a component instance. Prototypes may be extended through the
+  // <script> element.
   var component_instance =
   {
-    init: function(use, component)
+    // Initialize the instance from a <use> element given a <component>
+    // description node.
+    init: function(use, component, target)
     {
       this.use = use;
       this.component = component;
-      component._rendered.push(this);
       this.views = {};     // rendered views by id
       this.uses = {};      // rendered uses by id
       this.rendered = [];  // root DOM nodes and use instances
       this.watchers = [];  // instances that have watches on this instance
-      var target = undefined;
-      Object.defineProperty(this, "target", { enumerable: true,
-        get: function() { return target; },
-        set: function(t) { target = t; this.render(); } });
       this.properties = {};
       Object.keys(component._properties).forEach(function(k) {
-          this.properties[k] = component._properties[k];
+          if (!use._properties.hasOwnProperty(k)) {
+            this.properties[k] = component._properties[k];
+          }
         }, this);
       Object.keys(use._properties).forEach(function(k) {
           this.properties[k] = use._properties[k];
         }, this);
+      Object.defineProperty(this, "target", { enumerable: true,
+        get: function() { return target; },
+        set: function(t) { target = t; this.render(); } });
+      component._instances.push(this);
       return this;
     },
 
-    instantiated: function() {},
-
+    // Unrender, then render the view when the target is an Element.
     render: function()
     {
       this.unrender();
-      if (this.target instanceof Element && this.component._view) {
-        this.render_children(this.component._view, this.target);
+      if (this.target instanceof Element) {
+        if (this.component._view) {
+          this.render_children(this.component._view, this.target);
+        }
+        this.update_title();
+        this.component._watches.forEach(function(watch) {
+            var instance = Object.create(watch_instance).init(watch, this);
+            instance.render();
+            this.rendered.push(instance);
+          }, this);
       }
-      this.update_title();
-      this.component._watches.forEach(function(watch) {
-          var instance = Object.create(watch_instance).init(watch, this);
-          instance.render();
-          this.rendered.push(instance);
-        }, this);
     },
 
     render_children: function(node, dest)
@@ -120,7 +128,7 @@
         if (r instanceof Node) {
           r.parentNode.removeChild(r);
         } else {
-          flexo.remove_from_array(r.component._rendered, r);
+          flexo.remove_from_array(r.component._instances, r);
           r.unrender();
         }
       }, this);
@@ -224,33 +232,6 @@
         this._refresh();
       },
 
-      _refresh: function(parent)
-      {
-        if (!parent) parent = this.parentNode;
-        var component = component_of(parent);
-        if (component) {
-          component._rendered.forEach(function(i) { i.render(); });
-        }
-      },
-
-      _serialize: function()
-      {
-        return (new XMLSerializer).serializeToString(this);
-      }
-    },
-
-    component:
-    {
-      _init: function()
-      {
-        this._components = {};  // child components
-        this._watches = [];     // child watches
-        this._scripts = [];     // child scripts
-        this._rendered = [];    // rendered instances
-        this._properties = {};  // properties map
-        flexo.getter_setter(this, "_is_component", function() { return true; });
-      },
-
       // TODO allow class/id in any order
       $: function(name)
       {
@@ -258,22 +239,25 @@
         var attrs = {};
         if (typeof arguments[1] === "object" &&
             !(arguments[1] instanceof Node)) {
-          attrs = arguments[1];
           argc = 2;
+          attrs = arguments[1];
         }
-        var classes = name.split(".");
-        name = classes.shift();
-        if (classes.length > 0) {
-          attrs["class"] =
-            (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "")
-            + classes.join(" ");
-        }
-        var m = name.match(/^(?:(\w+):)?([\w\-]+)(?:#(.+))?$/);
+        var m = name.match(
+            // 1: prefix 2: name  3: classes    4: id        5: more classes
+            /^(?:(\w+):)?([\w\-]+)(?:\.([^#]+))?(?:#([^.]+))?(?:\.(.+))?$/
+          );
         if (m) {
           var ns = m[1] && flexo[m[1].toUpperCase() + "_NS"];
           var elem = ns ? this.ownerDocument.createElementNS(ns, m[2]) :
             this.ownerDocument.createElement(m[2]);
-          if (m[3]) attrs.id = m[3];
+          var classes = m[3] ? m[3].split(".") : [];
+          if (m[5]) [].push.apply(classes, m[5].split("."));
+          if (m[4]) attrs.id = m[4];
+          if (classes.length > 0) {
+            attrs["class"] =
+              (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "") +
+              classes.join(" ");
+          }
           for (a in attrs) {
             if (attrs.hasOwnProperty(a) &&
                 attrs[a] !== undefined && attrs[a] !== null) {
@@ -298,6 +282,33 @@
         }
       },
 
+      _refresh: function(parent)
+      {
+        if (!parent) parent = this.parentNode;
+        var component = component_of(parent);
+        if (component) {
+          component._instances.forEach(function(i) { i.render(); });
+        }
+      },
+
+      _serialize: function()
+      {
+        return (new XMLSerializer).serializeToString(this);
+      }
+    },
+
+    component:
+    {
+      _init: function()
+      {
+        this._components = {};  // child components
+        this._watches = [];     // child watches
+        this._scripts = [];     // child scripts
+        this._instances = [];   // instances of this component
+        this._properties = {};  // properties map
+        flexo.getter_setter(this, "_is_component", function() { return true; });
+      },
+
       insertBefore: function(ch, ref)
       {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
@@ -316,7 +327,7 @@
               Object.getPrototypeOf(this).removeChild.call(this, this._title);
             }
             this._title = ch;
-            this._rendered.forEach(function(i) { i.update_title(); });
+            this._instances.forEach(function(i) { i.update_title(); });
           } else if (ch.localName === "view") {
             if (this._view) {
               Object.getPrototypeOf(this).removeChild.call(this, this._view);
@@ -324,7 +335,7 @@
             this._view = ch;
             this._refresh();
           } else if (ch.localName === "use") {
-            this._rendered.push(ch._render(this.target));
+            this._instances.push(ch._render(this.target));
           } else if (ch.localName === "watch") {
             this._watches.push(ch);
             this._refresh();
@@ -346,7 +357,7 @@
           delete this._view;
           this._refresh();
         } else if (ch._unrender) {
-          flexo.remove_from_array(this._rendered, ch._instance);
+          flexo.remove_from_array(this._instances, ch._instance);
           ch._unrender();
         }
         return ch;
@@ -546,11 +557,13 @@
     component._scripts.forEach(function(script) {
         (new Function("prototype", script.textContent))(instance);
       });
-    instance.instantiated();
+    if (instance.instantiated) instance.instantiated();
     instance.target = target;
     return instance;
   }
 
+  // Extend an element with Dumber methods and call the _init() method on the
+  // node if it exists.
   function wrap_element(e)
   {
     var proto = prototypes[e.localName] || {};
