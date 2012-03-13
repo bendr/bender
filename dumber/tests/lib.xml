@@ -1,0 +1,6 @@
+<app xmlns="http://dumber.igel.co.jp">
+  <title>Buttons from lib</title>
+  <view>
+    <use href="button.xml" id="ok-button">OK</use>
+  </view>
+</app>

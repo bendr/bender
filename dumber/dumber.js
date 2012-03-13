@@ -43,9 +43,12 @@
         if (!loaded[locator]) {
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function(req) {
-              loaded[locator] = import_node(root, req.response.documentElement);
-              flexo.log(">>> Loaded {0}".fmt(locator));
-              flexo.notify(context, "@loaded");
+              if (!req.response) {
+                flexo.notify(context, "@error", { url: url });
+              } else {
+                loaded[locator] = import_node(root, req.response.documentElement);
+                flexo.notify(context, "@loaded");
+              }
             });
         }
         return true;
@@ -406,7 +409,7 @@
           var k = count++;
           flexo.log("insertBefore: wait for to load... {0} ({1})"
               .fmt(use._href, k));
-          flexo.listen(ch, "@loaded", (function(e) {
+          flexo.listen(use, "@loaded", (function(e) {
               flexo.log("... loaded ({0})".fmt(k));
               this._instances.push(e.instance);
             }).bind(this));

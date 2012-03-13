@@ -21,7 +21,7 @@
       .def { background-color: #ff0; }
       .node { background-color: #8f8; }
       .prop, .param, .attr { background-color: #8ff; }
-      .TODO { background-color: #ccc; }
+      .TODO { background-color: #ddd; }
       .sample { margin-left: 2em; }
     </style>
   </head>
@@ -179,13 +179,13 @@
           following attributes:</p>
           <ul>
             <li><code class="attr">q</code> (short for <em>query
-            selector</em>) to refer to a node in the current context (<span
+            selector</em>) to refer to an element in the current context (<span
             class="TODO">TODO: check the exact context of the querySelector
             call</span>); note that using
             <code>#</code> for id may not work, so it is safer to use
             <code>ref</code> below in that situation;</li>
-            <li><code class="attr">ref</code> to refer to the id of a node in
-            the current document;</li>
+            <li><code class="attr">ref</code> to refer to the id of an element
+            in the current document;</li>
             <li><code class="attr">href</code> to refer to a component from an
             XML file located at a given URL.</li>
           </ul>
@@ -195,26 +195,40 @@
         </section>
 
         <section id="manual.nodes.view">
-          <h4>The view and content nodes</h4>
-          <p>The <code class="node">view</code> node contains foreign nodes
-          (<em>e.g.</em>, HTML, SVG, etc.) describing the actual rendering of a
-          component. <code>view</code> may also include <code>use</code> and
-          <code>content</code> nodes (other Dumber nodes are silently ignored),
-          as well as text nodes. Additionally, <code>use</code> nodes outside of
-          a <code>view</code> node are also rendered as siblings of the children
-          of the <code>view</code> node.</p>
+          <h4>The view, content and target elements</h4>
+          <p>The <code class="node">view</code> element contains foreign
+          elements (<em>e.g.</em>, HTML, SVG, &amp;c.) and text nodes describing
+          the actual rendering of a component. <code>view</code> may also
+          include <code>use</code>, <code>target</code> and <code>content</code>
+          elements (other Dumber elements are silently ignored). Additionally,
+          <code>use</code> and <code>target</code> elements outside of a
+          <code>view</code> element are also rendered as siblings of the
+          children of the <code>view</code> elements.</p>
           <p>When a component is rendered, the contents of the view are copied
           as is (minus id attributes as discussed above) into the target
-          element. <code>use</code> nodes allow to include Dumber components
+          element. <code>use</code> elements allow to include Dumber components
           inside another component. The <code class="node">content</code> allows
-          to customize the rendering of a node by replacing this node with the
-          contents of the original <code>use</code>. The <code>content</code>
-          node may have content of its own, which is the default content that
-          gets rendered when the <code>use</code> has no content.</p>
-          <p>Similarly, attributes of the <code>use</code> node are added to the
-          top-level elements that get rendered; this allows for instance to
+          to customize the rendering of an element by replacing this element
+          with the contents of the original <code>use</code>. The
+          <code>content</code> element may have content of its own, which is the
+          default content that gets rendered when the <code>use</code> has no
+          content.</p>
+          <p>Similarly, attributes of the <code>use</code> elements are added to
+          the top-level elements that get rendered; this allows for instance to
           change the class of an element to alter its rendering.</p>
-          <p>TODO: named content elements and shortcuts for bindings.</p>
+          <p>Additionally, the <code class="node">target</code> element allows
+          to target a specific node for rendering. For instance, it may be used
+          to add a <code>style</code> element to the <code>head</code> of an
+          HTML target document, or a new definition in the <code>use</code>
+          element of an SVG document. The target element is selected through the
+          <code class="attr">q</code> or <code class="attr">ref</code>, using a
+          query selector (resp. an id) in the target document to specify the
+          target. Another optional attribute of <code>target</code> is the flag
+          <code class="attr">once</code>, which when set to the value
+          <code>true</code> means that the content of the element are rendered
+          exactly <em>once</em> to avoid duplicating the content. <span
+          class="TODO">Not implemented yet; see
+          <code>lib/button.xml</code></span>.</p>
         </section>
 
         <section id="manual.nodes.script">
@@ -315,7 +329,12 @@ context.querySelector("component")
 
       <section id="manual.load-xml">
         <h3>Loading Dumber components from XML files</h3>
-
+        <p>Real-size applications and components reside in XML files rather than
+        Javascript. Loading a component from XML is as simple as creating a new
+        <code class="node">use</code> element with an <code
+          class="attr">href</code> attribute:</p>
+        <pre class="sample">var context = dumber.create_context();
+context.appendChild(context.$("use", { href: ... }));</pre>
       </section>
 
     </section>
@@ -343,7 +362,8 @@ context.querySelector("component")
             class="attr">href</code> paremeter to load a Dumber XML file
           (<em>e.g.</em>, <a href="lib/run.html?href=../tests/hello.xml">Hello,
             world</a>)</li>
-          <li>Button component (WIP)</li>
+          <li><span class="TODO">Button component</span></li>
+          <li><span class="TODO">Color chooser</span></li>
         </ul>
       </section>
 
@@ -385,6 +405,8 @@ context.querySelector("component")
           OK is bold and Cancel is semi-transparent.</li>
           <li><a href="tests/lib.html">Loading components from the library</a>:
           <span class="TODO">under debugging</span></li>
+          <li><a href="lib/run.html?href=../tests/lib.xml">Loading components
+            from the library</a>: from an XML file.</li>
         </ol>
       </section>
 

@@ -13,6 +13,9 @@
   <body>
     <script>
       var context = dumber.create_context(document.body);
+      flexo.listen(context.ownerDocument, "@error", function(e) {
+          alert("Error loading " + e.url);
+        });
       var args = flexo.get_args();
       if (args.href) context.appendChild(context.$("use", args));
     </script>
