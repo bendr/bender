@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif; }
+      .button { display: inline-block; cursor: default; background-color:#ddd;
+        padding: 4px; -moz-border-radius: 6px; -webkit-border-radius: 6px;
+        border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
+        text-shadow: 0px 1px 0px #fff; margin: 8px; }
+    </style>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = dumber.create_context(document.body);
+
+      context.appendChild(context.$("app",
+          context.$("title", "Lib/Button test"),
+          context.$("view",
+            context.$("use#ok-button", { href: "../lib/button.xml" }, "OK"),
+            context.$("use#cancel-button", { href: "../lib/button.xml" },
+              "Cancel")),
+          context.$("watch",
+            context.$("get", { event: "@pushed", use: "ok-button" },
+              "alert('OK')")),
+          context.$("watch",
+            context.$("get", { event: "@pushed", use: "cancel-button" },
+              "alert('Cancel')"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      context.querySelector("view").appendChild(
+        context.$("use#retry-button", { href: "../lib/button.xml#button" },
+          "Retry"));
+
+    </script>
+  </body>
+</html>

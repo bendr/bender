@@ -1,5 +1,7 @@
 (function(dumber) {
 
+  var count = 0;
+
   dumber.NS = "http://dumber.igel.co.jp";
   dumber.NS_P = "http://dumber.igel.co.jp/p";
 
@@ -26,18 +28,26 @@
     var loaded = { "": root };  // loaded documents
     var components = {};        // ids by component
 
+    // Request for a component to be loaded. If the component was already
+    // loaded, return the component node, otherwise return the boolean value
+    // true to acknowledge the request. In that situation, a "@loaded" event
+    // will be sent when loading has finished.
     context._load_component = function(url)
     {
       var split = url.split("#");
       var locator = split[0];
       var id = split[1];
-      if (loaded[locator]) {
+      if (typeof loaded[locator] === "object") {
         return id ? components[url] : loaded[locator];
       } else {
-        flexo.ez_xhr(locator, { responseType: "document" }, function(req) {
-            loaded[locator] = import_node(root, req.response.documentElement);
-            flexo.notify(context, "@loaded");
-          });
+        if (!loaded[locator]) {
+          loaded[locator] = true;
+          flexo.ez_xhr(locator, { responseType: "document" }, function(req) {
+              loaded[locator] = import_node(root, req.response.documentElement);
+              flexo.log(">>> Loaded {0}".fmt(locator));
+              flexo.notify(context, "@loaded");
+            });
+        }
         return true;
       }
     };
@@ -100,20 +110,31 @@
       if (use._id) this.uses[use._id] = instance;
     },
 
+    render_use: function(use, dest)
+    {
+      if (use._pending) return;
+      var instance = use._render(dest);
+      if (instance === true) {
+        use._pending = true;
+        var k = ++count;
+        flexo.log("Wait for {0} to load ({1})...".fmt(use._href, k));
+        flexo.listen(use, "@loaded", (function() {
+            flexo.log("... loaded ({0})".fmt(k));
+            delete use._pending;
+            this.rendered_use(use, instance);
+          }).bind(this));
+      } else if (instance) {
+        this.rendered_use(use, instance);
+      }
+    },
+
     render_children: function(node, dest)
     {
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
-              var instance = ch._render(dest);
-              if (instance === true) {
-                flexo.listen(ch, "@loaded", (function() {
-                    this.rendered_use(ch, instance);
-                  }).bind(this));
-              } else if (instance) {
-                this.rendered_use(ch, instance);
-              }
+              this.render_use(ch, dest);
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
                 this.use : ch, dest);
@@ -369,20 +390,29 @@
             this._view = ch;
             this._refresh();
           } else if (ch.localName === "use") {
-            var instance = ch._render(this.target);
-            if (instance === true) {
-              flexo.listen(ch, "@loaded", (function(e) {
-                  this._instances.push(e.instance);
-                }).bind(this));
-            } else if (instance) {
-              this._instances.push(instance);
-            }
+            this._insert_use(ch);
           } else if (ch.localName === "watch") {
             this._watches.push(ch);
             this._refresh();
           }
         }
         return ch;
+      },
+
+      _insert_use: function(use)
+      {
+        var instance = use._render(this.target);
+        if (instance === true) {
+          var k = count++;
+          flexo.log("insertBefore: wait for to load... {0} ({1})"
+              .fmt(use._href, k));
+          flexo.listen(ch, "@loaded", (function(e) {
+              flexo.log("... loaded ({0})".fmt(k));
+              this._instances.push(e.instance);
+            }).bind(this));
+        } else if (instance) {
+          this._instances.push(instance);
+        }
       },
 
       removeChild: function(ch)
