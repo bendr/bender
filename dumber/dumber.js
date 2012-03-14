@@ -23,8 +23,15 @@
         .call(this, ns, qname));
     };
 
-    var loaded = { "": root };  // loaded documents
-    var components = {};        // ids by component
+    var root = wrap_element(context.documentElement);
+    var loaded = { "": root };
+    var components = {};
+
+    context._add_component = function(component)
+    {
+      var uri = component._uri + "#" + component._id;
+      components[uri] = component;
+    };
 
     // Request for a component to be loaded. If the component was already
     // loaded, return the component node, otherwise return the boolean value
@@ -44,7 +51,8 @@
               if (!req.response) {
                 flexo.notify(context, "@error", { url: url });
               } else {
-                loaded[locator] = import_node(root, req.response.documentElement);
+                loaded[locator] = import_node(root,
+                  req.response.documentElement, locator);
                 flexo.notify(context, "@loaded");
               }
             });
@@ -53,7 +61,6 @@
       }
     };
 
-    var root = wrap_element(context.documentElement);
     root.target = target;
     return root;
   };
@@ -64,7 +71,7 @@
   {
     // Initialize the instance from a <use> element given a <component>
     // description node.
-    init: function(use, component, target)
+    init: function(use, component)
     {
       this.use = use;
       this.component = component;
@@ -81,20 +88,19 @@
       Object.keys(use._properties).forEach(function(k) {
           this.properties[k] = use._properties[k];
         }, this);
-      Object.defineProperty(this, "target", { enumerable: true,
-        get: function() { return target; },
-        set: function(t) { target = t; this.render(); } });
       component._instances.push(this);
       return this;
     },
 
     // Unrender, then render the view when the target is an Element.
-    render: function()
+    render: function(target, ref)
     {
       this.unrender();
-      if (this.target instanceof Element) {
+      if (!target) target = this.target;
+      if (target instanceof Element) {
+        this.target = target;
         if (this.component._view) {
-          this.render_children(this.component._view, this.target);
+          this.render_children(this.component._view, target, ref);
         }
         this.update_title();
         this.component._watches.forEach(function(watch) {
@@ -111,15 +117,18 @@
       if (use._id) this.uses[use._id] = use._instance;
     },
 
-    render_use: function(use, dest)
+    render_use: function(use, dest, ref)
     {
-      if (use._pending) return;
-      var instance = use._render(dest);
+      if (use._pending) {
+        use._pending = ref ? ref.previousSibling : dest.lastChild;
+        return;
+      }
+      var instance = use._render(dest, ref);
       if (instance === true) {
-        use._pending = true;
+        use._pending = ref ? ref.previousSibling : dest.lastChild;
         flexo.log("Wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
-            flexo.log("... loaded", use);
+            flexo.log("... loaded ({0})", use);
             delete use._pending;
             this.rendered_use(use);
           }).bind(this));
@@ -128,13 +137,13 @@
       }
     },
 
-    render_children: function(node, dest)
+    render_children: function(node, dest, ref)
     {
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
-              this.render_use(ch, dest);
+              this.render_use(ch, dest, ref);
             } else if (ch.localName === "target") {
               if (ch._once) {
                 if (!ch._rendered) {
@@ -146,20 +155,20 @@
               }
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
-                this.use : ch, dest);
+                this.use : ch, dest, ref);
             }
           } else {
-            this.render_foreign(ch, dest);
+            this.render_foreign(ch, dest, ref);
           }
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
           var d = dest.ownerDocument.createTextNode(ch.textContent);
-          dest.appendChild(d);
+          dest.insertBefore(d, ref);
           if (dest === this.target) this.rendered.push(d);
         }
       }
     },
 
-    render_foreign: function(node, dest)
+    render_foreign: function(node, dest, ref)
     {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
@@ -173,7 +182,7 @@
             d.setAttribute(attr.localName, attr.value);
           }
         }, this);
-      dest.appendChild(d);
+      dest.insertBefore(d, ref);
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
             if (!this.use._attributes.hasOwnProperty(attr.localName)) {
@@ -374,7 +383,7 @@
         this._scripts = [];     // child scripts
         this._instances = [];   // instances of this component
         this._properties = {};  // properties map
-        this._url = "";
+        this._uri = "";
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },
 
@@ -421,7 +430,7 @@
         if (instance === true) {
           flexo.log("insertBefore: wait for {0} to load...".fmt(use._href));
           flexo.listen(use, "@loaded", (function(e) {
-              flexo.log("... loaded", e.instance);
+              flexo.log("... loaded ({0})", e.instance);
               this._instances.push(e.instance);
             }).bind(this));
         } else if (instance) {
@@ -473,6 +482,7 @@
         if (component._id) {
           // TODO check for duplicate id
           this._components[component._id] = component;
+          this.ownerDocument._add_component(component);
         }
       },
 
@@ -584,7 +594,10 @@
         } else if (this._q) {
           return this.parentNode && this.parentNode.querySelector(this._q);
         } else if (this._href) {
-          return this.ownerDocument._load_component(this._href);
+          var href =
+            (this._href.indexOf("#") === 0 ?  component_of(this)._uri : "") +
+            this._href;
+          return this.ownerDocument._load_component(href);
         }
       },
 
@@ -592,9 +605,12 @@
       {
         var component = this._find_component();
         if (component === true) {
-          flexo.listen(this.ownerDocument, "@loaded", (function() {
-              flexo.notify(this, "@loaded", { instance: this._render(target) });
-            }).bind(this));
+          var h = (function() {
+            flexo.notify(this, "@loaded", { instance: this._render(target) });
+            flexo.unlisten(this.ownerDocument, "@loaded", h);
+          }).bind(this);
+          h.__use = this;
+          flexo.listen(this.ownerDocument, "@loaded", h);
           return true;
         } else if (component) {
           var instance = render_component(component, target, this);
@@ -716,7 +732,11 @@
         (new Function("prototype", script.textContent))(instance);
       });
     if (instance.instantiated) instance.instantiated();
-    instance.target = target;
+    if (use._pending) {
+      instance.render(use._pending.parentNode, use._pending.nextSibling);
+    } else {
+      instance.render(target);
+    }
     return instance;
   }
 

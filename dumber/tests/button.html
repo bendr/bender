@@ -32,7 +32,7 @@
           context.$("title", "Button test"),
           context.$("view",
             context.$("use#ok-button", { ref: "button" }, "OK"),
-            context.$("use#cancel-button", { ref: "button" }, "Cancel")),
+            context.$("use#cancel-button", { href: "#button" }, "Cancel")),
           context.$("watch",
             context.$("get", { event: "@pushed", use: "ok-button" },
               "alert('OK')")),

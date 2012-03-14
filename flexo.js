@@ -257,7 +257,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       e = source;
     }
     if (e.type in e.source) {
-      e.source[e.type].forEach(function(listener) {
+      var listeners = e.source[e.type].slice();
+      listeners.forEach(function(listener) {
           if (typeof listener.handleEvent === "function") {
             listener.handleEvent.call(listener, e);
           } else {
