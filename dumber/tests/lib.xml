@@ -2,5 +2,6 @@
   <title>Buttons from lib</title>
   <view>
     <use href="button.xml" id="ok-button">OK</use>
+    <use href="button.xml" id="cancel-button">Cancel</use>
   </view>
 </app>

@@ -194,7 +194,7 @@
           instantiated component view during rendering as described below.</p>
         </section>
 
-        <section id="manual.nodes.view">
+        <section id="manual.elements.view">
           <h4>The view, content and target elements</h4>
           <p>The <code class="node">view</code> element contains foreign
           elements (<em>e.g.</em>, HTML, SVG, &amp;c.) and text nodes describing
@@ -222,13 +222,11 @@
           HTML target document, or a new definition in the <code>use</code>
           element of an SVG document. The target element is selected through the
           <code class="attr">q</code> or <code class="attr">ref</code>, using a
-          query selector (resp. an id) in the target document to specify the
-          target. Another optional attribute of <code>target</code> is the flag
-          <code class="attr">once</code>, which when set to the value
-          <code>true</code> means that the content of the element are rendered
-          exactly <em>once</em> to avoid duplicating the content. <span
-          class="TODO">Not implemented yet; see
-          <code>lib/button.xml</code></span>.</p>
+          query selector (resp. an id) in the <em>target</em> document to
+          specify the target. Another optional attribute of <code>target</code>
+          is the flag <code class="attr">once</code>, which when set to the
+          value <code>true</code> means that the content of the element are
+          rendered exactly <em>once</em> to avoid duplicating the content.</p>
         </section>
 
         <section id="manual.nodes.script">
@@ -333,7 +331,7 @@ context.querySelector("component")
         Javascript. Loading a component from XML is as simple as creating a new
         <code class="node">use</code> element with an <code
           class="attr">href</code> attribute:</p>
-        <pre class="sample">var context = dumber.create_context();
+        <pre class="sample">var context = dumber.create_context(document.body);
 context.appendChild(context.$("use", { href: ... }));</pre>
       </section>
 

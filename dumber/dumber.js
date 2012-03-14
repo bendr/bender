@@ -1,7 +1,5 @@
 (function(dumber) {
 
-  var count = 0;
-
   dumber.NS = "http://dumber.igel.co.jp";
   dumber.NS_P = "http://dumber.igel.co.jp/p";
 
@@ -107,10 +105,10 @@
       }
     },
 
-    rendered_use: function(use, instance)
+    rendered_use: function(use)
     {
-      this.rendered.push(instance);
-      if (use._id) this.uses[use._id] = instance;
+      this.rendered.push(use._instance);
+      if (use._id) this.uses[use._id] = use._instance;
     },
 
     render_use: function(use, dest)
@@ -119,15 +117,14 @@
       var instance = use._render(dest);
       if (instance === true) {
         use._pending = true;
-        var k = ++count;
-        flexo.log("Wait for {0} to load ({1})...".fmt(use._href, k));
+        flexo.log("Wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
-            flexo.log("... loaded ({0})".fmt(k));
+            flexo.log("... loaded", use);
             delete use._pending;
-            this.rendered_use(use, instance);
+            this.rendered_use(use);
           }).bind(this));
       } else if (instance) {
-        this.rendered_use(use, instance);
+        this.rendered_use(use);
       }
     },
 
@@ -138,6 +135,15 @@
           if (ch.namespaceURI === dumber.NS) {
             if (ch.localName === "use") {
               this.render_use(ch, dest);
+            } else if (ch.localName === "target") {
+              if (ch._once) {
+                if (!ch._rendered) {
+                  this.render_children(ch, ch._find_target(dest));
+                  ch._rendered = true;
+                }
+              } else {
+                this.render_children(ch, ch._find_target(dest));
+              }
             } else if (ch.localName === "content") {
               this.render_children(this.use.childNodes.length > 0 ?
                 this.use : ch, dest);
@@ -259,6 +265,7 @@
       insertBefore: function(ch, ref)
       {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        flexo.log("insertBefore: refresh!");
         this._refresh();
         return ch;
       },
@@ -267,6 +274,7 @@
       {
         var parent = this.parentNode;
         Node.protoype.removeChild.call(this, ch);
+        flexo.log("removeChild: refresh!");
         this._refresh(parent);
         return ch;
       },
@@ -274,18 +282,21 @@
       setAttribute: function(name, value)
       {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        flexo.log("setAttribute: refresh!");
         this._refresh();
       },
 
       setAttributeNS: function(ns, name, value)
       {
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
+        flexo.log("setAttributeNS: refresh!");
         this._refresh();
       },
 
       _textContent: function(t)
       {
         this.textContent = t;
+        flexo.log("textContent: refresh!");
         this._refresh();
       },
 
@@ -391,11 +402,13 @@
               Object.getPrototypeOf(this).removeChild.call(this, this._view);
             }
             this._view = ch;
+            flexo.log("component._view added, refresh!");
             this._refresh();
           } else if (ch.localName === "use") {
             this._insert_use(ch);
           } else if (ch.localName === "watch") {
             this._watches.push(ch);
+            flexo.log("component._watches: watch added, refresh!");
             this._refresh();
           }
         }
@@ -406,11 +419,9 @@
       {
         var instance = use._render(this.target);
         if (instance === true) {
-          var k = count++;
-          flexo.log("insertBefore: wait for to load... {0} ({1})"
-              .fmt(use._href, k));
+          flexo.log("insertBefore: wait for {0} to load...".fmt(use._href));
           flexo.listen(use, "@loaded", (function(e) {
-              flexo.log("... loaded ({0})".fmt(k));
+              flexo.log("... loaded", e.instance);
               this._instances.push(e.instance);
             }).bind(this));
         } else if (instance) {
@@ -429,11 +440,13 @@
           delete this._title;
         } else if (ch === this._view) {
           delete this._view;
+          flexo.log("component._view deleted, refresh!");
           this._refresh();
         } else if (ch._unrender) {
           flexo.remove_from_array(this._instances, ch._instance);
           ch._unrender();
         }
+        // TODO watch?
         return ch;
       },
 
@@ -504,6 +517,34 @@
       }
     },
 
+    target:
+    {
+      setAttribute: function(name, value)
+      {
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        if (name === "q" || name === "ref") {
+          this["_" + name] = value.trim();
+          flexo.log("target: set attribute {0}, refresh!".fmt(name));
+          this._refresh();
+        } else if (name === "once") {
+          this._once = value.trim().toLowerCase() === "true";
+          flexo.log("target: set once to {0}, refresh!".fmt(this._once));
+          this._refresh();
+        }
+      },
+
+      _find_target: function(dest)
+      {
+        if (this._q) {
+          return dest.ownerDocument.querySelector(this._q);
+        } else if (this._ref) {
+          return dest.ownerDocument.getElementById(this._ref);
+        } else {
+          return dest;
+        }
+      }
+    },
+
     use:
     {
       _init: function()
@@ -520,6 +561,7 @@
         if (this._attributes.hasOwnProperty(name)) {
           this["_" + name] = value.trim();
         }
+        flexo.log("use: set {0}, refresh!".fmt(name));
         this._refresh();
       },
 
@@ -581,9 +623,11 @@
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "use") {
+            flexo.log("view: added use, refresh!");
             this._refresh();
           }
         } else {
+          flexo.log("view: added element child, refresh!");
           this._refresh();
         }
         return ch;
@@ -592,6 +636,7 @@
       removeChild: function(ch)
       {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
+        flexo.log("view: removed child, refresh!");
         this._refresh();
         return ch;
       },
