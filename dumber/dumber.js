@@ -120,15 +120,16 @@
     render_use: function(use, dest, ref)
     {
       if (use._pending) {
-        use._pending = ref ? ref.previousSibling : dest.lastChild;
+        use._pending = temporary_node(dest, ref, use);
         return;
       }
       var instance = use._render(dest, ref);
       if (instance === true) {
-        use._pending = ref ? ref.previousSibling : dest.lastChild;
+        use._pending = temporary_node(dest, ref, use);
         flexo.log("Wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
             flexo.log("... loaded ({0})", use);
+            flexo.safe_remove(use._pending);
             delete use._pending;
             this.rendered_use(use);
           }).bind(this));
@@ -732,12 +733,16 @@
         (new Function("prototype", script.textContent))(instance);
       });
     if (instance.instantiated) instance.instantiated();
-    if (use._pending) {
-      instance.render(use._pending.parentNode, use._pending.nextSibling);
-    } else {
-      instance.render(target);
-    }
+    instance.render(target, use._pending);
     return instance;
+  }
+
+  function temporary_node(dest, ref, use)
+  {
+    flexo.safe_remove(use._pending);
+    var pending = dest.ownerDocument.createComment(use._href);
+    dest.insertBefore(pending, ref);
+    return pending;
   }
 
   // Extend an element with Dumber methods and call the _init() method on the

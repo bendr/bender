@@ -733,6 +733,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }
     return removed;
   };
+
   // Safe removal of a node; do nothing if the node did not exist or had no
   // parent
   flexo.safe_remove = function(node)

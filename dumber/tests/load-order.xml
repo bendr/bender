@@ -19,6 +19,7 @@
     <use href="button.xml">Button 2</use>
     <use ref="box">Box 3</use>
     <use href="button.xml">Button 4</use>
+    <use href="button.xml">Button 4.5</use>
     <use ref="box">Box 5</use>
   </view>
 </app>
