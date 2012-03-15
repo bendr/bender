@@ -10,8 +10,14 @@
           text-shadow: 0px 1px 0px #fff; margin: 8px; }
       </html:style>
     </target>
-    <html:div class="button">
+    <html:div class="button" id="b">
       <content/>
     </html:div>
   </view>
+  <watch>
+    <get view="b" event="click">
+      if (value.button === 0) flexo.notify(this, "@pushed");
+    </get>
+  </watch>
+
 </component>

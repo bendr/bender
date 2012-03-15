@@ -139,7 +139,6 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return output;
   }
 
-
   // Identity function
   flexo.id = function(x) { return x; };
 

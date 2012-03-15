@@ -4,4 +4,14 @@
     <use href="button.xml" id="ok-button">OK</use>
     <use href="button.xml" id="cancel-button">Cancel</use>
   </view>
+  <watch>
+    <get use="ok-button" event="@pushed">
+      alert("OK");
+    </get>
+  </watch>
+  <watch>
+    <get use="cancel-button" event="@pushed">
+      alert("Cancel");
+    </get>
+  </watch>
 </app>

@@ -11,22 +11,26 @@
     var context = (target.ownerDocument || target).implementation
       .createDocument(dumber.NS, "context", null);
 
+    // Wrap all new elements
     context.createElement = function(name)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, dumber.NS, name));
     };
-
     context.createElementNS = function(ns, qname)
     {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, ns, qname));
     };
 
+    // The root is a context (i.e., component) element
     var root = wrap_element(context.documentElement);
-    var loaded = { "": root };
-    var components = {};
 
+    var loaded = { "": root };  // loaded URIs
+    var components = {};        // known components by URI/id
+
+    // Keep track of uri/id pairs to find components with the href attribute
+    // TODO normalize URIs
     context._add_component = function(component)
     {
       var uri = component._uri + "#" + component._id;
@@ -36,7 +40,8 @@
     // Request for a component to be loaded. If the component was already
     // loaded, return the component node, otherwise return the boolean value
     // true to acknowledge the request. In that situation, a "@loaded" event
-    // will be sent when loading has finished.
+    // will be sent when loading has finished; an "@error" event will be sent in
+    // case of error.
     context._load_component = function(url)
     {
       var split = url.split("#");
@@ -61,7 +66,7 @@
       }
     };
 
-    root.target = target;
+    root._target = target;
     return root;
   };
 
@@ -99,16 +104,23 @@
       if (!target) target = this.target;
       if (target instanceof Element) {
         this.target = target;
+        this.pending = 0;
         if (this.component._view) {
           this.render_children(this.component._view, target, ref);
         }
         this.update_title();
-        this.component._watches.forEach(function(watch) {
-            var instance = Object.create(watch_instance).init(watch, this);
-            instance.render();
-            this.rendered.push(instance);
-          }, this);
+        if (this.pending === 0) this.render_watches();
       }
+    },
+
+    render_watches: function()
+    {
+      flexo.log("Render watches for", this.use);
+      this.component._watches.forEach(function(watch) {
+          var instance = Object.create(watch_instance).init(watch, this);
+          instance.render();
+          this.rendered.push(instance);
+        }, this);
     },
 
     rendered_use: function(use)
@@ -121,17 +133,20 @@
     {
       if (use._pending) {
         use._pending = temporary_node(dest, ref, use);
+        ++this.pending;
         return;
       }
       var instance = use._render(dest, ref);
       if (instance === true) {
         use._pending = temporary_node(dest, ref, use);
+        ++this.pending;
         flexo.log("Wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
-            flexo.log("... loaded ({0})", use);
+            flexo.log("... loaded", use);
             flexo.safe_remove(use._pending);
             delete use._pending;
             this.rendered_use(use);
+            if (--this.pending === 0) this.render_watches();
           }).bind(this));
       } else if (instance) {
         this.rendered_use(use);
@@ -210,8 +225,8 @@
 
     update_title: function()
     {
-      if (this.target instanceof Node && this.component.localName === "app" &&
-          this.use.parentNode === this.use.ownerDocument.documentElement &&
+      if (this.target instanceof Element && this.component.localName === "app"
+          && this.use.parentNode === this.use.ownerDocument.documentElement &&
           this.component._title) {
         this.target.ownerDocument.title = this.component._title.textContent;
       }
@@ -275,7 +290,6 @@
       insertBefore: function(ch, ref)
       {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        flexo.log("insertBefore: refresh!");
         this._refresh();
         return ch;
       },
@@ -284,7 +298,6 @@
       {
         var parent = this.parentNode;
         Node.protoype.removeChild.call(this, ch);
-        flexo.log("removeChild: refresh!");
         this._refresh(parent);
         return ch;
       },
@@ -292,21 +305,18 @@
       setAttribute: function(name, value)
       {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        flexo.log("setAttribute: refresh!");
         this._refresh();
       },
 
       setAttributeNS: function(ns, name, value)
       {
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
-        flexo.log("setAttributeNS: refresh!");
         this._refresh();
       },
 
       _textContent: function(t)
       {
         this.textContent = t;
-        flexo.log("textContent: refresh!");
         this._refresh();
       },
 
@@ -412,13 +422,11 @@
               Object.getPrototypeOf(this).removeChild.call(this, this._view);
             }
             this._view = ch;
-            flexo.log("component._view added, refresh!");
             this._refresh();
           } else if (ch.localName === "use") {
             this._insert_use(ch);
           } else if (ch.localName === "watch") {
             this._watches.push(ch);
-            flexo.log("component._watches: watch added, refresh!");
             this._refresh();
           }
         }
@@ -427,7 +435,7 @@
 
       _insert_use: function(use)
       {
-        var instance = use._render(this.target);
+        var instance = use._render(this._target);
         if (instance === true) {
           flexo.log("insertBefore: wait for {0} to load...".fmt(use._href));
           flexo.listen(use, "@loaded", (function(e) {
@@ -450,7 +458,6 @@
           delete this._title;
         } else if (ch === this._view) {
           delete this._view;
-          flexo.log("component._view deleted, refresh!");
           this._refresh();
         } else if (ch._unrender) {
           flexo.remove_from_array(this._instances, ch._instance);
@@ -535,11 +542,9 @@
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "q" || name === "ref") {
           this["_" + name] = value.trim();
-          flexo.log("target: set attribute {0}, refresh!".fmt(name));
           this._refresh();
         } else if (name === "once") {
           this._once = value.trim().toLowerCase() === "true";
-          flexo.log("target: set once to {0}, refresh!".fmt(this._once));
           this._refresh();
         }
       },
@@ -572,7 +577,6 @@
         if (this._attributes.hasOwnProperty(name)) {
           this["_" + name] = value.trim();
         }
-        flexo.log("use: set {0}, refresh!".fmt(name));
         this._refresh();
       },
 
@@ -640,11 +644,9 @@
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === dumber.NS) {
           if (ch.localName === "use") {
-            flexo.log("view: added use, refresh!");
             this._refresh();
           }
         } else {
-          flexo.log("view: added element child, refresh!");
           this._refresh();
         }
         return ch;
@@ -653,7 +655,6 @@
       removeChild: function(ch)
       {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
-        flexo.log("view: removed child, refresh!");
         this._refresh();
         return ch;
       },
