@@ -234,8 +234,8 @@
           rendered exactly <em>once</em> to avoid duplicating the content.</p>
         </section>
 
-        <section id="manual.nodes.script">
-          <h4>The component instance object and the script node</h4>
+        <section id="manual.elements.script">
+          <h4>The component instance object and the script element</h4>
           <p>Before rendering, a component gets <em>instantiated</em>, which
           creates a new Javascript object acting as the <em>component
           instance</em> of this component. A component instance has the
@@ -245,7 +245,9 @@
             component after it was created. <code class="param">use</code> is
             the <code>use</code> node instantiating the component, and
             <code class="param">component</code> is the component node being
-            instantiated. The instance is returned.</li>
+            instantiated. The component instance has corresponding <code
+            class="param">use</code> and <code class="param">component</code>
+            properties to access these. The instance is returned.</li>
             <li><code class="prop">views</code> maps the id of the foreign nodes
             inside the view of the component and the actual rendered nodes in
             the target. Nodes that do not have an id are not included.</li>
@@ -257,8 +259,24 @@
             be rendered. By default, it does not do anything but can be
             overloaded for component customization.</li>
           </ul>
-          <p>The <code class="node">script</code> node contains custom
-          Javascript code. This code is executed when the node is instantiated
+          <p>The <code class="node">script</code> element contains custom
+          Javascript code. This code is executed when the element is added to
+          its parent component element <em>and</em> its text content is set
+          (<span class="TODO">there will be an <code>href</code> attribute as
+          well to load external script files.</span>) The code is executed in
+          the context of the parent component element; in Javascript terms,
+          <code class="param">this</code> will point to the parent component
+          element.</p>
+          <p>One use of the <code>script</code> element is to customize the
+          behavior of the instances of the component. (Other uses include
+          runtime addition of nodes to the view to create complex components
+          programmatically rather than exhaustively.) The <em>prototype</em> of
+          the component instances may be accessed and modified through the <code
+          class="param">_prototype</code> property, so that methods may be added
+          or redefined.</p>
+          
+          <!--
+          (instantiated
           defines a variable <code class="param">prototype</code> to access the
           <em>prototype</em> of the component that it is part of. It is
           therefore possible to overload the base component's methods as well as
@@ -275,6 +293,8 @@
           node, then only that instance will have that property (or value if the
           component also has that property.) Instances have a <code
           class="param">properties</code> field that holds the properties.</p>
+          -->
+
         </section>
 
         <section id="manual.nodes.watch">

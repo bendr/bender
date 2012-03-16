@@ -14,4 +14,12 @@
       alert("Cancel");
     </get>
   </watch>
+  <script>
+    this._view.appendChild(this.$("use#retry-button", { href: "button.xml" },
+      "Retry"));
+    this.appendChild(
+      this.$("watch",
+        this.$("get", { use: "retry-button", event: "@pushed" },
+          "alert('Retry')")));
+  </script>
 </app>

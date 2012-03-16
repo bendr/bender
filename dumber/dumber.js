@@ -182,6 +182,7 @@
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
           var d = dest.ownerDocument.createTextNode(ch.textContent);
           dest.insertBefore(d, ref);
+          //dest.insertBefore(d, ref && ref.parentNode === dest && ref);
           if (dest === this.target) this.rendered.push(d);
         }
       }
@@ -202,6 +203,7 @@
           }
         }, this);
       dest.insertBefore(d, ref);
+      // dest.insertBefore(d, ref && ref.parentNode === dest && ref);
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
             if (!this.use._attributes.hasOwnProperty(attr.localName)) {
@@ -628,7 +630,7 @@
           return;
         }
         if (!this.parentNode._prototype) {
-          this.parentNode._prototoype = Object.create(component_instance);
+          this.parentNode._prototype = Object.create(component_instance);
         }
         (new Function(this.textContent)).call(this.parentNode);
         this._ran = true;
@@ -871,9 +873,14 @@
   function render_component(component, target, use)
   {
     if (!component) return;
-    var instance = Object.create(component_instance).init(use, component);
+    var instance = Object.create(component._prototype || component_instance)
+      .init(use, component);
     if (instance.instantiated) instance.instantiated();
-    instance.render(target, use._pending);
+    if (use._pending) {
+      instance.render(use._pending.parentNode, use._pending);
+    } else {
+      instance.render(target);
+    }
     return instance;
   }
 
