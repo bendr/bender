@@ -455,7 +455,6 @@
       {
         this._components = {};  // child components
         this._watches = [];     // child watches
-        this._scripts = [];     // child scripts
         this._instances = [];   // instances of this component
         this._properties = {};  // properties map
         this._uri = "";
@@ -474,7 +473,7 @@
             }
             this._desc = ch;
           } else if (ch.localName === "script") {
-            this._scripts.push(ch);
+            ch._run();
           } else if (ch.localName === "title") {
             if (this._title) {
               Object.getPrototypeOf(this).removeChild.call(this, this._title);
@@ -603,6 +602,36 @@
         } else {
           delete this._action;
         }
+      }
+    },
+
+    script:
+    {
+      insertBefore: function(ch, ref)
+      {
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        if (ch.nodeType === 3 || ch.nodeType === 4) this._run();
+        return ch;
+      },
+
+      // TODO setAttribute: href for script file location
+
+      _textContent: function(t)
+      {
+        this.textContent = t;
+        this._run();
+      },
+
+      _run: function()
+      {
+        if (!this.parentNode || this._ran || !/\S/.test(this.textContent)) {
+          return;
+        }
+        if (!this.parentNode._prototype) {
+          this.parentNode._prototoype = Object.create(component_instance);
+        }
+        (new Function(this.textContent)).call(this.parentNode);
+        this._ran = true;
       }
     },
 
@@ -843,9 +872,6 @@
   {
     if (!component) return;
     var instance = Object.create(component_instance).init(use, component);
-    component._scripts.forEach(function(script) {
-        (new Function("prototype", script.textContent))(instance);
-      });
     if (instance.instantiated) instance.instantiated();
     instance.render(target, use._pending);
     return instance;

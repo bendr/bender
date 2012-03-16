@@ -693,6 +693,13 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return flexo.elem(null, name, attrs, contents);
   };
 
+  // Check whether a node is in a document
+  flexo.in_document = function(node)
+  {
+    return !!node &&
+      (node instanceof Document || flexo.in_document(node.parentNode));
+  };
+
   // Remove all children of an element
   flexo.remove_children = function(elem)
   {
