@@ -689,7 +689,13 @@
 
       setAttributeNS: function(ns, name, value)
       {
-        if (ns === dumber.NS_P) this._properties[name] = value;
+        if (ns === dumber.NS_E) {
+          this._properties[name] = value;
+        } else if (ns === dumber.NS_F) {
+          this._properties[name] = parseFloat(value);
+        } else if (ns === dumber.NS_B) {
+          this._properties[name] = value.trim().toLowerCase() === "true";
+        }
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
