@@ -1,5 +1,5 @@
-<app xmlns="http://dumber.igel.co.jp" xmlns:p="http://dumber.igel.co.jp/p"
-  xmlns:html="http://www.w3.org/1999/xhtml" p:value="initial value">
+<app xmlns="http://dumber.igel.co.jp" xmlns:e="http://dumber.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
   <title>Watch a component property and set a view accordingly</title>
   <view>
     <html:p><html:code>value</html:code> = <html:span id="v"

@@ -1,7 +1,9 @@
 (function(dumber) {
 
   dumber.NS = "http://dumber.igel.co.jp";
-  dumber.NS_P = "http://dumber.igel.co.jp/p";
+  dumber.NS_E = "http://dumber.igel.co.jp/e";
+  dumber.NS_F = "http://dumber.igel.co.jp/f";
+  dumber.NS_B = "http://dumber.igel.co.jp/b";
 
   // Create a Dumber context for the given target (document by default.) Nodes
   // created in this context will be extended with the Dumber prototypes.
@@ -116,12 +118,12 @@
 
     render_watches: function()
     {
-      flexo.log("Render watches for", this.use);
       this.component._watches.forEach(function(watch) {
           var instance = Object.create(watch_instance).init(watch, this);
           instance.render();
           this.rendered.push(instance);
         }, this);
+      for (var p in this.watched) this.properties[p] = this.properties[p];
     },
 
     rendered_use: function(use)
@@ -543,7 +545,13 @@
       // TODO support xml:id?
       setAttributeNS: function(ns, name, value)
       {
-        if (ns === dumber.NS_P) this._properties[name] = value;
+        if (ns === dumber.NS_E) {
+          this._properties[name] = value;
+        } else if (ns === dumber.NS_F) {
+          this._properties[name] = parseFloat(value);
+        } else if (ns === dumber.NS_B) {
+          this._properties[name] = value.trim().toLowerCase() === "true";
+        }
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 

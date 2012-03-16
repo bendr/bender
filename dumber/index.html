@@ -8,6 +8,11 @@
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
         width: 960px; margin: auto; font-size: 16px;
         background-color: #fef9f0; }
+      header { border-top: solid 2px #ff7f40; }
+      #manual { border-top: solid 2px #40ff40; }
+      #demos, #library, #tests { border-top: solid 2px #40bfff; }
+      footer { clear: both; padding: 40px 0; font-size: 12px;
+        text-align: center; border-bottom: solid 2px #ff7f40; }
       h1, h2, h3 { font-weight: normal; color: #102040; }
       .g4, .g8, .g12 { display: inline; float: left; position: relative;
         margin: 0 10px; }
@@ -414,12 +419,16 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <li><a href="lib/run.html?href=../tests/load-order.xml">Ordering of
             components</a>: when some need to be loaded (from XML)</li>
           <li><a href="lib/run.html?href=../tests/watch-property.xml">Watch a
-            property</a>: <span class="TODO">need to initialize the property
-            properly</span></li>
+            property</a></li>
         </ol>
       </section>
 
     </aside>
+
+    <div class="clear"></div>
+
+    <footer id="copyright">Copyright © 2011, 2012,
+      <a href="http://www.igel.co.jp/">IGEL Co., Ltd.</a></footer>
 
   </body>
 </html>

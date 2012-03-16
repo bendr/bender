@@ -16,10 +16,10 @@
       var context = dumber.create_context(document.body);
 
       context.appendChild(context.$("app",
-          context.$("component#timer", { "p:rate": 1000 },
+          context.$("component#timer", { "f:rate": 1000 },
             context.$("script", "timer(prototype);")),
           context.$("title", "Timer"),
-          context.$("use", { ref: "timer", "p:rate": 500 })));
+          context.$("use", { ref: "timer", "f:rate": 500 })));
 
       context.appendChild(context.$("use", { q: "app" }));
 
