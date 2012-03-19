@@ -110,12 +110,8 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
         }
       }
     }
-    return (r.scheme ? r.scheme + ":" : "") +
-      (r.authority ? "//" + r.authority : "") +
-      r.path +
-      (r.query ? "?" + r.query : "") +
-      (r.fragment ? "#" + r.fragment : "");
-  }
+    return flexo.unsplit_uri(r);
+  };
 
   // Utility function for absolute_uri above
   function remove_dot_segments(path)
@@ -332,7 +328,17 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
         if (m && m[i + 1]) u[k] = m[i + 1];
       });
     return u;
-  }
+  };
+
+  // Rebuild an URI string from an object as split above
+  flexo.unsplit_uri = function(r)
+  {
+    return (r.scheme ? r.scheme + ":" : "") +
+      "//" + (r.authority ? r.authority : "") +
+      r.path +
+      (r.query ? "?" + r.query : "") +
+      (r.fragment ? "#" + r.fragment : "");
+  };
 
   flexo.sys_uuid = function(f)
   {

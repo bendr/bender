@@ -1,12 +1,13 @@
-(function(dumber) {
+(function(dumber)
+{
+  dumber.NS = "http://dumber.igel.co.jp";      // Dumber namespace
+  dumber.NS_E = "http://dumber.igel.co.jp/e";  // Properties namespace
+  dumber.NS_F = "http://dumber.igel.co.jp/f";  // Float properties namespace
+  dumber.NS_B = "http://dumber.igel.co.jp/b";  // Boolean properties namespace
 
-  dumber.NS = "http://dumber.igel.co.jp";
-  dumber.NS_E = "http://dumber.igel.co.jp/e";
-  dumber.NS_F = "http://dumber.igel.co.jp/f";
-  dumber.NS_B = "http://dumber.igel.co.jp/b";
-
-  // Create a Dumber context for the given target (document by default.) Nodes
-  // created in this context will be extended with the Dumber prototypes.
+  // Create a Dumber context for the given target (document by default.)
+  // Elements created in this context will be extended with the Dumber
+  // prototypes.
   dumber.create_context = function(target)
   {
     if (target === undefined) target = document;
@@ -28,14 +29,16 @@
     // The root is a context (i.e., component) element
     var root = wrap_element(context.documentElement);
 
-    var loaded = { "": root };  // loaded URIs
-    var components = {};        // known components by URI/id
+    var loaded = {};      // loaded URIs
+    var components = {};  // known components by URI/id
+
+    loaded[normalize_url((target.ownerDocument || target).baseURI, "")] = root;
 
     // Keep track of uri/id pairs to find components with the href attribute
-    // TODO normalize URIs
     context._add_component = function(component)
     {
-      var uri = component._uri + "#" + component._id;
+      var uri = normalize_url((target.ownerDocument || target).baseURI,
+          component._uri + "#" + component._id);
       components[uri] = component;
     };
 
@@ -47,10 +50,11 @@
     context._load_component = function(url)
     {
       var split = url.split("#");
-      var locator = split[0];
+      var locator = normalize_url((target.ownerDocument || target).baseURI,
+          split[0]);
       var id = split[1];
       if (typeof loaded[locator] === "object") {
-        return id ? components[url] : loaded[locator];
+        return id ? components[locator + "#" + id] : loaded[locator];
       } else {
         if (!loaded[locator]) {
           loaded[locator] = true;
@@ -744,7 +748,7 @@
           return this.parentNode && this.parentNode.querySelector(this._q);
         } else if (this._href) {
           var href =
-            (this._href.indexOf("#") === 0 ?  component_of(this)._uri : "") +
+            (this._href.indexOf("#") === 0 ? component_of(this)._uri : "") +
             this._href;
           return this.ownerDocument._load_component(href);
         }
@@ -868,6 +872,21 @@
       var n = parent.ownerDocument.importNode(node, false);
       parent.appendChild(n);
     }
+  }
+
+  function normalize_url(base, ref)
+  {
+    var url = flexo.split_uri(flexo.absolute_uri(base, ref)
+      .replace(/%([0-9a-f][0-9a-f])/gi,
+        function(m, n) {
+          n = parseInt(n, 16);
+          return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
+            (n >= 0x30 && n <= 0x39) || n === 0x2d || n === 0x2e ||
+            n === 0x5f || n == 0x7e ? String.fromCharCode(n) : m.toUpperCase();
+        }));
+    if (url.scheme) url.scheme = url.scheme.toLowerCase();
+    if (url.authority) url.authority = url.authority.toLowerCase();
+    return flexo.unsplit_uri(url);
   }
 
   function render_component(component, target, use)
