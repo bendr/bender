@@ -31,17 +31,17 @@
     </view>
     <watch>
       <get use="$self" property="x"/>
-      <set view="u" attr="x"/>
       <set use="$self" property="cx">
         return value + this.uses.$parent.properties.size / 2;
       </set>
+      <set view="u" attr="x"/>
     </watch>
     <watch>
       <get use="$self" property="y"/>
-      <set view="u" attr="y"/>
       <set use="$self" property="cy">
         return value + this.uses.$parent.properties.size / 2;
       </set>
+      <set view="u" attr="y"/>
     </watch>
     <watch>
       <get use="$parent" property="color"/>
@@ -49,35 +49,37 @@
       <set view="u" attr="stroke"/>
     </watch>
     <watch>
-      <get use="$parent" property="focus"/>
-      <set view="u" attr="transform">
+      <get use="$parent" property="focus">
         if (value) {
           var sz = this.uses.$parent.properties.size / 2;
           var dx = value.x - this.properties.x - sz;
           var dy = value.y - this.properties.y - sz;
           var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
-          return "rotate({0}, {1}, {2})"
-            .fmt(a, this.properties.cx, this.properties.cy);
+          var r = { transform: "rotate({0}, {1}, {2})"
+            .fmt(a, this.properties.cx, this.properties.cy) };
+          if (!this.uses.$parent.properties.color) {
+            var d = dx * dx + dy * dy;
+            r.color = "hsl({0}, {1}%, {2}%)"
+              .fmt((Math.floor(180 - a) + 360) % 360,
+                Math.floor(100 *
+                  flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)),
+                Math.floor(50 *
+                  flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)));
+          } else {
+            r.color = this.uses.$parent.properties.color;
+          }
+          return r;
         }
+      </get>
+      <set view="u" attr="transform">
+        if (value) return value.transform;
       </set>
-    </watch>
-    <watch>
-      <get use="$parent" property="focus"><![CDATA[
-        if (value && !this.uses.$parent.properties.color) {
-          var sz = this.uses.$parent.properties.size / 2;
-          var dx = value.x - this.properties.x - sz;
-          var dy = value.y - this.properties.y - sz;
-          var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
-          var d = dx * dx + dy * dy;
-          return "hsl({0}, {1}%, {2}%)".fmt((Math.floor(180 - a) + 360) % 360,
-              Math.floor(100 * flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)),
-              Math.floor(50 * flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)));
-        } else {
-          return this.uses.$parent.properties.color;
-        }
-      ]]></get>
-      <set view="u" attr="fill"/>
-      <set view="u" attr="stroke"/>
+      <set view="u" attr="fill">
+        if (value) return value.color;
+      </set>
+      <set view="u" attr="stroke">
+        if (value) return value.color;
+      </set>
     </watch>
   </component>
 
@@ -107,6 +109,8 @@
 
   <watch>
     <get view="$document" event="mousemove"/>
+    <get view="$document" event="touchstart"/>
+    <get view="$document" event="touchmove"/>
     <set use="$self" property="focus">
       return flexo.event_svg_point(value, this.views.root);
     </set>

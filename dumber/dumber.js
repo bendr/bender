@@ -349,7 +349,7 @@
               this.component_instance;
             var h = function(p, prev)
             {
-              flexo.log("{0}: {1} (was {2})".fmt(get._property, p, prev));
+              // flexo.log("{0}: {1} (was {2})".fmt(get._property, p, prev));
               that.got((get._action || flexo.id)
                   .call(that.component_instance, p, prev));
             };
