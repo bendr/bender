@@ -1,4 +1,8 @@
-<app xmlns="http://dumber.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+<app xmlns="http://dumber.igel.co.jp"
+  xmlns:b="http://dumber.igel.co.jp/b" b:clear="false"
+  xmlns:e="http://dumber.igel.co.jp/e" e:op="" e:input="0"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
   <title>Dymamic Calculator (w/ script)</title>
 
   <view>
@@ -33,31 +37,156 @@
         .button.wide { padding-right: 108px; }
       </html:style>
     </target>
-    <html:div class="calculator">
+    <html:div class="calculator" id="calculator">
       <html:div class="screen">
         <html:span class="value" id="value"/>
         <html:span class="op" id="op"/>
       </html:div>
     </html:div>
   </view>
-  <script>
-    var rows =
-    [["C", "=", "÷", "×"], ["7", "8", "9", "−"],
-      ["4", "5", "6", "+"], ["1", "2", "3", "=#tall button"],
-      ["0#wide button", "", "."]];
+
+  <watch>
+    <get property="input"/>
+    <set property="n">
+      return parseFloat(value);
+    </set>
+  </watch>
+
+  <watch>
+    <get property="n"/>
+    <set view="value">
+      return value.toString() +
+        (this.properties.input[this.properties.input.length - 1] === "." ?
+          "." : "");
+    </set>
+  </watch>
+
+  <watch>
+    <get property="op"/>
+    <set view="op"/>
+  </watch>
+
+  <watch>
+    <get use="zero" event="@pushed" e:d="0"/>
+    <get use="one" event="@pushed" e:d="1"/>
+    <get use="two" event="@pushed" e:d="2"/>
+    <get use="three" event="@pushed" e:d="3"/>
+    <get use="four" event="@pushed" e:d="4"/>
+    <get use="five" event="@pushed" e:d="5"/>
+    <get use="six" event="@pushed" e:d="6"/>
+    <get use="seven" event="@pushed" e:d="7"/>
+    <get use="eight" event="@pushed" e:d="8"/>
+    <get use="nine" event="@pushed" e:d="9"/>
+    <set property="input">
+      if (this.properties.clear) {
+        this.properties.clear = false;
+        this.properties.m = this.properties.n;
+        return get.properties.d;
+      } else {
+        return this.properties.input + get.properties.d;
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get property="rotate"/>
+    <set>
+      if (!isNaN(value)) {
+        var v = this.views.calculator;
+        v.style.WebkitTransform = v.style.MozTransform = v.style.OTransform =
+          "rotate({0}deg)".fmt(value);
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get use="eq1" event="@pushed"/>
+    <get use="eq2" event="@pushed"/>
+    <set>
+      if (!isNaN(this.properties.m)) {
+        this.properties.n = this.ops[this.properties.op]
+          (this.properties.m, this.properties.n);
+        this.properties.op = "";
+        delete this.properties.m;
+        this.properties.clear = true;
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get use="period" event="@pushed"/>
+    <set property="input"><![CDATA[
+      if (this.properties.clear) {
+        this.properties.clear = false;
+        this.properties.m = this.properties.n;
+        return "0.";
+      } else if (this.properties.input.indexOf(".") < 0) {
+        return this.properties.input + ".";
+      }
+    ]]></set>
+  </watch>
+
+  <watch>
+    <get use="c" event="@pushed"/>
+    <set>
+      this.properties.clear = false;
+      this.properties.op = "";
+      this.properties.input = "0";
+      delete this.properties.m;
+    </set>
+  </watch>
+
+  <watch>
+    <get use="add" event="@pushed" e:op="+"/>
+    <get use="sub" event="@pushed" e:op="-"/>
+    <get use="div" event="@pushed" e:op="÷"/>
+    <get use="mult" event="@pushed" e:op="×"/>
+    <set>
+      if (!isNaN(this.properties.m)) {
+        var m = this.properties.n;
+        this.properties.n = this.ops[this.properties.op]
+          (this.properties.m, this.properties.n);
+        this.properties.m = m;
+      }
+      this.properties.op = get.properties.op;
+      this.properties.clear = true;
+    </set>
+  </watch>
+
+  <script><![CDATA[
+
+    this.ops = {
+      "+": function(m, n) { return m + n; },
+      "-": function(m, n) { return m - n; },
+      "×": function(m, n) { return m * n; },
+      "÷": function(m, n) { return m / n; },
+      "": function(_, n) { return n; }
+    };
+    this.digits = ["zero", "one", "two", "three", "four", "five", "six",
+      "seven", "eight", "nine"];
+
+    var rows = [
+      ["C,c", "=,eq1", "÷,div", "×,,mult"],
+      ["7,seven", "8,eight", "9,nine", "−,sub"],
+      ["4,four", "5,five", "6,six", "+,add"],
+      ["1,one", "2,two", "3,three", "=,eq2,tall button"],
+      ["0,zero,wide button", "", ".,period"]
+    ];
     var body = this.querySelector(".calculator");
-    rows.forEach(function(row) {
-        var r = context.$("html:div.row");
-        row.forEach(function(op) {
-            var fields = op.split("#");
+    rows.forEach(function(row, r_) {
+        var r = context.properties.("html:div.row");
+        row.forEach(function(op, c) {
+            var fields = op.split(",");
             if (fields[0]) {
-              r.appendChild(context.$("use", { href: "../lib/button.xml",
-                "class": fields[1] }, fields[0]));
+              r.appendChild(context.properties.("use", { href: "../lib/button.xml",
+                "class": fields[2], id: fields[1] }, fields[0]));
             } else {
-              r.appendChild(context.$("html:span"));
+              r.appendChild(context.properties.("html:span"));
             }
-          });
+          }, this);
         body.appendChild(r);
-      });
-  </script>
+      }, this);
+
+    ]]></script>
+
 </app>

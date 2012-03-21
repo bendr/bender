@@ -1,0 +1,29 @@
+<app xmlns="http://dumber.igel.co.jp" xmlns:f="http://dumber.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:x="2">
+  <title>Watch: chaining watches</title>
+  <view>
+    <html:p><html:code>x</html:code> = <html:em id="x"/></html:p>
+    <html:p><html:code>y</html:code> = <html:code>x</html:code> + 1 =
+      <html:em id="y"/></html:p>
+    <html:p><html:code>x</html:code> + <html:code>y</html:code> =
+      <html:em id="z"/></html:p>
+  </view>
+  <watch id="watch-x">
+    <get property="x"/>
+    <set view="x"/>
+    <set property="y">
+      return value + 1;
+    </set>
+  </watch>
+  <watch id="watch-y">
+    <get property="y"/>
+    <set view="y"/>
+  </watch>
+  <watch id="watch-z">
+    <get property="x"/>
+    <get property="y"/>
+    <set view="z">
+      return this.properties.x + this.properties.y;
+    </set>
+  </watch>
+</app>

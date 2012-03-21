@@ -200,7 +200,8 @@
           if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
             this.views[attr.value.trim()] = d;
-          } else if (attr.namespaceURI) {
+          } else if (attr.namespaceURI &&
+            attr.namespaceURI !== node.namespaceURI) {
             d.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
           } else {
             d.setAttribute(attr.localName, attr.value);
@@ -295,10 +296,15 @@
                 target[set._property || "textContent"] = val;
               }
             }
-          }
-          var target = set._use ? this.component_instance.uses[set._use] :
-            set._view ? this.component_instance.views[set._view] :
+          } else if (set._property) {
+            var target = set._use ? this.component_instance.uses[set._use] :
               this.component_instance;
+            if (!target) {
+              flexo.log("No use for \"{0}\" in".fmt(set._use, set));
+            } else if (val !== undefined) {
+              target.properties[set._property] = val;
+            }
+          }
         }, this);
     },
 
@@ -313,10 +319,14 @@
             };
             if (get._view) {
               var target = this.component_instance.views[get._view];
-              target.addEventListener(get._event, listener, false);
-              this.ungets.push(function() {
-                  target.removeEventListener(get._event, listener, false);
-                });
+              if (!target) {
+                flexo.log("No view for \"{0}\" in".fmt(get._view), get);
+              } else {
+                target.addEventListener(get._event, listener, false);
+                this.ungets.push(function() {
+                    target.removeEventListener(get._event, listener, false);
+                  });
+              }
             } else if (get._use) {
               var target = this.component_instance.uses[get._use];
               if (!target) {
@@ -390,7 +400,6 @@
         this._refresh();
       },
 
-      // TODO allow class/id in any order
       $: function(name)
       {
         var argc = 1;
@@ -578,6 +587,14 @@
 
     get:
     {
+      _init: function()
+      {
+        flexo.getter_setter(this, "_content",
+            function() { return this._action; },
+            function(f) { if (typeof f === "function") this._action = f; });
+        return this;
+      },
+
       insertBefore: function(ch, ref)
       {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);

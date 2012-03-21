@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<DOCTYPE html>
 <html lang="en">
   <head>
     <title>⚐ Dumber</title>
@@ -274,26 +274,6 @@
           the component instances may be accessed and modified through the <code
           class="param">_prototype</code> property, so that methods may be added
           or redefined.</p>
-          
-          <!--
-          (instantiated
-          defines a variable <code class="param">prototype</code> to access the
-          <em>prototype</em> of the component that it is part of. It is
-          therefore possible to overload the base component's methods as well as
-          add new methods to that component. A good entry point for
-          initialization is the <code>instantiated</code> method.</p>
-          <p><strong>Properties</strong>: instances have properties (Javascript
-          values) that can be set directly from Dumber attributes. Attributes in
-          the namespace <code>http://dumber.igel.co.jp/p</code> or prefixed with
-          <code>p:</code> (when using the <code>$</code> convenience function to
-          create nodes) on <code>component</code> and <code>use</code> nodes
-          sets the value of a property with the same name as the attribute. When
-          set on a <code>component</code> node, all instances will have this
-          property with the value as default; when set on a <code>use</code>
-          node, then only that instance will have that property (or value if the
-          component also has that property.) Instances have a <code
-          class="param">properties</code> field that holds the properties.</p>
-          -->
 
         </section>
 
@@ -411,6 +391,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           the content is immediately unrendered.</li>
           <li><a href="tests/title.html">Title setting and updating</a>: the
           title bar should read "Newest title".</li>
+          <li><a href="tests/order.html">Order of definition</a> does not matter
+          as long a component is referred to in the same loading context.</li>
           <li><a href="tests/use.html">Nested use modified at runtime</a>:
           display A, B, C followed by - - - with 2 horizontal lines under each
           and = = = between the horizontal lines</li>
@@ -442,6 +424,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             property</a></li>
           <li><a href="lib/run.html?href=../tests/watch-transform.xml">Watch a
             property</a> with a transform (roman numbers)</li>
+          <li><a href="lib/run.html?href=../tests/watch-xy.xml">Watch a
+            property and set a property</a> creating a simple chain
+          reaction.</li>
+          <li><a href="lib/run.html?href=../tests/watch-xyz.xml">Watch a
+            property and set a cascade</a> of properties.</li>
         </ol>
       </section>
 
