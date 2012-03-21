@@ -2,7 +2,7 @@
   xmlns:e="http://dumber.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  f:width="16" f:height="12" f:size="20" e:color="">
+  f:width="16" f:height="12" f:size="20" e:color="white">
 
   <title>Arrows</title>
 
@@ -12,14 +12,35 @@
         body { margin: 0; padding: 0; background-color: black; }
       </html:style>
     </target>
-    <svg:svg>
+    <svg:svg id="root">
       <svg:defs>
         <svg:g svg:id="arrow">
           <svg:line x1="2" y1="10" x2="14" y2="10" stroke-linecap="round"/>
           <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
         </svg:g>
       </svg:defs>
+      <use ref="arrow"/>
     </svg:svg>
   </view>
+
+  <component id="arrow">
+    <view>
+      <svg:use id="u" xlink:href="#arrow"/>
+    </view>
+    <watch>
+      <get use="$parent" property="color"/>
+      <set view="u" attr="fill"/>
+      <set view="u" attr="stroke"/>
+    </watch>
+  </component>
+
+  <watch>
+    <get property="width"/>
+    <get property="height"/>
+    <set view="root" attr="viewBox">
+      return "0 0 {0} {1}".fmt(this.properties.width * this.properties.size,
+        this.properties.height * this.properties.size);
+    </set>
+  </watch>
 
 </app>

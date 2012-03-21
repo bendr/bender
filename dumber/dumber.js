@@ -82,7 +82,7 @@
   {
     // Initialize the instance from a <use> element given a <component>
     // description node.
-    init: function(use, component)
+    init: function(use, component, parent)
     {
       this.use = use;
       this.component = component;
@@ -101,6 +101,8 @@
           this.properties[k] = use._properties[k];
         }, this);
       component._instances.push(this);
+      this.uses.$self = this;
+      this.uses.$parent = parent;
       return this;
     },
 
@@ -143,7 +145,7 @@
         ++this.pending;
         return;
       }
-      var instance = use._render(dest, ref);
+      var instance = use._render(dest, this);
       if (instance === true) {
         use._pending = temporary_node(dest, ref, use);
         ++this.pending;
@@ -771,7 +773,7 @@
         }
       },
 
-      _render: function(target)
+      _render: function(target, parent)
       {
         var component = this._find_component();
         if (component === true) {
@@ -783,7 +785,7 @@
           flexo.listen(this.ownerDocument, "@loaded", h);
           return true;
         } else if (component) {
-          var instance = render_component(component, target, this);
+          var instance = render_component(component, target, this, parent);
           if (instance) {
             this._instance = instance;
             return instance;
@@ -906,11 +908,11 @@
     return flexo.unsplit_uri(url);
   }
 
-  function render_component(component, target, use)
+  function render_component(component, target, use, parent)
   {
     if (!component) return;
     var instance = Object.create(component._prototype || component_instance)
-      .init(use, component);
+      .init(use, component, parent);
     if (instance.instantiated) instance.instantiated();
     if (use._pending) {
       instance.render(use._pending.parentNode, use._pending);
