@@ -2,7 +2,7 @@
   xmlns:e="http://dumber.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  f:width="16" f:height="12" f:size="20" e:color="white">
+  f:width="16" f:height="12" f:size="20">
 
   <title>Arrows</title>
 
@@ -19,7 +19,9 @@
           <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
         </svg:g>
       </svg:defs>
-      <use ref="arrow"/>
+      <svg:g id="arrows">
+        <use ref="arrow" f:x="20" f:y="40"/>
+      </svg:g>
     </svg:svg>
   </view>
 
@@ -28,7 +30,52 @@
       <svg:use id="u" xlink:href="#arrow"/>
     </view>
     <watch>
+      <get use="$self" property="x"/>
+      <set view="u" attr="x"/>
+      <set use="$self" property="cx">
+        return value + this.uses.$parent.properties.size / 2;
+      </set>
+    </watch>
+    <watch>
+      <get use="$self" property="y"/>
+      <set view="u" attr="y"/>
+      <set use="$self" property="cy">
+        return value + this.uses.$parent.properties.size / 2;
+      </set>
+    </watch>
+    <watch>
       <get use="$parent" property="color"/>
+      <set view="u" attr="fill"/>
+      <set view="u" attr="stroke"/>
+    </watch>
+    <watch>
+      <get use="$parent" property="focus"/>
+      <set view="u" attr="transform">
+        if (value) {
+          var sz = this.uses.$parent.properties.size / 2;
+          var dx = value.x - this.properties.x - sz;
+          var dy = value.y - this.properties.y - sz;
+          var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
+          return "rotate({0}, {1}, {2})"
+            .fmt(a, this.properties.cx, this.properties.cy);
+        }
+      </set>
+    </watch>
+    <watch>
+      <get use="$parent" property="focus"><![CDATA[
+        if (value && !this.uses.$parent.properties.color) {
+          var sz = this.uses.$parent.properties.size / 2;
+          var dx = value.x - this.properties.x - sz;
+          var dy = value.y - this.properties.y - sz;
+          var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
+          var d = dx * dx + dy * dy;
+          return "hsl({0}, {1}%, {2}%)".fmt((Math.floor(180 - a) + 360) % 360,
+              Math.floor(100 * flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)),
+              Math.floor(50 * flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)));
+        } else {
+          return this.uses.$parent.properties.color;
+        }
+      ]]></get>
       <set view="u" attr="fill"/>
       <set view="u" attr="stroke"/>
     </watch>
@@ -40,6 +87,28 @@
     <set view="root" attr="viewBox">
       return "0 0 {0} {1}".fmt(this.properties.width * this.properties.size,
         this.properties.height * this.properties.size);
+    </set>
+    <set use="$self" property="r">
+      return Math.pow(Math.max(this.properties.width * this.properties.size,
+        this.properties.height * this.properties.size), 2);
+    </set>
+    <set><![CDATA[
+      var v = this.component.querySelector("#arrows");
+      flexo.remove_children(v);
+      for (var x = 0; x < this.properties.width; ++x) {
+        for (var y = 0; y < this.properties.height; ++y) {
+          v.appendChild(v.$("use", { ref: "arrow",
+            "f:x": x * this.properties.size,
+            "f:y": y * this.properties.size }));
+        }
+      }
+    ]]></set>
+  </watch>
+
+  <watch>
+    <get view="$document" event="mousemove"/>
+    <set use="$self" property="focus">
+      return flexo.event_svg_point(value, this.views.root);
     </set>
   </watch>
 

@@ -109,9 +109,12 @@
     // Unrender, then render the view when the target is an Element.
     render: function(target, ref)
     {
+      if (this.rendering) return;
+      this.rendering = true;
       this.unrender();
       if (!target) target = this.target;
       if (target instanceof Element) {
+        this.views.$document = target.ownerDocument;
         this.target = target;
         this.pending = 0;
         if (this.component._view) {
@@ -120,6 +123,7 @@
         this.update_title();
         if (this.pending === 0) this.render_watches();
       }
+      delete this.rendering;
     },
 
     render_watches: function()
@@ -379,7 +383,7 @@
       removeChild: function(ch)
       {
         var parent = this.parentNode;
-        Node.protoype.removeChild.call(this, ch);
+        Object.getPrototypeOf(this).removeChild.call(this, ch);
         this._refresh(parent);
         return ch;
       },
