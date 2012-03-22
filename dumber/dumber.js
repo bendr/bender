@@ -210,10 +210,12 @@
           }
         }, this);
       dest.insertBefore(d, ref);
-      // dest.insertBefore(d, ref && ref.parentNode === dest && ref);
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
-            if (!this.use._attributes.hasOwnProperty(attr.localName)) {
+            if (!(this.use._attributes.hasOwnProperty(attr.localName) ||
+                attr.namespaceURI === dumber.NS_E ||
+                attr.namespaceURI === dumber.NS_F ||
+                attr.namespaceURI === dumber.NS_B)) {
               d.setAttribute(attr.name, attr.value);
             }
           }, this);
