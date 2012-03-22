@@ -1,5 +1,6 @@
 <app xmlns="http://dumber.igel.co.jp"
   xmlns:b="http://dumber.igel.co.jp/b" b:clear="false"
+  xmlns:f="http://dumber.igel.co.jp/f"
   xmlns:e="http://dumber.igel.co.jp/e" e:op="" e:input="0"
   xmlns:html="http://www.w3.org/1999/xhtml">
 
@@ -63,27 +64,27 @@
 
   <watch>
     <get property="op"/>
-    <set view="op"/>
+    <set view="op">return this.ops[value][0]</set>
   </watch>
 
   <watch>
-    <get use="zero" event="@pushed" e:d="0"/>
-    <get use="one" event="@pushed" e:d="1"/>
-    <get use="two" event="@pushed" e:d="2"/>
-    <get use="three" event="@pushed" e:d="3"/>
-    <get use="four" event="@pushed" e:d="4"/>
-    <get use="five" event="@pushed" e:d="5"/>
-    <get use="six" event="@pushed" e:d="6"/>
-    <get use="seven" event="@pushed" e:d="7"/>
-    <get use="eight" event="@pushed" e:d="8"/>
-    <get use="nine" event="@pushed" e:d="9"/>
+    <get use="zero" event="@pushed">return "0";</get>
+    <get use="one" event="@pushed">return "1";</get>
+    <get use="two" event="@pushed">return "2";</get>
+    <get use="three" event="@pushed">return "3";</get>
+    <get use="four" event="@pushed">return "4";</get>
+    <get use="five" event="@pushed">return "5";</get>
+    <get use="six" event="@pushed">return "6";</get>
+    <get use="seven" event="@pushed">return "7";</get>
+    <get use="eight" event="@pushed">return "8";</get>
+    <get use="nine" event="@pushed">return "9";</get>
     <set property="input">
       if (this.properties.clear) {
         this.properties.clear = false;
         this.properties.m = this.properties.n;
-        return get.properties.d;
+        return value;
       } else {
-        return this.properties.input + get.properties.d;
+        return this.properties.input + value;
       }
     </set>
   </watch>
@@ -104,7 +105,7 @@
     <get use="eq2" event="@pushed"/>
     <set>
       if (!isNaN(this.properties.m)) {
-        this.properties.n = this.ops[this.properties.op]
+        this.properties.n = this.ops[this.properties.op][1]
           (this.properties.m, this.properties.n);
         this.properties.op = "";
         delete this.properties.m;
@@ -137,36 +138,34 @@
   </watch>
 
   <watch>
-    <get use="add" event="@pushed" e:op="+"/>
-    <get use="sub" event="@pushed" e:op="-"/>
-    <get use="div" event="@pushed" e:op="÷"/>
-    <get use="mult" event="@pushed" e:op="×"/>
+    <get use="add" event="@pushed"/>
+    <get use="sub" event="@pushed"/>
+    <get use="div" event="@pushed"/>
+    <get use="mult" event="@pushed"/>
     <set>
       if (!isNaN(this.properties.m)) {
         var m = this.properties.n;
-        this.properties.n = this.ops[this.properties.op]
+        this.properties.n = this.ops[this.properties.op][1]
           (this.properties.m, this.properties.n);
         this.properties.m = m;
       }
-      this.properties.op = get.properties.op;
+      this.properties.op = value.source.use._id;
       this.properties.clear = true;
     </set>
   </watch>
 
   <script><![CDATA[
 
-    this.ops = {
-      "+": function(m, n) { return m + n; },
-      "-": function(m, n) { return m - n; },
-      "×": function(m, n) { return m * n; },
-      "÷": function(m, n) { return m / n; },
-      "": function(_, n) { return n; }
+    this._prototype.ops = {
+      add: ["+", function(m, n) { return m + n; }],
+      sub: ["-", function(m, n) { return m - n; }],
+      mult: ["×", function(m, n) { return m * n; }],
+      div: ["÷", function(m, n) { return m / n; }],
+      "": ["", function(_, n) { return n; }]
     };
-    this.digits = ["zero", "one", "two", "three", "four", "five", "six",
-      "seven", "eight", "nine"];
 
     var rows = [
-      ["C,c", "=,eq1", "÷,div", "×,,mult"],
+      ["C,c", "=,eq1", "÷,div", "×,mult"],
       ["7,seven", "8,eight", "9,nine", "−,sub"],
       ["4,four", "5,five", "6,six", "+,add"],
       ["1,one", "2,two", "3,three", "=,eq2,tall button"],
@@ -174,14 +173,14 @@
     ];
     var body = this.querySelector(".calculator");
     rows.forEach(function(row, r_) {
-        var r = context.properties.("html:div.row");
+        var r = context.$("html:div.row");
         row.forEach(function(op, c) {
             var fields = op.split(",");
             if (fields[0]) {
-              r.appendChild(context.properties.("use", { href: "../lib/button.xml",
+              r.appendChild(context.$("use", { href: "../lib/button.xml",
                 "class": fields[2], id: fields[1] }, fields[0]));
             } else {
-              r.appendChild(context.properties.("html:span"));
+              r.appendChild(context.$("html:span"));
             }
           }, this);
         body.appendChild(r);

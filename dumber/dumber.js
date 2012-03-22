@@ -244,7 +244,6 @@
       }
     },
 
-    // TODO don't overwrite a previous setter for this property (if any)
     watch_property: function(property, handler)
     {
       if (!(this.watched.hasOwnProperty(property))) {
@@ -253,10 +252,11 @@
         var that = this;
         flexo.getter_setter(this.properties, property, function() { return p; },
             function(p_) {
-              that.watched[property].slice().forEach(function(h) {
-                  h.call(that, p_, p);
-                });
+              var prev = p;
               p = p_;
+              that.watched[property].slice().forEach(function(h) {
+                  h.call(that, p, prev);
+                });
             });
       }
       this.watched[property].push(handler);
@@ -332,7 +332,7 @@
             } else if (get._use) {
               var target = this.component_instance.uses[get._use];
               if (!target) {
-                flexo.log("No view for \"{0}\"".fmt(get._use));
+                flexo.log("No use for \"{0}\"".fmt(get._use));
               } else {
                 flexo.listen(target, get._event, listener);
                 this.ungets.push(function() {
@@ -343,15 +343,19 @@
           } else if (get._property) {
             var target = get._use ? this.component_instance.uses[get._use] :
               this.component_instance;
-            var h = function(p, prev)
-            {
-              that.got((get._action || flexo.id)
-                  .call(that.component_instance, p, prev));
-            };
-            target.watch_property(get._property, h);
-            this.ungets.push(function() {
-                target.unwatch_property(get._property, h);
-              });
+            if (!target) {
+              flexo.log("No use for \"{0}\"".fmt(get._use));
+            } else {
+              var h = function(p, prev)
+              {
+                that.got((get._action || flexo.id)
+                    .call(that.component_instance, p, prev));
+              };
+              target.watch_property(get._property, h);
+              this.ungets.push(function() {
+                  target.unwatch_property(get._property, h);
+                });
+            }
           }
         }, this);
     },
