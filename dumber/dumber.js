@@ -109,8 +109,6 @@
     // Unrender, then render the view when the target is an Element.
     render: function(target, ref)
     {
-      if (this.rendering) return;
-      this.rendering = true;
       this.unrender();
       if (!target) target = this.target;
       if (target instanceof Element) {
@@ -123,7 +121,6 @@
         this.update_title();
         if (this.pending === 0) this.render_watches();
       }
-      delete this.rendering;
     },
 
     render_watches: function()
@@ -192,7 +189,6 @@
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
           var d = dest.ownerDocument.createTextNode(ch.textContent);
           dest.insertBefore(d, ref);
-          //dest.insertBefore(d, ref && ref.parentNode === dest && ref);
           if (dest === this.target) this.rendered.push(d);
         }
       }
@@ -349,7 +345,6 @@
               this.component_instance;
             var h = function(p, prev)
             {
-              // flexo.log("{0}: {1} (was {2})".fmt(get._property, p, prev));
               that.got((get._action || flexo.id)
                   .call(that.component_instance, p, prev));
             };
@@ -460,7 +455,7 @@
         if (!parent) parent = this.parentNode;
         var component = component_of(parent);
         if (component) {
-          component._instances.forEach(function(i) { i.render(); });
+          component._instances.forEach(function(i) { refresh_instance(i); });
         }
       },
 
@@ -699,7 +694,6 @@
       }
     },
 
-
     target:
     {
       setAttribute: function(name, value)
@@ -910,6 +904,24 @@
     if (url.scheme) url.scheme = url.scheme.toLowerCase();
     if (url.authority) url.authority = url.authority.toLowerCase();
     return flexo.unsplit_uri(url);
+  }
+
+  // Simple rendering queue for refreshes
+  var queue = [];
+  var timeout = null;
+
+  function refresh_instance(instance)
+  {
+    flexo.remove_from_array(queue, instance);
+    queue.push(instance);
+    if (!timeout) {
+      timeout = setTimeout(function() {
+          flexo.log("refresh_instances×{0}".fmt(queue.length));
+          queue.forEach(function(i) { i.render(); });
+          queue = [];
+          timeout = null;
+        }, 0);
+    }
   }
 
   function render_component(component, target, use, parent)

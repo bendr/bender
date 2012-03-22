@@ -58,13 +58,10 @@
           var r = { transform: "rotate({0}, {1}, {2})"
             .fmt(a, this.properties.cx, this.properties.cy) };
           if (!this.uses.$parent.properties.color) {
-            var d = dx * dx + dy * dy;
+            var d = 1 - (dx * dx + dy * dy) / this.uses.$parent.properties.r;
             r.color = "hsl({0}, {1}%, {2}%)"
-              .fmt((Math.floor(180 - a) + 360) % 360,
-                Math.floor(100 *
-                  flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)),
-                Math.floor(50 *
-                  flexo.clamp(1 - d / this.uses.$parent.properties.r, 0, 1)));
+              .fmt((Math.floor(180 - a) + 360) % 360, Math.floor(100 * d),
+                Math.floor(50 * d));
           } else {
             r.color = this.uses.$parent.properties.color;
           }
@@ -91,8 +88,9 @@
         this.properties.height * this.properties.size);
     </set>
     <set use="$self" property="r">
-      return Math.pow(Math.max(this.properties.width * this.properties.size,
-        this.properties.height * this.properties.size), 2);
+      var r = Math.max(this.properties.width * this.properties.size,
+        this.properties.height * this.properties.size);
+      return r * r;
     </set>
     <set><![CDATA[
       var v = this.component.querySelector("#arrows");
