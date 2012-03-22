@@ -246,7 +246,7 @@
       }
     },
 
-    watch_property: function(property, handler)
+    watch_property: function(property, handler, watch)
     {
       if (!(this.watched.hasOwnProperty(property))) {
         this.watched[property] = [];
@@ -254,11 +254,14 @@
         var that = this;
         flexo.getter_setter(this.properties, property, function() { return p; },
             function(p_) {
+              if (watch.active) return;
+              watch.active = true;
               var prev = p;
               p = p_;
               that.watched[property].slice().forEach(function(h) {
                   h.call(that, p, prev);
                 });
+              delete watch.active;
             });
       }
       this.watched[property].push(handler);
@@ -318,8 +321,11 @@
           var that = this;
           if (get._event) {
             var listener = function(e) {
+              if (that.active) return;
+              that.active = true;
               that.got((get._action || flexo.id)
                 .call(that.component_instance, e));
+              delete that.active;
             };
             if (get._view) {
               var target = this.component_instance.views[get._view];
@@ -353,7 +359,7 @@
                 that.got((get._action || flexo.id)
                     .call(that.component_instance, p, prev));
               };
-              target.watch_property(get._property, h);
+              target.watch_property(get._property, h, this);
               this.ungets.push(function() {
                   target.unwatch_property(get._property, h);
                 });
