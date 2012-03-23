@@ -106,6 +106,26 @@
       return this;
     },
 
+    // Find the value of a property in scope
+    find_instance_with_property: function(name)
+    {
+      if (this.properties.hasOwnProperty(name)) return this;
+      if (this.uses.$parent) {
+        return this.uses.$parent.find_instance_with_property(name);
+      }
+    },
+
+    // Get or set a property in self or nearest ancestor
+    property: function(name, value)
+    {
+      var instance = this.find_instance_with_property(name);
+      if (value) {
+        if (!instance) instance = this;
+        instance.properties[name] = value;
+      }
+      if (instance) return instance.properties[name];
+    },
+
     // Unrender, then render the view when the target is an Element.
     render: function(target, ref)
     {
@@ -305,7 +325,8 @@
             }
           } else if (set._property) {
             var target = set._use ? this.component_instance.uses[set._use] :
-              this.component_instance;
+              this.component_instance
+                .find_instance_with_property(set._property);
             if (!target) {
               flexo.log("No use for \"{0}\" in".fmt(set._use, set));
             } else if (val !== undefined) {
@@ -350,7 +371,8 @@
             }
           } else if (get._property) {
             var target = get._use ? this.component_instance.uses[get._use] :
-              this.component_instance;
+              this.component_instance
+                .find_instance_with_property(get._property);
             if (!target) {
               flexo.log("No use for \"{0}\"".fmt(get._use));
             } else {
