@@ -1,0 +1,44 @@
+<app xmlns="http://dumber.igel.co.jp"
+  xmlns:b="http://dumber.igel.co.jp/b" xmlns:f="http://dumber.igel.co.jp/f">
+  <title>SVG Clock</title>
+
+  <view>
+    <use id="clock" href="../lib/timer.xml" f:rate-ms="333" b:on="true"/>
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
+      viewBox="-220 -220 440 440">
+      <circle r="200" fill="#a1dcff"/>
+      <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
+        stroke-opacity="0.75"/>
+      <line y1="20" y2="-180" stroke="#26521f" stroke-width="4"
+        stroke-linecap="round" id="minutes" stroke-opacity="0.8"/>
+      <line y1="8" y2="-90" stroke="#d1372f" stroke-width="8"
+        stroke-linecap="round" id="hours" stroke-opacity="0.9"/>
+    </svg>
+  </view>
+
+
+  <script><![CDATA[
+    var seconds = this.ownerDocument.getElementById("seconds");
+    for (var i = 1; i < 60; ++i) {
+      var c = this.$("svg:circle", { r: i * 3, "stroke-width": 2, fill: "none",
+        stroke: "white" });
+      seconds.parentNode.insertBefore(c, seconds);
+    }
+  ]]></script>
+
+  <watch>
+    <get use="clock" event="@tick">
+      return new Date();
+    </get>
+    <set view="hours" attr="transform">
+      return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
+    </set>
+    <set view="minutes" attr="transform">
+      return "rotate({0})".fmt(value.getMinutes() * 6);
+    </set>
+    <set view="seconds" attr="r">
+      return 3 * value.getSeconds();
+    </set>
+  </watch>
+
+</app>
