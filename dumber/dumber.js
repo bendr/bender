@@ -328,7 +328,7 @@
               this.component_instance
                 .find_instance_with_property(set._property);
             if (!target) {
-              flexo.log("No use for \"{0}\" in".fmt(set._use, set));
+              flexo.log("No use for \"{0}\" in".fmt(set._property), set);
             } else if (val !== undefined) {
               target.properties[set._property] = val;
             }
