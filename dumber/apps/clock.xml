@@ -1,11 +1,10 @@
-<app xmlns="http://dumber.igel.co.jp"
-  xmlns:b="http://dumber.igel.co.jp/b" xmlns:f="http://dumber.igel.co.jp/f">
+<app xmlns="http://dumber.igel.co.jp" xmlns:b="http://dumber.igel.co.jp/b"
+  xmlns:f="http://dumber.igel.co.jp/f" b:on="true" f:rate-ms="333">
   <title>SVG Clock</title>
 
   <view>
-    <use id="clock" href="../lib/timer.xml" f:rate-ms="333" b:on="true"/>
-    <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
-      viewBox="-220 -220 440 440">
+    <use id="clock" href="../lib/timer.xml"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-220 -220 440 440">
       <circle r="200" fill="#a1dcff"/>
       <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
         stroke-opacity="0.75"/>
@@ -16,7 +15,6 @@
     </svg>
   </view>
 
-
   <script><![CDATA[
     var seconds = this.ownerDocument.getElementById("seconds");
     for (var i = 1; i < 60; ++i) {
@@ -25,6 +23,16 @@
       seconds.parentNode.insertBefore(c, seconds);
     }
   ]]></script>
+
+  <watch>
+    <get use="$self" property="rate-ms"/>
+    <set use="clock" property="rate-ms"/>
+  </watch>
+
+  <watch>
+    <get use="$self" property="on"/>
+    <set use="clock" property="on"/>
+  </watch>
 
   <watch>
     <get use="clock" event="@tick">

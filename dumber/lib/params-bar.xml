@@ -1,0 +1,91 @@
+<component xmlns="http://dumber.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <view>
+    <target q="head" once="true">
+      <html:style>
+        .params-bar { background-color: black; color: white; padding: 4px; }
+        .params-bar input { border: none; }
+      </html:style>
+    </target>
+    <html:div class="params-bar"/>
+  </view>
+  <script>
+    var div = this.querySelector("div");
+    this._prototype.add_param = function(type, name, value)
+    {
+      var id = type + div.length.toString();
+      return div.appendChild(div.$("use", { ref: type, id: id, "e:name": name,
+        "e:value": value }));
+    };
+  </script>
+
+  <component id="e">
+    <view>
+      <html:label>
+        <html:span id="label"/>
+        <html:input id="input" type="text"/>
+      </html:label>
+    </view>
+    <watch>
+      <get use="$self" property="name"/>
+      <set view="label"/>
+    </watch>
+    <watch>
+      <get use="$self" property="value"/>
+      <set view="input" property="value"/>
+    </watch>
+    <watch>
+      <get view="input" event="change">
+        return this.views.input.value;
+      </get>
+      <set use="$self" property="value"/>
+    </watch>
+  </component>
+
+  <component id="f">
+    <view>
+      <html:label>
+        <html:span id="label"/>
+        <html:input id="input" type="number"/>
+      </html:label>
+    </view>
+    <watch>
+      <get use="$self" property="name"/>
+      <set view="label"/>
+    </watch>
+    <watch>
+      <get use="$self" property="value"/>
+      <set view="input" property="value"/>
+    </watch>
+    <watch>
+      <get view="input" event="change">
+        return this.views.input.value;
+      </get>
+      <set use="$self" property="value"/>
+    </watch>
+  </component>
+
+  <component id="b">
+    <view>
+      <html:label>
+        <html:input id="input" type="checkbox"/>
+        <html:span id="label"/>
+      </html:label>
+    </view>
+    <watch>
+      <get use="$self" property="name"/>
+      <set view="label"/>
+    </watch>
+    <watch>
+      <get use="$self" property="value"/>
+      <set view="input" property="checked"/>
+    </watch>
+    <watch>
+      <get view="input" event="change">
+        return this.views.input.checked;
+      </get>
+      <set use="$self" property="value"/>
+    </watch>
+  </component>
+
+</component>

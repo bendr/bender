@@ -64,7 +64,8 @@
               } else {
                 loaded[locator] = import_node(root,
                   req.response.documentElement, locator);
-                flexo.notify(context, "@loaded");
+                flexo.notify(context, "@loaded",
+                  { component: loaded[locator] });
               }
             });
         }
@@ -107,11 +108,15 @@
     },
 
     // Find the value of a property in scope
+    // Create a new property on the top-level instance if not found
     find_instance_with_property: function(name)
     {
       if (this.properties.hasOwnProperty(name)) return this;
       if (this.uses.$parent) {
         return this.uses.$parent.find_instance_with_property(name);
+      } else {
+        this.properties[name] = undefined;
+        return this;
       }
     },
 
@@ -266,7 +271,7 @@
       }
     },
 
-    watch_property: function(property, handler, watch)
+    watch_property: function(property, handler)
     {
       if (!(this.watched.hasOwnProperty(property))) {
         this.watched[property] = [];
@@ -274,22 +279,23 @@
         var that = this;
         flexo.getter_setter(this.properties, property, function() { return p; },
             function(p_) {
-              if (watch.active) return;
-              watch.active = true;
               var prev = p;
               p = p_;
               that.watched[property].slice().forEach(function(h) {
                   h.call(that, p, prev);
                 });
-              delete watch.active;
             });
       }
       this.watched[property].push(handler);
+      flexo.log("watch_property[{0}]: {1}".fmt(property,
+            this.watched[property].length));
     },
 
     unwatch_property: function(property, handler)
     {
-      flexo.remove_from_array(this.watched[property]);
+      flexo.remove_from_array(this.watched[property], handler);
+      flexo.log("unwatch_property[{0}]: {1}".fmt(property,
+            this.watched[property].length));
       if (this.watched[property] && this.watched[property].length === 0) {
         delete this.watched[property];
       }
@@ -328,7 +334,7 @@
               this.component_instance
                 .find_instance_with_property(set._property);
             if (!target) {
-              flexo.log("No use for \"{0}\" in".fmt(set._property), set);
+              flexo.log("(got) No use for \"{0}\" in".fmt(set._property), set);
             } else if (val !== undefined) {
               target.properties[set._property] = val;
             }
@@ -342,11 +348,8 @@
           var that = this;
           if (get._event) {
             var listener = function(e) {
-              if (that.active) return;
-              that.active = true;
               that.got((get._action || flexo.id)
                 .call(that.component_instance, e));
-              delete that.active;
             };
             if (get._view) {
               var target = this.component_instance.views[get._view];
@@ -361,7 +364,7 @@
             } else if (get._use) {
               var target = this.component_instance.uses[get._use];
               if (!target) {
-                flexo.log("No use for \"{0}\"".fmt(get._use));
+                flexo.log("(render get/use) No use for \"{0}\"".fmt(get._use));
               } else {
                 flexo.listen(target, get._event, listener);
                 this.ungets.push(function() {
@@ -374,14 +377,16 @@
               this.component_instance
                 .find_instance_with_property(get._property);
             if (!target) {
-              flexo.log("No use for \"{0}\"".fmt(get._use));
+              flexo.log("(render get/property) No use for \"{0}\""
+                  .fmt(get._property));
             } else {
               var h = function(p, prev)
               {
                 that.got((get._action || flexo.id)
                     .call(that.component_instance, p, prev));
               };
-              target.watch_property(get._property, h, this);
+              h._watch = this;
+              target.watch_property(get._property, h);
               this.ungets.push(function() {
                   target.unwatch_property(get._property, h);
                 });
@@ -613,7 +618,7 @@
         }
       },
 
-      _render_in: function(target)
+      erender_in: function(target)
       {
         return render_component(this, target,
             this.ownerDocument.createElement("use"));
@@ -817,6 +822,7 @@
           flexo.listen(this.ownerDocument, "@loaded", h);
           return true;
         } else if (component) {
+          this._component = component;
           var instance = render_component(component, target, this, parent);
           if (instance) {
             this._instance = instance;
@@ -946,15 +952,17 @@
 
   function refresh_instance(instance)
   {
-    flexo.remove_from_array(queue, instance);
-    queue.push(instance);
-    if (!timeout) {
-      timeout = setTimeout(function() {
-          flexo.log("refresh_instances×{0}".fmt(queue.length));
-          queue.forEach(function(i) { i.render(); });
-          queue = [];
-          timeout = null;
-        }, 0);
+    if (instance.render) {
+      flexo.remove_from_array(queue, instance);
+      queue.push(instance);
+      if (!timeout) {
+        timeout = setTimeout(function() {
+            flexo.log("refresh_instances×{0}".fmt(queue.length));
+            queue.forEach(function(i) { i.render(); });
+            queue = [];
+            timeout = null;
+          }, 0);
+      }
     }
   }
 

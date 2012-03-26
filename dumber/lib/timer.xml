@@ -1,5 +1,5 @@
 <component xmlns="http://dumber.igel.co.jp" xmlns:f="http://dumber.igel.co.jp/f"
-  xmlns:b="http://dumber.igel.co.jp/b" b:on="false" f:rate-ms="1000" id="timer">
+  xmlns:b="http://dumber.igel.co.jp/b" b:on="false" f:rate-ms="1000">
 
   <title>Timer</title>
 

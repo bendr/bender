@@ -2,7 +2,7 @@
   xmlns:e="http://dumber.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  f:width="16" f:height="12" f:size="8">
+  f:width="16" f:height="12" f:size="20" e:color="">
 
   <title>Arrows</title>
 
@@ -10,21 +10,111 @@
     <target q="head">
       <html:style>
         body { margin: 0; padding: 0; background-color: black; }
+        .params { color: white; padding: 4px; }
+        input { font-size: 16px;
+          font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+          border: none; width: 48px; background-color: #ffd; }
       </html:style>
     </target>
-    <svg:svg id="root">
-      <svg:defs>
-        <svg:g svg:id="arrow">
-          <svg:line x1="2" y1="10" x2="14" y2="10" stroke-linecap="round"/>
-          <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
-        </svg:g>
-      </svg:defs>
-      <svg:g id="arrows">
-        <use ref="arrow" f:x="20" f:y="40"/>
-      </svg:g>
-    </svg:svg>
+    <use ref="params"/>
+    <html:div id="svg">
+      <use ref="arrows"/>
+    </html:div>
   </view>
 
+  <component id="params">
+    <view>
+      <html:div class="params">
+        Width: <html:input type="number" id="w"/>
+        Height: <html:input type="number" id="h"/>
+        Size: <html:input type="number" id="s"/>
+      </html:div>
+    </view>
+    <watch>
+      <get property="width"/>
+      <set view="w" property="value"/>
+    </watch>
+    <watch>
+      <get property="height"/>
+      <set view="h" property="value"/>
+    </watch>
+    <watch>
+      <get property="size"/>
+      <set view="s" property="value"/>
+    </watch>
+    <watch>
+      <get view="w" event="change">
+        return value.target.value;
+      </get>
+      <set property="width"/>
+    </watch>
+    <watch>
+      <get view="h" event="change">
+        return value.target.value;
+      </get>
+      <set property="height"/>
+    </watch>
+    <watch>
+      <get view="s" event="change">
+        return value.target.value;
+      </get>
+      <set property="size"/>
+    </watch>
+  </component>
+
+  <component id="arrows">
+
+    <view>
+      <svg:svg id="root">
+        <svg:defs>
+          <svg:g svg:id="arrow">
+            <svg:line x1="2" y1="10" x2="14" y2="10" stroke-linecap="round"/>
+            <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
+          </svg:g>
+        </svg:defs>
+        <svg:g id="arrows"/>
+      </svg:svg>
+    </view>
+
+    <watch>
+      <get use="$parent" property="width"/>
+      <get use="$parent" property="height"/>
+      <get use="$parent" property="size"/>
+      <set view="root" attr="viewBox">
+        return "0 0 {0} {1}".fmt(this.property("width") * this.property("size"),
+          this.property("height") * this.property("size"));
+      </set>
+      <set use="$self" property="r">
+        var r = Math.max(this.properties.width * this.properties.size,
+          this.properties.height * this.properties.size);
+        return r * r;
+      </set>
+      <set><![CDATA[
+        var v = this.component.querySelector("#arrows");
+        flexo.remove_children(v);
+        for (var x = 0; x < this.property("width"); ++x) {
+          for (var y = 0; y < this.property("height"); ++y) {
+            v.appendChild(v.$("use", { ref: "arrow",
+              "f:x": x * this.property("size"),
+              "f:y": y * this.property("size") }));
+          }
+        }
+      ]]></set>
+    </watch>
+
+    <watch>
+      <get view="$document" event="mousemove"/>
+      <get view="$document" event="touchstart"/>
+      <get view="$document" event="touchmove"/>
+      <set use="$self" property="focus">
+        return flexo.event_svg_point(value, this.views.root);
+      </set>
+    </watch>
+
+  </component>
+
+  <!-- A single arrow positioned with x and y parameters and reacting to focus
+       events (position of the mouse pointer or touch event) -->
   <component id="arrow">
     <view>
       <svg:use id="u" xlink:href="#arrow"/>
@@ -32,42 +122,42 @@
     <watch>
       <get use="$self" property="x"/>
       <set use="$self" property="cx">
-        return value + this.uses.$parent.properties.size / 2;
+        return value + this.property("size") / 2;
       </set>
       <set view="u" attr="x"/>
     </watch>
     <watch>
       <get use="$self" property="y"/>
       <set use="$self" property="cy">
-        return value + this.uses.$parent.properties.size / 2;
+        return value + this.property("size") / 2;
       </set>
       <set view="u" attr="y"/>
     </watch>
     <watch>
-      <get use="$parent" property="color"/>
+      <get property="color"/>
       <set view="u" attr="fill"/>
       <set view="u" attr="stroke"/>
     </watch>
     <watch>
       <get use="$parent" property="focus">
-        var sz = this.uses.$parent.properties.size / 2;
+        var sz = this.property("size") / 2;
         if (!value) {
           value = this.uses.$parent.views.root.createSVGPoint();
-          value.x = Math.random() * this.uses.$parent.properties.width * 2 * sz;
-          value.y = Math.random() * this.uses.$parent.properties.height * 2 * sz;
+          value.x = Math.random() * this.property("width") * 2 * sz;
+          value.y = Math.random() * this.property("height") * 2 * sz;
         }
         var dx = value.x - this.properties.x - sz;
         var dy = value.y - this.properties.y - sz;
         var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
         var r = { transform: "rotate({0}, {1}, {2})"
           .fmt(a, this.properties.cx, this.properties.cy) };
-        if (!this.uses.$parent.properties.color) {
-          var d = 1 - (dx * dx + dy * dy) / this.uses.$parent.properties.r;
+        if (!this.property("color")) {
+          var d = 1 - (dx * dx + dy * dy) / this.property("r");
           r.color = "hsl({0}, {1}%, {2}%)"
             .fmt((Math.floor(180 - a) + 360) % 360, Math.floor(100 * d),
               Math.floor(50 * d));
         } else {
-          r.color = this.uses.$parent.properties.color;
+          r.color = this.property("color");
         }
         return r;
       </get>
@@ -82,39 +172,5 @@
       </set>
     </watch>
   </component>
-
-  <watch>
-    <get property="width"/>
-    <get property="height"/>
-    <set view="root" attr="viewBox">
-      return "0 0 {0} {1}".fmt(this.properties.width * this.properties.size,
-        this.properties.height * this.properties.size);
-    </set>
-    <set use="$self" property="r">
-      var r = Math.max(this.properties.width * this.properties.size,
-        this.properties.height * this.properties.size);
-      return r * r;
-    </set>
-    <set><![CDATA[
-      var v = this.component.querySelector("#arrows");
-      flexo.remove_children(v);
-      for (var x = 0; x < this.properties.width; ++x) {
-        for (var y = 0; y < this.properties.height; ++y) {
-          v.appendChild(v.$("use", { ref: "arrow",
-            "f:x": x * this.properties.size,
-            "f:y": y * this.properties.size }));
-        }
-      }
-    ]]></set>
-  </watch>
-
-  <watch>
-    <get view="$document" event="mousemove"/>
-    <get view="$document" event="touchstart"/>
-    <get view="$document" event="touchmove"/>
-    <set use="$self" property="focus">
-      return flexo.event_svg_point(value, this.views.root);
-    </set>
-  </watch>
 
 </app>

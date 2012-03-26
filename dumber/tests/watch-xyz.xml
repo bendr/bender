@@ -2,11 +2,9 @@
   xmlns:html="http://www.w3.org/1999/xhtml" f:x="2">
   <title>Watch: chaining watches</title>
   <view>
-    <html:p><html:code>x</html:code> = <html:em id="x"/></html:p>
-    <html:p><html:code>y</html:code> = <html:code>x</html:code> + 1 =
-      <html:em id="y"/></html:p>
-    <html:p><html:code>x</html:code> + <html:code>y</html:code> =
-      <html:em id="z"/></html:p>
+    <html:p>x = <html:em id="x"/></html:p>
+    <html:p>y = x + 1 = <html:em id="y"/></html:p>
+    <html:p>x + y = <html:em id="z"/></html:p>
   </view>
   <watch id="watch-x">
     <get property="x"/>

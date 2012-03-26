@@ -7,8 +7,8 @@
         .roman { font-variant: small-caps; }
       </html:style>
     </target>
-    <html:p><html:code>f:n</html:code> = <html:em id="arabic"/>
-      (or <html:strong id="roman" class="roman"/> in roman numerals)</html:p>
+    <html:p>n = <html:em id="arabic"/> (or
+      <html:strong id="roman" class="roman"/> in roman numerals)</html:p>
   </view>
   <watch>
     <get property="n"/>

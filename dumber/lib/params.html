@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime w/ params</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../../flexo.js"></script>
+    <script src="../dumber.js"></script>
+  </head>
+  <body>
+    <div id="params"></div>
+    <div id="app"></div>
+    <script>
+      var context = dumber.create_context(document);
+      flexo.listen(context.ownerDocument, "@error", function(e) {
+          alert("Error loading " + e.url);
+        });
+      var paramsbar = context.appendChild(context.$("use",
+        { href: "params-bar.xml", id: "paramsbar" }));
+      paramsbar._render(document.getElementById("params"));
+      var args = flexo.get_args();
+      if (args.href) {
+        var use = context.$("use", args);
+        context.appendChild(use);
+        use._render(document.getElementById("app"));
+        var loaded = function(e)
+        {
+          flexo.unlisten(use, "@loaded", loaded);
+          [].forEach.call(use._component.attributes, function(attr) {
+              flexo.log(attr);
+            });
+        };
+        flexo.listen(use, "@loaded", loaded);
+      }
+    </script>
+  </body>
+</html>
