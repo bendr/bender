@@ -7,7 +7,7 @@
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
         padding: 0; margin: 0; }
-      #app { padding: 8px; }
+      #app { padding: 4px 8px; }
     </style>
     <script src="../../flexo.js"></script>
     <script src="../dumber.js"></script>
@@ -16,6 +16,7 @@
     <div id="params"></div>
     <div id="app"></div>
     <script>
+
       var context = dumber.create_context(document);
       flexo.listen(context.ownerDocument, "@error", function(e) {
           alert("Error loading " + e.url);
@@ -29,7 +30,7 @@
       use_bar._render(document.getElementById("params"));
       flexo.listen(use_bar, "@loaded", function(e) {
           params = e.instance;
-          load_app(params, app);
+          if (app) load_app(params, app);
         });
 
       var args = flexo.get_args();
@@ -38,24 +39,21 @@
         use_app._render(document.getElementById("app"));
         flexo.listen(use_app, "@loaded", function(e) {
           app = e.instance;
-          load_app(params, app);
+          if (params) load_app(params, app);
         });
       }
 
       function load_app(params, app)
       {
-        flexo.log("load app:", params, app);
-        if (params && app) {
-          [].forEach.call(app.component.attributes, function(attr) {
-              var type = attr.namespaceURI === dumber.NS_E ? "e" :
-                attr.namespaceURI === dumber.NS_F ? "f" :
-                attr.namespaceURI === dumber.NS_B ? "b" : "";
-              if (type) {
-                var name = attr.localName;
-                params.add_param(type, name, app.properties[name]);
-              }
-            });
-        };
+        [].forEach.call(app.component.attributes, function(attr) {
+            var type = attr.namespaceURI === dumber.NS_E ? "e" :
+              attr.namespaceURI === dumber.NS_F ? "f" :
+              attr.namespaceURI === dumber.NS_B ? "b" : "";
+            if (type) {
+              var name = attr.localName;
+              params.add_param(type, name, app.properties[name]);
+            }
+          });
       }
 
     </script>

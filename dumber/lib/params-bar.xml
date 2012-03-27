@@ -5,9 +5,15 @@
       <html:style>
         .params-bar { background-color: black; color: white; padding: 4px; }
         .params-bar input { border: none; background-color: #ffd; }
+        .params-bar input[type=number] { width: 4em; }
+        .params-bar label { margin: 0 4px; }
+        .params-bar a { display: inline-block; text-align: right;
+          color: #ff4040; text-decoration: none; float: right; margin: 4px; }
       </html:style>
     </target>
-    <html:div class="params-bar"/>
+    <html:div class="params-bar">
+      <html:a href="../index.html">Home</html:a>
+    </html:div>
   </view>
   <script>
     var div = this.querySelector("div");
@@ -18,7 +24,7 @@
         "e:value": value, id: id }));
       this.component.appendChild(this.component.$("watch",
         this.component.$("get", { use: id, event: "@change" },
-          "flexo.log(id, value);"),
+          "flexo.log('>>> " + id + ":', value.value);"),
         this.component.$("set", { use: "$self", property: id })));
     };
   </script>
@@ -51,7 +57,7 @@
   <component id="f">
     <view>
       <html:label>
-        <html:span id="label"/>
+        <html:span id="label"/>:
         <html:input id="input" type="number"/>
       </html:label>
     </view>
@@ -65,7 +71,9 @@
     </watch>
     <watch>
       <get view="input" event="change">
-        return this.views.input.value;
+        var val = this.views.input.value;
+        flexo.notify(this, "@change", { value: val });
+        return val;
       </get>
       <set use="$self" property="value"/>
     </watch>
@@ -88,7 +96,9 @@
     </watch>
     <watch>
       <get view="input" event="change">
-        return this.views.input.checked;
+        var val = this.views.input.checked;
+        flexo.notify(this, "@change", { value: val });
+        return val;
       </get>
       <set use="$self" property="value"/>
     </watch>

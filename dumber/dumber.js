@@ -623,10 +623,11 @@
         }
       },
 
-      erender_in: function(target)
+      _render_in: function(target)
       {
-        return render_component(this, target,
-            this.ownerDocument.createElement("use"));
+        var use = this.ownerDocument.createElement("use");
+        use._instance = render_component(this, target, use);
+        return use._instance;
       },
     },
 
@@ -835,17 +836,18 @@
           }).bind(this);
           flexo.listen(this.ownerDocument, "@loaded", this.__loading);
           return true;
-        } else {
+        } else if (component) {
           return this._render_component(component, target, parent);
+        } else {
+          flexo.log("No component for", this);
         }
       },
 
       _render_component: function(component, target, parent)
       {
         this._component = component;
-        var instance = render_component(component, target, this, parent);
-        if (!instance) flexo.log("No component for", this);
-        return instance;
+        this._instance = render_component(component, target, this, parent);
+        return this._instance;
       },
 
       _unrender: function()
@@ -983,7 +985,6 @@
 
   function render_component(component, target, use, parent)
   {
-    if (!component) return;
     var instance = Object.create(component._prototype || component_instance)
       .init(use, component, parent);
     if (instance.instantiated) instance.instantiated();
