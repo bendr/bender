@@ -145,6 +145,7 @@
         }
         this.update_title();
         if (this.pending === 0) this.render_watches();
+        flexo.notify(this, "@rendered");
       }
     },
 

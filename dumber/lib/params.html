@@ -7,41 +7,27 @@
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
         padding: 0; margin: 0; }
-      #app { padding: 4px 8px; }
+      .app { padding: 4px 8px; }
     </style>
     <script src="../../flexo.js"></script>
     <script src="../dumber.js"></script>
   </head>
   <body>
-    <div id="params"></div>
-    <div id="app"></div>
     <script>
 
-      var context = dumber.create_context(document);
-      flexo.listen(context.ownerDocument, "@error", function(e) {
-          alert("Error loading " + e.url);
-        });
-
-      var app = null;
-      var params = null;
-
-      var use_bar = context.appendChild(context.$("use",
-        { href: "params-bar.xml", id: "paramsbar" }));
-      use_bar._render(document.getElementById("params"));
-      flexo.listen(use_bar, "@loaded", function(e) {
-          params = e.instance;
-          if (app) load_app(params, app);
-        });
-
       var args = flexo.get_args();
-      if (args.href) {
-        var use_app = context.appendChild(context.$("use", args));
-        use_app._render(document.getElementById("app"));
-        flexo.listen(use_app, "@loaded", function(e) {
-          app = e.instance;
-          if (params) load_app(params, app);
-        });
-      }
+      args.id = "app";
+      var context = dumber.create_context(document.body);
+      context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("use", { href: "params-bar.xml", id: "params-bar" }),
+            context.$("html:div.app",
+              context.$("use", args)))));
+      context.appendChild(context.$("use", { q: "component" }));
+
+          /*
+
 
       function load_app(params, app)
       {
@@ -55,6 +41,7 @@
             }
           });
       }
+      */
 
     </script>
   </body>
