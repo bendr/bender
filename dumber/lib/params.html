@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
     <style>
-      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+        padding: 0; margin: 0; }
+      #app { padding: 8px; }
     </style>
     <script src="../../flexo.js"></script>
     <script src="../dumber.js"></script>
@@ -18,23 +20,44 @@
       flexo.listen(context.ownerDocument, "@error", function(e) {
           alert("Error loading " + e.url);
         });
-      var paramsbar = context.appendChild(context.$("use",
+
+      var app = null;
+      var params = null;
+
+      var use_bar = context.appendChild(context.$("use",
         { href: "params-bar.xml", id: "paramsbar" }));
-      paramsbar._render(document.getElementById("params"));
+      use_bar._render(document.getElementById("params"));
+      flexo.listen(use_bar, "@loaded", function(e) {
+          params = e.instance;
+          load_app(params, app);
+        });
+
       var args = flexo.get_args();
       if (args.href) {
-        var use = context.$("use", args);
-        context.appendChild(use);
-        use._render(document.getElementById("app"));
-        var loaded = function(e)
-        {
-          flexo.unlisten(use, "@loaded", loaded);
-          [].forEach.call(use._component.attributes, function(attr) {
-              flexo.log(attr);
+        var use_app = context.appendChild(context.$("use", args));
+        use_app._render(document.getElementById("app"));
+        flexo.listen(use_app, "@loaded", function(e) {
+          app = e.instance;
+          load_app(params, app);
+        });
+      }
+
+      function load_app(params, app)
+      {
+        flexo.log("load app:", params, app);
+        if (params && app) {
+          [].forEach.call(app.component.attributes, function(attr) {
+              var type = attr.namespaceURI === dumber.NS_E ? "e" :
+                attr.namespaceURI === dumber.NS_F ? "f" :
+                attr.namespaceURI === dumber.NS_B ? "b" : "";
+              if (type) {
+                var name = attr.localName;
+                params.add_param(type, name, app.properties[name]);
+              }
             });
         };
-        flexo.listen(use, "@loaded", loaded);
       }
+
     </script>
   </body>
 </html>

@@ -47,7 +47,7 @@
     // true to acknowledge the request. In that situation, a "@loaded" event
     // will be sent when loading has finished; an "@error" event will be sent in
     // case of error.
-    context._load_component = function(url)
+    context._load_component = function(url, use)
     {
       var split = url.split("#");
       var locator = normalize_url((target.ownerDocument || target).baseURI,
@@ -65,7 +65,7 @@
                 loaded[locator] = import_node(root,
                   req.response.documentElement, locator);
                 flexo.notify(context, "@loaded",
-                  { component: loaded[locator] });
+                  { component: loaded[locator], url: url, use: use });
               }
             });
         }
@@ -160,8 +160,12 @@
 
     rendered_use: function(use)
     {
-      this.rendered.push(use._instance);
-      if (use._id) this.uses[use._id] = use._instance;
+      if (use._instance) {
+        this.rendered.push(use._instance);
+        if (use._id) this.uses[use._id] = use._instance;
+      } else {
+        flexo.log("rendered_use: no instance for", use);
+      }
     },
 
     render_use: function(use, dest, ref)
@@ -175,7 +179,7 @@
       if (instance === true) {
         use._pending = temporary_node(dest, ref, use);
         ++this.pending;
-        flexo.log("Wait for {0} to load...".fmt(use._href));
+        flexo.log("render_use: wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
             flexo.log("... loaded", use);
             flexo.safe_remove(use._pending);
@@ -364,7 +368,8 @@
             } else if (get._use) {
               var target = this.component_instance.uses[get._use];
               if (!target) {
-                flexo.log("(render get/use) No use for \"{0}\"".fmt(get._use));
+                flexo.log("(render get/use) No use for \"{0}\" in"
+                  .fmt(get._use), get);
               } else {
                 flexo.listen(target, get._event, listener);
                 this.ungets.push(function() {
@@ -806,7 +811,7 @@
           var href =
             (this._href.indexOf("#") === 0 ? component_of(this)._uri : "") +
             this._href;
-          return this.ownerDocument._load_component(href);
+          return this.ownerDocument._load_component(href, this);
         }
       },
 
@@ -814,23 +819,33 @@
       {
         var component = this._find_component();
         if (component === true) {
-          var h = (function() {
-            flexo.notify(this, "@loaded", { instance: this._render(target) });
-            flexo.unlisten(this.ownerDocument, "@loaded", h);
+          this.__target = target;
+          this.__parent = parent;
+          if (this.__loading) return;
+          this.__loading = (function(e) {
+            if (e.use === this) {
+              flexo.log("... loaded {0} for".fmt(e.url), this, this.__target);
+              flexo.notify(this, "@loaded", { instance: this
+                ._render_component(e.component, this.__target, this.__parent) });
+              flexo.unlisten(this.ownerDocument, "@loaded", this.__loading);
+              delete this.__loading;
+              delete this.__target;
+              delete this.__parent;
+            }
           }).bind(this);
-          h.__use = this;
-          flexo.listen(this.ownerDocument, "@loaded", h);
+          flexo.listen(this.ownerDocument, "@loaded", this.__loading);
           return true;
-        } else if (component) {
-          this._component = component;
-          var instance = render_component(component, target, this, parent);
-          if (instance) {
-            this._instance = instance;
-            return instance;
-          } else {
-            flexo.log("No component found for", this);
-          }
+        } else {
+          return this._render_component(component, target, parent);
         }
+      },
+
+      _render_component: function(component, target, parent)
+      {
+        this._component = component;
+        var instance = render_component(component, target, this, parent);
+        if (!instance) flexo.log("No component for", this);
+        return instance;
       },
 
       _unrender: function()

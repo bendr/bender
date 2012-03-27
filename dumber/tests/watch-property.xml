@@ -2,7 +2,7 @@
   xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
   <title>Watch a component property and set a view accordingly</title>
   <view>
-    <html:p><html:code>value</html:code> = <html:span id="v"
+    <html:p>value = <html:span id="v"
         style="padding: 2px; background-color:#08f; color:white"/></html:p>
   </view>
   <watch>
