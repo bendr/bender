@@ -5,14 +5,14 @@
   dumber.NS_F = "http://dumber.igel.co.jp/f";  // Float properties namespace
   dumber.NS_B = "http://dumber.igel.co.jp/b";  // Boolean properties namespace
 
-  // Create a Dumber context for the given target (document by default.)
+  // Create a Dumber context for the given target (host document by default.)
   // Elements created in this context will be extended with the Dumber
   // prototypes.
   dumber.create_context = function(target)
   {
     if (!target) target = document;
     var doc = target.ownerDocument || target;
-    var context = doc.implementation.createDocument(dumber.NS, "context", null);
+    var context = doc.implementation.createDocument(dumber.NS, "dumber", null);
 
     // Wrap all new elements
     context.createElement = function(name)
@@ -26,11 +26,50 @@
         .call(this, ns, qname));
     };
 
-    // The root is a context (i.e., component) element
-    var root = wrap_element(context.documentElement);
+    // Manage the render queue specific to this context
+    var render_queue = [];
+    var timeout = null;
+    context._refreshed_instance = function(instance)
+    {
+      flexo.remove_from_array(render_queue, instance);
+    };
+    context._refresh_instance = function(instance)
+    {
+      if (render_queue.indexOf(instance) < 0) {
+        render_queue.push(instance);
+        if (!timeout) {
+          timeout = setTimeout(function() {
+              flexo.log("refresh_instances×{0}".fmt(render_queue.length));
+              while (render_queue.length > 0) {
+                render_queue.shift().render_component_instance();
+              }
+              render_queue = [];
+              timeout = null;
+            }, 0);
+        }
+      }
+    };
+
+    // Create a root component and use node for this component in order to
+    // initiate rendering
+    var component = context.createElement("context");
+    context.documentElement.appendChild(component);
+    var use = component.$("use", { q: "context" });
+    context.documentElement.appendChild(use);
+    render_component(component, target, use);
+
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
-    loaded[normalize_url(doc.baseURI, "")] = root;
+    loaded[normalize_url(doc.baseURI, "")] = component;
+
+    context._insert_use = function(attrs, target)
+    {
+      var use = component.$("use", attrs);
+      // TODO Get the component from the new use, then render it.
+      // We can even replace the stuff above with a call to this?
+      this.documentElement.appendChild(use);
+
+    };
 
     // Keep track of uri/id pairs to find components with the href attribute
     context._add_component = function(component)
@@ -59,7 +98,7 @@
               if (!req.response) {
                 flexo.notify(context, "@error", { url: url });
               } else {
-                loaded[locator] = import_node(root,
+                loaded[locator] = import_node(component,
                   req.response.documentElement, locator);
                 flexo.notify(context, "@loaded",
                   { component: loaded[locator], url: url, use: use });
@@ -70,32 +109,7 @@
       }
     };
 
-    // Manage the render queue specific to this context
-    var render_queue = [];
-    var timeout = null;
-    context._refreshed_instance = function(instance)
-    {
-      flexo.remove_from_array(render_queue, instance);
-    };
-    context._refresh_instance = function(instance)
-    {
-      if (render_queue.indexOf(instance) < 0) {
-        render_queue.push(instance);
-        if (!timeout) {
-          timeout = setTimeout(function() {
-              flexo.log("refresh_instances×{0}".fmt(render_queue.length));
-              while (render_queue.length > 0) {
-                render_queue.shift().render_component_instance();
-              }
-              render_queue = [];
-              timeout = null;
-            }, 0);
-        }
-      }
-    };
-
-    root._target = target;
-    return root;
+    return component;
   };
 
   // Prototype for a component instance. Prototypes may be extended through the
@@ -163,6 +177,9 @@
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
         this.pending = 0;
+        this.component._uses.forEach(function(u) {
+            this.render_use(u, this.target, this.use._pending);
+          }, this);
         if (this.component._view) {
           this.render_children(this.component._view, this.target,
               this.use._pending);
@@ -369,7 +386,7 @@
         }, this);
     },
 
-    render: function()
+    render_watch_instance: function()
     {
       this.watch._gets.forEach(function(get) {
           var that = this;
@@ -517,10 +534,10 @@
         }
       },
 
-      _refresh: function(parent)
+      _refresh: function()
       {
-        if (!parent) parent = this.parentNode;
-        var component = component_of(parent);
+        // if (!parent) parent = this.parentNode;
+        var component = component_of(this);
         if (component) {
           component._instances.forEach(function(i) {
               component.ownerDocument._refresh_instance(i);
@@ -542,6 +559,7 @@
         this._watches = [];     // child watches
         this._instances = [];   // instances of this component
         this._properties = {};  // properties map
+        this._uses = [];        // use children (outside of a view)
         this._uri = "";
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },
@@ -572,27 +590,14 @@
             this._view = ch;
             this._refresh();
           } else if (ch.localName === "use") {
-            this._insert_use(ch);
+            this._uses.push(ch);
+            this._refresh();
           } else if (ch.localName === "watch") {
             this._watches.push(ch);
             this._refresh();
           }
         }
         return ch;
-      },
-
-      _insert_use: function(use)
-      {
-        var instance = use._render(this._target);
-        if (instance === true) {
-          flexo.log("insertBefore: wait for {0} to load...".fmt(use._href));
-          flexo.listen(use, "@loaded", (function(e) {
-              flexo.log("... loaded", e.instance);
-              this._instances.push(e.instance);
-            }).bind(this));
-        } else if (instance) {
-          this._instances.push(instance);
-        }
       },
 
       removeChild: function(ch)
@@ -607,11 +612,13 @@
         } else if (ch === this._view) {
           delete this._view;
           this._refresh();
-        } else if (ch._unrender) {
-          flexo.remove_from_array(this._instances, ch._instance);
-          ch._unrender();
+        } else if (ch._render) {  // use node
+          flexo.remove_from_array(this._uses, ch);
+          this._refresh();
+        } else if (ch._watches) {   // watch node
+          flexo.remove_from_array(this._watches, ch);
+          this._refresh();
         }
-        // TODO watch?
         return ch;
       },
 

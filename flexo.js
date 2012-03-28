@@ -830,10 +830,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return elem;
   };
 
-  // Create a regular polygon with the number of sides inscribed in a circle of
-  // the given radius, with an optional starting phase (use Math.PI / 2 to have
-  // it pointing up at all times)
-  flexo.svg_polygon = function(sides, radius, phase)
+  flexo.svg_polygon_points = function(sides, radius, phase)
   {
     if (!phase) phase = 0;
     var points = [];
@@ -842,7 +839,16 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       points.push(-radius * Math.sin(phase));
       phase += 2 * Math.PI / sides;
     }
-    return flexo.svg("polygon", { points: points.join(" ") });
+    return points.join(" ");
+  };
+
+  // Create a regular polygon with the number of sides inscribed in a circle of
+  // the given radius, with an optional starting phase (use Math.PI / 2 to have
+  // it pointing up at all times)
+  flexo.svg_polygon = function(sides, radius, phase)
+  {
+    return flexo.svg("polygon",
+        { points: flexo.svg_polygon_points(sides, radius, phase) });
   };
 
   flexo.svg_star_points = function(sides, ro, ri, phase)

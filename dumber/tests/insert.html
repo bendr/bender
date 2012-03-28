@@ -22,8 +22,7 @@
         context.$("component",
           context.$("view",
             context.$("html:p.dumber", "But this is a Dumber component!"))));
-      var instance = context.querySelector("component")
-        ._render_in(document.getElementById("here"));
+      context._insert_use({ q: "component" }, document.getElementById("here"));
     </script>
   </body>
 </html>

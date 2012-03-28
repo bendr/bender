@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>Bender Logo</title>
+  <script xlink:href="../flexo.js"/>
+  <defs>
+    <g stroke-width="16" stroke-linejoin="round"
+      id="logo">
+      <polygon/>
+      <g stroke="white" stroke-linecap="round" fill="none">
+        <line x1="-20" y1="-50" x2="-20" y2="0"/>
+        <circle r="20"/>
+      </g>
+      <text font-family="Univers, Futura" text-anchor="middle" font-size="36"
+        y="76" stroke="none">Bender</text>
+    </g>
+  </defs>
+
+  <use xlink:href="#logo" x="79" y="56" fill="#102040" stroke="#102040"/>
+  <use xlink:href="#logo" x="79" y="56" fill="#102040" stroke="#102040">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-1,1" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="79" y="56" fill="#102040" stroke="#102040">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-2,2" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="79" y="56" fill="#102040" stroke="#102040">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-3,3" dur="0.4s" fill="freeze"/>
+  </use>
+
+  <use xlink:href="#logo" x="79" y="56" fill="#40bfff" stroke="#40bfff">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-4,4" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="79" y="56" fill="#40bfff" stroke="#40bfff">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-5,5" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="79" y="56" fill="#40bfff" stroke="#40bfff">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-6,6" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="79" y="56" fill="#40bfff" stroke="#40bfff">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-7,7" dur="0.4s" fill="freeze"/>
+  </use>
+
+  <use xlink:href="#logo" x="80" y="56" fill="#40ff40" stroke="#40ff40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-8,8" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="80" y="56" fill="#40ff40" stroke="#40ff40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-9,9" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="80" y="56" fill="#40ff40" stroke="#40ff40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-10,10" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="80" y="56" fill="#40ff40" stroke="#40ff40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-11,11" dur="0.4s" fill="freeze"/>
+  </use>
+
+  <use xlink:href="#logo" x="80" y="56" fill="#ff7f40" stroke="#ff7f40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-12,12" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="80" y="56" fill="#ff7f40" stroke="#ff7f40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-13,13" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="80" y="56" fill="#ff7f40" stroke="#ff7f40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-14,14" dur="0.4s" fill="freeze"/>
+  </use>
+  <use xlink:href="#logo" x="80" y="56" fill="#ff7f40" stroke="#ff7f40">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-15,15" dur="0.4s" fill="freeze"/>
+  </use>
+
+  <use xlink:href="#logo" x="80" y="56" fill="#ff4040" stroke="#ff4040">
+    <animateTransform attributeName="transform" attributeType="XML"
+      type="translate" from="0,0" to="-16,16" dur="0.4s" fill="freeze"/>
+  </use>
+
+  <script>
+    var colors = ["#ff4040", "#ff7f40", "#40ff40", "#40bfff", "#102040"];
+    var p = document.querySelector("polygon");
+    p.setAttribute("points", flexo.svg_polygon_points(7, 42, Math.random()));
+  </script>
+</svg>
+

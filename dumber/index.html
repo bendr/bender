@@ -28,12 +28,45 @@
       .prop, .param, .attr { background-color: #8ff; }
       .TODO { background-color: #ddd; }
       .sample { margin-left: 2em; }
+      svg { width: 128px; height: 144px; margin-top: 8px; }
     </style>
+    <script src="../flexo.js"></script>
   </head>
   <body>
 
     <header class="g12">
-      <h1>Dumber</h1>
+
+      <svg viewBox="0 0 128 144">
+        <defs>
+          <clipPath id="r">
+            <rect x="-64" y="-56" width="128" height="144" rx="8" ry="8"/>
+          </clipPath>
+        </defs>
+        <g transform="translate(64, 56)" stroke-width="16" stroke-linejoin="round"
+          clip-path="url(#r)">
+          <polygon>
+            <animateTransform attributeName="transform" attributeType="XML"
+              type="scale" from="5" to="1" dur="0.4s" fill="freeze"/>
+          </polygon>
+          <g stroke="#fef9f0" stroke-linecap="round" fill="none">
+            <line x1="20" y1="-50" x2="20" y2="0"/>
+            <circle r="20"/>
+            <animateTransform attributeName="transform" attributeType="XML"
+              type="scale" from="0" to="1" dur="0.4s" fill="freeze"/>
+          </g>
+          <text font-family="Univers, 'Helvetica Neue', Helvetica, sans-serif"
+            text-anchor="middle" font-size="32" y="76" stroke="none">Dumber</text>
+        </g>
+        <script>
+          var color = flexo.random_element(["#ff4040", "#ff7f40", "#40ff40",
+            "#40bfff", "#102040"]);
+          var g = document.querySelector("g");
+          g.setAttribute("fill", color);
+          g.setAttribute("stroke", color);
+          var p = document.querySelector("polygon");
+          p.setAttribute("points", flexo.svg_polygon_points(7, 42, Math.random()));
+        </script>
+      </svg>
       <p>Dumber is a simpler implementation of Bender intended to prototype
       dynamic rendering of components.</p>
     </header>
