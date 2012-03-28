@@ -12,6 +12,7 @@
       </html:style>
     </target>
     <html:div class="params-bar">
+      ⚐
       <html:a href="../index.html">Home</html:a>
     </html:div>
   </view>
@@ -19,21 +20,28 @@
     var div = this.querySelector("div");
     this._prototype.add_param = function(type, name, value)
     {
-      var id = type + div.childNodes.length.toString();
       div.appendChild(div.$("use", { ref: type, "e:name": name,
-        "e:value": value, id: id }));
+        "e:value": value, id: name }));
+        /*
       this.component.appendChild(this.component.$("watch",
-        this.component.$("get", { use: id, event: "@change" },
-          "flexo.log('>>> " + id + ":', value.value);"),
-        this.component.$("set", { use: "$self", property: id })));
+        this.component.$get({ use: name, event: "@change" },
+          function(value) {
+            flexo.log(">>> {0}: {1}".fmt(name, value.value));
+            flexo.notify(this, "@change", { name: name, value: value });
+            return value;
+          }),
+        this.component.$set({ use: "$self", property: name },
+          function(e) {
+            flexo.log("> > > {0}: {1}".fmt(name, e.value));
+          })));
+          */
     };
   </script>
 
   <component id="e">
     <view>
       <html:label>
-        <html:span id="label"/>:
-        <html:input id="input" type="text"/>
+        <html:span id="label"/>: <html:input id="input" type="text"/>
       </html:label>
     </view>
     <watch>
@@ -57,8 +65,7 @@
   <component id="f">
     <view>
       <html:label>
-        <html:span id="label"/>:
-        <html:input id="input" type="number"/>
+        <html:span id="label"/>: <html:input id="input" type="number"/>
       </html:label>
     </view>
     <watch>
@@ -82,8 +89,7 @@
   <component id="b">
     <view>
       <html:label>
-        <html:input id="input" type="checkbox"/>
-        <html:span id="label"/>
+        <html:input id="input" type="checkbox"/> <html:span id="label"/>
       </html:label>
     </view>
     <watch>

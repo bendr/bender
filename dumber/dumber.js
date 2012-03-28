@@ -10,9 +10,9 @@
   // prototypes.
   dumber.create_context = function(target)
   {
-    if (target === undefined) target = document;
-    var context = (target.ownerDocument || target).implementation
-      .createDocument(dumber.NS, "context", null);
+    if (!target) target = document;
+    var doc = target.ownerDocument || target;
+    var context = doc.implementation.createDocument(dumber.NS, "context", null);
 
     // Wrap all new elements
     context.createElement = function(name)
@@ -28,16 +28,14 @@
 
     // The root is a context (i.e., component) element
     var root = wrap_element(context.documentElement);
-
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
-
-    loaded[normalize_url((target.ownerDocument || target).baseURI, "")] = root;
+    loaded[normalize_url(doc.baseURI, "")] = root;
 
     // Keep track of uri/id pairs to find components with the href attribute
     context._add_component = function(component)
     {
-      var uri = normalize_url((target.ownerDocument || target).baseURI,
+      var uri = normalize_url(doc.baseURI,
           component._uri + "#" + component._id);
       components[uri] = component;
     };
@@ -50,8 +48,7 @@
     context._load_component = function(url, use)
     {
       var split = url.split("#");
-      var locator = normalize_url((target.ownerDocument || target).baseURI,
-          split[0]);
+      var locator = normalize_url(doc.baseURI, split[0]);
       var id = split[1];
       if (typeof loaded[locator] === "object") {
         return id ? components[locator + "#" + id] : loaded[locator];
@@ -73,6 +70,30 @@
       }
     };
 
+    // Manage the render queue specific to this context
+    var render_queue = [];
+    var timeout = null;
+    context._refreshed_instance = function(instance)
+    {
+      flexo.remove_from_array(render_queue, instance);
+    };
+    context._refresh_instance = function(instance)
+    {
+      if (render_queue.indexOf(instance) < 0) {
+        render_queue.push(instance);
+        if (!timeout) {
+          timeout = setTimeout(function() {
+              flexo.log("refresh_instances×{0}".fmt(render_queue.length));
+              while (render_queue.length > 0) {
+                render_queue.shift().render_component_instance();
+              }
+              render_queue = [];
+              timeout = null;
+            }, 0);
+        }
+      }
+    };
+
     root._target = target;
     return root;
   };
@@ -83,10 +104,11 @@
   {
     // Initialize the instance from a <use> element given a <component>
     // description node.
-    init: function(use, component, parent)
+    init: function(use, component, parent, target)
     {
       this.use = use;
       this.component = component;
+      this.target = target;
       this.views = {};       // rendered views by id
       this.uses = {};        // rendered uses by id
       this.rendered = [];    // root DOM nodes and use instances
@@ -132,16 +154,18 @@
     },
 
     // Unrender, then render the view when the target is an Element.
-    render: function(target, ref)
+    render_component_instance: function()
     {
+      this.component.ownerDocument._refreshed_instance(this);
       this.unrender();
-      if (!target) target = this.target;
-      if (target instanceof Element) {
-        this.views.$document = target.ownerDocument;
-        this.target = target;
+      if (flexo.root(this.use) !== this.use.ownerDocument) return;
+      if (this.use._pending) this.target = this.use._pending.parentNode;
+      if (this.target instanceof Element) {
+        this.views.$document = this.target.ownerDocument;
         this.pending = 0;
         if (this.component._view) {
-          this.render_children(this.component._view, target, ref);
+          this.render_children(this.component._view, this.target,
+              this.use._pending);
         }
         this.update_title();
         if (this.pending === 0) this.render_watches();
@@ -153,7 +177,7 @@
     {
       this.component._watches.forEach(function(watch) {
           var instance = Object.create(watch_instance).init(watch, this);
-          instance.render();
+          instance.render_watch_instance();
           this.rendered.push(instance);
         }, this);
       for (var p in this.watched) this.properties[p] = this.properties[p];
@@ -292,15 +316,13 @@
             });
       }
       this.watched[property].push(handler);
-      flexo.log("watch_property[{0}]: {1}".fmt(property,
-            this.watched[property].length));
+      // flexo.log("watch_property[{0}]: {1}".fmt(property, this.watched[property].length));
     },
 
     unwatch_property: function(property, handler)
     {
       flexo.remove_from_array(this.watched[property], handler);
-      flexo.log("unwatch_property[{0}]: {1}".fmt(property,
-            this.watched[property].length));
+      // flexo.log("unwatch_property[{0}]: {1}".fmt(property, this.watched[property].length));
       if (this.watched[property] && this.watched[property].length === 0) {
         delete this.watched[property];
       }
@@ -500,7 +522,9 @@
         if (!parent) parent = this.parentNode;
         var component = component_of(parent);
         if (component) {
-          component._instances.forEach(function(i) { refresh_instance(i); });
+          component._instances.forEach(function(i) {
+              component.ownerDocument._refresh_instance(i);
+            });
         }
       },
 
@@ -622,13 +646,6 @@
           this._components[component._id] = component;
           this.ownerDocument._add_component(component);
         }
-      },
-
-      _render_in: function(target)
-      {
-        var use = this.ownerDocument.createElement("use");
-        use._instance = render_component(this, target, use);
-        return use._instance;
       },
     },
 
@@ -908,6 +925,17 @@
     }
   };
 
+  // Specific functions to create get, set and script attributes with an actual
+  // function rather than a string to create a function for the action
+  ["get", "set", "script"].forEach(function(name) {
+      prototypes.component["$" + name] = function(attrs, action)
+      {
+        var elem = action ? this.$(name, attrs) : this.$(name);
+        elem._action = action || attrs;
+        return elem;
+      };
+    });
+
   prototypes.app = prototypes.component;
   prototypes.context = prototypes.component;
 
@@ -964,36 +992,12 @@
     return flexo.unsplit_uri(url);
   }
 
-  // Simple rendering queue for refreshes
-  var queue = [];
-  var timeout = null;
-
-  function refresh_instance(instance)
-  {
-    if (instance.render) {
-      flexo.remove_from_array(queue, instance);
-      queue.push(instance);
-      if (!timeout) {
-        timeout = setTimeout(function() {
-            flexo.log("refresh_instances×{0}".fmt(queue.length));
-            queue.forEach(function(i) { i.render(); });
-            queue = [];
-            timeout = null;
-          }, 0);
-      }
-    }
-  }
-
   function render_component(component, target, use, parent)
   {
     var instance = Object.create(component._prototype || component_instance)
-      .init(use, component, parent);
+      .init(use, component, parent, target);
     if (instance.instantiated) instance.instantiated();
-    if (use._pending) {
-      instance.render(use._pending.parentNode, use._pending);
-    } else {
-      instance.render(target);
-    }
+    use.ownerDocument._refresh_instance(instance);
     return instance;
   }
 

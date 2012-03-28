@@ -15,33 +15,42 @@
   <body>
     <script>
 
+      var load = function()
+      {
+        var component = context.querySelector("component");
+        [].forEach.call(this.uses.app.component.attributes, function(attr) {
+            var type = attr.namespaceURI === dumber.NS_E ? "e" :
+              attr.namespaceURI === dumber.NS_F ? "f" :
+              attr.namespaceURI === dumber.NS_B ? "b" : "";
+            if (type) {
+              var name = attr.localName;
+              this.uses.params.add_param(type, name,
+                this.uses.app.properties[name]);
+                /*
+              component.appendChild(component.$("watch",
+                component.$get({ use: "params", event: "@change" },
+                  function(e) {
+                    flexo.log("e< < < {0}={1}".fmt(name, e.value));
+                    return e.value;
+                  }),
+                component.$set({ use: "app", property: name })));
+                */
+            }
+          }, this);
+      };
+
       var args = flexo.get_args();
       args.id = "app";
       var context = dumber.create_context(document.body);
       context.appendChild(
         context.$("component",
           context.$("view",
-            context.$("use", { href: "params-bar.xml", id: "params-bar" }),
+            context.$("use", { href: "params-bar.xml", id: "params" }),
             context.$("html:div.app",
-              context.$("use", args)))));
+            context.$("use", args))),
+          context.$("watch",
+            context.$get({ use: "$self", event: "@rendered" }, load))));
       context.appendChild(context.$("use", { q: "component" }));
-
-          /*
-
-
-      function load_app(params, app)
-      {
-        [].forEach.call(app.component.attributes, function(attr) {
-            var type = attr.namespaceURI === dumber.NS_E ? "e" :
-              attr.namespaceURI === dumber.NS_F ? "f" :
-              attr.namespaceURI === dumber.NS_B ? "b" : "";
-            if (type) {
-              var name = attr.localName;
-              params.add_param(type, name, app.properties[name]);
-            }
-          });
-      }
-      */
 
     </script>
   </body>

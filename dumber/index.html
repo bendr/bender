@@ -13,7 +13,7 @@
       #demos, #library, #tests { border-top: solid 2px #40bfff; }
       footer { clear: both; padding: 40px 0; font-size: 12px;
         text-align: center; border-bottom: solid 2px #ff7f40; }
-      h1, h2, h3 { font-weight: normal; color: #102040; }
+      h1, h2, h3, h4 { font-weight: normal; color: #102040; }
       .g4, .g8, .g12 { display: inline; float: left; position: relative;
         margin: 0 10px; }
       .g4 { width: 300px; }
@@ -24,7 +24,7 @@
       code, pre { font-family: Menlo, Consolas, monospace; font-size: 14px; }
       a { color: #ff4040; text-decoration: none; }
       .def { background-color: #ff0; }
-      .node { background-color: #8f8; }
+      .elem { background-color: #8f8; }
       .prop, .param, .attr { background-color: #8ff; }
       .TODO { background-color: #ddd; }
       .sample { margin-left: 2em; }
@@ -130,37 +130,37 @@
 
         <section id="manual.elements.component">
           <h4>The component, app and context elements</h4>
-          <p>The <code class="node">component</code> element describes a Dumber
-          component.  <code class="node">app</code> is synonymous with
+          <p>The <code class="elem">component</code> element describes a Dumber
+          component.  <code class="elem">app</code> is synonymous with
           <code>component</code> and is provided to describe the main component
-          of a Dumber application. <code class="node">context</code> is also a
+          of a Dumber application. <code class="elem">context</code> is also a
           synonym and is used as the root of the Dumber tree (and as such should
           not be used elsewhere.) A component may have metadata, a view,
           scripts, watches, and sub-components. These are described by the
           following elements:</p>
           <ul>
-            <li><code class="node">component</code> describes sub-components of
+            <li><code class="elem">component</code> describes sub-components of
             this component;</li>
-            <li><code class="node">desc</code> contains textual description for
+            <li><code class="elem">desc</code> contains textual description for
             the component. This is used as metadata; for intance, it can be used
             to give hints about the usage of this component.</li>
-            <li><code class="node">script</code> allows customizing the
+            <li><code class="elem">script</code> allows customizing the
             component through Javascript.</li>
-            <li><code class="node">title</code> contains the title of the
+            <li><code class="elem">title</code> contains the title of the
             component as plain text. This is used mostly as metadata, but gets
             rendered as the document title when it is the child of an
             <code>app</code> element which in turn is the child of a
             <code>context</code> root element.</li>
-            <li><code class="node">use</code> creates a new instance of a
+            <li><code class="elem">use</code> creates a new instance of a
             component and renders it in this component's view (including in a
             <node>context</code> element; see below.) <code>use</code> elements
             should appear as descendants of the <code>view</code> element of the
             component.</li>
-            <li><code class="node">view</code> contains foreign and text nodes
+            <li><code class="elem">view</code> contains foreign and text nodes
             that will be rendered in the target document when this component is
             rendered. A component may have only one view; setting a new view
             automatically replaces the previous one.</li>
-            <li><code class="node">watch</code> describes the behavior of the
+            <li><code class="elem">watch</code> describes the behavior of the
             component in the face of changes in its properties and events it
             receives. See the section on watches below.</li>
           </ul>
@@ -175,7 +175,7 @@
 
         <section id="manual.elements.use">
           <h4>The use element</h4>
-          <p>The <code class="node">use</code> element instantiates and renders
+          <p>The <code class="elem">use</code> element instantiates and renders
           a component. For every <code>use</code> element, a new
           <em>instance</em> of a component is created; if this component has a
           view, or has <code>use</code> children, then these get rendered in
@@ -201,7 +201,7 @@
 
         <section id="manual.elements.view">
           <h4>The view, content and target elements</h4>
-          <p>The <code class="node">view</code> element contains foreign
+          <p>The <code class="elem">view</code> element contains foreign
           elements (<em>e.g.</em>, HTML, SVG, &amp;c.) and text nodes describing
           the actual rendering of a component. <code>view</code> may also
           include <code>use</code>, <code>target</code> and <code>content</code>
@@ -212,7 +212,7 @@
           <p>When a component is rendered, the contents of the view are copied
           as is (minus id attributes as discussed above) into the target
           element. <code>use</code> elements allow to include Dumber components
-          inside another component. The <code class="node">content</code> allows
+          inside another component. The <code class="elem">content</code> allows
           to customize the rendering of an element by replacing this element
           with the contents of the original <code>use</code>. The
           <code>content</code> element may have content of its own, which is the
@@ -221,7 +221,7 @@
           <p>Similarly, attributes of the <code>use</code> elements are added to
           the top-level elements that get rendered; this allows for instance to
           change the class of an element to alter its rendering.</p>
-          <p>Additionally, the <code class="node">target</code> element allows
+          <p>Additionally, the <code class="elem">target</code> element allows
           to target a specific node for rendering. For instance, it may be used
           to add a <code>style</code> element to the <code>head</code> of an
           HTML target document, or a new definition in the <code>use</code>
@@ -259,7 +259,7 @@
             be rendered. By default, it does not do anything but can be
             overloaded for component customization.</li>
           </ul>
-          <p>The <code class="node">script</code> element contains custom
+          <p>The <code class="elem">script</code> element contains custom
           Javascript code. This code is executed when the element is added to
           its parent component element <em>and</em> its text content is set
           (<span class="TODO">there will be an <code>href</code> attribute as
@@ -279,8 +279,25 @@
 
         <section id="manual.nodes.watch">
           <h4>The watch, get and set nodes</h4>
+          <p>A <em>watch</em> is a part of a component that describes how to
+          react to events and property changes. For instance, if we build a <a
+          href="lib/run.html?href=../apps/calculator.xml">calculator</a>, we
+          want to update the result of operations after each button press
+          (events) and update the display on the screen when that result changes
+          (a property change.)</p>
+          <p>The <code class="elem">watch</code> element describes a watch. This
+          element has no parameter and contains zero or more <code
+          class="elem">get</code>, <code class="elem">set</code> and other
+          <code class="elem">watch</code> elements.</p>
+          <p>The <code class="elem">get</code> element describes what the watch
+          is monitoring. This can be an DOM event from a DOM node, a custom
+          event from a component, or a property. Whenever the monitored event
+          occurs or the monitored property changes, the parent watch is
+          <em>activated</em>. The <code class="elem">set</code> elements
+          describe what happens when the watch is activated: node attributes and
+          component properties are set, nested watches are <em>enabled</em>, and
+          arbitrary code may be executed.</p>
         </section>
-
       </section>
 
       <section id="manual.instances">
@@ -334,7 +351,7 @@ context.querySelector("component")
         <h3>Loading Dumber components from XML files</h3>
         <p>Real-size applications and components reside in XML files rather than
         Javascript. Loading a component from XML is as simple as creating a new
-        <code class="node">use</code> element with an <code
+        <code class="elem">use</code> element with an <code
           class="attr">href</code> attribute:</p>
         <pre class="sample">var context = dumber.create_context(document.body);
 context.appendChild(context.$("use", { href: ... }));</pre>
@@ -358,7 +375,7 @@ context.appendChild(context.$("use", { href: ... }));</pre>
         <h2>Library</h2>
         <ul>
           <li><a href="lib/run.html">Simple runtime</a>: a virtual <code
-            class="node">use</code> element; specify a <code
+            class="elem">use</code> element; specify a <code
             class="attr">href</code> paremeter to load a Dumber XML file
           (<em>e.g.</em>, <a href="lib/run.html?href=../tests/hello.xml">Hello,
             world</a>)</li>
@@ -436,8 +453,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             fields</a></li>
           <li><a href="lib/run.html?href=../tests/scope.xml">Scope test</a>:
             getting/setting properties from the nearest ancestor</li>
-          <li><a href="lib/run.html?href=../tests/scope.xml">Scope test with
-            component removal</a></li>
+          <li><a href="lib/run.html?href=../tests/scope-remove.xml">Scope test
+            with component removal</a></li>
           <li><a href="lib/run.html?href=../tests/control.xml">Control</a> the
           size of a component from another component through a shared ancestor's
           property.</li>
@@ -448,8 +465,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <li><a href="lib/run.html?href=../tests/timer.xml">Timer</a> just
           output to the console</li>
           <li><a href="lib/run.html?href=../tests/waves.xml">Waves</a></li>
+          <li><a href="tests/rendered.html">@rendered event test</a> (HTML)</li>
           <li><a href="lib/run.html?href=../tests/rendered.xml">@rendered event
-          test</a></li>
+          test</a> (XML)</li>
         </ol>
       </section>
 

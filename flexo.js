@@ -278,7 +278,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     if (array) {
       var index = array.indexOf(item);
-      if (index >= 0) return array.splice(item, 1);
+      if (index >= 0) return array.splice(index, 1)[0];
     }
   };
 
