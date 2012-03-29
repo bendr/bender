@@ -5,6 +5,14 @@
   dumber.NS_F = "http://dumber.igel.co.jp/f";  // Float properties namespace
   dumber.NS_B = "http://dumber.igel.co.jp/b";  // Boolean properties namespace
 
+  dumber.die = true;
+
+  dumber.warn = function()
+  {
+    flexo.log.apply(this, arguments);
+    if (dumber.die) throw "Die";
+  };
+
   // Create a Dumber context for the given target (host document by default.)
   // Elements created in this context will be extended with the Dumber
   // prototypes.
@@ -32,7 +40,7 @@
     var flush_queue = function()
     {
       flexo.log("flushing rendering queue");
-      while (render_queue[0]) render_queue[0].render_component_instance();
+      while (render_queue[0]) render_queue[0].refresh_component_instance();
       timeout = null;
     };
     context._refreshed_instance = function(instance)
@@ -103,10 +111,10 @@
   {
     // Initialize the instance from a <use> element given a <component>
     // description node.
-    init: function(use, component, parent, target)
+    init: function(use, parent, target)
     {
       this.use = use;
-      this.component = component;
+      this.component = this.use._component;
       this.target = target;
       this.views = {};       // rendered views by id
       this.uses = {};        // rendered uses by id
@@ -114,17 +122,18 @@
       this.watchers = [];    // instances that have watches on this instance
       this.properties = {};  // watchable properties
       this.watched = {};     // watched properties
-      Object.keys(component._properties).forEach(function(k) {
+      Object.keys(this.component._properties).forEach(function(k) {
           if (!use._properties.hasOwnProperty(k)) {
-            this.properties[k] = component._properties[k];
+            this.properties[k] = this.component._properties[k];
           }
         }, this);
       Object.keys(use._properties).forEach(function(k) {
           this.properties[k] = use._properties[k];
         }, this);
-      component._instances.push(this);
+      this.component._instances.push(this);
       this.uses.$self = this;
       this.uses.$parent = parent;
+      flexo.log("+++ new instance for", use, "with target", target);
       return this;
     },
 
@@ -153,69 +162,29 @@
     },
 
     // Unrender, then render the view when the target is an Element.
-    render_component_instance: function()
+    refresh_component_instance: function()
     {
       this.component.ownerDocument._refreshed_instance(this);
       this.unrender();
       if (flexo.root(this.use) !== this.use.ownerDocument) return;
-      if (this.use._pending) this.target = this.use._pending.parentNode;
+      if (this.use.__placeholder) {
+        this.target = this.use.__placeholder.parentNode;
+      }
+      flexo.log("Refresh", this.use, ">>>", this.target);
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
         this.pending = 0;
         this.component._uses.forEach(function(u) {
-            this.render_use(u, this.target, this.use._pending);
+            this.render_use(u, this.target, this.use.__placeholder);
           }, this);
         if (this.component._view) {
           this.render_children(this.component._view, this.target,
-              this.use._pending);
+              this.use.__placeholder);
         }
+        flexo.safe_remove(this.__placeholder);
         this.update_title();
         if (this.pending === 0) this.render_watches();
         flexo.notify(this, "@rendered");
-      }
-    },
-
-    render_watches: function()
-    {
-      this.component._watches.forEach(function(watch) {
-          var instance = Object.create(watch_instance).init(watch, this);
-          instance.render_watch_instance();
-          this.rendered.push(instance);
-        }, this);
-      for (var p in this.watched) this.properties[p] = this.properties[p];
-    },
-
-    rendered_use: function(use)
-    {
-      if (use._instance) {
-        this.rendered.push(use._instance);
-        if (use._id) this.uses[use._id] = use._instance;
-      } else {
-        flexo.log("rendered_use: no instance for", use);
-      }
-    },
-
-    render_use: function(use, dest, ref)
-    {
-      if (use._pending) {
-        use._pending = temporary_node(dest, ref, use);
-        ++this.pending;
-        return;
-      }
-      var instance = use._render(dest, this);
-      if (instance === true) {
-        use._pending = temporary_node(dest, ref, use);
-        ++this.pending;
-        flexo.log("render_use: wait for {0} to load...".fmt(use._href));
-        flexo.listen(use, "@loaded", (function() {
-            flexo.log("... loaded", use);
-            flexo.safe_remove(use._pending);
-            delete use._pending;
-            this.rendered_use(use);
-            if (--this.pending === 0) this.render_watches();
-          }).bind(this));
-      } else if (instance) {
-        this.rendered_use(use);
       }
     },
 
@@ -278,6 +247,49 @@
         this.rendered.push(d);
       }
       this.render_children(node, d);
+    },
+
+    render_use: function(use, dest, ref)
+    {
+      use.__placeholder = placeholder(dest, ref, use);
+      if (use.__pending) {
+        ++this.pending;
+        return;
+      }
+      var instance = use._render(dest, this);
+      if (instance === true) {
+        this.__pending = true;
+        ++this.pending;
+        flexo.log("render_use: wait for {0} to load...".fmt(use._href));
+        flexo.listen(use, "@loaded", (function() {
+            flexo.log("... loaded", use);
+            delete use.__pending;
+            this.rendered_use(use);
+            if (--this.pending === 0) this.render_watches();
+          }).bind(this));
+      } else if (instance) {
+        this.rendered_use(use);
+      }
+    },
+
+    rendered_use: function(use)
+    {
+      if (use._instance) {
+        this.rendered.push(use._instance);
+        if (use._id) this.uses[use._id] = use._instance;
+      } else {
+        dumber.warn("rendered_use: no instance for", use);
+      }
+    },
+
+    render_watches: function()
+    {
+      this.component._watches.forEach(function(watch) {
+          var instance = Object.create(watch_instance).init(watch, this);
+          instance.render_watch_instance();
+          this.rendered.push(instance);
+        }, this);
+      for (var p in this.watched) this.properties[p] = this.properties[p];
     },
 
     unrender: function()
@@ -349,7 +361,7 @@
           if (set._view) {
             var target = this.component_instance.views[set._view];
             if (!target) {
-              flexo.log("No view for \"{0}\" in".fmt(set._view), set);
+              dumber.warn("No view for \"{0}\" in".fmt(set._view), set);
             } else {
               if (set._attr) {
                 target.setAttribute(set._attr, val);
@@ -362,7 +374,7 @@
               this.component_instance
                 .find_instance_with_property(set._property);
             if (!target) {
-              flexo.log("(got) No use for \"{0}\" in".fmt(set._property), set);
+              dumber.warn("(got) No use for \"{0}\" in".fmt(set._property), set);
             } else if (val !== undefined) {
               target.properties[set._property] = val;
             }
@@ -382,7 +394,8 @@
             if (get._view) {
               var target = this.component_instance.views[get._view];
               if (!target) {
-                flexo.log("No view for \"{0}\" in".fmt(get._view), get);
+                dumber.warn("render_watch_instance: No view for \"{0}\" in"
+                  .fmt(get._view), get);
               } else {
                 target.addEventListener(get._event, listener, false);
                 this.ungets.push(function() {
@@ -392,7 +405,7 @@
             } else if (get._use) {
               var target = this.component_instance.uses[get._use];
               if (!target) {
-                flexo.log("(render get/use) No use for \"{0}\" in"
+                dumber.warn("(render get/use) No use for \"{0}\" in"
                   .fmt(get._use), get);
               } else {
                 flexo.listen(target, get._event, listener);
@@ -406,7 +419,7 @@
               this.component_instance
                 .find_instance_with_property(get._property);
             if (!target) {
-              flexo.log("(render get/property) No use for \"{0}\""
+              dumber.warn("(render get/property) No use for \"{0}\""
                   .fmt(get._property));
             } else {
               var h = function(p, prev)
@@ -816,7 +829,7 @@
           }
           return component;
         } else if (this._q) {
-          return this.parentNode && this.parentNode.querySelector(this._q);
+          return this.ownerDocument.querySelector(this._q);
         } else if (this._href) {
           var href =
             (this._href.indexOf("#") === 0 ? component_of(this)._uri : "") +
@@ -848,14 +861,18 @@
         } else if (component) {
           return this._render_component(component, target, parent);
         } else {
-          flexo.log("No component for", this);
+          dumber.warn("use._render: No component for", this);
         }
       },
 
       _render_component: function(component, target, parent)
       {
         this._component = component;
-        this._instance = render_component(component, target, this, parent);
+        this._instance =
+          Object.create(component._prototype || component_instance)
+            .init(this, parent, target);
+        if (this._instance.instantiated) this._instance.instantiated();
+        this.ownerDocument._refresh_instance(this._instance);
         return this._instance;
       },
 
@@ -993,21 +1010,13 @@
     return flexo.unsplit_uri(url);
   }
 
-  function render_component(component, target, use, parent)
+  // Create a placeholder node for components to be rendered
+  function placeholder(dest, ref, use)
   {
-    var instance = Object.create(component._prototype || component_instance)
-      .init(use, component, parent, target);
-    if (instance.instantiated) instance.instantiated();
-    use.ownerDocument._refresh_instance(instance);
-    return instance;
-  }
-
-  function temporary_node(dest, ref, use)
-  {
-    flexo.safe_remove(use._pending);
-    var pending = dest.ownerDocument.createComment(use._href);
-    dest.insertBefore(pending, ref);
-    return pending;
+    flexo.safe_remove(use.__placeholder);
+    var p = dest.ownerDocument.createComment(" placeholder ");
+    dest.insertBefore(p, ref);
+    return p;
   }
 
   // Extend an element with Dumber methods and call the _init() method on the
