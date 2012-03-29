@@ -94,11 +94,11 @@
                 loaded[locator] = import_node(component,
                   req.response.documentElement, locator);
                 flexo.notify(context, "@loaded",
-                  { component: loaded[locator], url: url, use: use });
+                  { component: loaded[locator], url: locator });
               }
             });
         }
-        return true;
+        return locator;
       }
     };
 
@@ -262,7 +262,7 @@
         ++this.pending;
         flexo.log("render_use: wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
-            flexo.log("... loaded", use);
+            flexo.log("... render_use: loaded", use);
             delete use.__pending;
             this.rendered_use(use);
             if (--this.pending === 0) this.render_watches();
@@ -841,12 +841,12 @@
       _render: function(target, parent)
       {
         var component = this._find_component();
-        if (component === true) {
+        if (typeof component === "string") {
           this.__target = target;
           this.__parent = parent;
           if (this.__loading) return;
           this.__loading = (function(e) {
-            if (e.use === this) {
+            if (e.url === component) {
               flexo.log("... loaded {0} for".fmt(e.url), this, this.__target);
               flexo.notify(this, "@loaded", { instance: this
                 ._render_component(e.component, this.__target, this.__parent) });
