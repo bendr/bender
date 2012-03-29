@@ -23,7 +23,7 @@
         flexo.notify(self, "@tick");
         timeout = setTimeout(tick, self.properties["rate-ms"]);
       };
-      timeout = setTimeout(tick, self.properties["rate-ms"]);
+      tick();
     };
 
     // Stop the timer. Noop if it was not running.

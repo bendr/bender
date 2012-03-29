@@ -29,47 +29,32 @@
     // Manage the render queue specific to this context
     var render_queue = [];
     var timeout = null;
+    var flush_queue = function()
+    {
+      flexo.log("flushing rendering queue");
+      while (render_queue[0]) render_queue[0].render_component_instance();
+      timeout = null;
+    };
     context._refreshed_instance = function(instance)
     {
       flexo.remove_from_array(render_queue, instance);
     };
     context._refresh_instance = function(instance)
     {
-      if (render_queue.indexOf(instance) < 0) {
-        render_queue.push(instance);
-        if (!timeout) {
-          timeout = setTimeout(function() {
-              flexo.log("refresh_instances×{0}".fmt(render_queue.length));
-              while (render_queue.length > 0) {
-                render_queue.shift().render_component_instance();
-              }
-              render_queue = [];
-              timeout = null;
-            }, 0);
-        }
-      }
+      if (render_queue.indexOf(instance) >= 0) return;
+      render_queue.push(instance);
+      if (!timeout) timeout = setTimeout(flush_queue, 0);
     };
 
-    // Create a root component and use node for this component in order to
-    // initiate rendering
+    // Create a root context element and initiate rendering
     var component = context.createElement("context");
     context.documentElement.appendChild(component);
-    var use = component.$("use", { q: "context" });
-    context.documentElement.appendChild(use);
-    render_component(component, target, use);
+    component._insert_use.call(context.documentElement,
+        { q: "context" }, target);
 
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
     loaded[normalize_url(doc.baseURI, "")] = component;
-
-    context._insert_use = function(attrs, target)
-    {
-      var use = component.$("use", attrs);
-      // TODO Get the component from the new use, then render it.
-      // We can even replace the stuff above with a call to this?
-      this.documentElement.appendChild(use);
-
-    };
 
     // Keep track of uri/id pairs to find components with the href attribute
     context._add_component = function(component)
@@ -310,9 +295,8 @@
 
     update_title: function()
     {
-      if (this.target instanceof Element && this.component.localName === "app"
-          && this.use.parentNode === this.use.ownerDocument.documentElement &&
-          this.component._title) {
+      if (this.target instanceof Element &&
+          this.component.localName === "app" && this.component._title) {
         this.target.ownerDocument.title = this.component._title.textContent;
       }
     },
@@ -339,7 +323,7 @@
     unwatch_property: function(property, handler)
     {
       flexo.remove_from_array(this.watched[property], handler);
-      // flexo.log("unwatch_property[{0}]: {1}".fmt(property, this.watched[property].length));
+      // flexo.log("unwatch_property[{0}]: {1}".fmt(property,this.watched[property].length));
       if (this.watched[property] && this.watched[property].length === 0) {
         delete this.watched[property];
       }
@@ -945,6 +929,16 @@
 
   prototypes.app = prototypes.component;
   prototypes.context = prototypes.component;
+
+  // Insert a newly created use element (using the attributes passed as first
+  // argument) in the context and render it to the given target
+  prototypes.context._insert_use = function(attrs, target)
+  {
+    var use = prototypes[""].$.call(this, "use", attrs);
+    this.appendChild(use);
+    use._render(target);
+    return use;
+  };
 
   // The component of a node is itself if it is a component node (or app or
   // context), or the component of its parent

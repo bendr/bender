@@ -31,10 +31,13 @@
 
       var q = context.$("use", { ref: "q" },
         "This one is added after rendering.");
-      view.appendChild(q);
-      use_q._textContent("");
-      use_r.parentNode.removeChild(use_r);
-      view_q.appendChild(context.$("xhtml:p", "Followed by a p."));
+
+      setTimeout(function() { view.appendChild(q); }, 500);
+      setTimeout(function() { use_q._textContent(""); }, 1000);
+      setTimeout(function() { use_r.parentNode.removeChild(use_r); }, 1500);
+      setTimeout(function() {
+          view_q.appendChild(context.$("xhtml:p", "(with an extra line)"));
+        }, 2000);
 
     </script>
   </body>

@@ -18,7 +18,7 @@
           context.$("view",
             context.$("html:p", "Hello, world!"))));
       context.appendChild(context.$("use", { q: "component" }));
-      context.removeChild(context.lastChild);
+      setTimeout(function() { context.removeChild(context.lastChild); }, 1000);
     </script>
   </body>
 </html>

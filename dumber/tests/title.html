@@ -18,12 +18,15 @@
         context.$("app",
           context.$("title", "Original title"),
           context.$("view",
-            context.$("xhtml:p", "Let's change the title."))));
+            context.$("xhtml:p", "Let's change the title from " +
+              "\"Original title\" to \"Newer title\" to \"Newest title\"."))));
       context.appendChild(context.$("use", { q: "app" }));
 
       var title = context.$("title", "Newer title");
-      context.querySelector("app").appendChild(title);
-      title._textContent("Newest title");
+      setTimeout(function() {
+          context.querySelector("app").appendChild(title);
+        }, 1000);
+      setTimeout(function() { title._textContent("Newest title"); }, 2000);
 
     </script>
   </body>

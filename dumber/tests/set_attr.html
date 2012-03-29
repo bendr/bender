@@ -25,7 +25,9 @@
       context.appendChild(context.$("use", { q: "app" }));
 
       // Make the content red
-      context.querySelector("p").setAttribute("class", "red");
+      setTimeout(function() {
+          context.querySelector("p").setAttribute("class", "red");
+        }, 1000);
 
     </script>
   </body>

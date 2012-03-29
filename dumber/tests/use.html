@@ -25,23 +25,33 @@
       context.appendChild(context.$("use", { q: "app" }));
 
       // Add "B"
-      context.querySelectorAll("view")[1]
-        .appendChild(context.$("use", { ref: "c" }, "B"));
+      setTimeout(function() {
+          context.querySelectorAll("view")[1]
+            .appendChild(context.$("use", { ref: "c" }, "B"));
+        }, 500);
 
       // Add a hr to the c component
-      context.querySelector("view").appendChild(context.$("html:hr"));
+      setTimeout(function() {
+          context.querySelector("view").appendChild(context.$("html:hr"));
+        }, 1000);
 
       // Add "D" (then we will transform it to C)
-      context.querySelectorAll("view")[1]
-        .appendChild(context.$("use", { ref: "c" }, "D"));
+      setTimeout(function() {
+          context.querySelectorAll("view")[1]
+            .appendChild(context.$("use", { ref: "c" }, "D"));
+        }, 1500);
 
       // Add a hr again to the c component
-      context.querySelector("view")
-        .appendChild(context.ownerDocument.createTextNode("= = ="));
-      context.querySelector("view").appendChild(context.$("html:hr"));
+      setTimeout(function() {
+          context.querySelector("view")
+            .appendChild(context.ownerDocument.createTextNode("= = ="));
+          context.querySelector("view").appendChild(context.$("html:hr"));
+        }, 2000);
 
       // Change D to C
-      context.querySelectorAll("use")[2]._textContent("C");
+      setTimeout(function() {
+          context.querySelectorAll("use")[2]._textContent("C");
+        }, 2500);
 
     </script>
   </body>
