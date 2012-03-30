@@ -19,7 +19,7 @@
       "Retry"));
     this.appendChild(
       this.$("watch",
-        this.$("get", { use: "retry-button", event: "@pushed" },
-          "alert('Retry')")));
+        this.$get({ use: "retry-button", event: "@pushed" },
+          function() { alert("Retry"); })));
   </script>
 </app>

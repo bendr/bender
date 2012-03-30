@@ -81,7 +81,7 @@
     <set property="input">
       if (this.properties.clear) {
         this.properties.clear = false;
-        this.properties.m = this.properties.n;
+        this.m = this.properties.n;
         return value;
       } else {
         return this.properties.input + value;
@@ -104,11 +104,12 @@
     <get use="eq1" event="@pushed"/>
     <get use="eq2" event="@pushed"/>
     <set>
-      if (!isNaN(this.properties.m)) {
+      flexo.log("====", this.m, "~~~~");
+      if (!isNaN(this.m)) {
         this.properties.n = this.ops[this.properties.op][1]
-          (this.properties.m, this.properties.n);
+          (this.m, this.properties.n);
         this.properties.op = "";
-        delete this.properties.m;
+        delete this.m;
         this.properties.clear = true;
       }
     </set>
@@ -119,7 +120,7 @@
     <set property="input"><![CDATA[
       if (this.properties.clear) {
         this.properties.clear = false;
-        this.properties.m = this.properties.n;
+        this.m = this.properties.n;
         return "0.";
       } else if (this.properties.input.indexOf(".") < 0) {
         return this.properties.input + ".";
@@ -133,7 +134,7 @@
       this.properties.clear = false;
       this.properties.op = "";
       this.properties.input = "0";
-      delete this.properties.m;
+      delete this.m;
     </set>
   </watch>
 
@@ -143,11 +144,11 @@
     <get use="div" event="@pushed"/>
     <get use="mult" event="@pushed"/>
     <set>
-      if (!isNaN(this.properties.m)) {
+      if (!isNaN(this.m)) {
         var m = this.properties.n;
         this.properties.n = this.ops[this.properties.op][1]
-          (this.properties.m, this.properties.n);
-        this.properties.m = m;
+          (this.m, this.properties.n);
+        this.m = m;
       }
       this.properties.op = value.source.use._id;
       this.properties.clear = true;

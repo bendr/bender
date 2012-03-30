@@ -7,19 +7,19 @@
     <html:p>x + y = <html:em id="z"/></html:p>
   </view>
   <watch id="watch-x">
-    <get property="x"/>
+    <get use="$self" property="x"/>
     <set view="x"/>
-    <set property="y">
+    <set use="$self" property="y">
       return value + 1;
     </set>
   </watch>
   <watch id="watch-y">
-    <get property="y"/>
+    <get use="$self" property="y"/>
     <set view="y"/>
   </watch>
   <watch id="watch-z">
-    <get property="x"/>
-    <get property="y"/>
+    <get use="$self" property="x"/>
+    <get use="$self" property="y"/>
     <set view="z">
       return this.properties.x + this.properties.y;
     </set>

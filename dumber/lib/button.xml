@@ -19,5 +19,4 @@
       if (value.button === 0) flexo.notify(this, "@pushed");
     </get>
   </watch>
-
 </component>

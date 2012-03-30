@@ -28,6 +28,7 @@
       .prop, .param, .attr { background-color: #8ff; }
       .TODO { background-color: #ddd; }
       .sample { margin-left: 2em; }
+      .broken, .done { text-decoration: line-through; }
       svg { width: 128px; height: 144px; margin-top: 8px; }
     </style>
     <script src="../flexo.js"></script>
@@ -397,6 +398,48 @@ context.appendChild(context.$("use", { href: ... }));</pre>
 
       <section id="todo">
         <h2>TODO</h2>
+
+        <section id="todo.bugs">
+          <h3>Bugs</h3>
+          <ol>
+            <li>Watch activation (at get level?) and loops</li>
+            <li>Watch nesting</li>
+            <li>Calculator: <code>m</code> never set properly</li>
+            <li>Waves/arrows rendering loop</li>
+            <li>Instantiate watches even if sub-components need loading (<a
+              href="lib/run.html?href=../tests/scope-remove.xml">test</a>)</li>
+          </ol>
+        </section>
+
+        <section id="todo.features">
+          <h3>Features</h3>
+          <ul>
+            <li>Add a <code class="attr">href</code> attribute to <code
+              class="elem">component</code> elements so that components that are
+            reused throughout an application can be "imported" into the current
+            document and referred to by a local id rather than complete
+            URL.</li>
+            <li>Add a <code class="attr">href</code> attribute to <code
+              class="elem">get</code> elements to listen to URLs. Fetched at
+            initialization, then respond to server events.</li>
+            <li>Signals?</li>
+            <li>Watch conditionals</li>
+            <li>Watch combinators</li>
+            <li>Clone a component (like <code>Object.create</code>) to modify an
+            instance of the component rather than all of them.</li>
+            <li>Better component parametrization through <code
+              class="elem">use</code>, <em>e.g.</em>:
+              <pre>&lt;set property="$name"/></pre>
+            </li>
+            <li>More metadata: <code class="elem">property</code> and <code
+              class="elem">event</code> elements to describe properties and
+            events for a component so that specific tools can access them (e.g.
+            for the params bar.) Additionally a <code
+              class="elem">metadata</code> element could be introduced to group
+            metatadata in components.</li>
+          </ul>
+        </section>
+
       </section>
 
   </div>
@@ -407,7 +450,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
         <h2>Demos</h2>
         <ol>
           <li><a href="lib/run.html?href=../apps/clock.xml">SVG Clock</a></li>
-          <li><a href="lib/run.html?href=../apps/arrows.xml">SVG Arrows</a></li>
+          <li><a href="lib/run.html?href=../apps/arrows.xml" class="broken">SVG
+            Arrows</a></li>
           <li><a
             href="lib/run.html?href=../apps/calculator.xml">Calculator</a></li>
         </ol>
@@ -489,15 +533,15 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           reaction.</li>
           <li><a href="lib/run.html?href=../tests/watch-xyz.xml">Watch a
             property and set a cascade</a> of properties.</li>
-          <li><a href="lib/run.html?href=../tests/watch-loop.xml">Watch a
-            property and set a cascade</a> with a loop; bug when setting
-          y/z?</li>
+          <li><a href="lib/run.html?href=../tests/watch-loop.xml"
+            class="broken">Watch a property and set a cascade</a> with a
+          loop</li>
           <li><a href="lib/run.html?href=../tests/textfield.xml">Text
             fields</a></li>
           <li><a href="lib/run.html?href=../tests/scope.xml">Scope test</a>:
             getting/setting properties from the nearest ancestor</li>
-          <li><a href="lib/run.html?href=../tests/scope-remove.xml">Scope test
-            with component removal</a></li>
+          <li><a href="lib/run.html?href=../tests/scope-remove.xml"
+            class="broken">Scope test with component removal</a></li>
           <li><a href="lib/run.html?href=../tests/control.xml">Control</a> the
           size of a component from another component through a shared ancestor's
           property.</li>
@@ -507,7 +551,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           the number of components</li>
           <li><a href="lib/run.html?href=../tests/timer.xml">Timer</a> just
           output to the console</li>
-          <li><a href="lib/run.html?href=../tests/waves.xml">Waves</a></li>
+          <li><a href="lib/run.html?href=../tests/waves.xml"
+            class="broken">Waves</a></li>
           <li><a href="tests/rendered.html">@rendered event test</a> (HTML)</li>
           <li><a href="lib/run.html?href=../tests/rendered.xml">@rendered event
           test</a> (XML)</li>

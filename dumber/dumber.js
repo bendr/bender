@@ -6,11 +6,10 @@
   dumber.NS_B = "http://dumber.igel.co.jp/b";  // Boolean properties namespace
 
   dumber.die = true;
-
   dumber.warn = function()
   {
     flexo.log.apply(this, arguments);
-    if (dumber.die) throw "Die";
+    if (dumber.die) throw "Died :(";
   };
 
   // Create a Dumber context for the given target (host document by default.)
@@ -39,7 +38,6 @@
     var timeout = null;
     var flush_queue = function()
     {
-      flexo.log("flushing rendering queue");
       while (render_queue[0]) render_queue[0].refresh_component_instance();
       timeout = null;
     };
@@ -57,8 +55,8 @@
     // Create a root context element and initiate rendering
     var component = context.createElement("context");
     context.documentElement.appendChild(component);
-    component._insert_use.call(context.documentElement,
-        { q: "context" }, target);
+    component._insert_use.call(context.documentElement, { q: "context" },
+        target);
 
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
@@ -73,10 +71,11 @@
     };
 
     // Request for a component to be loaded. If the component was already
-    // loaded, return the component node, otherwise return the boolean value
-    // true to acknowledge the request. In that situation, a "@loaded" event
-    // will be sent when loading has finished; an "@error" event will be sent in
-    // case of error.
+    // loaded, return the component node, otherwise return the normalized URL
+    // requested. In that situation, a "@loaded" event will be sent when loading
+    // has finished with a url parameter corresponding to the returned URL and
+    // the loaded component; an "@error" event will be sent with the same URL
+    // parameter in case of error.
     context._load_component = function(url, use)
     {
       var split = url.split("#");
@@ -89,7 +88,7 @@
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function(req) {
               if (!req.response) {
-                flexo.notify(context, "@error", { url: url });
+                flexo.notify(context, "@error", { url: locator });
               } else {
                 loaded[locator] = import_node(component,
                   req.response.documentElement, locator);
@@ -133,7 +132,6 @@
       this.component._instances.push(this);
       this.uses.$self = this;
       this.uses.$parent = parent;
-      flexo.log("+++ new instance for", use, "with target", target);
       return this;
     },
 
@@ -170,7 +168,6 @@
       if (this.use.__placeholder) {
         this.target = this.use.__placeholder.parentNode;
       }
-      flexo.log("Refresh", this.use, ">>>", this.target);
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
         this.pending = 0;
@@ -260,9 +257,7 @@
       if (instance === true) {
         this.__pending = true;
         ++this.pending;
-        flexo.log("render_use: wait for {0} to load...".fmt(use._href));
         flexo.listen(use, "@loaded", (function() {
-            flexo.log("... render_use: loaded", use);
             delete use.__pending;
             this.rendered_use(use);
             if (--this.pending === 0) this.render_watches();
@@ -329,13 +324,11 @@
             });
       }
       this.watched[property].push(handler);
-      // flexo.log("watch_property[{0}]: {1}".fmt(property, this.watched[property].length));
     },
 
     unwatch_property: function(property, handler)
     {
       flexo.remove_from_array(this.watched[property], handler);
-      // flexo.log("unwatch_property[{0}]: {1}".fmt(property,this.watched[property].length));
       if (this.watched[property] && this.watched[property].length === 0) {
         delete this.watched[property];
       }
@@ -847,7 +840,6 @@
           if (this.__loading) return;
           this.__loading = (function(e) {
             if (e.url === component) {
-              flexo.log("... loaded {0} for".fmt(e.url), this, this.__target);
               flexo.notify(this, "@loaded", { instance: this
                 ._render_component(e.component, this.__target, this.__parent) });
               flexo.unlisten(this.ownerDocument, "@loaded", this.__loading);
@@ -872,7 +864,7 @@
           Object.create(component._prototype || component_instance)
             .init(this, parent, target);
         if (this._instance.instantiated) this._instance.instantiated();
-        this.ownerDocument._refresh_instance(this._instance);
+        this._instance.refresh_component_instance();
         return this._instance;
       },
 
