@@ -65,10 +65,14 @@
           g.setAttribute("fill", color);
           g.setAttribute("stroke", color);
           var p = document.querySelector("polygon");
+          /*
           var sides = flexo.random_int(4, 12);
           p.setAttribute("points", Math.random() < .5 ?
             flexo.svg_polygon_points(sides, 42, Math.random()) :
             flexo.svg_star_points(sides, 42, 36, Math.random()));
+            */
+          p.setAttribute("points",
+            flexo.svg_polygon_points(7, 42, Math.random()));
         </script>
       </svg>
       <p>Dumber is a simpler implementation of Bender intended to prototype
@@ -402,11 +406,12 @@ context.appendChild(context.$("use", { href: ... }));</pre>
         <section id="todo.bugs">
           <h3>Bugs</h3>
           <ol>
-            <li>Watch activation (at get level?) and loops</li>
+            <li class="done">Watch activation (at get level?) and loops</li>
             <li>Watch nesting</li>
             <li>Calculator: <code>m</code> never set properly</li>
             <li>Waves/arrows rendering loop</li>
-            <li>Instantiate watches even if sub-components need loading (<a
+            <li class="done">Instantiate watches even if sub-components need
+            loading (<a
               href="lib/run.html?href=../tests/scope-remove.xml">test</a>)</li>
           </ol>
         </section>

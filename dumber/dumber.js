@@ -378,13 +378,21 @@
     render_watch_instance: function()
     {
       this.watch._gets.forEach(function(get) {
+          var active = false;
           var that = this;
           if (get._event) {
             var listener = function(e) {
-              that.got((get._action || flexo.id)
-                .call(that.component_instance, e));
+              flexo.log("> get/event{0}".fmt(active ? "*" : ""), get);
+              if (!active) {
+                active = true;
+                that.got((get._action || flexo.id).call(that.component_instance,
+                    e));
+                active = false;
+              }
+              flexo.log("< get/event{0}".fmt(active ? "*" : ""), get);
             };
             if (get._view) {
+              // DOM event
               var target = this.component_instance.views[get._view];
               if (!target) {
                 dumber.warn("render_watch_instance: No view for \"{0}\" in"
@@ -396,6 +404,7 @@
                   });
               }
             } else if (get._use) {
+              // Custom event
               var target = this.component_instance.uses[get._use];
               if (!target) {
                 dumber.warn("(render get/use) No use for \"{0}\" in"
@@ -408,6 +417,7 @@
               }
             }
           } else if (get._property) {
+            // Property change
             var target = get._use ? this.component_instance.uses[get._use] :
               this.component_instance
                 .find_instance_with_property(get._property);
@@ -417,8 +427,14 @@
             } else {
               var h = function(p, prev)
               {
-                that.got((get._action || flexo.id)
-                    .call(that.component_instance, p, prev));
+                flexo.log("> get/property{0}".fmt(active ? "*" : ""), get);
+                if (!active) {
+                  active = true;
+                  that.got((get._action || flexo.id)
+                      .call(that.component_instance, p, prev));
+                  active = false;
+                }
+                flexo.log("< get/property{0}".fmt(active ? "*" : ""), get);
               };
               h._watch = this;
               target.watch_property(get._property, h);
