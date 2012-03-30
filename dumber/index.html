@@ -48,6 +48,8 @@
           <polygon>
             <animateTransform attributeName="transform" attributeType="XML"
               type="scale" from="3" to="1" dur="0.3s" fill="freeze"/>
+            <animateTransform attributeName="transform" attributeType="XML"
+              type="rotate" from="90" to="0" dur="0.3s" additive="sum"/>
           </polygon>
           <g stroke="#fef9f0" stroke-linecap="round" fill="none">
             <line x1="20" y1="-50" x2="20" y2="0"/>
@@ -412,6 +414,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li class="done">Waves/arrows rendering loop</li>
             <li>Instantiate watches even if sub-components need loading (<a
               href="lib/run.html?href=../tests/scope-remove.xml">test</a>)</li>
+            <li>Initialization of parameters; see for instance different values
+            for <a href="lib/run.html?href=../tests/watch-loop.xml">the loop
+              test</a> and <a
+              href="lib/params.html?href=../tests/watch-loop.xml">the same with
+              parameters</a>.</li>
           </ol>
         </section>
 
@@ -469,9 +476,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             class="attr">href</code> paremeter to load a Dumber XML file
           (<em>e.g.</em>, <a href="lib/run.html?href=../tests/hello.xml">Hello,
             world</a>)</li>
-          <li><a href="lib/params.html" class="broken">Runtime with parameters
-            bar</a>: create controls to modify the top-level parameters of the
-          application.</li>
+          <li><a href="lib/params.html">Runtime with parameters bar</a>: create
+          controls to modify the top-level parameters of the application.</li>
           <li><a href="lib/timer.xml">Timer component</a>: send a
           <code>@tick</code> event at <code>rate-ms</code>.</li>
           <li><span class="TODO"><a href="lib/button.xml">Button
@@ -530,6 +536,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             components</a>: when some need to be loaded (from XML)</li>
           <li><a href="lib/run.html?href=../tests/watch-property.xml">Watch a
             property</a></li>
+          <li><a href="lib/params.html?href=../tests/watch-properties.xml">Watch
+            two properties</a> (simple tests for param bar)</li>
           <li><a href="lib/run.html?href=../tests/watch-transform.xml">Watch a
             property</a> with a transform (roman numbers)</li>
           <li><a href="lib/run.html?href=../tests/watch-xy.xml">Watch a

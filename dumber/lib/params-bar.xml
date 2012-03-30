@@ -13,28 +13,30 @@
     </target>
     <html:div class="params-bar">
       ⚐
+      <html:span/>
       <html:a href="../index.html">Home</html:a>
     </html:div>
   </view>
   <script>
-    var div = this.querySelector("div");
+    var div = this.querySelector("span");
+    var watches = [];
     this._prototype.add_param = function(type, name, value)
     {
+      flexo.log("+++ param {0}".fmt(name));
       div.appendChild(div.$("use", { ref: type, "e:name": name,
         "e:value": value, id: name }));
-        /*
-      this.component.appendChild(this.component.$("watch",
-        this.component.$get({ use: name, event: "@change" },
-          function(value) {
-            flexo.log(">>> {0}: {1}".fmt(name, value.value));
-            flexo.notify(this, "@change", { name: name, value: value });
+      watches.push(this.component.appendChild(this.component.$("watch",
+        this.component.$get({ use: name, event: "@change" }, function(value) {
+            flexo.notify(this, "@change", { name: name, value: value.value });
             return value;
           }),
-        this.component.$set({ use: "$self", property: name },
-          function(e) {
-            flexo.log("> > > {0}: {1}".fmt(name, e.value));
-          })));
-          */
+        this.component.$("set", { use: "$self", property: name }))));
+    };
+    this._prototype.clear = function()
+    {
+      flexo.remove_children(div);
+      watches.forEach(function(w) { flexo.safe_remove(w); });
+      watches = [];
     };
   </script>
 
@@ -79,7 +81,7 @@
     <watch>
       <get view="input" event="change">
         var val = this.views.input.value;
-        flexo.notify(this, "@change", { value: val });
+        flexo.notify(this, "@change", { value: parseFloat(val) });
         return val;
       </get>
       <set use="$self" property="value"/>
@@ -103,7 +105,7 @@
     <watch>
       <get view="input" event="change">
         var val = this.views.input.checked;
-        flexo.notify(this, "@change", { value: val });
+        flexo.notify(this, "@change", { value: !!val });
         return val;
       </get>
       <set use="$self" property="value"/>

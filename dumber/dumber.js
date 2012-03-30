@@ -288,7 +288,6 @@
           this.rendered.push(instance);
         }, this);
       for (var p in this.watched) this.properties[p] = this.properties[p];
-      flexo.log("@rendered", this.use);
       flexo.notify(this, "@rendered");
     },
 
@@ -387,14 +386,12 @@
           var that = this;
           if (get._event) {
             var listener = function(e) {
-              flexo.log("> get/event{0}".fmt(active ? "*" : ""), get);
               if (!active) {
                 active = true;
                 that.got((get._action || flexo.id).call(that.component_instance,
                     e));
                 active = false;
               }
-              flexo.log("< get/event{0}".fmt(active ? "*" : ""), get);
             };
             if (get._view) {
               // DOM event
@@ -432,14 +429,12 @@
             } else {
               var h = function(p, prev)
               {
-                flexo.log("> get/property{0}".fmt(active ? "*" : ""), get);
                 if (!active) {
                   active = true;
                   that.got((get._action || flexo.id)
                       .call(that.component_instance, p, prev));
                   active = false;
                 }
-                flexo.log("< get/property{0}".fmt(active ? "*" : ""), get);
               };
               h._watch = this;
               target.watch_property(get._property, h);
@@ -952,7 +947,11 @@
       prototypes.component["$" + name] = function(attrs, action)
       {
         var elem = action ? this.$(name, attrs) : this.$(name);
-        elem._action = action || attrs;
+        if (typeof action === "function") {
+          elem._action = action;
+        } else if (typeof attrs === "function") {
+          elem._action = attrs;
+        }
         return elem;
       };
     });
