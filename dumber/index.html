@@ -67,12 +67,6 @@
           g.setAttribute("fill", color);
           g.setAttribute("stroke", color);
           var p = document.querySelector("polygon");
-          /*
-          var sides = flexo.random_int(4, 12);
-          p.setAttribute("points", Math.random() < .5 ?
-            flexo.svg_polygon_points(sides, 42, Math.random()) :
-            flexo.svg_star_points(sides, 42, 36, Math.random()));
-            */
           p.setAttribute("points",
             flexo.svg_polygon_points(7, 42, Math.random()));
         </script>
@@ -426,6 +420,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <h3>Features</h3>
           <ul>
             <li>Add a <code class="attr">href</code> attribute to <code
+              class="elem">script</code> elements to load external scripts.</li>
+            <li>Add a <code class="attr">href</code> attribute to <code
               class="elem">component</code> elements so that components that are
             reused throughout an application can be "imported" into the current
             document and referred to by a local id rather than complete
@@ -579,6 +575,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <li><a href="tests/rendered.html">@rendered event test</a> (HTML)</li>
           <li><a href="lib/run.html?href=../tests/rendered.xml">@rendered event
           test</a> (XML)</li>
+          <li><a href="lib/run.html?href=../tests/geolocation.xml">Geolocation
+            component test</a></li>
         </ol>
       </section>
 
