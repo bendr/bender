@@ -409,9 +409,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li class="done">Watch activation (at get level?) and loops</li>
             <li>Watch nesting</li>
             <li>Calculator: <code>m</code> never set properly</li>
-            <li>Waves/arrows rendering loop</li>
-            <li class="done">Instantiate watches even if sub-components need
-            loading (<a
+            <li class="done">Waves/arrows rendering loop</li>
+            <li>Instantiate watches even if sub-components need loading (<a
               href="lib/run.html?href=../tests/scope-remove.xml">test</a>)</li>
           </ol>
         </section>
@@ -455,10 +454,10 @@ context.appendChild(context.$("use", { href: ... }));</pre>
         <h2>Demos</h2>
         <ol>
           <li><a href="lib/run.html?href=../apps/clock.xml">SVG Clock</a></li>
-          <li><a href="lib/run.html?href=../apps/arrows.xml" class="broken">SVG
-            Arrows</a></li>
+          <li><a href="lib/run.html?href=../apps/arrows.xml">SVG Arrows</a></li>
           <li><a
-            href="lib/run.html?href=../apps/calculator.xml">Calculator</a></li>
+            href="lib/run.html?href=../apps/calculator.xml"
+            class="broken">Calculator</a></li>
         </ol>
       </section>
 
@@ -470,9 +469,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             class="attr">href</code> paremeter to load a Dumber XML file
           (<em>e.g.</em>, <a href="lib/run.html?href=../tests/hello.xml">Hello,
             world</a>)</li>
-          <li><a href="lib/params.html">Runtime with parameters bar</a>: create
-          controls to modify the top-level parameters of the application.
-          <span class="TODO">Debug the @loaded stuff</span></li>
+          <li><a href="lib/params.html" class="broken">Runtime with parameters
+            bar</a>: create controls to modify the top-level parameters of the
+          application.</li>
           <li><a href="lib/timer.xml">Timer component</a>: send a
           <code>@tick</code> event at <code>rate-ms</code>.</li>
           <li><span class="TODO"><a href="lib/button.xml">Button
@@ -538,9 +537,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           reaction.</li>
           <li><a href="lib/run.html?href=../tests/watch-xyz.xml">Watch a
             property and set a cascade</a> of properties.</li>
-          <li><a href="lib/run.html?href=../tests/watch-loop.xml"
-            class="broken">Watch a property and set a cascade</a> with a
-          loop</li>
+          <li><a href="lib/run.html?href=../tests/watch-loop.xml">Watch a
+            property and set a cascade</a> with a loop. <span
+            class="TODO">Review initialization of parameters.</span></li>
           <li><a href="lib/run.html?href=../tests/textfield.xml">Text
             fields</a></li>
           <li><a href="lib/run.html?href=../tests/scope.xml">Scope test</a>:
@@ -556,8 +555,7 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           the number of components</li>
           <li><a href="lib/run.html?href=../tests/timer.xml">Timer</a> just
           output to the console</li>
-          <li><a href="lib/run.html?href=../tests/waves.xml"
-            class="broken">Waves</a></li>
+          <li><a href="lib/run.html?href=../tests/waves.xml">Waves</a></li>
           <li><a href="tests/rendered.html">@rendered event test</a> (HTML)</li>
           <li><a href="lib/run.html?href=../tests/rendered.xml">@rendered event
           test</a> (XML)</li>

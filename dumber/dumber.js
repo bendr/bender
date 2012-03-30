@@ -36,10 +36,13 @@
     // Manage the render queue specific to this context
     var render_queue = [];
     var timeout = null;
+    var flushing = false;
     var flush_queue = function()
     {
+      flushing = true;
       while (render_queue[0]) render_queue[0].refresh_component_instance();
       timeout = null;
+      flushing = false;
     };
     context._refreshed_instance = function(instance)
     {
@@ -47,6 +50,7 @@
     };
     context._refresh_instance = function(instance)
     {
+      if (flushing) return;
       if (render_queue.indexOf(instance) >= 0) return;
       render_queue.push(instance);
       if (!timeout) timeout = setTimeout(flush_queue, 0);
@@ -181,7 +185,6 @@
         flexo.safe_remove(this.__placeholder);
         this.update_title();
         if (this.pending === 0) this.render_watches();
-        flexo.notify(this, "@rendered");
       }
     },
 
@@ -285,6 +288,8 @@
           this.rendered.push(instance);
         }, this);
       for (var p in this.watched) this.properties[p] = this.properties[p];
+      flexo.log("@rendered", this.use);
+      flexo.notify(this, "@rendered");
     },
 
     unrender: function()

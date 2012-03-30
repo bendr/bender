@@ -17,6 +17,7 @@
 
       var load = function()
       {
+        flexo.log("LOAD");
         var component = context.querySelector("component");
         [].forEach.call(this.uses.app.component.attributes, function(attr) {
             var type = attr.namespaceURI === dumber.NS_E ? "e" :
@@ -43,14 +44,14 @@
       args.id = "app";
       var context = dumber.create_context(document.body);
       context.appendChild(
-        context.$("component",
+        context.$("component#top",
           context.$("view",
             context.$("use", { href: "params-bar.xml", id: "params" }),
             context.$("html:div.app",
             context.$("use", args))),
           context.$("watch",
             context.$get({ use: "$self", event: "@rendered" }, load))));
-      context.appendChild(context.$("use", { q: "component" }));
+      context.appendChild(context.$("use", { ref: "top" }));
 
     </script>
   </body>
