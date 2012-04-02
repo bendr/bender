@@ -5,7 +5,7 @@
   dumber.NS_F = "http://dumber.igel.co.jp/f";  // Float properties namespace
   dumber.NS_B = "http://dumber.igel.co.jp/b";  // Boolean properties namespace
 
-  dumber.die = true;
+  //dumber.die = true;
   dumber.warn = function()
   {
     flexo.log.apply(this, arguments);
@@ -251,6 +251,7 @@
 
     render_use: function(use, dest, ref)
     {
+      flexo.log("render_use", use);
       use.__placeholder = placeholder(dest, ref, use);
       if (use.__pending) {
         ++this.pending;
@@ -274,7 +275,12 @@
     {
       if (use._instance) {
         this.rendered.push(use._instance);
-        if (use._id) this.uses[use._id] = use._instance;
+        if (use._id) {
+          flexo.log("rendered_use: adding id \"{0}\" for".fmt(use._id), use);
+          this.uses[use._id] = use._instance;
+        } else {
+          flexo.log("rendered_use: adding", use);
+        }
       } else {
         dumber.warn("rendered_use: no instance for", use);
       }
@@ -457,6 +463,20 @@
     "":
     {
       appendChild: function(ch) { return this.insertBefore(ch, null); },
+
+      cloneNode: function(deep)
+      {
+        var clone =
+          wrap_element(Object.getPrototypeOf(this).cloneNode.call(this, false));
+        if (deep) {
+          var component = component_of(this)._uri;
+          var uri = component ? component._uri : "";
+          [].forEach.call(this.childNodes, function(ch) {
+              import_node(clone, ch);
+            });
+        }
+        return clone;
+      },
 
       insertBefore: function(ch, ref)
       {
