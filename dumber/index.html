@@ -348,6 +348,21 @@
           independently, maintaining their own state.</p>
         </section>
 
+        <section id="manual.clone">
+          <h3>Deriving new components through cloning</h3>
+          <p>Dumber allows the derivation of new components from existing ones
+          through <em>cloning</em>. Similarly to the Javascript
+          <code>Object.create()</code> method, the <code
+          class="def">_clone_node(node, params)</code> method of the context
+          (document) create a deep clone of the given node. The second argument
+          is an object with key/value pairs for the <em>parameters</em> of the
+          source component.</p>
+          <p>Attribute and text nodes of the prototype component may contain
+          value placeholder of the form <code>{name}</code>, which get replaced
+          with the value for <code>name</code> in the <code
+          class="param">params</code> object, or the empty string if absent.</p>
+        </section>
+
         <section id="manual.render-tree">
           <h3>Rendering a Dumber tree</h3>
           <p>A self-contained Dumber application tree can be rendered into any
@@ -417,6 +432,7 @@ context.appendChild(context.$("use", { href: ... }));</pre>
               href="lib/params.html?href=../apps/clock.xml">clock with
               parameters</a> fails (also calculator, same problem most
             likely: has to do with component loading.)</li>
+            <li>Handle <code>id</code> in <code>_clone_node()</code>.</li>
           </ol>
         </section>
 
@@ -436,8 +452,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li>Signals?</li>
             <li>Watch conditionals</li>
             <li>Watch combinators</li>
-            <li>Clone a component (like <code>Object.create</code>) to modify an
-            instance of the component rather than all of them.</li>
+            <li class="done">Clone a component (like <code>Object.create</code>)
+            to modify an instance of the component rather than all of them.</li>
             <li>Better component parametrization through <code
               class="elem">use</code>, <em>e.g.</em>:
               <pre>&lt;set property="$name"/></pre>

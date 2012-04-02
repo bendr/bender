@@ -12,6 +12,13 @@ String.prototype.fmt = function()
     });
 };
 
+String.prototype.format = function(params)
+{
+  return this.replace(/{([^\}]+)}/g, function(str, p) {
+      return params[p] === undefined ? "" : params[p];
+    });
+};
+
 // Wrap a string to fit with the given width
 String.prototype.wrap = function(width)
 {

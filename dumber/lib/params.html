@@ -44,15 +44,17 @@
       var args = flexo.get_args();
       args.id = "app";
       var context = dumber.create_context(document.body);
-      context.appendChild(
-        context.$("component",
-          context.$("view",
-            context.$("use", { href: "params-bar.xml", id: "params" }),
-            context.$("html:div.app",
-            context.$("use", args))),
-          context.$("watch",
-            context.$get({ use: "$self", event: "@rendered" }, load))));
-      context.appendChild(context.$("use", { q: "component" }));
+      if (args.href) {
+        context.appendChild(
+          context.$("component",
+            context.$("view",
+              context.$("use", { href: "params-bar.xml", id: "params" }),
+              context.$("html:div.app",
+              context.$("use", args))),
+            context.$("watch",
+              context.$get({ use: "$self", event: "@rendered" }, load))));
+        context.appendChild(context.$("use", { q: "component" }));
+      }
 
     </script>
   </body>

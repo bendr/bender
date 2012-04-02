@@ -74,6 +74,40 @@
       components[uri] = component;
     };
 
+    // Create a deep clone of the given node with parameters for text/attributes
+    context._clone_node = function(prototype, params)
+    {
+      var doc = this;
+      var clone_node = function(node)
+      {
+        if (node.nodeType === 1) {
+          var n = doc.createElementNS(node.namespaceURI, node.localName);
+          for (var i = 0, m = node.attributes.length; i < m; ++i) {
+            var attr = node.attributes[i];
+            var value = attr.value.format(params);
+            if (attr.namespaceURI) {
+              if (attr.namespaceURI === flexo.XMLNS_NS &&
+                  attr.localName !== "xmlns") {
+                n.setAttribute("xmlns:{0}".fmt(attr.localName), value);
+              } else {
+                n.setAttributeNS(attr.namespaceURI, attr.localName, value);
+              }
+            } else {
+              n.setAttribute(attr.localName, value);
+            }
+          }
+          for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+            n.appendChild(clone_node(ch));
+          }
+          return n;
+        } else if (node.nodeType === 3 || node.nodeType === 4) {
+          return doc.createTextNode(node.textContent.format(params));
+        }
+      };
+      var clone = clone_node(prototype);
+      return clone;
+    },
+
     // Request for a component to be loaded. If the component was already
     // loaded, return the component node, otherwise return the normalized URL
     // requested. In that situation, a "@loaded" event will be sent when loading
@@ -251,7 +285,6 @@
 
     render_use: function(use, dest, ref)
     {
-      flexo.log("render_use", use);
       use.__placeholder = placeholder(dest, ref, use);
       if (use.__pending) {
         ++this.pending;
@@ -275,12 +308,7 @@
     {
       if (use._instance) {
         this.rendered.push(use._instance);
-        if (use._id) {
-          flexo.log("rendered_use: adding id \"{0}\" for".fmt(use._id), use);
-          this.uses[use._id] = use._instance;
-        } else {
-          flexo.log("rendered_use: adding", use);
-        }
+        if (use._id) this.uses[use._id] = use._instance;
       } else {
         dumber.warn("rendered_use: no instance for", use);
       }
