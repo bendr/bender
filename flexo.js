@@ -176,6 +176,40 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     return f_;
   };
 
+  // Dump any value to a string with an optional maximum depth parameter
+  flexo.dump = function(value, max_depth)
+  {
+    var seen = [];
+    if (max_depth === undefined) max_depth = Infinity;
+    var dump = function(value, d)
+    {
+      if (d > max_depth) return "...";
+      if (typeof value === undefined) return "undefined";
+      if (typeof value === "number" || typeof value === "boolean") return value;
+      if (typeof value === "string") return "\"{0}\"".fmt(value);
+      if (typeof value === "function") return value.toString();
+      if (typeof value === "object") {
+        if (value === null) {
+          return "null";
+        } else if (seen.indexOf(value) >= 0) {
+          return "(circular reference)";
+        } else if (Array.isArray(value)) {
+          seen.push(value);
+          return "[{0}]"
+            .fmt(value.map(function(v) { return dump(v, d + 1); }).join(", "));
+        } else {
+          seen.push(value);
+          var pairs = [];
+          for (var i in value) {
+            pairs.push("{0}: {1}".fmt(i, dump(value[i], d + 1)));
+          }
+          return "{ {0} }".fmt(pairs.join(", "));
+        }
+      }
+    };
+    return dump(value, 0);
+  };
+
   // Get args from an URL (can be overridden with a given string)
   flexo.get_args = function(defaults, argstr)
   {

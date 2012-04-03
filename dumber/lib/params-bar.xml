@@ -34,7 +34,6 @@
     };
     this._prototype.clear = function()
     {
-      flexo.log("--- clear");
       clones.forEach(function(c) { c.parentNode.removeChild(c); });
       clones = [];
       flexo.remove_children(div);
