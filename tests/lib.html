@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+
+      context.appendChild(context.$("app",
+          context.$("title", "Lib/Button test"),
+          context.$("view",
+            context.$("use#ok-button", { href: "../lib/button.xml" }, "OK"),
+            context.$("use#cancel-button", { href: "../lib/button.xml" },
+              "Cancel")),
+          context.$("watch",
+            context.$get({ event: "@pushed", use: "ok-button" },
+              function() { alert("OK"); })),
+          context.$("watch",
+            context.$get({ event: "@pushed", use: "cancel-button" },
+              function() { alert("Cancel"); }))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      setTimeout(function() {
+          context.querySelector("view").appendChild(
+            context.$("use#retry-button", { href: "../lib/button.xml#button" },
+              "Retry"));
+          context.querySelector("app").appendChild(
+            context.$("watch",
+              context.$get({ event: "@pushed", use: "retry-button" },
+                function() { alert("Retry"); })));
+        }, 1000);
+
+    </script>
+  </body>
+</html>

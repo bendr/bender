@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+
+      // TODO order of definitions
+      // TODO also use outside of view in the app
+      context.appendChild(
+        context.$("component#timer", { "f:rate": 1000 },
+          context.$("script", "timer(this._prototype);")));
+
+      context.appendChild(
+        context.$("app",
+          context.$("title", "Timer"),
+          context.$("view",
+            context.$("use", { id: "timer", ref: "timer", "f:rate": 500 }),
+            context.$("html:p", "The time is now: ",
+              context.$("html:span#time"))),
+          context.$("watch",
+            context.$("get", { use: "timer", event: "@tick" }),
+            context.$("set", { view: "time" },
+              "return new Date().toString();"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      function timer(prototype)
+      {
+        prototype.instantiated = function() { this.tick(); }
+
+        prototype.tick = function()
+        {
+          if (this.properties.rate > 0) {
+            flexo.notify(this, "@tick");
+            setTimeout(this.tick.bind(this), this.properties.rate);
+          }
+        }
+      }
+
+    </script>
+  </body>
+</html>

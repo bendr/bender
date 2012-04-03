@@ -1,0 +1,24 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Geolocation test</title>
+  <view>
+    <html:p>Latitude: <html:span id="lat"/></html:p>
+    <html:p>Longitude: <html:span id="long"/></html:p>
+    <html:p>Altitude: <html:span id="alt"/></html:p>
+  </view>
+  <use href="geolocation.xml" id="geo"/>
+  <watch>
+    <get use="geo" property="latitude"/>
+    <set view="lat"/>
+  </watch>
+  <watch>
+    <get use="geo" property="longitude"/>
+    <set view="long"/>
+  </watch>
+  <watch>
+    <get use="geo" property="altitude"/>
+    <set view="alt">
+      return value === undefined || value === null ? "N/A" : value;
+    </set>
+  </watch>
+</app>
+

@@ -1,0 +1,25 @@
+<app xmlns="http://bender.igel.co.jp">
+  <title>Buttons from lib</title>
+  <view>
+    <use href="button.xml" id="ok-button">OK</use>
+    <use href="button.xml" id="cancel-button">Cancel</use>
+  </view>
+  <watch>
+    <get use="ok-button" event="@pushed">
+      alert("OK");
+    </get>
+  </watch>
+  <watch>
+    <get use="cancel-button" event="@pushed">
+      alert("Cancel");
+    </get>
+  </watch>
+  <script>
+    this._view.appendChild(this.$("use#retry-button", { href: "button.xml" },
+      "Retry"));
+    this.appendChild(
+      this.$("watch",
+        this.$get({ use: "retry-button", event: "@pushed" },
+          function() { alert("Retry"); })));
+  </script>
+</app>

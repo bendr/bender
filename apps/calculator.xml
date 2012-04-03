@@ -1,0 +1,219 @@
+<app xmlns="http://bender.igel.co.jp"
+  xmlns:b="http://bender.igel.co.jp/b" b:clear="false"
+  xmlns:f="http://bender.igel.co.jp/f" f:m="" f:n="0" f:rotate="0"
+  xmlns:e="http://bender.igel.co.jp/e" e:op="" e:input="0"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <title>Calculator</title>
+
+  <component id="button">
+    <view>
+      <target q="head" once="true">
+        <html:style>
+          .button { font-family: Futura, sans-serif; display: inline-block;
+            cursor: default; background-color:#ddd; padding: 4px;
+            -moz-border-radius: 6px; -webkit-border-radius: 6px;
+            border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
+            text-shadow: 0px 1px 0px #fff; margin: 8px; }
+        </html:style>
+      </target>
+      <html:div class="button" id="b">
+        <content/>
+      </html:div>
+    </view>
+    <watch>
+      <get view="b" event="click">
+        if (value.button === 0) flexo.notify(this, "@pushed");
+      </get>
+    </watch>
+  </component>
+
+  <view>
+    <target q="head" once="true">
+      <html:style>
+        body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif;
+          background-color: #888; }
+        @font-face { font-family: "Digital7"; src: url("../apps/digital-7.ttf");
+          font-weight: normal;
+          font-style: normal; }
+        .calculator { width: 412px; background-color: #fd0; padding: 24px;
+          margin: 32px auto; -webkit-border-radius: 12px;
+          -moz-border-radius: 12px; border-radius: 12px;
+          box-shadow: 4px 4px 8px #444; }
+        .screen { position: relative; text-align: right; margin-bottom: 32px;
+          height: 96px; background-color: #b3cbb3; padding: 8px;
+          box-shadow: inset 1px 1px 5px #444;
+          text-shadow: 2px 2px 0px #9ebb9e;
+          -webkit-border-radius: 8px; -moz-border-radius: 8px;
+          overflow: hidden; text-overflow: ellipsis;
+        }
+        .value { font-size: 72px; font-family: Digital7, monospace; }
+        .op { position: absolute; bottom: 8px; right: 8px; font-size: 36px; }
+        .row { height: 88px; margin-top: 16px; position: relative; }
+        .row .button { padding: 14px 0 0 0; margin: 0; width: 88px;
+          height: 70px; text-align: center; font-size: 48px; position: absolute;
+          box-shadow: 1px 1px 5px #444; }
+        .row .button:nth-child(2) { left: 108px; }
+        .row .button:nth-child(3) { left: 216px; }
+        .row .button:nth-child(4) { left: 324px; }
+        .button.tall { padding-top: 118px; }
+        .button.wide { padding-right: 108px; }
+      </html:style>
+    </target>
+    <html:div class="calculator" id="calculator">
+      <html:div class="screen">
+        <html:span class="value" id="value"/>
+        <html:span class="op" id="op"/>
+      </html:div>
+    </html:div>
+  </view>
+
+  <watch>
+    <get property="input"/>
+    <set property="n">
+      return parseFloat(value);
+    </set>
+  </watch>
+
+  <watch>
+    <get property="n"/>
+    <set view="value">
+      return value.toString() +
+        (this.properties.input[this.properties.input.length - 1] === "." ?
+          "." : "");
+    </set>
+  </watch>
+
+  <watch>
+    <get use="zero" event="@pushed">return "0";</get>
+    <get use="one" event="@pushed">return "1";</get>
+    <get use="two" event="@pushed">return "2";</get>
+    <get use="three" event="@pushed">return "3";</get>
+    <get use="four" event="@pushed">return "4";</get>
+    <get use="five" event="@pushed">return "5";</get>
+    <get use="six" event="@pushed">return "6";</get>
+    <get use="seven" event="@pushed">return "7";</get>
+    <get use="eight" event="@pushed">return "8";</get>
+    <get use="nine" event="@pushed">return "9";</get>
+    <set property="input">
+      if (this.properties.clear) {
+        this.properties.clear = false;
+        this.properties.m = this.properties.n;
+        return value;
+      } else {
+        return this.properties.input + value;
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get use="period" event="@pushed"/>
+    <set property="input"><![CDATA[
+      if (this.properties.clear) {
+        this.properties.clear = false;
+        this.m = this.properties.n;
+        return "0.";
+      } else if (this.properties.input.indexOf(".") < 0) {
+        return this.properties.input + ".";
+      }
+    ]]></set>
+  </watch>
+
+  <watch>
+    <get use="add" event="@pushed"/>
+    <get use="sub" event="@pushed"/>
+    <get use="div" event="@pushed"/>
+    <get use="mult" event="@pushed"/>
+    <set property="clear">
+      if (!this.properties.clear) this.equal();
+      return true;
+    </set>
+    <set property="op">return value.source.use._id;</set>
+  </watch>
+
+  <watch>
+    <get property="op"/>
+    <set view="op">
+      return this.ops[value][0];
+    </set>
+  </watch>
+
+  <watch>
+    <get use="c" event="@pushed"/>
+    <set>
+      this.properties.clear = false;
+      this.properties.op = "";
+      this.properties.input = "0";
+      this.properties.m = NaN;
+    </set>
+  </watch>
+
+  <watch>
+    <get use="eq1" event="@pushed"/>
+    <get use="eq2" event="@pushed"/>
+    <set property="op">
+      this.equal();
+      return "";
+    </set>
+    <set property="clear">
+      return true;
+    </set>
+    <set property="m">
+      return NaN;
+    </set>
+  </watch>
+
+  <watch>
+    <get property="rotate"/>
+    <set>
+      if (!isNaN(value)) {
+        var v = this.views.calculator;
+        v.style.WebkitTransform = v.style.MozTransform = v.style.OTransform =
+          "rotate({0}deg)".fmt(value);
+      }
+    </set>
+  </watch>
+
+  <script><![CDATA[
+
+    this._prototype.ops = {
+      add: ["+", function(m, n) { return m + n; }],
+      sub: ["-", function(m, n) { return m - n; }],
+      mult: ["×", function(m, n) { return m * n; }],
+      div: ["÷", function(m, n) { return m / n; }],
+      "": ["", function(_, n) { return n; }]
+    };
+
+    this._prototype.equal = function()
+    {
+      if (!isNaN(this.properties.m)) {
+        this.properties.n = this.ops[this.properties.op][1]
+          (this.properties.m, this.properties.n);
+      }
+    };
+
+    var rows = [
+      ["C,c", "=,eq1", "÷,div", "×,mult"],
+      ["7,seven", "8,eight", "9,nine", "−,sub"],
+      ["4,four", "5,five", "6,six", "+,add"],
+      ["1,one", "2,two", "3,three", "=,eq2,tall button"],
+      ["0,zero,wide button", "", ".,period"]
+    ];
+    var body = this.querySelector(".calculator");
+    rows.forEach(function(row, r_) {
+        var r = context.$("html:div.row");
+        row.forEach(function(op, c) {
+            var fields = op.split(",");
+            if (fields[0]) {
+              r.appendChild(context.$("use", { ref: "button",
+                "class": fields[2], id: fields[1] }, fields[0]));
+            } else {
+              r.appendChild(context.$("html:span"));
+            }
+          }, this);
+        body.appendChild(r);
+      }, this);
+
+    ]]></script>
+
+</app>

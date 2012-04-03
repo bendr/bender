@@ -1,0 +1,30 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:x="0">
+  <title>Watch: chaining watches</title>
+  <view>
+    <html:p>x = z - 3 = <html:em id="x"/></html:p>
+    <html:p>y = x + 1 = <html:em id="y"/></html:p>
+    <html:p>z = y * 2 = <html:em id="z"/></html:p>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set view="x"/>
+    <set property="y">
+      return value + 1;
+    </set>
+  </watch>
+  <watch>
+    <get property="y"/>
+    <set view="y"/>
+    <set property="z">
+      return value * 2;
+    </set>
+  </watch>
+  <watch>
+    <get property="z"/>
+    <set view="z"/>
+    <set property="x">
+      return value - 3;
+    </set>
+  </watch>
+</app>

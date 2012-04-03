@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+      context.appendChild(
+        context.$("app",
+          context.$("title", "Original title"),
+          context.$("view",
+            context.$("xhtml:p", "Let's change the title from " +
+              "\"Original title\" to \"Newer title\" to \"Newest title\"."))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      var title = context.$("title", "Newer title");
+      setTimeout(function() {
+          context.querySelector("app").appendChild(title);
+        }, 1000);
+      setTimeout(function() { title._textContent("Newest title"); }, 2000);
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+      context.appendChild(context.$("app",
+          context.$("title", "Simple use"),
+          context.$("component", { id: "c" },
+            context.$("view",
+              context.$("html:p",
+                context.$("content"), "---"))),
+          context.$("view",
+            context.$("use", { ref: "c" }, "A"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      // Add "B"
+      setTimeout(function() {
+          context.querySelectorAll("view")[1]
+            .appendChild(context.$("use", { ref: "c" }, "B"));
+        }, 500);
+
+      // Add a hr to the c component
+      setTimeout(function() {
+          context.querySelector("view").appendChild(context.$("html:hr"));
+        }, 1000);
+
+      // Add "D" (then we will transform it to C)
+      setTimeout(function() {
+          context.querySelectorAll("view")[1]
+            .appendChild(context.$("use", { ref: "c" }, "D"));
+        }, 1500);
+
+      // Add a hr again to the c component
+      setTimeout(function() {
+          context.querySelector("view")
+            .appendChild(context.ownerDocument.createTextNode("= = ="));
+          context.querySelector("view").appendChild(context.$("html:hr"));
+        }, 2000);
+
+      // Change D to C
+      setTimeout(function() {
+          context.querySelectorAll("use")[2]._textContent("C");
+        }, 2500);
+
+    </script>
+  </body>
+</html>

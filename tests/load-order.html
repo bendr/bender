@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif; }
+      .box { display: inline-block; background-color: #08f; color: white;
+        padding: 4px; -moz-border-radius: 6px; -webkit-border-radius: 6px;
+        border-radius: 6px; box-shadow: 0px 1px 0px #bbb; margin: 8px; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+
+      var context = bender.create_context(document.getElementById("target"));
+
+      context.appendChild(
+        context.$("component#box",
+          context.$("view",
+            context.$("html:div.box",
+              context.$("content")))));
+      context.appendChild(context.$("app",
+          context.$("title", "Load order test"),
+          context.$("view",
+            context.$("use", { href: "#box" }, "Box 1"),
+            context.$("use", { href: "../lib/button.xml" }, "Button 2"),
+            context.$("use", { href: "#box" }, "Box 3"),
+            context.$("use", { href: "../lib/button.xml" }, "Button 4"),
+            context.$("use", { href: "../lib/button.xml" }, "Button 4.5"),
+            context.$("use", { href: "#box" }, "Box 5"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+    </script>
+  </body>
+</html>

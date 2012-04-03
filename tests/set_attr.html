@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+      .red { color: #ff4040; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+      context.appendChild(context.$("app",
+          context.$("title", "Set attribute"),
+          context.$("component", { id: "c" },
+            context.$("view",
+              context.$("html:p", context.$("content")))),
+          context.$("view",
+            context.$("use", { ref: "c" }, "A"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      // Make the content red
+      setTimeout(function() {
+          context.querySelector("p").setAttribute("class", "red");
+        }, 1000);
+
+    </script>
+  </body>
+</html>

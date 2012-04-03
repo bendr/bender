@@ -1,0 +1,25 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Load order test</title>
+  <component id="box">
+    <view>
+      <target q="head" once="true">
+        <html:style>
+          .box { display: inline-block; background-color: #08f; color: white;
+            padding: 4px; -moz-border-radius: 6px; -webkit-border-radius: 6px;
+            border-radius: 6px; box-shadow: 0px 1px 0px #bbb; margin: 8px; }
+        </html:style>
+      </target>
+      <html:div class="box">
+        <content/>
+      </html:div>
+    </view>
+  </component>
+  <view>
+    <use href="#box">Box 1</use>
+    <use href="button.xml">Button 2</use>
+    <use ref="box">Box 3</use>
+    <use href="button.xml">Button 4</use>
+    <use href="button.xml">Button 4.5</use>
+    <use ref="box">Box 5</use>
+  </view>
+</app>

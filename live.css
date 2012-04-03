@@ -1,5 +1,0 @@
-html, body { height: 100%; }
-body { margin: 0; padding: 0; }
-#editor, .CodeMirror{ height: 100%; padding: 0; border: none;
-  font-family: Menlo, Consolas, Monaco, monospace !important; font-size: 10pt; }
-.CodeMirror-scroll { height: 100% !important; background-color: #ffe; }

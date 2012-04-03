@@ -1,0 +1,55 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:f="http://bender.igel.co.jp/f" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:svg="http://www.w3.org/2000/svg" e:color="" f:sides="7" f:rotation="0"
+  f:outer-radius="42" f:inner-radius="36" b:star="false">
+
+  <title>Dumber logo</title>
+
+  <view>
+    <svg:svg viewBox="0 0 128 144">
+      <svg:g transform="translate(64, 56)" stroke-width="16"
+        stroke-linejoin="round" id="logo">
+        <svg:polygon id="poly"/>
+        <svg:g stroke="white" stroke-linecap="round" fill="none">
+          <svg:line x1="20" y1="-50" x2="20" y2="0"/>
+          <svg:circle r="20"/>
+        </svg:g>
+        <svg:text font-family="Univers, 'Helvetica Neue', Helvetica, sans-serif"
+          text-anchor="middle" font-size="32" y="76" stroke="none">
+          Dumber
+        </svg:text>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+  <watch>
+    <get property="color">
+      return value || flexo.random_element(["#ff4040", "#ff7f40", "#40ff40",
+        "#40bfff", "#102040"]);
+    </get>
+    <set view="logo" attr="fill"/>
+    <set view="logo" attr="stroke"/>
+  </watch>
+
+  <watch>
+    <get property="sides"/>
+    <get property="outer-radius"/>
+    <get property="inner-radius"/>
+    <get property="star"/>
+    <set view="poly" attr="points">
+      return this.properties.star ?
+        flexo.svg_star_points(this.properties.sides,
+          this.properties["outer-radius"], this.properties["inner-radius"]) :
+        flexo.svg_polygon_points(this.properties.sides,
+          this.properties["outer-radius"]);
+    </set>
+  </watch>
+
+  <watch>
+    <get property="rotation"/>
+    <set view="poly" attr="transform">
+      return "rotate({0})".fmt(value);
+    </set>
+  </watch>
+
+</app>

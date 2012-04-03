@@ -1,0 +1,32 @@
+<app xmlns="http://bender.igel.co.jp">
+  <title>Definition order</title>
+  <view>
+    <use ref="button" id="ok-button">OK</use>
+  </view>
+  <watch>
+    <get use="ok-button" event="@pushed">
+      alert("OK");
+    </get>
+  </watch>
+  <component xmlns:html="http://www.w3.org/1999/xhtml" id="button">
+    <view>
+      <target q="head" once="true">
+        <html:style>
+          .button { font-family: Futura, sans-serif; display: inline-block;
+            cursor: default; background-color:#ddd; padding: 4px;
+            -moz-border-radius: 6px; -webkit-border-radius: 6px;
+            border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
+            text-shadow: 0px 1px 0px #fff; margin: 8px; }
+        </html:style>
+      </target>
+      <html:div class="button" id="b">
+        <content/>
+      </html:div>
+    </view>
+    <watch>
+      <get view="b" event="click">
+        if (value.button === 0) flexo.notify(this, "@pushed");
+      </get>
+    </watch>
+  </component>
+</app>

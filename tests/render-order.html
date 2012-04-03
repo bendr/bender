@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif; }
+      .box { display: inline-block; background-color: #08f; color: white;
+        padding: 4px; -moz-border-radius: 6px; -webkit-border-radius: 6px;
+        border-radius: 6px; box-shadow: 0px 1px 0px #bbb; margin: 8px; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+      context.appendChild(
+        context.$("component#box",
+          context.$("view",
+            context.$("html:div.box",
+              context.$("content")))));
+      context.appendChild(context.$("app",
+          context.$("title", "Render order test"),
+          context.$("view",
+            context.$("html:span", "Span 1"),
+            context.$("use", { q: "component" }, "Box 2"),
+            context.$("html:span", "Span 3"),
+            context.$("use", { ref: "box" }, "Box 4"),
+            // context.$("use", { href: "#box" }, "Box 5"),
+            context.$("html:span", "Span 5"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      setTimeout(function() {
+          var u = context.querySelector("use");
+          u.parentNode.insertBefore(context.$("use", { href: "#box" },
+            "Box 2.5"), u.nextSibling);
+        }, 1000);
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml" e:value="initial value">
+  <title>Scope tests</title>
+  <view>
+    <html:p>Value: <html:input type="text" id="v"/></html:p>
+    <use ref="nested"/>
+  </view>
+  <watch>
+    <get property="value"/>
+    <set view="v" property="value"/>
+  </watch>
+  <watch>
+    <get view="v" event="change">
+      return value.target.value;
+    </get>
+    <set property="value"/>
+  </watch>
+  <component id="nested">
+    <view>
+      <html:p>(Nested) Value: <html:input type="text" id="v"/></html:p>
+    </view>
+    <watch>
+      <get property="value"/>
+      <set view="v" property="value"/>
+    </watch>
+    <watch>
+      <get view="v" event="change">
+        return value.target.value;
+      </get>
+      <set property="value"/>
+    </watch>
+  </component>
+</app>

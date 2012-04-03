@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var context = bender.create_context(document.body);
+      var use_q = context.$("use", { ref: "q" }, "You should not see this.");
+      var use_r = context.$("use", { ref: "q" }, "I should not be here.");
+      var view = context.$("view", context.$("xhtml:p", "This is a p."), use_q,
+        use_r);
+      var view_q = context.$("view",
+          context.$("xhtml:p",
+            context.$("content", "This is a q.")));
+      context.appendChild(
+        context.$("app",
+          context.$("title", "Add content test"),
+          context.$("component", { id: "q" }, view_q),
+          view));
+      var use = context.$("use", { q: "app" });
+      context.appendChild(use);
+
+      var q = context.$("use", { ref: "q" },
+        "This one is added after rendering.");
+
+      setTimeout(function() { view.appendChild(q); }, 500);
+      setTimeout(function() { use_q._textContent(""); }, 1000);
+      setTimeout(function() { use_r.parentNode.removeChild(use_r); }, 1500);
+      setTimeout(function() {
+          view_q.appendChild(context.$("xhtml:p", "(with an extra line)"));
+        }, 2000);
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Insert a Dumber component</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+      .bender { border: dashed thin black; padding: 1em; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <h1>This is a regular HTML5 document</h1>
+    <p>With a regular paragraph.</p>
+    <div id="here"></div>
+    <p>And another regular paragraph.</p>
+    <script>
+      var context = bender.create_context();
+      context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p.bender", "But this is a Dumber component!"))));
+      context._insert_use({ q: "component" }, document.getElementById("here"));
+    </script>
+  </body>
+</html>

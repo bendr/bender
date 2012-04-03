@@ -1,0 +1,111 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:f="http://bender.igel.co.jp/f" b:on="true" f:rate-ms="333">
+  <title>SVG Clock</title>
+
+  <view>
+    <!--
+    <use id="clock" href="../lib/timer.xml"/>
+    -->
+    <use id="clock" ref="timer"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-220 -220 440 440">
+      <circle r="200" fill="#a1dcff"/>
+      <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
+        stroke-opacity="0.75"/>
+      <line y1="20" y2="-180" stroke="#26521f" stroke-width="4"
+        stroke-linecap="round" id="minutes" stroke-opacity="0.8"/>
+      <line y1="8" y2="-90" stroke="#d1372f" stroke-width="8"
+        stroke-linecap="round" id="hours" stroke-opacity="0.9"/>
+    </svg>
+  </view>
+
+  <script><![CDATA[
+    var seconds = this.ownerDocument.getElementById("seconds");
+    for (var i = 1; i < 60; ++i) {
+      var c = this.$("svg:circle", { r: i * 3, "stroke-width": 2, fill: "none",
+        stroke: "white" });
+      seconds.parentNode.insertBefore(c, seconds);
+    }
+  ]]></script>
+
+  <watch>
+    <get use="$self" property="rate-ms"/>
+    <set use="clock" property="rate-ms"/>
+  </watch>
+
+  <watch>
+    <get use="$self" property="on"/>
+    <set use="clock" property="on"/>
+  </watch>
+
+  <watch>
+    <get use="clock" event="@tick">
+      return new Date();
+    </get>
+    <set view="hours" attr="transform">
+      return "rotate({0})".fmt(value.getHours() * 30 + value.getMinutes() / 2);
+    </set>
+    <set view="minutes" attr="transform">
+      return "rotate({0})".fmt(value.getMinutes() * 6);
+    </set>
+    <set view="seconds" attr="r">
+      return 3 * value.getSeconds();
+    </set>
+  </watch>
+
+
+  <component b:on="false" f:rate-ms="1000" id="timer">
+    <script>
+
+      var timeout = null;
+
+      // The timer has a running read-only property
+      this._prototype.instantiated = function()
+      {
+        flexo.getter_setter(this, "running", function() { return !!timeout; });
+      };
+
+      // Start the timer; it will emit a @tick event at the interval given by
+      // rate-ms (in ms.) Restart if it was running.
+      this._prototype.start = function()
+      {
+        if (timeout) clearTimeout(timeout);
+        var self = this;
+        var tick = function() {
+          flexo.notify(self, "@tick");
+          timeout = setTimeout(tick, self.properties["rate-ms"]);
+        };
+        tick();
+      };
+
+      // Stop the timer. Noop if it was not running.
+      this._prototype.stop = function()
+      {
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+      };
+
+    </script>
+
+    <watch>
+      <get property="rate-ms">
+        var v = parseFloat(value);
+        if (v > 0) {
+          this.stop();
+          this.start();
+        } else {
+          this.properties["rate-ms"] = previous_value;
+        }
+      </get>
+    </watch>
+
+    <watch>
+      <get property="on">
+        if (!!value) this.start(); else this.stop();
+      </get>
+    </watch>
+
+  </component>
+
+</app>

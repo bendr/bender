@@ -1,0 +1,75 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <view>
+    <target q="head" once="true">
+      <html:style>
+        .params-bar { background-color: black; color: white; padding: 4px; }
+        .params-bar input { border: none; background-color: #ffd; }
+        .params-bar input[type=number] { width: 4em; }
+        .params-bar label { margin: 0 4px; }
+        .params-bar a { display: inline-block; text-align: right;
+          color: #ff4040; text-decoration: none; float: right; margin: 4px; }
+      </html:style>
+    </target>
+    <html:div class="params-bar">
+      ⚐
+      <html:span/>
+      <html:a href="../index.html">Home</html:a>
+    </html:div>
+  </view>
+  <script>
+    var div = this.querySelector("span");
+    var clones = [];
+    this._prototype.add_param = function(type, name, value)
+    {
+      var c = this.component.ownerDocument._clone_node(type === "b" ?
+          this.component._components.template_b :
+          this.component._components.template, { name: name,
+            type: type === "e" ? "text" : "number" });
+      c.setAttribute("id", name);
+      this.component.appendChild(c);
+      clones.push(c);
+      div.appendChild(div.$("use", { ref: name }));
+      this.properties[name] = value;
+    };
+    this._prototype.clear = function()
+    {
+      clones.forEach(function(c) { c.parentNode.removeChild(c); });
+      clones = [];
+      flexo.remove_children(div);
+    };
+  </script>
+
+  <component id="template">
+    <view>
+      <html:label>{name}: <html:input id="input" type="{type}"/></html:label>
+    </view>
+    <watch>
+      <get view="input" event="change">
+        return this.views.input.value;
+      </get>
+      <set use="$parent" property="{name}"/>
+    </watch>
+    <watch>
+      <get use="$parent" property="{name}"/>
+      <set view="input" property="value"/>
+    </watch>
+  </component>
+
+  <component id="template_b">
+    <view>
+      <html:label><html:input id="input" type="checkbox"/> {name}</html:label>
+    </view>
+    <watch>
+      <get view="input" event="change">
+        return this.views.input.checked;
+      </get>
+      <set use="$parent" property="{name}"/>
+    </watch>
+    <watch>
+      <get use="$parent" property="{name}"/>
+      <set view="input" property="checked"/>
+    </watch>
+  </component>
+
+</component>

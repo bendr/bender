@@ -1,9 +1,0 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Stylesheet test (relative URL)</title>
-  <stylesheet href="test.css"/>
-  <view>
-    <html:p>Welcome to <html:a href="/">Bender</html:a>!</html:p>
-    <html:p><html:span class="TODO">TODO: check that this stylesheet was loaded
-        correctly!</html:span></html:p>
-  </view>
-</app>

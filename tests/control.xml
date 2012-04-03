@@ -1,0 +1,54 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  f:size="20">
+
+  <title>Control</title>
+
+  <view>
+    <target q="head">
+      <html:style>
+        input { font-size: 16px; border: none; width: 48px;
+          background-color: #ffd;
+          font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+      </html:style>
+    </target>
+    <use ref="param"/>
+    <html:div id="svg">
+      <use ref="box"/>
+    </html:div>
+  </view>
+
+  <component id="param">
+    <view>
+      <html:p>
+        Size: <html:input type="number" id="s"/>
+      </html:p>
+    </view>
+    <watch>
+      <get property="size"/>
+      <set view="s" property="value"/>
+    </watch>
+    <watch>
+      <get view="s" event="change">
+        return value.target.value;
+      </get>
+      <set property="size"/>
+    </watch>
+  </component>
+
+  <component id="box">
+    <view>
+      <svg:svg>
+        <svg:rect id="box"/>
+      </svg:svg>
+    </view>
+    <watch>
+      <get property="size"/>
+      <set view="box" attr="width"/>
+      <set view="box" attr="height"/>
+    </watch>
+  </component>
+
+</app>

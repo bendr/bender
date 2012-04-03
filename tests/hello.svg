@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>⚐ Dumber/SVG</title>
+  <script xlink:href="../flexo.js"/>
+  <script xlink:href="../bender.js"/>
+  <script>
+    var context = bender.create_context(document.documentElement);
+    context.appendChild(
+      context.$("component",
+        context.$("view",
+          context.$("svg:text", { x: 100, y: 100 }, "Hello, World!"))));
+    context.appendChild(context.$("use", { q: "component" }));
+  </script>
+</svg>
+

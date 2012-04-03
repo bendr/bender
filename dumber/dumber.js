@@ -380,6 +380,8 @@
       this.watch = watch;
       this.component_instance = component_instance;
       this.component = this.component_instance.component;
+      this.enabled = this.watch.parentNode &&
+        this.watch.parentNode._is_component;
       this.ungets = [];
       return this;
     },
@@ -420,7 +422,7 @@
           var that = this;
           if (get._event) {
             var listener = function(e) {
-              if (!active) {
+              if (that.enabled && !active) {
                 active = true;
                 that.got((get._action || flexo.id).call(that.component_instance,
                     e));
@@ -463,7 +465,7 @@
             } else {
               var h = function(p, prev)
               {
-                if (!active) {
+                if (that.enabled && !active) {
                   active = true;
                   that.got((get._action || flexo.id)
                       .call(that.component_instance, p, prev));

@@ -1,0 +1,15 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  f:latitude="" f:longitude="" f:altitude="">
+  <title>Geolocation component</title>
+  <watch>
+    <get use="$self" event="@rendered">
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((function(pos) {
+            this.properties.latitude = pos.coords.latitude;
+            this.properties.longitude = pos.coords.longitude;
+            this.properties.altitude = pos.coords.altitude;
+          }).bind(this));
+      }
+    </get>
+  </watch>
+</component>

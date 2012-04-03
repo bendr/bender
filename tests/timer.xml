@@ -1,61 +1,10 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
-  xmlns:html="http://www.w3.org/1999/xhtml">
-
-  <title>Timer test (script/watch)</title>
-
-  <component id="timer" f:rate-ms="1000">
-    <title>Timer</title>
-    <script>
-
-      var timeout = null;
-
-      // The timer has a running read-only property
-      prototype.init = function()
-      {
-        flexo.getter_setter(this, "running", function() { return !!timeout; });
-      };
-
-      // Start the timer; it will emit a @tick event at the interval given by
-      // rate-ms (in ms.) Restart if it was running.
-      prototype.start = function()
-      {
-        if (timeout) clearTimeout(timeout);
-        var self = this;
-        var tick = function() {
-          flexo.notify(self, "@tick");
-          timeout = setTimeout(tick, self.$rateMs);
-        };
-        timeout = setTimeout(tick, self.$rateMs);
-      };
-
-    </script>
-
-    <watch>
-      <get property="rate-ms">
-        var v = parseFloat(value);
-        if (v > 0) return v;
-      </get>
-    </watch>
-
-  </component>
-
-  <use id="timer-component" href="#timer" f:rate-ms="250"/>
-
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b">
   <view>
-    <html:p>The time is now: <html:strong id="time"/></html:p>
+    <use id="timer" href="timer.xml" b:on="true"/>
   </view>
-
   <watch>
-    <get event="@ready">
-      this.uses.timerComponent.start();
+    <get use="timer" event="@tick">
+      flexo.log("TOCK");
     </get>
   </watch>
-
-  <watch>
-    <get use="timer-component" event="@tick"/>
-    <set view="time">
-      return (new Date).toString();
-    </set>
-  </watch>
-
 </app>

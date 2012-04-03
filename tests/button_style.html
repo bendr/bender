@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Futura, "Helvetica Neue", Helvetica, sans-serif; }
+      .button { display: inline-block; cursor: default; background-color:#ddd;
+        padding: 4px; -moz-border-radius: 6px; -webkit-border-radius: 6px;
+        border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
+        text-shadow: 0px 1px 0px #fff; margin: 8px; }
+      .ok { font-weight: bold; }
+      .disabled { opacity: 0.5; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+
+      var context = bender.create_context(document.getElementById("target"));
+
+      context.appendChild(context.$("app",
+          context.$("title", "Button test"),
+          context.$("component#button",
+            context.$("view",
+              context.$("html:div#b.button",
+                context.$("content"))),
+            context.$("watch",
+              context.$("get", { event: "click", view: "b" },
+              "if (value.button === 0) flexo.notify(this, '@pushed');"))),
+          context.$("view",
+            context.$("use#ok-button.button.ok", { ref: "button", tabindex: 0 },
+              "OK"),
+            context.$("use#cancel-button", { ref: "button" }, "Cancel")),
+          context.$("watch",
+            context.$("get", { event: "@pushed", use: "ok-button" },
+              "alert('OK')")),
+          context.$("watch",
+            context.$("get", { event: "@pushed", use: "cancel-button" },
+              "alert('Cancel')"))));
+      context.appendChild(context.$("use", { q: "app" }));
+
+      context.querySelectorAll("view")[1].appendChild(
+        context.$("use#retry-button", { ref: "button" }, "Retry"));
+      context.querySelector("app").appendChild(
+        context.$("watch",
+          context.$("get", { event: "@pushed", use: "retry-button" },
+              "alert('Retry')")));
+
+      context.querySelectorAll("use")[1]
+        .setAttribute("class", "button disabled");
+
+    </script>
+  </body>
+</html>

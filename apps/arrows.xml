@@ -1,0 +1,121 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:e="http://bender.igel.co.jp/e" xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  f:width="16" f:height="12" f:size="20" e:color="">
+
+  <title>Arrows</title>
+
+  <view>
+    <target q="head">
+      <html:style>
+        body { margin: 0; padding: 0; background-color: black; }
+      </html:style>
+    </target>
+    <svg:svg id="root">
+      <svg:defs>
+        <svg:g svg:id="arrow">
+          <svg:line x1="2" y1="10" x2="14" y2="10" stroke-linecap="round"/>
+          <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" stroke="none"/>
+        </svg:g>
+      </svg:defs>
+      <svg:g id="arrows"/>
+    </svg:svg>
+  </view>
+
+  <watch>
+    <get use="$self" property="width"/>
+    <get use="$self" property="height"/>
+    <get use="$self" property="size"/>
+    <set view="root" attr="viewBox">
+      return "0 0 {0} {1}".fmt(this.property("width") * this.property("size"),
+        this.property("height") * this.property("size"));
+    </set>
+    <set use="$self" property="r">
+      var r = Math.max(this.properties.width * this.properties.size,
+        this.properties.height * this.properties.size);
+      return r * r;
+    </set>
+    <set><![CDATA[
+      var v = this.component.querySelector("#arrows");
+      flexo.remove_children(v);
+      for (var x = 0; x < this.property("width"); ++x) {
+        for (var y = 0; y < this.property("height"); ++y) {
+          v.appendChild(v.$("use", { ref: "arrow",
+            "f:x": x * this.property("size"),
+            "f:y": y * this.property("size") }));
+        }
+      }
+    ]]></set>
+  </watch>
+
+  <watch>
+    <get view="$document" event="mousemove"/>
+    <get view="$document" event="touchstart"/>
+    <get view="$document" event="touchmove"/>
+    <set use="$self" property="focus">
+      return flexo.event_svg_point(value, this.views.root);
+    </set>
+  </watch>
+
+  <!-- A single arrow positioned with x and y parameters and reacting to focus
+       events (position of the mouse pointer or touch event) -->
+  <component id="arrow">
+    <view>
+      <svg:use id="u" xlink:href="#arrow"/>
+    </view>
+    <watch>
+      <get use="$self" property="x"/>
+      <set use="$self" property="cx">
+        return value + this.property("size") / 2;
+      </set>
+      <set view="u" attr="x"/>
+    </watch>
+    <watch>
+      <get use="$self" property="y"/>
+      <set use="$self" property="cy">
+        return value + this.property("size") / 2;
+      </set>
+      <set view="u" attr="y"/>
+    </watch>
+    <watch>
+      <get property="color"/>
+      <set view="u" attr="fill"/>
+      <set view="u" attr="stroke"/>
+    </watch>
+    <watch>
+      <get use="$parent" property="focus">
+        var sz = this.property("size") / 2;
+        if (!value) {
+          value = this.uses.$parent.views.root.createSVGPoint();
+          value.x = Math.random() * this.property("width") * 2 * sz;
+          value.y = Math.random() * this.property("height") * 2 * sz;
+        }
+        var dx = value.x - this.properties.x - sz;
+        var dy = value.y - this.properties.y - sz;
+        var a = flexo.remap(Math.atan2(dy, dx), -Math.PI, Math.PI, -180, 180);
+        var r = { transform: "rotate({0}, {1}, {2})"
+          .fmt(a, this.properties.cx, this.properties.cy) };
+        if (!this.property("color")) {
+          var d = 1 - (dx * dx + dy * dy) / this.property("r");
+          r.color = "hsl({0}, {1}%, {2}%)"
+            .fmt((Math.floor(180 - a) + 360) % 360, Math.floor(100 * d),
+              Math.floor(50 * d));
+        } else {
+          r.color = this.property("color");
+        }
+        return r;
+      </get>
+      <set view="u" attr="transform">
+        if (value) return value.transform;
+      </set>
+      <set view="u" attr="fill">
+        if (value) return value.color;
+      </set>
+      <set view="u" attr="stroke">
+        if (value) return value.color;
+      </set>
+    </watch>
+  </component>
+
+</app>

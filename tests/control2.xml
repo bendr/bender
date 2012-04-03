@@ -1,0 +1,54 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  f:number="4">
+
+  <title>Control (number)</title>
+
+  <view>
+    <target q="head">
+      <html:style>
+        input { font-size: 16px; border: none; width: 48px;
+          background-color: #ffd;
+          font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+        .box { display: inline-block; width: 80px; height: 80px; margin: 8px;
+          background-color: #08f; }
+      </html:style>
+    </target>
+    <use ref="param"/>
+    <use ref="boxes"/>
+  </view>
+
+  <component id="param">
+    <view>
+      <html:p>
+        Number of boxes: <html:input type="number" id="n"/>
+      </html:p>
+    </view>
+    <watch>
+      <get property="number"/>
+      <set view="n" property="value"/>
+    </watch>
+    <watch>
+      <get view="n" event="change">
+        return value.target.value;
+      </get>
+      <set property="number"/>
+    </watch>
+  </component>
+
+  <component id="boxes">
+    <view/>
+    <watch>
+      <get property="number"/>
+      <set><![CDATA[
+        var v = this.component.querySelector("view");
+        flexo.remove_children(v);
+        for (var i = 0; i < value; ++i) {
+          v.appendChild(v.$("html:div.box"));
+        }
+      ]]></set>
+    </watch>
+  </component>
+
+</app>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime w/ params</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+        padding: 0; margin: 0; }
+      .app { padding: 4px 8px; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var watches = [];
+
+      var load = function()
+      {
+        this.uses.params.clear();
+        watches.forEach(function(w) { flexo.safe_remove(w); });
+        watches = [];
+        var component = context.querySelector("component");
+        [].forEach.call(this.uses.app.component.attributes, function(attr) {
+            var type = attr.namespaceURI === bender.NS_E ? "e" :
+              attr.namespaceURI === bender.NS_F ? "f" :
+              attr.namespaceURI === bender.NS_B ? "b" : "";
+            if (type) {
+              var name = attr.localName;
+              this.uses.params.add_param(type, name,
+                this.uses.app.properties[name]);
+              watches.push(component.appendChild(component.$("watch",
+                component.$("get", { use: "params", property: name }),
+                component.$("set", { use: "app", property: name }))));
+              watches.push(component.appendChild(component.$("watch",
+                component.$("get", { use: "app", property: name }),
+                component.$("set", { use: "params", property: name }))));
+            }
+          }, this);
+      };
+
+      var args = flexo.get_args();
+      args.id = "app";
+      var context = bender.create_context(document.body);
+      if (args.href) {
+        context.appendChild(
+          context.$("component",
+            context.$("view",
+              context.$("use", { href: "params-bar.xml", id: "params" }),
+              context.$("html:div.app",
+              context.$("use", args))),
+            context.$("watch",
+              context.$get({ use: "$self", event: "@rendered" }, load))));
+        context.appendChild(context.$("use", { q: "component" }));
+      }
+
+    </script>
+  </body>
+</html>

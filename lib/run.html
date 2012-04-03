@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Dumber runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+      var context = bender.create_context(document.body);
+      flexo.listen(context.ownerDocument, "@error", function(e) {
+          alert("Error loading " + e.url);
+        });
+      var args = flexo.get_args();
+      if (args.href) context.appendChild(context.$("use", args));
+    </script>
+  </body>
+</html>
