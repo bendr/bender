@@ -321,7 +321,12 @@
           instance.render_watch_instance();
           this.rendered.push(instance);
         }, this);
-      for (var p in this.watched) this.properties[p] = this.properties[p];
+      flexo.log("Init watched properties for", this.use);
+      for (var p in this.watched) {
+        flexo.log("  ... {0} = {1}".fmt(p, this.properties[p]));
+        this.properties[p] = this.properties[p];
+      }
+      // for (var p in this.watched) this.properties[p] = this.properties[p];
       flexo.notify(this, "@rendered");
     },
 

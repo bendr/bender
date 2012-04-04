@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp"
-  xmlns:html="http://www.w3.org/1999/xhtml" id="button">
+  xmlns:html="http://www.w3.org/1999/xhtml">
   <view>
     <target q="head" once="true">
       <html:style>
@@ -15,18 +15,15 @@
     </html:div>
   </view>
   <watch>
-    <get view="b" event="mouseclick">
+    <get view="b" event="mousedown">
+      if (value.button === 0) value.preventDefault();
+    </get>
+    <get view="b" event="click">
       if (value.button === 0) {
         value.preventDefault();
-        flexo.add_class(this.views.b, "__down");
-        return true;
+        flexo.log("??? prevent default");
+        flexo.notify(this, "@pushed");
       }
     </get>
-    <watch>
-      <get view="$document" event="mouseup" once="true">
-        value.preventDefault();
-        flexo.rempve_class(this.views.b, "__down");
-      </get>
-    </watch>
   </watch>
 </component>

@@ -428,8 +428,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <h3>Bugs</h3>
           <ol>
             <li class="done">Watch activation (at get level?) and loops</li>
-            <li>Watch nesting</li>
-            <li>Calculator: <code>m</code> never set properly</li>
+            <li><span class="done">Watch nesting</span>: see watch combinators
+            in TODO list.</li>
+            <li class="done">Calculator: <code>m</code> never set properly</li>
             <li class="done">Waves/arrows rendering loop</li>
             <li>Instantiate watches even if sub-components need loading (<a
               href="lib/run.html?href=../tests/scope-remove.xml">test</a>)</li>
@@ -442,7 +443,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
               href="lib/params.html?href=../apps/clock.xml">clock with
               parameters</a> fails (also calculator, same problem most
             likely: has to do with component loading.)</li>
-            <li>Handle <code>id</code> in <code>_clone_node()</code>.</li>
+            <li>Rendering vs. updating components (<a
+              href="lib/run.html?href=../tests/refresh-property.xml">test
+              case</a>)</li>
           </ol>
         </section>
 
@@ -470,6 +473,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             for the params bar.) Additionally a <code
               class="elem">metadata</code> element could be introduced to group
             metatadata in components.</li>
+            <li>Attributes of the <code class="elem">content</code> node are
+              passed to the rendered nodes (like <code class="elem">use</code>.)
+              See <a href="lib/run.html?href=../tests/svg-button.xml">SVG Button
+                test case</a>.</li>
+            <li>Easier component sub-classing, including through markup.</li>
           </ul>
         </section>
 
@@ -604,6 +612,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           test</a> (XML)</li>
           <li><a href="lib/run.html?href=../tests/geolocation.xml">Geolocation
             component test</a></li>
+          <li><a class="broken" href="lib/run.html?href=../tests/svg-button.xml">SVG
+            Button</a> with button template.</li>
+          <li><a class="broken"
+            href="lib/run.html?href=../tests/refresh-property.xml">Refresh
+            application after properties have changed</a></li>
         </ol>
       </section>
 

@@ -52,6 +52,10 @@
               context.$("html:div.app",
               context.$("use", args))),
             context.$("watch",
+              context.$get({ use: "params", event: "@refresh" }, function() {
+                  this.uses.app.component._refresh();
+                })),
+            context.$("watch",
               context.$get({ use: "$self", event: "@rendered" }, load))));
         context.appendChild(context.$("use", { q: "component" }));
       }

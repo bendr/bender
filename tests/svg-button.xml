@@ -1,0 +1,13 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
+  <title>SVG buttons from template</title>
+  <view>
+    <use href="button-template.xml" id="ok-button">
+      <svg:rect width="100" height="40"/>
+    </use>
+  </view>
+  <watch>
+    <get use="ok-button" event="@pushed">
+      alert("OK");
+    </get>
+  </watch>
+</app>

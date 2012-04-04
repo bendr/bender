@@ -1,0 +1,17 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <view>
+    <content id="b"/>
+  </view>
+  <watch>
+    <get view="b" event="mousedown">
+      if (value.button === 0) value.preventDefault();
+    </get>
+    <get view="b" event="click">
+      if (value.button === 0) {
+        value.preventDefault();
+        flexo.notify(this, "@pushed");
+      }
+    </get>
+  </watch>
+</component>

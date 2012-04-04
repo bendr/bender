@@ -8,17 +8,18 @@
         .params-bar input[type=number] { width: 4em; }
         .params-bar label { margin: 0 4px; }
         .params-bar a { display: inline-block; text-align: right;
-          color: #ff4040; text-decoration: none; float: right; margin: 4px; }
+          color: #f08; text-decoration: none; float: right; margin: 4px; }
+        .flag { color: #f08; cursor: pointer; }
       </html:style>
     </target>
     <html:div class="params-bar">
-      ⚐
-      <html:span/>
+      <html:span id="flag" class="flag">⚐</html:span>
+      <html:span class="contents"/>
       <html:a href="../index.html">Home</html:a>
     </html:div>
   </view>
   <script>
-    var div = this.querySelector("span");
+    var div = this.querySelector("span.contents");
     var clones = [];
     this._prototype.add_param = function(type, name, value)
     {
@@ -39,6 +40,12 @@
       flexo.remove_children(div);
     };
   </script>
+
+  <watch>
+    <get view="flag" event="click">
+      flexo.notify(this, "@refresh");
+    </get>
+  </watch>
 
   <component id="template">
     <view>
