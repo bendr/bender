@@ -317,13 +317,18 @@
     render_watches: function()
     {
       flexo.log("!!! render watches for", this.use);
-      this.__pending_watches = false;
-      this.rendered.forEach(function(i) {
-          if (i.pending > 0) {
-            this.__pending_watches = true;
-            flexo.log("      {0} pending for".fmt(i.pending), i.use);
-          }
-        }, this);
+      var pending = function(instance) {
+        if (!instance.rendered) return false;
+        var p = false;
+        for (var i = 0, n = instance.rendered.length; i < n; ++i) {
+          if (instance.rendered[i].pending > 0) return true;
+        }
+        for (var i = 0, n = instance.rendered.length; i < n; ++i) {
+          if (pending(instance.rendered[i])) return true;
+        }
+        return false;
+      }
+      this.__pending_watches = pending(this);
       if (this.__pending_watches) {
         flexo.log("      skipped");
         return;
