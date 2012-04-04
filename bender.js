@@ -316,6 +316,19 @@
 
     render_watches: function()
     {
+      flexo.log("!!! render watches for", this.use);
+      this.__pending_watches = false;
+      this.rendered.forEach(function(i) {
+          if (i.pending > 0) {
+            this.__pending_watches = true;
+            flexo.log("      {0} pending for".fmt(i.pending), i.use);
+          }
+        }, this);
+      if (this.__pending_watches) {
+        flexo.log("      skipped");
+        return;
+      }
+      delete this.__pending_watches;
       var instances = [];
       this.component._watches.forEach(function(watch) {
           var instance = Object.create(watch_instance).init(watch, this);
@@ -324,8 +337,11 @@
           instances.push(instance);
         }, this);
       instances.forEach(function(instance) { instance.pull_gets(); });
-      // for (var p in this.watched) this.properties[p] = this.properties[p];
       flexo.notify(this, "@rendered");
+      if (this.uses.$parent && this.uses.$parent.__pending_watches) {
+        flexo.log("^^^ parent has pending watches!");
+        this.uses.$parent.render_watches();
+      }
     },
 
     unrender: function()
