@@ -205,7 +205,7 @@
         row.forEach(function(op, c) {
             var fields = op.split(",");
             if (fields[0]) {
-              r.appendChild(context.$("use", { ref: "button",
+              r.appendChild(context.$("use", { href: "../lib/button.xml",
                 "class": fields[2], id: fields[1] }, fields[0]));
             } else {
               r.appendChild(context.$("html:span"));

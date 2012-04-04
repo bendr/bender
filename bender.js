@@ -316,16 +316,14 @@
 
     render_watches: function()
     {
+      var instances = [];
       this.component._watches.forEach(function(watch) {
           var instance = Object.create(watch_instance).init(watch, this);
           instance.render_watch_instance();
           this.rendered.push(instance);
+          instances.push(instance);
         }, this);
-      flexo.log("Init watched properties for", this.use);
-      for (var p in this.watched) {
-        flexo.log("  ... {0} = {1}".fmt(p, this.properties[p]));
-        this.properties[p] = this.properties[p];
-      }
+      instances.forEach(function(instance) { instance.pull_gets(); });
       // for (var p in this.watched) this.properties[p] = this.properties[p];
       flexo.notify(this, "@rendered");
     },
@@ -422,6 +420,7 @@
 
     render_watch_instance: function()
     {
+      this.gets = [];
       this.watch._gets.forEach(function(get) {
           var active = false;
           var that = this;
@@ -479,12 +478,18 @@
               };
               h._watch = this;
               target.watch_property(get._property, h);
+              this.gets.push(function() { h(target.property(get._property)); });
               this.ungets.push(function() {
                   target.unwatch_property(get._property, h);
                 });
             }
           }
         }, this);
+    },
+
+    pull_gets: function()
+    {
+      this.gets.forEach(function(get) { get(); });
     },
 
     unrender: function()

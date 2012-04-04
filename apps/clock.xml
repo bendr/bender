@@ -3,10 +3,7 @@
   <title>SVG Clock</title>
 
   <view>
-    <!--
     <use id="clock" href="../lib/timer.xml"/>
-    -->
-    <use id="clock" ref="timer"/>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="-220 -220 440 440">
       <circle r="200" fill="#a1dcff"/>
       <circle stroke="#f9cc28" stroke-width="4" fill="none" id="seconds"
