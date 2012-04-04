@@ -3,7 +3,7 @@
   xmlns:svg="http://www.w3.org/2000/svg" e:color="" f:sides="7" f:rotation="0"
   f:outer-radius="42" f:inner-radius="36" b:star="false">
 
-  <title>Dumber logo</title>
+  <title>Bender logo</title>
 
   <view>
     <svg:svg viewBox="0 0 128 144">
@@ -11,12 +11,12 @@
         stroke-linejoin="round" id="logo">
         <svg:polygon id="poly"/>
         <svg:g stroke="white" stroke-linecap="round" fill="none">
-          <svg:line x1="20" y1="-50" x2="20" y2="0"/>
+          <svg:line x1="-20" y1="-50" x2="-20" y2="0"/>
           <svg:circle r="20"/>
         </svg:g>
         <svg:text font-family="Univers, 'Helvetica Neue', Helvetica, sans-serif"
           text-anchor="middle" font-size="32" y="76" stroke="none">
-          Dumber
+          Bender
         </svg:text>
       </svg:g>
     </svg:svg>
