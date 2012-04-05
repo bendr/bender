@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
-  xmlns:svg="http://www.w3.org/2000/svg" f:x="0" f:y="0">
+  xmlns:svg="http://www.w3.org/2000/svg" f:x="0" f:y="0"
+  f:min-x="-Infinity" f:max-x="Infinity" f:min-y="-Infinity" f:max-y="Infinity">
   <title>Draggable component</title>
   <view>
     <svg:g id="g">
@@ -22,8 +23,10 @@
     <get view="$document" event="mousemove">
       if (this._svg) {
         var p = flexo.event_svg_point(value, this._svg);
-        this.properties.x = p.x;
-        this.properties.y = p.y;
+        this.properties.x = flexo.clamp(p.x,
+          this.properties["min-x"], this.properties["max-x"]);
+        this.properties.y = flexo.clamp(p.y,
+          this.properties["min-y"], this.properties["max-y"]);
       }
     </get>
     <get view="$document" event="mouseup">

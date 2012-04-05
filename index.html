@@ -193,10 +193,12 @@
           Bender applications, other frameworks may be used freely. <span
           class="TODO">Provide some examples.</span> In order to run Bender
           applications locally, you only need the two aforementioned Javascript
-          files; however, by cloning the development repository, you will also
-          find the many test files and library components. Because external XML
-          files are loaded through XMLHttpRequest, you will probably want to
-          run Bender through a Web server to bypass security issues.</p>
+          files; however, by cloning the <a
+          href="https://github.com/bendr/bender">development repository</a>, you
+          will also find the many test files and library components. Because
+          external XML files are loaded through XMLHttpRequest, you will
+          probably want to run Bender through a Web server to bypass security
+          issues.</p>
           <p>Bender content may be rendered in the target document as a complete
           application, or individual components may be inserted in the document.
           The Bender content may be read from XML description files or created
@@ -604,6 +606,10 @@ context.appendChild(context.$("use", { href: ... }));</pre>
 
         <section id="todo.components">
           <h3>Components</h3>
+          <ul>
+            <li>Params bar should have an "about" button displaying the content
+            of the <code class="elem">desc</code> of the running app.</li>
+          </ul>
         </section>
 
         <section id="todo.misc">
@@ -627,6 +633,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             Clock</a></li>
           <li><a href="lib/params.html?href=../apps/arrows.xml">SVG
             Arrows</a></li>
+          <li><a
+            href="lib/params.html?href=../apps/ttfd.xml">Transition Timing
+            Function Designer</a> <span class="TODO">add test function</span></li>
           <li><a class="broken"
             href="lib/params.html?href=../apps/calculator.xml">Calculator</a></li>
         </ol>
@@ -641,7 +650,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           (<em>e.g.</em>, <a href="lib/run.html?href=../tests/hello.xml">Hello,
             world</a>)</li>
           <li><a href="lib/params.html">Runtime with parameters bar</a>: create
-          controls to modify the top-level parameters of the application.</li>
+          controls to modify the top-level parameters of the application. Use
+          the <code class="attr">href</code> attribute as well (see applications
+          above for examples.)</li>
           <li><a href="lib/timer.xml">Timer component</a>: send a
           <code>@tick</code> event at <code>rate-ms</code>.</li>
           <li><span class="TODO"><a href="lib/button.xml">Button
