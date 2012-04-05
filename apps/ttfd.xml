@@ -1,9 +1,9 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
   xmlns:f="http://bender.igel.co.jp/f"
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  f:x1=".25" f:y1=".1" f:x2=".25" f:y2="1">
+  f:x1=".25" f:y1=".1" f:x2=".25" f:y2="1" b:clamp-y="true">
   <title>Transition Timing Function Designer</title>
   <view>
     <target q="head">
@@ -41,12 +41,10 @@
         <svg:path stroke="#08f" fill="none" id="path"/>
         <svg:use xlink:href="#point" y="100"/>
         <svg:use xlink:href="#point" x="100"/>
-        <use href="drag.xml" id="p1" f:min-x="0" f:min-y="0" f:max-x="100"
-          f:max-y="100">
+        <use href="drag.xml" id="p1">
           <svg:use xlink:href="#point" fill="#ff4040"/>
         </use>
-        <use href="drag.xml" id="p2" f:min-x="0" f:min-y="0" f:max-x="100"
-          f:max-y="100">
+        <use href="drag.xml" id="p2">
           <svg:use xlink:href="#point" fill="#ff4040"/>
         </use>
       </svg:g>
@@ -159,6 +157,18 @@
     <set use="$self" property="y1">return Math.random();</set>
     <set use="$self" property="x2">return Math.random();</set>
     <set use="$self" property="y2">return Math.random();</set>
+  </watch>
+
+  <watch>
+    <get use="$self" property="clamp-y"/>
+    <set use="p1" property="min-y">return value ? 0 : -Infinity;</set>
+    <set use="p1" property="max-y">return value ? 100 : Infinity;</set>
+    <set use="p2" property="min-y">return value ? 0 : -Infinity;</set>
+    <set use="p2" property="max-y">return value ? 100 : Infinity;</set>
+    <!--
+    <set use="p1" property="y">return this.uses.p1.properties.y</set>
+    <set use="p2" property="y">return this.uses.p2.properties.y</set>
+    -->
   </watch>
 
 </app>
