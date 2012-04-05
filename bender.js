@@ -316,8 +316,8 @@
 
     render_watches: function()
     {
-      flexo.log("!!! render watches for", this.use);
       var pending = function(instance) {
+        // TODO fix this
         if (!instance.rendered) return false;
         var p = false;
         for (var i = 0, n = instance.rendered.length; i < n; ++i) {
@@ -329,10 +329,7 @@
         return false;
       }
       this.__pending_watches = pending(this);
-      if (this.__pending_watches) {
-        flexo.log("      skipped");
-        return;
-      }
+      if (this.__pending_watches) return;
       delete this.__pending_watches;
       var instances = [];
       this.component._watches.forEach(function(watch) {
@@ -344,7 +341,6 @@
       instances.forEach(function(instance) { instance.pull_gets(); });
       flexo.notify(this, "@rendered");
       if (this.uses.$parent && this.uses.$parent.__pending_watches) {
-        flexo.log("^^^ parent has pending watches!");
         this.uses.$parent.render_watches();
       }
     },

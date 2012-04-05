@@ -1,0 +1,34 @@
+<component xmlns="http://bender.igel.co.jp" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:svg="http://www.w3.org/2000/svg" f:x="0" f:y="0">
+  <title>Draggable component</title>
+  <view>
+    <svg:g id="g">
+      <content/>
+    </svg:g>
+  </view>
+  <watch>
+    <get use="$self" property="x"/>
+    <get use="$self" property="y"/>
+    <set view="g" attr="transform">
+      return "translate({0}, {1})".fmt(this.properties.x, this.properties.y);
+    </set>
+  </watch>
+  <watch>
+    <get view="g" event="mousedown">
+      value.preventDefault();
+      this._svg = flexo.find_svg(value.target);
+      document.body.style.cursor = "none";
+    </get>
+    <get view="$document" event="mousemove">
+      if (this._svg) {
+        var p = flexo.event_svg_point(value, this._svg);
+        this.properties.x = p.x;
+        this.properties.y = p.y;
+      }
+    </get>
+    <get view="$document" event="mouseup">
+      delete this._svg;
+      document.body.style.cursor = "default";
+    </get>
+  </watch>
+</component>

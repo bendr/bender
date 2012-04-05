@@ -1,0 +1,30 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:svg="http://www.w3.org/2000/svg"
+  f:x0="100" f:y0="500" f:x1="250" f:y1="200" f:x2="450" f:y2="200"
+  f:x3="600" f:y3="500" e:viewBox="0 0 600 600">
+  <title>Bézier curve</title>
+  <view>
+    <svg:svg id="svg">
+      <use href="../lib/bezier.xml" id="b"/>
+    </svg:svg>
+  </view>
+
+  <watch>
+    <get use="$self" property="viewBox"/>
+    <set view="svg" attr="viewBox"/>
+  </watch>
+
+  <script>
+    [0, 1, 2, 3].forEach(function(i) {
+        ["x", "y"].forEach(function(x) {
+            this.appendChild(this.$("watch",
+              this.$("get", { use: "$self", property: x + i }),
+              this.$("set", { use: "b", property: x + i })));
+            this.appendChild(this.$("watch",
+              this.$("get", { use: "b", property: x + i }),
+              this.$("set", { use: "$self", property: x + i })));
+          }, this);
+      }, this);
+  </script>
+</app>

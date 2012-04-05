@@ -26,6 +26,9 @@
   <watch>
     <get use="$self" property="cols"/>
     <get use="$self" property="rows"/>
+    <get use="$self" property="columnOffset"/>
+    <get use="$self" property="rowOffset"/>
+    <get use="$self" property="rotationIncrement"/>
     <set><![CDATA[
 
       var QUARTER_PI = Math.PI / 4;
