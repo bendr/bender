@@ -317,7 +317,9 @@
     render_watches: function()
     {
       var pending = function(instance) {
-        // TODO fix this
+        // TODO improve this
+        // The point is that we should not render watches before any of the
+        // instances down the tree are done rendering themselves
         if (!instance.rendered) return false;
         var p = false;
         for (var i = 0, n = instance.rendered.length; i < n; ++i) {

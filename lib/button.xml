@@ -10,7 +10,7 @@
           text-shadow: 0px 1px 0px #fff; margin: 8px; }
       </html:style>
     </target>
-    <html:div class="button" id="b">
+    <html:div class="button" id="b" aria-role="button">
       <content/>
     </html:div>
   </view>
@@ -21,7 +21,6 @@
     <get view="b" event="click">
       if (value.button === 0) {
         value.preventDefault();
-        flexo.log("??? prevent default");
         flexo.notify(this, "@pushed");
       }
     </get>

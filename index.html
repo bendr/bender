@@ -9,7 +9,7 @@
         width: 960px; margin: auto; font-size: 16px;
         background-color: #fef9f0; }
       header { border-top: solid 2px #ff7f40; }
-      #manual { border-top: solid 2px #40ff40; }
+      #manual, #todo { border-top: solid 2px #40ff40; }
       #demos, #library, #tests { border-top: solid 2px #40bfff; }
       footer { clear: both; padding: 40px 0; font-size: 12px;
         text-align: center; border-bottom: solid 2px #ff7f40; }
@@ -29,9 +29,11 @@
       .TODO { background-color: #ddd; }
       .sample { margin-left: 2em; }
       .broken, .done { text-decoration: line-through; }
-      svg { width: 128px; height: 144px; margin-top: 8px; }
+      svg { width: 128px; height: 144px; margin: 8px 0; }
+      #welcome { border: dashed thin #102040; padding: 8px; margin: 0 20px; }
     </style>
     <script src="flexo.js"></script>
+    <script src="bender.js"></script>
   </head>
   <body>
 
@@ -79,7 +81,6 @@
       file</a>.) The purpose of Bender is to make authoring Web applications
       easier by means of better and higher-level abstractions, and providing a
       foundation for even more powerful authoring tools.</p>
-
       <p>The source code repository is <a
       href="https://github.com/bendr/bender">hosted on Github</a>.</p>
 
@@ -90,21 +91,128 @@
       <section id="manual">
         <h2>Manual</h2>
 
+        <section id="manual.concepts">
+          <h3>Bender in a nutshell</h3>
+
+          <p>Bender is a declarative framework for web applications: the overall
+          <em>structure</em> of the application and its constituent parts is
+          meant to be made as explicit as possible, so that complex or tedious
+          code may be automatically generated from high-level descriptions, and
+          powerful tools may be used to help author and debug applications. With
+          Bender we are also exploring how, by describing an application
+          through a DOM tree just like any XML document, we can make it more
+          dynamic by responding to changes in the tree in real-time, allowing to
+          add and remove components at will from a running application.</p>
+
+          <p>The core of Bender is the <em>component</em>, an extensible and
+          reusable unit of functionality. Components are built from other
+          components and communicate with each other through <em>properties</em>
+          and <em>events</em>. At their lowest level, components make use of
+          modern Web technologies such as HTML5, SVG, Javascript, CSS, &amp;c.
+          to provide custom capabilities and visual rendering.</p>
+          <p>Bender applications have a tree structure which can be easily
+          expressed using XML. See for instance the following application:</p>
+          <pre class="sample" id="welcome-src">&lt;app xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  &lt;title>Welcome to Bender!&lt;/title>
+  &lt;view>
+    &lt;html:p>Welcome to Bender!&lt;/html:p>
+    &lt;html:p>
+      &lt;use id="thanks-button" href="lib/button.xml">Thanks&lt;/use>
+    &lt;/html:p>
+  &lt;/view>
+  &lt;watch>
+    &lt;get use="thanks-button" event="@pushed">
+      alert("You're welcome!");
+    &lt;/get>
+  &lt;/watch>
+&lt;/app></pre>
+          <p>Before describing it in more details, let's see it run below:</p>
+          <div class="bender" id="welcome"></div>
+          <p>Let's see the meaning of each element:</p>
+          <ul>
+            <li><code class="elem">app</code> stands for <em>application</em>
+            and is container for a Bender application.
+            <ul>
+              <li><code class="elem">title</code> is a metadata element.</li>
+              <li><code class="elem">view</code> describes how the application
+              should be rendered. We use HTML to render this application.
+              <ul>
+                <li><code class="elem">html:p</code> is an HTML paragraph
+                element.  Nothing out of the ordinary here.</li>
+                <li><code class="elem">use</code>, however, is a Bender element
+                that allows the inclusion of a Bender component; in this case, a
+                button component pulled from the URL given in the <code
+                class="attr">href</code> parameter. Note how HTML and Bender
+                contents are interleaved; the <code>use</code> itself contains
+                additional HTML content (the "<code>Thanks</code>" text
+                node.)</li>
+              </ul>
+              </li>
+              <li><code class="elem">watch</code> lets us monitor events and
+              property changes in Bender components and react to them.
+              <ul>
+                <li><code class="elem">get</code> describes what is monitored.
+                Here, the <code class="attr">use</code> attribute points to the
+                button with id <code>thanks-button</code>. The <code
+                class="attr">event</code> attribute specifies that we are
+                interested in the <code>@pushed</code> event from the button.
+                Note that this show only one possible use of the
+                <code>watch</code> element. Finally, the content of this node is
+                Javascript code that gets executed when the <code>get</code>
+                element is <em>activated</em>; in this case, when the event is
+                received from the button.</li>
+              </ul>
+              </li>
+            </ul>
+            </li>
+          </ul>
+          <p>To recap: we have a Bender application titled <em>Welcome to
+          Bender!</em> that includes some HTML text and a Bender button reading
+          <em>Thanks</em>, which, when pushed, causes an alert box to appear
+          with the message.</p>
+          <p>
+        </section>
+
         <section id="manual.start">
           <h3>Getting started</h3>
-          <p>Using Bender just requires including the <a
-          href="../flexo.js"><code>flexo.js</code></a> (the support library for
-          Bender) and <a href="bender.js"><code>bender.js</code></a> Javascript
-          files in the host document (<em>e.g.</em>, in <code>script</code>
-          tags.) See for example the test documents in the sidebar. Note that it
-          makes <code>flexo.js</code> the <em>de facto</em> utility library for
-          Bender applications; but other frameworks may be used freely. <span
-          class="TODO">TODO: check with D3, Prototype, or Bootstrap, for
-          example.</span></p>
-          <p>Bender content may then be rendered in the running document as a
-          complete application, or individual components may be inserted in the
-          document. The Bender content may be read from XML description files or
-          created on the fly through scripting.</p>
+          <p>Running a Bender application requires:</p>
+          <ul>
+            <li>a <em>host application</em>, most commonly a Web browser,
+            capable of reading and displaying DOM trees and running Javascript
+            code;</li>
+            <li>a <em>target document</em>, open in the host application, where
+            the Bender content will be displayed;</li>
+            <li>the runtime engine is contained in the file <code><a
+            href="bender.js">bender.js</a></code>, which in turn relies on the
+            <code><a href="flexo.js">flexo.js</a></code> support library.</li>
+          </ul>
+          <p>The sidebar showcases some applications and simpler tests that can
+          be run immediately in your browser. Note that while
+          <code>flexo.js</code> is the <em>de facto</em> utility library for
+          Bender applications, other frameworks may be used freely. <span
+          class="TODO">Provide some examples.</span> In order to run Bender
+          applications locally, you only need the two aforementioned Javascript
+          files; however, by cloning the development repository, you will also
+          find the many test files and library components. Because external XML
+          files are loaded through XMLHttpRequest, you will probably want to
+          run Bender through a Web server to bypass security issues.</p>
+          <p>Bender content may be rendered in the target document as a complete
+          application, or individual components may be inserted in the document.
+          The Bender content may be read from XML description files or created
+          on the fly through scripting. A Bender application may even contain
+          another Bender application; for instance, the <a
+          href="lib/params.html?href=../apps/logo.xml">Bender logo example</a>
+          is an application that is run through another Bender application that
+          creates inputs to modify and monitor the parameters of the running
+          application. You can then change different values that control the
+          aspect of the logo. Another example is the <a
+          href="lib/params.html?href=../apps/calculator.xml">calculator</a>
+          application, where the inner workings of the calculator are
+          automatically exposed and can help in tracking down bugs (there is one
+          identified bug at the moment, can you find it?)</p>
+          <p>The rest of this manual describes the concepts and elements of
+          Bender.</p>
         </section>
 
         <section id="manual.context">
@@ -427,26 +535,33 @@ context.appendChild(context.$("use", { href: ... }));</pre>
         <section id="todo.bugs">
           <h3>Bugs</h3>
           <ol>
-            <li class="done">Watch activation (at get level?) and loops</li>
-            <li><span class="done">Watch nesting</span>: see watch combinators
-            in TODO list.</li>
-            <li class="done">Calculator: <code>m</code> never set properly</li>
-            <li class="done">Waves/arrows rendering loop</li>
-            <li>Instantiate watches even if sub-components need loading (<a
+            <li id="bug.1" class="done">Watch activation (at get level?) and
+            loops</li>
+            <li id="bug.2"><span class="done">Watch nesting</span>: see watch
+            combinators in TODO list.</li>
+            <li id="bug.3" class="done">Calculator: <code>m</code> never set
+            properly</li>
+            <li id="bug.4" class="done">Waves/arrows rendering loop</li>
+            <li id="bug.5" class="done">Instantiate watches even if
+            sub-components need loading (<a
               href="lib/run.html?href=../tests/scope-remove.xml">test</a>)</li>
-            <li>Initialization of parameters; see for instance different values
-            for <a href="lib/run.html?href=../tests/watch-loop.xml">the loop
-              test</a> and <a
-              href="lib/params.html?href=../tests/watch-loop.xml">the same with
-              parameters</a>.</li>
-            <li>Rendering of the <a
+            <li id="bug.6">Initialization of parameters; see for instance
+            different values for <a
+              href="lib/run.html?href=../tests/watch-loop.xml">the loop test</a>
+            and <a href="lib/params.html?href=../tests/watch-loop.xml">the same
+              with parameters</a>.</li>
+            <li id="bug.7" class="done">Rendering of the <a
               href="lib/params.html?href=../apps/clock.xml">clock with
               parameters</a> fails (also calculator, same problem most
             likely: has to do with component loading.)</li>
-            <li>Rendering vs. updating components (<a
+            <li id="bug.8">Rendering vs. updating components (<a
               href="lib/run.html?href=../tests/refresh-property.xml">test
               case</a>)</li>
-            <li>View ids as content inside use elements?</li>
+            <li id="bug.9">View <code class="attr">id</code>s as <code
+              class="elem">content</code> inside <code class="elem">use</code>
+            elements?</li>
+            <li id="bug.10">Some placeholder nodes are not deleted.</li>
+            <li id="bug.11">Calculator: 1+2+3+= is 9, should be 6.</li>
           </ol>
         </section>
 
@@ -463,6 +578,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li>Add a <code class="attr">href</code> attribute to <code
               class="elem">get</code> elements to listen to URLs. Fetched at
             initialization, then respond to server events.</li>
+            <li>Add a <code class="attr">name</code> attribute to <code
+              class="elem">content</code> elements for several named content
+            slots.</li>
             <li>Signals?</li>
             <li>Watch conditionals</li>
             <li>Watch combinators</li>
@@ -477,7 +595,7 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li>Attributes of the <code class="elem">content</code> node are
               passed to the rendered nodes (like <code class="elem">use</code>.)
               See <a href="lib/run.html?href=../tests/svg-button.xml">SVG Button
-                test case</a>.</li>
+                test case</a> (related: <a href="#bug.9"/>bug #9</a>)</li>
             <li>Easier component sub-classing, including through markup.</li>
             <li><code class="elem">template</code>/<code
               class="elem">derive</code> elements to replace _clone_node</li>
@@ -506,11 +624,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
         <ol>
           <li><a href="lib/params.html?href=../apps/logo.xml">Logo</a></li>
           <li><a href="lib/params.html?href=../apps/clock.xml">SVG
-            Clock</a> <span class="TODO">fix timer loading</span></li>
+            Clock</a></li>
           <li><a href="lib/params.html?href=../apps/arrows.xml">SVG
             Arrows</a></li>
-          <li><a href="lib/params.html?href=../apps/calculator.xml">Calculator</a>
-            <span class="TODO">fix button loading</span></li>
+          <li><a class="broken"
+            href="lib/params.html?href=../apps/calculator.xml">Calculator</a></li>
         </ol>
       </section>
 
@@ -620,6 +738,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <li><a class="broken"
             href="lib/run.html?href=../tests/refresh-property.xml">Refresh
             application after properties have changed</a></li>
+          <li><a class="broken" href="lib/run.html?href=../tests/drag.xml">Drag
+            component</a> (bug #9: id inside use)</li>
+          <li><a
+            href="lib/params.html?href=../tests/bezier.xml">Bézier
+            curve</a></li>
         </ol>
       </section>
 
@@ -629,6 +752,12 @@ context.appendChild(context.$("use", { href: ... }));</pre>
 
     <footer id="copyright">Copyright © 2011, 2012,
       <a href="http://www.igel.co.jp/">IGEL Co., Ltd.</a></footer>
+
+    <script>
+      var context = bender.create_context();
+      context._insert_use({ href: "tests/welcome.xml" },
+        document.getElementById("welcome"));
+    </script>
 
   </body>
 </html>
