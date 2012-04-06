@@ -14,7 +14,7 @@ String.prototype.fmt = function()
 
 String.prototype.format = function(params)
 {
-  return this.replace(/{([^\}]+)}/g, function(str, p) {
+  return this.replace(/{(\w+)}/g, function(str, p) {
       return params[p] === undefined ? "" : params[p];
     });
 };

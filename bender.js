@@ -1,9 +1,10 @@
 (function(bender)
 {
   bender.NS = "http://bender.igel.co.jp";      // Bender namespace
+  bender.NS_B = "http://bender.igel.co.jp/b";  // Boolean properties namespace
   bender.NS_E = "http://bender.igel.co.jp/e";  // Properties namespace
   bender.NS_F = "http://bender.igel.co.jp/f";  // Float properties namespace
-  bender.NS_B = "http://bender.igel.co.jp/b";  // Boolean properties namespace
+  bender.NS_J = "http://bender.igel.co.jp/j";  // JSON properties namespace
 
   //bender.die = true;
   bender.warn = function()
@@ -272,9 +273,10 @@
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
             if (!(this.use._attributes.hasOwnProperty(attr.localName) ||
+                attr.namespaceURI === bender.NS_B ||
                 attr.namespaceURI === bender.NS_E ||
                 attr.namespaceURI === bender.NS_F ||
-                attr.namespaceURI === bender.NS_B)) {
+                attr.namespaceURI === bender.NS_J)) {
               d.setAttribute(attr.name, attr.value);
             }
           }, this);
@@ -619,6 +621,23 @@
         }
       },
 
+      _parse_property: function(ns, name, value)
+      {
+        if (ns === bender.NS_B) {
+          this._properties[name] = value.trim().toLowerCase() === "true";
+        } else if (ns === bender.NS_E) {
+          this._properties[name] = value;
+        } else if (ns === bender.NS_F) {
+          this._properties[name] = parseFloat(value);
+        } else if (ns === bender.NS_J) {
+          try {
+            this._properties[name] = JSON.parse(value);
+          } catch (_) {
+            this._properties[name] = null;
+          }
+        }
+      },
+
       _refresh: function()
       {
         // if (!parent) parent = this.parentNode;
@@ -721,13 +740,7 @@
       // TODO support xml:id?
       setAttributeNS: function(ns, name, value)
       {
-        if (ns === bender.NS_E) {
-          this._properties[name] = value;
-        } else if (ns === bender.NS_F) {
-          this._properties[name] = parseFloat(value);
-        } else if (ns === bender.NS_B) {
-          this._properties[name] = value.trim().toLowerCase() === "true";
-        }
+        this._parse_property(ns, name, value);
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
@@ -896,13 +909,7 @@
 
       setAttributeNS: function(ns, name, value)
       {
-        if (ns === bender.NS_E) {
-          this._properties[name] = value;
-        } else if (ns === bender.NS_F) {
-          this._properties[name] = parseFloat(value);
-        } else if (ns === bender.NS_B) {
-          this._properties[name] = value.trim().toLowerCase() === "true";
-        }
+        this._parse_property(ns, name, value);
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 

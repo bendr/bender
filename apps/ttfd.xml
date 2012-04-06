@@ -12,16 +12,6 @@
       </html:style>
     </target>
     <html:p>
-      Presets:
-      <use href="button.xml" id="button-ease">ease</use>
-      <use href="button.xml" id="button-linear">linear</use>
-      <use href="button.xml" id="button-ease-in">ease-in</use>
-      <use href="button.xml" id="button-ease-out">ease-out</use>
-      <use href="button.xml" id="button-ease-in-out">ease-in-out</use>
-      or:
-      <use href="button.xml" id="button-random">random</use>
-    </html:p>
-    <html:p>
       <html:code>transition-timing-function: cubic-bezier(<html:span id="xx1"/>,
         <html:span id="yy1"/>, <html:span id="xx2"/>, <html:span
           id="yy2"/>)</html:code>
@@ -41,14 +31,24 @@
         <svg:path stroke="#08f" fill="none" id="path"/>
         <svg:use xlink:href="#point" y="100"/>
         <svg:use xlink:href="#point" x="100"/>
-        <use href="drag.xml" id="p1">
+        <use href="drag.xml" id="p1" f:min-x="0" f:max-x="100">
           <svg:use xlink:href="#point" fill="#ff4040"/>
         </use>
-        <use href="drag.xml" id="p2">
+        <use href="drag.xml" id="p2" f:min-x="0" f:max-x="100">
           <svg:use xlink:href="#point" fill="#ff4040"/>
         </use>
       </svg:g>
     </svg:svg>
+    <html:p>
+      Presets:
+      <use href="button.xml" id="button-ease">ease</use>
+      <use href="button.xml" id="button-linear">linear</use>
+      <use href="button.xml" id="button-ease-in">ease-in</use>
+      <use href="button.xml" id="button-ease-out">ease-out</use>
+      <use href="button.xml" id="button-ease-in-out">ease-in-out</use>
+      or:
+      <use href="button.xml" id="button-random">random</use>
+    </html:p>
   </view>
 
   <watch>

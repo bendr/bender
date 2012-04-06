@@ -24,9 +24,10 @@
         watches = [];
         var component = context.querySelector("component");
         [].forEach.call(this.uses.app.component.attributes, function(attr) {
-            var type = attr.namespaceURI === bender.NS_E ? "e" :
+            var type = attr.namespaceURI === bender.NS_B ? "b" :
+              attr.namespaceURI === bender.NS_E ? "e" :
               attr.namespaceURI === bender.NS_F ? "f" :
-              attr.namespaceURI === bender.NS_B ? "b" : "";
+              attr.namespaceURI === bender.NS_J ? "j" : "";
             if (type) {
               var name = attr.localName;
               this.uses.params.add_param(type, name,

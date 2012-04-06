@@ -50,6 +50,22 @@
     </get>
   </watch>
 
+  <component id="b">
+    <view>
+      <html:label><html:input id="input" type="checkbox"/> {name}</html:label>
+    </view>
+    <watch>
+      <get view="input" event="change">
+        return this.views.input.checked;
+      </get>
+      <set use="$parent" property="{name}"/>
+    </watch>
+    <watch>
+      <get use="$parent" property="{name}"/>
+      <set view="input" property="checked"/>
+    </watch>
+  </component>
+
   <component id="e">
     <view>
       <html:label>{name}: <html:input id="input" type="text"/></html:label>
@@ -82,19 +98,24 @@
     </watch>
   </component>
 
-  <component id="b">
+  <component id="j">
     <view>
-      <html:label><html:input id="input" type="checkbox"/> {name}</html:label>
+      <html:label>{name}: <html:input id="input" type="text"/></html:label>
     </view>
     <watch>
       <get view="input" event="change">
-        return this.views.input.checked;
+        try {
+          return JSON.parse(this.views.input.value);
+        } catch (_) {
+        }
       </get>
       <set use="$parent" property="{name}"/>
     </watch>
     <watch>
-      <get use="$parent" property="{name}"/>
-      <set view="input" property="checked"/>
+      <get use="$parent" property="{name}">
+        return JSON.stringify(value);
+      </get>
+      <set view="input" property="value"/>
     </watch>
   </component>
 
