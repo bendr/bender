@@ -1,4 +1,5 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Welcome to Bender!</title>
   <view>
     <html:p>Welcome to Bender!</html:p>
@@ -11,4 +12,4 @@
       alert("You're welcome!");
     </get>
   </watch>
-</app>
+</component>

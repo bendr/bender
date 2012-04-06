@@ -1,7 +1,7 @@
 <DOCTYPE html>
 <html lang="en">
   <head>
-    <title>⚐ Bender</title>
+    <title>⚐ Bender: a declarative framework for Web applications</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
     <style>
@@ -74,7 +74,7 @@
         </script>
       </svg>
 
-      <p><strong>Bender</strong> is a declarative framework for web applications
+      <p><strong>Bender</strong> is a declarative framework for Web applications
       and reusable components. It is free software and is released under the
       Apache License v2.0 (see included <a
       href="https://github.com/bendr/bender/blob/master/LICENSE">LICENSE
@@ -82,7 +82,9 @@
       easier by means of better and higher-level abstractions, and providing a
       foundation for even more powerful authoring tools.</p>
       <p>The source code repository is <a
-      href="https://github.com/bendr/bender">hosted on Github</a>.</p>
+      href="https://github.com/bendr/bender">hosted on Github</a>. Please
+      contact <a href="mailto:bender@igel.co.jp">bender@igel.co.jp</a> for any
+      question regarding Bender.</p>
 
     </header>
 
@@ -91,27 +93,34 @@
       <section id="manual">
         <h2>Manual</h2>
 
+        <p>This manual is a work in progress and not yet complete. Please have a
+        look at the test files and the source code for more detail. The demos in
+        the side bar will show some applications written in Bender.</p>
+
         <section id="manual.concepts">
           <h3>Bender in a nutshell</h3>
 
-          <p>Bender is a declarative framework for web applications: the overall
+          <p>Bender is a declarative framework for Web applications: the overall
           <em>structure</em> of the application and its constituent parts is
-          meant to be made as explicit as possible, so that complex or tedious
-          code may be automatically generated from high-level descriptions, and
-          powerful tools may be used to help author and debug applications. With
-          Bender we are also exploring how, by describing an application
-          through a DOM tree just like any XML document, we can make it more
-          dynamic by responding to changes in the tree in real-time, allowing to
-          add and remove components at will from a running application.</p>
+          meant to be made as explicit as possible.  This should improve
+          application component reusability; relieve the need to generate a lot
+          of complex or tedious code; and allow for new tools to help develop
+          and debug applications.  With Bender we are also exploring how, by
+          describing an application through a DOM tree just like any XML
+          document, we can make it more dynamic by responding to changes in the
+          tree in real-time, allowing to add and remove components at will from
+          a running application.</p>
 
           <p>The core of Bender is the <em>component</em>, an extensible and
-          reusable unit of functionality. Components are built from other
+          reusable unit of functionality.  Components are built from other
           components and communicate with each other through <em>properties</em>
-          and <em>events</em>. At their lowest level, components make use of
+          and <em>events</em>.  At their lowest level, components make use of
           modern Web technologies such as HTML5, SVG, Javascript, CSS, &amp;c.
           to provide custom capabilities and visual rendering.</p>
+
           <p>Bender applications have a tree structure which can be easily
           expressed using XML. See for instance the following application:</p>
+
           <pre class="sample" id="welcome-src">&lt;app xmlns="http://bender.igel.co.jp"
   xmlns:html="http://www.w3.org/1999/xhtml">
   &lt;title>Welcome to Bender!&lt;/title>
@@ -127,83 +136,81 @@
     &lt;/get>
   &lt;/watch>
 &lt;/app></pre>
+
           <p>Before describing it in more details, let's see it run below:</p>
           <div class="bender" id="welcome"></div>
+
           <p>Let's see the meaning of each element:</p>
           <ul>
             <li><code class="elem">app</code> stands for <em>application</em>
-            and is container for a Bender application.
+            and is a container for a Bender application.
             <ul>
               <li><code class="elem">title</code> is a metadata element.</li>
               <li><code class="elem">view</code> describes how the application
               should be rendered. We use HTML to render this application.
               <ul>
-                <li><code class="elem">html:p</code> is an HTML paragraph
-                element.  Nothing out of the ordinary here.</li>
+                <li><code class="elem">html:p</code> is a regular HTML paragraph
+                element.</li>
                 <li><code class="elem">use</code>, however, is a Bender element
-                that allows the inclusion of a Bender component; in this case, a
-                button component pulled from the URL given in the <code
+                including another Bender component. In this case, it is a button
+                component pulled from the URL given by the <code
                 class="attr">href</code> parameter. Note how HTML and Bender
-                contents are interleaved; the <code>use</code> itself contains
-                additional HTML content (the "<code>Thanks</code>" text
+                contents are interleaved; the <code>use</code> element itself
+                contains additional HTML content (the "<code>Thanks</code>" text
                 node.)</li>
-              </ul>
-              </li>
-              <li><code class="elem">watch</code> lets us monitor events and
-              property changes in Bender components and react to them.
+              </ul></li>
+              <li><code class="elem">watch</code> monitors events and property
+              changes in Bender components.
               <ul>
-                <li><code class="elem">get</code> describes what is monitored.
-                Here, the <code class="attr">use</code> attribute points to the
-                button with id <code>thanks-button</code>. The <code
-                class="attr">event</code> attribute specifies that we are
-                interested in the <code>@pushed</code> event from the button.
-                Note that this show only one possible use of the
-                <code>watch</code> element. Finally, the content of this node is
-                Javascript code that gets executed when the <code>get</code>
-                element is <em>activated</em>; in this case, when the event is
-                received from the button.</li>
-              </ul>
-              </li>
+                <li><code class="elem">get</code> describes what is being
+                monitored. Here, the <code class="attr">use</code> and <code
+                class="attr">event</code> attributes point to
+                <code>@pushed</code> event generated by the button component
+                with id <code>thanks-button</code>.  The content of this node is
+                Javascript code that gets executed when the event is received
+                from the button. This example is a simple event listener, but
+                watches have a lot of other capabilities.</li>
+              </ul></li>
             </ul>
             </li>
           </ul>
-          <p>To recap: we have a Bender application titled <em>Welcome to
-          Bender!</em> that includes some HTML text and a Bender button reading
-          <em>Thanks</em>, which, when pushed, causes an alert box to appear
-          with the message.</p>
-          <p>
         </section>
 
-        <section id="manual.start">
-          <h3>Getting started</h3>
+        <section id="manual.running">
+          <h3>Running a Bender application</h3>
           <p>Running a Bender application requires:</p>
           <ul>
             <li>a <em>host application</em>, most commonly a Web browser,
             capable of reading and displaying DOM trees and running Javascript
             code;</li>
             <li>a <em>target document</em>, open in the host application, where
-            the Bender content will be displayed;</li>
-            <li>the runtime engine is contained in the file <code><a
-            href="bender.js">bender.js</a></code>, which in turn relies on the
-            <code><a href="flexo.js">flexo.js</a></code> support library.</li>
+            the Bender content will be rendered;</li>
+            <li>the runtime engine, implemented in Javascript, which is
+            contained in the file <code><a
+            href="https://github.com/bendr/bender/blob/master/bender.js">bender.js</a></code>,
+            and relies on the <code><a
+            href="https://github.com/bendr/bender/blob/master/flexo.js">flexo.js</a></code>
+            support library (there are no other dependencies.)</li>
           </ul>
-          <p>The sidebar showcases some applications and simpler tests that can
-          be run immediately in your browser. Note that while
+
+          <p>The sidebar showcases some demo applications and simpler tests that
+          can be run immediately in your browser. Note that while
           <code>flexo.js</code> is the <em>de facto</em> utility library for
-          Bender applications, other frameworks may be used freely. <span
-          class="TODO">Provide some examples.</span> In order to run Bender
+          Bender applications, other frameworks may be used freely <span
+          class="TODO">(provide some examples.)</span> In order to run Bender
           applications locally, you only need the two aforementioned Javascript
-          files; however, by cloning the <a
+          files. However, by cloning the <a
           href="https://github.com/bendr/bender">development repository</a>, you
-          will also find the many test files and library components. Because
+          will also find many test files and library components. Because
           external XML files are loaded through XMLHttpRequest, you will
           probably want to run Bender through a Web server to bypass security
           issues.</p>
-          <p>Bender content may be rendered in the target document as a complete
+
+          <p>Bender content may be rendered in a target document as a complete
           application, or individual components may be inserted in the document.
           The Bender content may be read from XML description files or created
           on the fly through scripting. A Bender application may even contain
-          another Bender application; for instance, the <a
+          another Bender application. For instance, the <a
           href="lib/params.html?href=../apps/logo.xml">Bender logo example</a>
           is an application that is run through another Bender application that
           creates inputs to modify and monitor the parameters of the running
@@ -213,36 +220,43 @@
           application, where the inner workings of the calculator are
           automatically exposed and can help in tracking down bugs (there is one
           identified bug at the moment, can you find it?)</p>
-          <p>The rest of this manual describes the concepts and elements of
-          Bender.</p>
         </section>
 
         <section id="manual.context">
           <h3>The context</h3>
-          <p>The <em>context</em> is the document hosting Bender elements. The
-          root of the document is a <code>context</code> element, which should
-          only be used as the root a Bender tree. <code
-          class="def">bender.create_context(target)</code> creates a new context
-          with a rendering target specified by <code class="param">target</code>
-          (or the current document by default.) If the target is a DOM
-          <code>Element</code> (<em>e.g.</em> the body of an HTML document, or a
-          <code>g</code> element in an SVG document), rendered nodes will be
-          appended to the given target. In other cases (<em>e.g.</em>, when the
-          target is a <code>Document</code> node, which is the default),
-          individual components may be rendered by specifying a target node. The
-          <code class="param">context</code> root element is returned (not the
-          context document itself, which can be accessed through the DOM
-          <code>ownerDocument</code> property of any node in the document.)</p>
+          <p>The <em>context</em> is the document hosting Bender elements (it is
+          a DOM Document node.) The root of the document is a
+          <code class="elem">bender</code> element, which is a special node that
+          is only used as the root a Bender context tree. A <code>bender</code>
+          element then has two children: a <code class="elem">context</code>
+          element and a <code class="elem">use</code> element. The
+          <code>context</code> is a special kind of Bender component (see below)
+          hosting all the current Bender content, while the <code>use</code>
+          element is necessary for rendering.</p>
+
+          <p><code class="def">bender.create_context(target)</code> creates a
+          new context with a rendering target specified by
+          <code class="param">target</code> (the target document by default.)
+          If the target is a DOM <code>Element</code> (<em>e.g.</em> the
+          <code>body</code> of an HTML document, or a <code>g</code> element in
+          an SVG document), rendered nodes will be appended to the given target.
+          In other cases (<em>e.g.</em>, when the target is a
+          <code>Document</code> node, which is the default), individual
+          components may be rendered by specifying a target node. The
+          <code>context</code> element is returned, <strong>not</strong> the
+          context document that was created (which can be accessed through the
+          DOM <code>ownerDocument</code> property of any node in the
+          document.)</p>
         </section>
 
         <section id="manual.elements">
           <h3>Bender elements</h3>
-          <p>Elements in the Bender tree overload common DOM methods so that
-          changes can be tracked and reflected after rendering was done. Bender
-          elements, <em>i.e.</em>, all elements created through the Bender
-          context (including foreign elements), have a convenience method
-          <code class="def">$(name, attributes, ...)</code> to create new
-          nodes.</p>
+          <p>Elements in the Bender tree, whatever their namespace
+          (<em>i.e.</em>, Bender elements, HTML elements, SVG elements, &amp;c.)
+          overload common DOM methods so that changes in the tree are reflected
+          in the running application. A convenience method <code
+          class="def">$(name, attributes, ...)</code> is defined on all elements
+          to create new nodes through scripting.</p>
           <ul>
             <li>The <code class="param">name</code> parameter is the name of the
             element to be created and may be qualified by a known namespace
@@ -255,7 +269,7 @@
             <code>div</code> element with id <code>body</code> and class
             <code>calculator</code>, while <code>use</code> describes a Bender
             <code>use</code> element.</li>
-            <li>The <code class="param">attributes</code> parameters is an
+            <li>The <code class="param">attributes</code> parameter is an
             object in which keys are attribute names and values attribute values
             to be set for the new element. For example,
             <code>{ q: "app" }</code> sets the <code>q</code> attribute to
@@ -263,23 +277,19 @@
             or <code>undefined</code> value for an attribute will not set it.
             This parameter may be empty or omitted.</li>
             <li>The remaining parameters, if any, are the contents of the
-            element.  Valid content is either a string, which creates a text
-            node, or other elements, usually created themselves through the
-            <code>$</code> method.</li>
+            element: either a string, which creates a text node, or another
+            element, usually also created by the <code>$</code> method.</li>
           </ul>
           <p>Node manipulation is done through the DOM methods <code
           class="def">appendChild</code>, <code class="def">insertBefore</code>,
           <code class="def">setAttribute</code>, and <code
-          class="def">setAttributeNS</code>. Additionally, Bender elements have
-          a <code class="def">_textContent(text)</code> method to replace
+          class="def">setAttributeNS</code>. (Other DOM methods are not
+          overloaded.) Additionally, Bender elements have a <code
+          class="def">_textContent(text)</code> method to replace
           setting the <code>textContent</code> property, which can still be read
           normally (and also be set, but changes will not cause the rendering to
-          update.) Bender elements have an internal method <code class="def
-          internal">_refresh(parent)</code> which will refresh the rendering for
-          the parent of this element (which defaults to <code>parentNode</code>
-          if not specified; the parameter is needed mostly for updates after an
-          element was removed from its parent.) It should not be necessary to
-          call this method under normal circumstances.</p>
+          update.) See also <code>_clone_node()</code> below, which is a
+          replacement for <code>cloneNode(true)</code>.</p>
           <p>Since a Bender tree may be modified at runtime, it can be
           serialized again through the <code class="def">_serialize()</code>
           method. This simply returns a text string of the XML serialization of
@@ -293,31 +303,31 @@
             Bender component.  <code class="elem">app</code> is synonymous with
             <code>component</code> and is provided to describe the main
             component of a Bender application. <code class="elem">context</code>
-            is also a synonym and is used as the root of the Bender tree (and as
-            such should not be used elsewhere.) A component may have metadata, a
-            view, scripts, watches, and sub-components. These are described by
-            the following elements:</p>
+            is also a synonym and is only used at the top of the Bender tree, as
+            described above. A component may have metadata, a view, scripts,
+            watches, and define other components. These are described by the
+            following elements:</p>
             <ul>
-              <li><code class="elem">component</code> describes sub-components
-              of this component;</li>
+              <li><code class="elem">component</code> describes other
+              components in the scope of this component;</li>
               <li><code class="elem">desc</code> contains textual description
               for the component. This is used as metadata; for intance, it can
-              be used to give hints about the usage of this component.</li>
-              <li><code class="elem">script</code> allows customizing the
-              component through Javascript.</li>
+              be used to give hints about the usage of this component;</li>
+              <li><code class="elem">script</code> allows customizing both the
+              content and the behavior of the component through Javascript;</li>
               <li><code class="elem">title</code> contains the title of the
               component as plain text. This is used mostly as metadata, but gets
               rendered as the document title when it is the child of an
-              <code>app</code> element.</li>
+              <code>app</code> element;</li>
               <li><code class="elem">use</code> creates a new instance of a
-              component and renders it in this component's view (including in a
-              <node>context</code> element; see below.) <code>use</code>
-              elements should appear as descendants of the <code>view</code>
-              element of the component.</li>
-              <li><code class="elem">view</code> contains foreign and text nodes
-              that will be rendered in the target document when this component
-              is rendered. A component may have only one view; setting a new
-              view automatically replaces the previous one.</li>
+              component and renders it in this component's view.
+              <code>use</code> elements <em>should</em> appear as descendants of
+              the <code>view</code> element of the component;</li>
+              <li><code class="elem">view</code> contains an interleaving of
+              foreign and text nodes and <code>use</code> elements that will be
+              rendered in the target document when this component is rendered. A
+              component may have only one view; setting a new view automatically
+              replaces the previous one;</li>
               <li><code class="elem">watch</code> describes the behavior of the
               component in the face of changes in its properties and events it
               receives. See the section on watches below.</li>
@@ -330,6 +340,12 @@
             same component may be rendered in a document. Bender elements have
             an <code class="param">_id</code> property matching that
             attribute.</p>
+            <p>Components can be small units of functionality, with or without
+            an actual view, like a <a href="https://github.com/bendr/bender/blob/master/lib/button.xml">button</a>
+            or a <a
+            href="https://github.com/bendr/bender/blob/master/lib/timer.xml">timer</a>,
+            or larger components relying on other components like toolbars,
+            dialogs, all the way to complete applications.</p>
           </section>
 
           <section id="manual.elements.use">
@@ -339,8 +355,8 @@
             <em>instance</em> of a component is created; if this component has a
             view, or has <code>use</code> children, then these get rendered in
             its place.</p>
-            <p>The component to be instantiated is designated by one of the
-            following attributes:</p>
+            <p>The component to be instantiated is designated by one and only
+            one of the following attributes:</p>
             <ul>
               <li><code class="attr">q</code> (short for <em>query
               selector</em>) to refer to an element in the current context
@@ -367,19 +383,19 @@
             <code>content</code> elements (other Bender elements are silently
             ignored). Additionally, <code>use</code> and <code>target</code>
             elements outside of a <code>view</code> element are also rendered as
-            siblings of the children of the <code>view</code> elements.</p>
+            siblings of the children of the <code>view</code> element.</p>
             <p>When a component is rendered, the contents of the view are copied
             as is (minus id attributes as discussed above) into the target
-            element. <code>use</code> elements allow to include Bender
-            components inside another component. The <code
-            class="elem">content</code> allows to customize the rendering of an
-            element by replacing this element with the contents of the original
-            <code>use</code>. The <code>content</code> element may have content
-            of its own, which is the default content that gets rendered when the
-            <code>use</code> has no content.</p>
-            <p>Similarly, attributes of the <code>use</code> elements are added
-            to the top-level elements that get rendered; this allows for
-            instance to change the class of an element to alter its
+            element. The <code class="elem">use</code> elements allows the
+            inclusion of a Bender component as described above. The <code
+            class="elem">content</code> element is a placeholder element that,
+            on rendering, is replaced by the contents of the referencing
+            <code>use</code> element. The <code>content</code> element may have
+            content of its own, which is the default content that gets rendered
+            when the referencing <code>use</code> element has no content.
+            Similarly, attributes of the referencing <code>use</code> elements
+            are also added to the top-level elements that get rendered; this
+            allows for instance to change the class of an element to alter its
             rendering.</p>
             <p>Additionally, the <code class="elem">target</code> element allows
             to target a specific node for rendering. For instance, it may be
@@ -396,7 +412,8 @@
           </section>
 
           <section id="manual.elements.script">
-            <h4>The component instance object and the script element</h4>
+            <h4>The component instance object, component properties, and the
+            script element</h4>
             <p>Before rendering, a component gets <em>instantiated</em>, which
             creates a new Javascript object acting as the <em>component
             instance</em> of this component. A component instance has the
@@ -411,16 +428,32 @@
               properties to access these. The instance is returned.</li>
               <li><code class="prop">views</code> maps the id of the foreign
               nodes inside the view of the component and the actual rendered
-              nodes in the target. Nodes that do not have an id are not
-              included.</li>
+              nodes in the target. Elements that do not have an id are not
+              included. The target document may be referred to through the
+              pseudo-id <code>$document</code> (<em>e.g.</em>,
+              <code>instance.views.$document</code>.)</li>
               <li><code class="prop">uses</code> maps the id of <code>use</code>
               nodes inside the view of the component and the instance that was
-              created. Nodes that do not have an id are not included.</li>
+              created. Nodes that do not have an id are not included. Pseudo ids
+              for the instance itself (<code>$self</code>) and its parent
+              instance, if any (<code>$parent</code>) are also defined. The
+              former is used in watches (see below.)</li>
               <li><code class="def">instantiated()</code> is called
               <em>after</em> the instance was created and initialized, and right
               before it will be rendered. By default, it does not do anything
               but can be overloaded for component customization.</li>
             </ul>
+
+            <div class="TODO">
+              <p>TODO: define properties:</p>
+              <ul>
+                <li>The <code>properties</code> property;</li>
+                <li>The attribute namespaces <code>b</code> (boolean value),
+                <code>e</code> (string value), <code>f</code> (float value), and
+                <code>j</code> (JSON value);</li>
+              </ul>
+            </div>
+
             <p>The <code class="elem">script</code> element contains custom
             Javascript code. This code is executed when the element is added to
             its parent component element <em>and</em> its text content is set
@@ -430,12 +463,18 @@
             <code class="param">this</code> will point to the parent component
             element.</p>
             <p>One use of the <code>script</code> element is to customize the
-            behavior of the instances of the component. (Other uses include
-            runtime addition of nodes to the view to create complex components
-            programmatically rather than exhaustively.) The <em>prototype</em>
+            behavior of the instances of the component. The <em>prototype</em>
             of the component instances may be accessed and modified through the
             <code class="param">_prototype</code> property, so that methods may
-            be added or redefined.</p>
+            be added or redefined. See for instance the <a
+            href="https://github.com/bendr/bender/blob/master/lib/timer.xml">timer
+            component</a>.</p>
+            <p>Another use of the <code>script</code> element is to
+            programmatically add contents to a component. See for instance the
+            <a
+            href="https://github.com/bendr/bender/blob/master/apps/calculator.xml">calculator</a>
+            application where all buttons are added by a script (look for the
+            call to <code>context.$("use", ...)</code>.)</p>
           </section>
 
           <section id="manual.nodes.watch">
@@ -448,24 +487,76 @@
             changes (a property change.)</p>
             <p>The <code class="elem">watch</code> element describes a watch.
             This element has no parameter and contains zero or more <code
-            class="elem">get</code>, <code class="elem">set</code> and other
-            <code class="elem">watch</code> elements.</p>
-            <p>The <code class="elem">get</code> element describes what the
-            watch is monitoring. This can be an DOM event from a DOM node, a
+            class="elem">get</code> and <code class="elem">set</code>
+            elements. The <code>get</code> element describes what the watch is
+            monitoring. This can be an DOM event from a DOM node, a
             custom event from a component, or a property. Whenever the monitored
             event occurs or the monitored property changes, the parent watch is
-            <em>activated</em>. The <code class="elem">set</code> elements
-            describe what happens when the watch is activated: node attributes
-            and component properties are set, nested watches are
-            <em>enabled</em>, and arbitrary code may be executed.</p>
-          </section>
-        </section>
+            <em>activated</em>. The <code>set</code> elements describe what
+            properties and attributes are set in response to the activation of
+            the parent watch.</p>
+            <p><code class="elem">get</code> elements have three parameters:</p>
+            <ol>
+              <li>a target component or element;</li>
+              <li>an event or property being monitored for this target;</li>
+              <li>optionally, a function to transform the monitored value.</li>
+            </ol>
+            <p>The target is specified by one of the following attributes:</p>
+            <ul>
+              <li><code class="attr">view</code>, which must be the id of a
+              foreign element inside the <code>view</code> of the
+              component (or the pseudo id <code>$document</code>), or</li>
+              <li><code class="attr">use</code>, which must be the id of a
+              <code>use</code> element within the component (or the pseudo ids
+              <code>$self</code> or <code>$parent</code>.)</li>
+            </ul>
+            <p>The event or property is specified by one of the following
+            attributes:</p>
+            <ul>
+              <li><code class="attr">event</code>, which is the name of a DOM
+              event if the target is a view element (<em>e.g.</em>,
+              <code>click</code>), or a custom Bender event if the target is a
+              <code>use</code> element. (<span class="TODO">describe Bender
+              events</span>)</li>
+              <li><code class="attr">property</code>, which is the name of a
+              property of the target component (only if the target is a
+              <code>use</code> element.) The <code>use</code> attribute may be
+              omitted, in which case it defaults to the closest component
+              instance in the tree that has such a property.</li>
+            </ul>
+            <p>The parent watch is activated whenever an event is sent from the
+            target of a monitored element or a property changes in a monitored
+            component instance. The associated value for this activation is the
+            event object or the property value, but if the <code>get</code>
+            element has text content other than whitespace, then this content is
+            interpreted as a Javascript function that transforms the activation
+            value, and/or executes arbitrary code, just like a regular event
+            listener (indeed, monitoring a property change is similar to
+            listening to an event triggered any time the monitored property does
+            change.) In this function, the <code class="param">value</code>
+            parameter is the original activation value, and <code
+            class="param">this</code> is the component instance. The return
+            value is the new activation value (which may then be undefined.)</p>
 
-        <section id="manual.instances">
-          <h3>Component and watch instances</h3>
-          <p>Before a component can be rendered, it must be instantiated. Many
-          instances of the same component may be created and rendered
-          independently, maintaining their own state.</p>
+            <p>When a watch is activated by any of its <code>get</code> child,
+            then <em>all</em> child <code>set</code> elements are activated in
+            reaction, taking the (possibly transformed) activation value as
+            input. <code class="elem">set</code> elements have the same <code
+            class="attr">view</code> and <code class="attr">use</code>
+            parameters as <code>get</code> elements to define a target. For a
+            given target, the following may be set:</p>
+            <ul>
+              <li><code class="attr">attr</code>, an attribute of the target
+              node, or</li>
+              <li><code class="attr">property</code>, a property of a target
+              node.</li>
+            </ul>
+            <p>The attribute or property is set to the input activation value,
+            or may be transformed by a function defined as the text content of
+            the <code>set</code> element, in a similar fashion to the
+            <code>get</code> element.</p>
+
+          </section>
         </section>
 
         <section id="manual.clone">
@@ -635,9 +726,10 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             Arrows</a></li>
           <li><a
             href="lib/params.html?href=../apps/ttfd.xml">Transition Timing
-            Function Designer</a> <span class="TODO">add test function</span></li>
+            Function Designer</a></li>
           <li><a class="broken"
-            href="lib/params.html?href=../apps/calculator.xml">Calculator</a></li>
+            href="lib/params.html?href=../apps/calculator.xml">Calculator</a>
+          <span class="TODO">bug #11</span></li>
         </ol>
       </section>
 
@@ -653,14 +745,16 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           controls to modify the top-level parameters of the application. Use
           the <code class="attr">href</code> attribute as well (see applications
           above for examples.)</li>
-          <li><a href="lib/timer.xml">Timer component</a>: send a
-          <code>@tick</code> event at <code>rate-ms</code>.</li>
-          <li><span class="TODO"><a href="lib/button.xml">Button
-              component</a></span></li>
-          <li><span class="TODO"><a href="tests/color-picker.html">Color
-              picker</a></span></li>
-          <li><span class="TODO"><a href="tests/audio.html">Audio
-              component</a></span></li>
+          <li><a
+            href="https://github.com/bendr/bender/blob/master/lib/button.xml">Button</a></li>
+          <li><a
+            href="https://github.com/bendr/bender/blob/master/lib/drag.xml">Draggable
+            object</a></li>
+          <li><a
+            href="https://github.com/bendr/bender/blob/master/lib/geolocation.xml">Geolocation
+            component</a></li>
+          <li><a
+            href="https://github.com/bendr/bender/blob/master/lib/timer.xml">Timer</a></li>
         </ul>
       </section>
 
