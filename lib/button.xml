@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp"
-  xmlns:html="http://www.w3.org/1999/xhtml">
+  xmlns:b="http://bender.igel.co.jp/b" xmlns:f="http://bender.igel.co.jp/f"
+  xmlns:html="http://www.w3.org/1999/xhtml" f:tabindex="0" b:enabled="true">
   <view>
     <target q="head" once="true">
       <html:style>
@@ -8,6 +9,9 @@
           -moz-border-radius: 6px; -webkit-border-radius: 6px;
           border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
           text-shadow: 0px 1px 0px #fff; margin: 8px; }
+        .button:active:not(.__disabled) { moz-transform: scale(0.9);
+          -webkit-transform: scale3d(0.9, 0.9, 0.9); }
+        .__disabled { opacity: 0.5; color: #888; }
       </html:style>
     </target>
     <html:div class="button" id="b" aria-role="button">
@@ -15,14 +19,36 @@
     </html:div>
   </view>
   <watch>
-    <get view="b" event="mousedown">
+    <get view="b" event="mousedown"><![CDATA[
       if (value.button === 0) value.preventDefault();
-    </get>
-    <get view="b" event="click">
-      if (value.button === 0) {
-        value.preventDefault();
+    ]]></get>
+    <get view="b" event="click"><![CDATA[
+      if (value.button === 0 && this.properties.enabled) {
         flexo.notify(this, "@pushed");
       }
+    ]]></get>
+  </watch>
+  <watch>
+    <get view="b" event="keyup"><![CDATA[
+      if (this.properties.enabled && value.keyCode === 13) {
+        var e = this.views.$document.createEvent("MouseEvents");
+        e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
+          false, false, false, 0, null);
+        this.views.b.dispatchEvent(e);
+      }
+    ]]></get>
+  </watch>
+  <watch>
+    <get property="tabindex"/>
+    <set view="b" attr="tabindex"/>
+  </watch>
+  <watch>
+    <get property="enabled">
+      flexo.set_class_iff(this.views.b, "__disabled", !value);
+      return value;
     </get>
+    <set view="b" attr="tabindex">
+      return value ? this.properties.tabindex : -1;
+    </set>
   </watch>
 </component>

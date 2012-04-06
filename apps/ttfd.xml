@@ -3,12 +3,18 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:svg="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  f:x1=".25" f:y1=".1" f:x2=".25" f:y2="1" b:clamp-y="true">
+  f:x1=".25" f:y1=".1" f:x2=".25" f:y2="1" b:clamp-y="true" f:test-duration="2">
+
   <title>Transition Timing Function Designer</title>
+
   <view>
     <target q="head">
       <html:style>
         svg { width: 600px; height: 600px; }
+        .tp { position: relative; }
+        .t { display: inline-block; position: absolute; width: 20px;
+          height: 20px; left: 40px; -webkit-border-radius: 10px;
+          -moz-border-radius: 10px; background-color: #f08; }
       </html:style>
     </target>
     <html:p>
@@ -17,25 +23,25 @@
           id="yy2"/>)</html:code>
       <use href="button.xml" id="button-test">Test</use>
     </html:p>
+    <use ref="test-component" id="t"/>
     <svg:svg viewBox="-10 -10 120 120">
       <svg:defs>
         <svg:circle svg:id="point" r="2"/>
       </svg:defs>
       <svg:g>
         <svg:rect width="100" height="100" fill="none" stroke="black"/>
-        <svg:g stroke="black" stroke-dasharray="2 2" stroke-opacity="0.5">
+        <svg:g stroke="#f08" stroke-dasharray="2 2">
           <svg:line id="l01" y1="100"/>
-          <svg:line id="l12"/>
           <svg:line id="l23" x2="100"/>
         </svg:g>
         <svg:path stroke="#08f" fill="none" id="path"/>
         <svg:use xlink:href="#point" y="100"/>
         <svg:use xlink:href="#point" x="100"/>
         <use href="drag.xml" id="p1" f:min-x="0" f:max-x="100">
-          <svg:use xlink:href="#point" fill="#ff4040"/>
+          <svg:use xlink:href="#point" fill="#f08"/>
         </use>
         <use href="drag.xml" id="p2" f:min-x="0" f:max-x="100">
-          <svg:use xlink:href="#point" fill="#ff4040"/>
+          <svg:use xlink:href="#point" fill="#f08"/>
         </use>
       </svg:g>
     </svg:svg>
@@ -51,11 +57,38 @@
     </html:p>
   </view>
 
+  <component id="test-component">
+    <view>
+      <html:div class="tp">
+        <html:span class="t" id="t"/>
+      </html:div>
+    </view>
+    <script>
+      this._prototype.run = function(x1, y1, x2, y2, d)
+      {
+        flexo.notify(this, "@run");
+        this.views.t.style.MozTransitionTimingFunction =
+        this.views.t.style.WebkitTransitionTimingFunction =
+          "cubic-bezier({0}, {1}, {2}, {3})".fmt(x1, y1, x2, y2);
+        this.views.t.style.MozTransitionDuration =
+        this.views.t.style.WebkitTransitionDuration = "{0}s".fmt(d / 1000);
+        this.views.t.style.MozTransitionProperty =
+        this.views.t.style.WebkitTransitionProperty = "left";
+        this.views.t.style.left = "540px";
+        setTimeout((function() {
+            flexo.notify(this, "@stop");
+            this.views.t.style.MozTransitionProperty =
+            this.views.t.style.WebkitTransitionProperty = "none";
+            this.views.t.style.left = "40px";
+          }).bind(this), d * 1.5);
+      };
+    </script>
+  </component>
+
   <watch>
     <get use="$self" property="x1">return 100 * value;</get>
     <set use="p1" property="x"/>
     <set view="l01" attr="x2"/>
-    <set view="l12" attr="x1"/>
     <set view="xx1">return (value / 100).toFixed(2);</set>
   </watch>
   <watch>
@@ -67,7 +100,6 @@
     <get use="$self" property="y1">return 100 * (1 - value);</get>
     <set use="p1" property="y"/>
     <set view="l01" attr="y2"/>
-    <set view="l12" attr="y1"/>
     <set view="yy1">return (1 - value / 100).toFixed(2);</set>
   </watch>
   <watch>
@@ -78,7 +110,6 @@
   <watch>
     <get use="$self" property="x2">return 100 * value;</get>
     <set use="p2" property="x"/>
-    <set view="l12" attr="x2"/>
     <set view="l23" attr="x1"/>
     <set view="xx2">return (value / 100).toFixed(2);</set>
   </watch>
@@ -90,7 +121,6 @@
   <watch>
     <get use="$self" property="y2">return 100 * (1 - value);</get>
     <set use="p2" property="y"/>
-    <set view="l12" attr="y2"/>
     <set view="l23" attr="y1"/>
     <set view="yy2">return (1 - value / 100).toFixed(2);</set>
   </watch>
@@ -157,6 +187,24 @@
     <set use="$self" property="y1">return Math.random();</set>
     <set use="$self" property="x2">return Math.random();</set>
     <set use="$self" property="y2">return Math.random();</set>
+  </watch>
+
+  <watch>
+    <get use="button-test" event="@pushed">
+      this.uses.t.run(this.properties.x1, this.properties.y1,
+        this.properties.x2, this.properties.y2,
+        this.properties["test-duration"] * 1000);
+    </get>
+  </watch>
+
+  <watch>
+    <get use="t" event="@run"/>
+    <set use="button-test" property="enabled">return false;</set>
+  </watch>
+
+  <watch>
+    <get use="t" event="@stop"/>
+    <set use="button-test" property="enabled">return true;</set>
   </watch>
 
   <watch>
