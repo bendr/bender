@@ -10,11 +10,13 @@
   <view>
     <target q="head">
       <html:style>
+        a { text-decoration: none; color: #ff4040; }
         svg { width: 600px; height: 600px; }
         .tp { position: relative; }
         .t { display: inline-block; position: absolute; width: 20px;
           height: 20px; left: 40px; -webkit-border-radius: 10px;
-          -moz-border-radius: 10px; background-color: #f08; }
+          -moz-border-radius: 10px; background-color: #08f; }
+        .about { width: 600px; }
       </html:style>
     </target>
     <html:p>
@@ -54,6 +56,20 @@
       <use href="button.xml" id="button-ease-in-out">ease-in-out</use>
       or:
       <use href="button.xml" id="button-random">random</use>
+    </html:p>
+    <html:p class="about">
+      The Transition Timing Function Designer is a simple tool to design
+      transition function curves for the <html:a href="http://www.w3.org/TR/css3-transitions/#transition-timing-function-property">CSS
+        transition-timing-function property</html:a>, using a Bézier curve. Move
+      the two middle points of the curve and see the curve change accordingly,
+      select one of the preset values from the specification, or generate random
+      values using the buttons above. The <html:em>test</html:em> button tests
+      the current setting by moving the blue dot above from left to right
+      following the current curve. Additional parameters are
+      <html:em>clamp-y</html:em>, which, when unchecked, allows
+      <html:em>y</html:em> values outside of the [0, 1] range; and
+      <html:em>test-duration</html:em>, which is the duration in second of the
+      transition test.
     </html:p>
   </view>
 
