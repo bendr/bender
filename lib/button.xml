@@ -4,14 +4,26 @@
   <view>
     <target q="head" once="true">
       <html:style>
-        .button { font-family: Futura, sans-serif; display: inline-block;
-          cursor: default; background-color:#ddd; padding: 4px;
-          -moz-border-radius: 6px; -webkit-border-radius: 6px;
-          border-radius: 6px; box-shadow: 0px 1px 0px #bbb;
-          text-shadow: 0px 1px 0px #fff; margin: 8px; }
-        .button:active:not(.__disabled) { moz-transform: scale(0.9);
-          -webkit-transform: scale3d(0.9, 0.9, 0.9); }
-        .__disabled { opacity: 0.5; color: #888; }
+        .button {
+          font-family: Futura, sans-serif; display: inline-block;
+          cursor: default;
+          background-color:#ddd; padding: 4px 8px;
+          -moz-border-radius: 6px;
+          -webkit-border-radius: 6px;
+          border-radius: 6px;
+          box-shadow: 0px 1px 0px #bbb;
+          text-shadow: 0px 1px 0px #fff;
+          margin: 8px;
+          -webkit-transform: translate3d(0, 0, 0);
+        }
+        .__down {
+          -moz-transform: scale(0.9);
+          -webkit-transform: scale3d(0.9, 0.9, 0.9);
+        }
+        .__disabled {
+          opacity: 0.5;
+          color: #888;
+        }
       </html:style>
     </target>
     <html:div class="button" id="b" aria-role="button">
@@ -20,10 +32,13 @@
   </view>
   <watch>
     <get view="b" event="mousedown"><![CDATA[
-      if (value.button === 0) value.preventDefault();
+      if (value.button === 0) {
+        value.preventDefault();
+        if (this.properties.enabled) flexo.add_class(this.views.b, "__down");
+      }
     ]]></get>
-    <get view="b" event="click"><![CDATA[
-      if (value.button === 0 && this.properties.enabled) {
+    <get view="b" event="mouseup"><![CDATA[
+      if (flexo.remove_class(this.views.b, "__down")) {
         flexo.notify(this, "@pushed");
       }
     ]]></get>
@@ -31,10 +46,16 @@
   <watch>
     <get view="b" event="keyup"><![CDATA[
       if (this.properties.enabled && value.keyCode === 13) {
-        var e = this.views.$document.createEvent("MouseEvents");
-        e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
+        var d = this.views.$document.createEvent("MouseEvents");
+        d.initMouseEvent("mousedown", true, true, window, 0, 0, 0, 0, 0, false,
           false, false, false, 0, null);
-        this.views.b.dispatchEvent(e);
+        this.views.b.dispatchEvent(d);
+        setTimeout((function() {
+            var u = this.views.$document.createEvent("MouseEvents");
+            u.initMouseEvent("mouseup", true, true, window, 0, 0, 0, 0, 0,
+              false, false, false, false, 0, null);
+            this.views.b.dispatchEvent(u);
+          }).bind(this), 100);
       }
     ]]></get>
   </watch>
