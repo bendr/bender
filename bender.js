@@ -217,7 +217,8 @@
           this.render_children(this.component._view, this.target,
               this.use.__placeholder);
         }
-        flexo.safe_remove(this.__placeholder);
+        flexo.safe_remove(this.use.__placeholder);
+        delete this.use.__placeholder;
         this.update_title();
         if (this.pending === 0) this.render_watches();
       }
