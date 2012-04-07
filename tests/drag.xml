@@ -3,7 +3,7 @@
   <title>Drag component/id in content</title>
   <view>
     <svg:svg id="svg" viewBox="0 0 400 400">
-      <use href="../lib/drag.xml" id="d">
+      <use href="drag.xml" id="d">
         <svg:circle fill="#08f" id="c"/>
       </use>
     </svg:svg>

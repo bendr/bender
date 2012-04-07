@@ -229,10 +229,6 @@
     <set use="p1" property="max-y">return value ? 100 : Infinity;</set>
     <set use="p2" property="min-y">return value ? 0 : -Infinity;</set>
     <set use="p2" property="max-y">return value ? 100 : Infinity;</set>
-    <!--
-    <set use="p1" property="y">return this.uses.p1.properties.y</set>
-    <set use="p2" property="y">return this.uses.p2.properties.y</set>
-    -->
   </watch>
 
 </app>

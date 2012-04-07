@@ -203,6 +203,7 @@
     {
       this.component.ownerDocument._refreshed_instance(this);
       this.unrender();
+      this.component.__instance = this;
       if (flexo.root(this.use) !== this.use.ownerDocument) return;
       if (this.use.__placeholder) {
         this.target = this.use.__placeholder.parentNode;
@@ -241,8 +242,12 @@
                 this.render_children(ch, ch._find_target(dest));
               }
             } else if (ch.localName === "content") {
-              this.render_children(this.use.childNodes.length > 0 ?
-                this.use : ch, dest, ref);
+              if (this.use.childNodes.length > 0) {
+                var component = component_of(this.use);
+                component.__instance.render_children(this.use, dest, ref);
+              } else {
+                this.render_children(ch, dest, ref);
+              }
             }
           } else {
             this.render_foreign(ch, dest, ref);
@@ -348,6 +353,7 @@
       if (this.uses.$parent && this.uses.$parent.__pending_watches) {
         this.uses.$parent.render_watches();
       }
+      delete this.component.__instance;
     },
 
     unrender: function()
