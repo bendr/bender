@@ -6,6 +6,8 @@
   bender.NS_F = "http://bender.igel.co.jp/f";  // Float properties namespace
   bender.NS_J = "http://bender.igel.co.jp/j";  // JSON properties namespace
 
+  bender.VERSION = "0.5.1";
+
   //bender.die = true;
   bender.warn = function()
   {
