@@ -673,6 +673,12 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li>Add a <code class="attr">href</code> attribute to <code
               class="elem">get</code> elements to listen to URLs. Fetched at
             initialization, then respond to server events.</li>
+            <li>Allow several <code class="elem">content</code> elements inside
+            <code class="elem">view</code>, each with an <code
+              class="attr">id</code> attribute; then, allow <code
+              class="elem">content</code> inside <code class="elem">use</code>
+            elements with a <code class="attr">ref</code> attribute to refere to
+            a specific content element.</code>
             <li>Add a <code class="attr">name</code> attribute to <code
               class="elem">content</code> elements for several named content
             slots.</li>
@@ -693,8 +699,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
               href="lib/run.html?href=../tests/svg-button.xml">SVG Button test
               case</a> (related: <a href="#bug.9"/>bug #9</a>)</li>
             <li>Easier component sub-classing, including through markup.</li>
-            <li><code class="elem">template</code>/<code
-              class="elem">derive</code> elements to replace _clone_node</li>
+            <li><code class="elem">template</code> elements and <code
+              class="attr">derive</code> attributes to implement _clone_node
+            declaratively.</li>
             <li>Restrict value ranges for properties (min/max, choice,
             etc.)</li>
           </ul>

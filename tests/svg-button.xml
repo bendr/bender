@@ -19,8 +19,8 @@
           <svg:stop stop-color="#ff0" offset="0"/>
           <svg:stop stop-color="#f80" offset="0.67"/>
         </svg:linearGradient>
-        <svg:linearGradient svg:id="disabled_surface" x1="1" x2="1" y1="0" y2="1"
-          gradientUnits="objectBoundingBox">
+        <svg:linearGradient svg:id="disabled_surface" x1="1" x2="1" y1="0"
+          y2="1" gradientUnits="objectBoundingBox">
           <svg:stop stop-color="#fff" offset="0"/>
           <svg:stop stop-color="#aaa" offset="0.67"/>
         </svg:linearGradient>

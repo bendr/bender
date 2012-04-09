@@ -475,6 +475,43 @@
         }, this);
     },
 
+    // Utility function to create listener functions for get elements
+    make_listener: function(get, target)
+    {
+      var active = false;
+      var that = this;
+      return function(value, prev)
+      {
+        if (that.enabled && !active) {
+          active = true;
+          var watch = that.component_instance.watch;
+          that.component_instance.watch = that;
+          var prev_get = that.get;
+          that.get = get;
+          var prev_target = that.target;
+          that.target = target;
+          that.got((get._action || flexo.id).call(that.component_instance,
+              value, prev));
+          if (watch) {
+            that.component_instance.watch = watch;
+          } else {
+            delete that.component_instance.watch;
+          }
+          if (prev_get) {
+            that.get = prev_get;
+          } else {
+            delete that.get;
+          }
+          if (prev_target) {
+            that.target = prev_target;
+          } else {
+            delete that.target;
+          }
+          active = false;
+        }
+      };
+    },
+
     render_watch_instance: function()
     {
       this.gets = [];
@@ -482,14 +519,6 @@
           var active = false;
           var that = this;
           if (get._event) {
-            var listener = function(e) {
-              if (that.enabled && !active) {
-                active = true;
-                that.got((get._action || flexo.id).call(that.component_instance,
-                    e));
-                active = false;
-              }
-            };
             if (get._view) {
               // DOM event
               var target = this.component_instance.views[get._view];
@@ -497,6 +526,7 @@
                 bender.warn("render_watch_instance: No view for \"{0}\" in"
                   .fmt(get._view), get);
               } else {
+                var listener = this.make_listener(get, target);
                 target.addEventListener(get._event, listener, false);
                 this.ungets.push(function() {
                     target.removeEventListener(get._event, listener, false);
@@ -509,6 +539,7 @@
                 bender.warn("(render get/use) No use for \"{0}\" in"
                   .fmt(get._use), get);
               } else {
+                var listener = this.make_listener(get, target);
                 flexo.listen(target, get._event, listener);
                 this.ungets.push(function() {
                     flexo.unlisten(target, get._event, listener);
@@ -524,15 +555,7 @@
               bender.warn("(render get/property) No use for \"{0}\""
                   .fmt(get._property));
             } else {
-              var h = function(p, prev)
-              {
-                if (that.enabled && !active) {
-                  active = true;
-                  that.got((get._action || flexo.id)
-                      .call(that.component_instance, p, prev));
-                  active = false;
-                }
-              };
+              var h = this.make_listener(get, target);
               h._watch = this;
               target.watch_property(get._property, h);
               this.gets.push(function() { h(target.property(get._property)); });
