@@ -225,14 +225,22 @@
       }
     },
 
-    render_children: function(node, dest, ref)
+    // Render the child nodes of `node` (in the Bender tree) as children of
+    // `dest` (in the target tree) using `ref` as the reference child before
+    // which to add the nodes (`ref` points to a placeholder node that will be
+    // removed afterwards; this is so that loading and rendering can be done
+    // asynchronously.) `content`, if defined, is an object containing
+    // information about the closest <content> element ancestor in the Bender
+    // tree so that its attributes may be copied to destination nodes.
+    render_children: function(node, dest, ref, content)
     {
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === bender.NS) {
             if (ch.localName === "use") {
-              this.render_use(ch, dest, ref);
+              this.render_use(ch, dest, ref, content);
             } else if (ch.localName === "target") {
+              // `target` ignores ref/content
               if (ch._once) {
                 if (!ch._rendered) {
                   this.render_children(ch, ch._find_target(dest));
@@ -242,15 +250,23 @@
                 this.render_children(ch, ch._find_target(dest));
               }
             } else if (ch.localName === "content") {
+              // Render content: record the top-level target for this content,
+              // the <content> node itself to fetch its attributes, the target
+              // instance (since we may switch instances to record ids inside
+              // this node) and the parent content (TODO we don't use this at
+              // the moment, but we should?)
+              content = { target: dest, node: ch, instance: this,
+                parent: content };
               if (this.use.childNodes.length > 0) {
                 var component = component_of(this.use);
-                component.__instance.render_children(this.use, dest, ref);
+                component.__instance.render_children(this.use, dest, ref,
+                    content);
               } else {
-                this.render_children(ch, dest, ref);
+                this.render_children(ch, dest, ref, content);
               }
             }
           } else {
-            this.render_foreign(ch, dest, ref);
+            this.render_foreign(ch, dest, ref, content);
           }
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
           var d = dest.ownerDocument.createTextNode(ch.textContent);
@@ -260,7 +276,9 @@
       }
     },
 
-    render_foreign: function(node, dest, ref)
+    // Render foreign nodes within a view; arguments are the same as
+    // render_children() above.
+    render_foreign: function(node, dest, ref, content)
     {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
@@ -275,6 +293,16 @@
             d.setAttribute(attr.localName, attr.value);
           }
         }, this);
+      if (content && dest === content.target) {
+        [].forEach.call(content.node.attributes, function(attr) {
+            if (attr.name === "id") return;
+            if (attr.name === "content-id") {
+              content.instance.views[attr.value.trim()] = d;
+            } else {
+              d.setAttribute(attr.name, attr.value);
+            }
+          });
+      }
       dest.insertBefore(d, ref);
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
@@ -291,6 +319,7 @@
       this.render_children(node, d);
     },
 
+    // Render a use node (TODO can we safely ignore `content`?)
     render_use: function(use, dest, ref)
     {
       use.__placeholder = placeholder(dest, ref, use);
@@ -758,6 +787,35 @@
           this._components[component._id] = component;
           this.ownerDocument._add_component(component);
         }
+      },
+    },
+
+    // The content element is a placeholder for contents to be added at
+    // instantiation time. When a component is instantiated with a <use>
+    // element, the contents of the <use> element are inserted in place of the
+    // <content> element. When the <use> element has no content, then the
+    // contents of the <content> element are used by default.
+    // Attributes of the <content> element are copied to its top-level element
+    // children (in most case, there would be only one element child, such as a
+    // <div> or <g> to avoid ambiguity), with the exception of `id` and
+    // `content-id`. `content-id` will be used as the id of the instantiated
+    // content.
+    // TODO use `id` to provide different named content slots for instantiation:
+    // <component>                    <use>
+    //   <view>                         <content ref="a">A</content>
+    //     <content id="a"/>   -->      <content ref="b">B</content>
+    //     <content id="b"/>          </use>
+    //   </view>
+    // </component>
+    content:
+    {
+      setAttribute: function(name, value)
+      {
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        if (name === "content-id" || name === "id") {
+          this["_" + name.replace(/-i/, "I")] = value.trim();
+        }
+        this._refresh();
       },
     },
 

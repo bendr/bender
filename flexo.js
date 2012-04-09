@@ -597,7 +597,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
   {
     var k = elem.getAttribute("class") || "";
     if (!flexo.has_class(elem, c)) {
-      elem.className = "{0}{1}{2}".fmt(k, k ? " " : "", c);
+      elem.setAttribute("class", "{0}{1}{2}".fmt(k, k ? " " : "", c));
     }
   };
 
@@ -780,9 +780,9 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
       .replace(new RegExp("\\s*{0}\\b".fmt(c)),
           function(str) { removed = str; return ""; });
     if (/\S/.test(k)) {
-      elem.className = k;
+      elem.setAttribute("class", k);
     } else {
-      elem.className = "";
+      elem.setAttribute("class", "");
     }
     return removed;
   };

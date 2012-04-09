@@ -409,6 +409,8 @@
             which when set to the value <code>true</code> means that the content
             of the element are rendered exactly <em>once</em> to avoid
             duplicating the content.</p>
+            <p><span class="TODO">Describe <code>content-id</code> and attribute
+            copying.</span></p>
           </section>
 
           <section id="manual.elements.script">
@@ -685,10 +687,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             for the params bar.) Additionally a <code
               class="elem">metadata</code> element could be introduced to group
             metatadata in components.</li>
-            <li>Attributes of the <code class="elem">content</code> node are
-              passed to the rendered nodes (like <code class="elem">use</code>.)
-              See <a href="lib/run.html?href=../tests/svg-button.xml">SVG Button
-                test case</a> (related: <a href="#bug.9"/>bug #9</a>)</li>
+            <li class="done">Attributes of the <code class="elem">content</code>
+            node are passed to the rendered nodes (like <code
+              class="elem">use</code>.) See <a
+              href="lib/run.html?href=../tests/svg-button.xml">SVG Button test
+              case</a> (related: <a href="#bug.9"/>bug #9</a>)</li>
             <li>Easier component sub-classing, including through markup.</li>
             <li><code class="elem">template</code>/<code
               class="elem">derive</code> elements to replace _clone_node</li>
@@ -840,8 +843,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           test</a> (XML)</li>
           <li><a href="lib/run.html?href=../tests/geolocation.xml">Geolocation
             component test</a></li>
-          <li><a class="broken" href="lib/run.html?href=../tests/svg-button.xml">SVG
-            Button</a> with button template.</li>
+          <li><a href="lib/run.html?href=../tests/svg-button.xml">SVG Button</a>
+          with button template.</li>
           <li><a class="broken"
             href="lib/run.html?href=../tests/refresh-property.xml">Refresh
             application after properties have changed</a></li>
