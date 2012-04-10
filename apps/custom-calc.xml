@@ -1,0 +1,76 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:f="http://bender.igel.co.jp/f" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <title>Customizable Calculator</title>
+
+  <view>
+    <target q="head" once="true">
+      <html:style>
+        body {
+          font-family: Futura, "Helvetica Neue", Helvetica, sans-serif;
+          background-color: #187757;
+        }
+        .desktop { position: relative; }
+      </html:style>
+    </target>
+    <html:div class="desktop">
+      <use ref="calculator-body"/>
+    </html:div>
+  </view>
+
+  <component id="calculator-body" f:x="0" f:y="0">
+    <view>
+      <target q="head" once="true">
+        <html:style>
+          .calculator {
+            height: 100px;
+            width: 100px;
+            position: absolute;
+            background-color: #2c7ec9;
+            -webkit-border-radius: 12px;
+            -moz-border-radius: 12px;
+            border-radius: 12px;
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, .75);
+          }
+          .__moving { opacity: 0.75; }
+        </html:style>
+      </target>
+      <html:div id="body" class="calculator"/>
+    </view>
+
+    <watch>
+      <get use="$self" property="x">
+        this.views.body.style.left = "{0}px".fmt(value);
+      </get>
+      <get use="$self" property="y">
+        this.views.body.style.top = "{0}px".fmt(value);
+      </get>
+    </watch>
+
+    <watch>
+      <get view="body" event="mousedown">
+        if (value.button === 0) {
+          value.preventDefault();
+          flexo.add_class(value.target, "__moving");
+          var p = flexo.event_client_pos(value);
+          this.__offset = { x: p.x - this.properties.x,
+            y: p.y - this.properties.y };
+        }
+      </get>
+      <get view="$document" event="mousemove">
+        if (this.__offset) {
+          var p = flexo.event_client_pos(value);
+          this.properties.x = p.x - this.__offset.x;
+          this.properties.y = p.y - this.__offset.y;
+        }
+      </get>
+      <get view="$document" event="mouseup">
+        flexo.remove_class(this.views.body, "__moving");
+        delete this.__offset;
+      </get>
+    </watch>
+
+  </component>
+
+</app>
