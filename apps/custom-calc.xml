@@ -36,8 +36,10 @@
           .__moving { opacity: 0.75; }
         </html:style>
       </target>
-      <use href="movable.xml">
-        <html:div id="body" class="calculator"/>
+      <use href="resizable.xml">
+        <use href="movable.xml">
+          <html:div id="body" class="calculator"/>
+        </use>
       </use>
     </view>
 

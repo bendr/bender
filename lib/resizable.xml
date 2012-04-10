@@ -1,0 +1,49 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <title>Resizable Component</title>
+
+  <view>
+    <content content-id="resizing"/>
+  </view>
+
+  <watch>
+    <get use="$self" event="@rendered"/>
+    <set use="$self" property="w">
+      return this.views.resizing.offsetWidth;
+    </set>
+    <set use="$self" property="h">
+      return this.views.resizing.offsetHeight;
+    </set>
+  </watch>
+
+  <watch>
+    <get use="$self" property="w">
+      this.views.resizing.style.width = "{0}px".fmt(value);
+    </get>
+    <get use="$self" property="h">
+      this.views.resizing.style.height = "{0}px".fmt(value);
+    </get>
+  </watch>
+
+  <watch>
+    <get view="resizing" event="mousedown"><![CDATA[
+      if (value.button === 0 && !this.properties.locked) {
+        value.preventDefault();
+        var p = flexo.event_client_pos(value);
+        this.__offset = flexo.event_client_pos(value);
+      }
+    ]]></get>
+    <get view="$document" event="mousemove">
+      if (this.__offset) {
+        var p = flexo.event_client_pos(value);
+        this.properties.w += p.x - this.__offset.x;
+        this.properties.h += p.y - this.__offset.y;
+        this.__offset = p;
+      }
+    </get>
+    <get view="$document" event="mouseup">
+      delete this.__offset;
+    </get>
+  </watch>
+
+</component>
