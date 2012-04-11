@@ -705,18 +705,12 @@ context.appendChild(context.$("use", { href: ... }));</pre>
               class="elem">use</code>.) See <a
               href="lib/run.html?href=../tests/svg-button.xml">SVG Button test
               case</a> (related: <a href="#bug.9"/>bug #9</a>)</li>
-            <li>Easier component sub-classing, including through markup.</li>
             <li><code class="elem">template</code> elements and <code
               class="attr">derive</code> attributes to implement _clone_node
             declaratively.</li>
             <li>Restrict value ranges for properties (min/max, choice,
             etc.)</li>
-            <li>Track down additions of content to <code class="elem">use</code>
-            elements and reflect that in the corresponding <code
-              class="elem">content</code> node of the component. Add a <code
-              class="elem">empty</code> element to prevent default
-            content? (This may affect/be affected by <a href="bug.9">bug
-              #9</a>.)</li>
+            <li>Access local ids (within a component) easily</li>
           </ul>
         </section>
 
@@ -889,6 +883,9 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             curve</a></li>
           <li><a href="lib/params.html?href=../tests/parse_property.xml">Parsing
             properties</a></li>
+          <li><a href="lib/tests.html?href=../tests/add-to-use.xml">Add content
+            to a <code>use</code> element</a> (also shows the pseudo-element
+            <code>empty</code>)</li>
         </ol>
       </section>
 

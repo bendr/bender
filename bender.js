@@ -297,7 +297,6 @@
         }, this);
       var content_id = function(content) {
         if (content && dest === content.target) {
-          flexo.log("content: node=", content.node, "parent=", content.parent);
           content_id(content.parent);
           [].forEach.call(content.node.attributes, function(attr) {
               if (attr.name === "id") return;
