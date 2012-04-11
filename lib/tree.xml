@@ -1,17 +1,34 @@
 <component xmlns="http://bender.igel.co.jp"
+  xmlns:e="http://bender.igel.co.jp/e"
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Bender tree visualizer</title>
 
   <view>
     <target q="head" once="true">
       <html:style>
-        .bender_tree { border-bottom: dashed thin black; padding-bottom: 8px;
-          background-color: white; margin-top: 0; padding-top: 8px; }
-        ul.bender_tree, ul.bender_tree ul { list-style-type: none; }
+        .bender_tree {
+          border-bottom: dashed thin black;
+          border-top: dashed thin black;
+          padding-bottom: 8px;
+          background-color: white;
+          margin-top: 0;
+          padding-top: 8px;
+        }
+        .bender_tree, .bender_tree ul {
+          list-style-type: none;
+          padding-left: 16px; }
         .bender_tree span.tag { font-weight: bold; }
+        .bender_tree .html { color: #f80; }
+        .bender_tree .svg { color: #f08; }
+        .bender_tree .xlink { color: #f88; }
+        .bender_tree .foreign { color: #f00; }
+        .bender_tree .bender { color: #08f; }
         .bender_tree span.attr { font-style: italic; }
         .bender_tree span.attr-value { font-family: monospace; }
-        .bender_tree li.text { font-family: monospace; white-space: pre }
+        .bender_tree li.text {
+          font-family: monospace;
+          white-space: pre;
+        }
       </html:style>
     </target>
     <html:ul id="ul" class="bender_tree"/>
@@ -19,9 +36,9 @@
 
   <script><![CDATA[
 
-    this._prototype.make_tree_from_node = function(node)
+    this._prototype.make_tree = function(instance)
     {
-      flexo.listen(node.ownerDocument, "@refresh", (function(e) {
+      flexo.listen(instance.use.ownerDocument, "@refresh", (function(e) {
           var component = e.instance.component;
           var li = component.__li;
           if (li) {
@@ -31,18 +48,33 @@
             parent.insertBefore(this.li_for_node(component), ref);
           }
         }).bind(this));
-      this.views.ul.appendChild(this.li_for_node(node));
+      var ul = this.component.querySelector("ul");
+      ul.appendChild(this.li_for_node(instance.use));
+      ul.appendChild(this.li_for_node(instance.component));
     };
 
     this._prototype.li_for_node = function(node)
     {
       if (node.nodeType === 1) {
+        /*
         var li = this.component.$("html:li.elem",
-          this.component.$("html:span.tag", node.localName));
+          this.component.$("html:span.tag{0}"
+            .fmt(node.namespaceURI === flexo.XHTML_NS ? ".html" :
+              node.namespaceURI === flexo.SVG_NS ? ".svg" : ""),
+            node.localName));
         [].forEach.call(node.attributes, function(attr) {
             if (!/^xmlns:?/.test(attr.name)) {
               li.appendChild(this.component.ownerDocument.createTextNode(" "));
-              li.appendChild(this.component.$("html:span.attr", attr.name));
+              li.appendChild(this.component.$("html:span.attr{0}"
+                .fmt(attr.namspaceURI === flexo.XHTML_NS ? ".html" :
+                  attr.namespaceURI === flexo.SVG_NS ? ".svg" :
+                  attr.namespaceURI === flexo.XLINK_NS ? ".xlink" :
+                  attr.namespaceURI === bender.NS_B ? ".bender" :
+                  attr.namespaceURI === bender.NS_E ? ".bender" :
+                  attr.namespaceURI === bender.NS_F ? ".bender" :
+                  attr.namespaceURI === bender.NS_J ? ".bender" :
+                  attr.namespaceURI ? ".foreign" : ""),
+                  attr.name));
               li.appendChild(this.component.ownerDocument.createTextNode("="));
               li.appendChild(this.component.$("html:span.attr-value",
                 attr.value));
@@ -56,6 +88,9 @@
         if (ul.childNodes.length === 0) li.removeChild(ul);
         node.__li = li;
         return li;
+        */
+        return this.component.$("use", { ref: "elem", "e:tag": node.localName,
+          "e:ns": node.namespaceURI });
       } else if ((node.nodeType === 3 || node.nodeType === 4) &&
         /\S/.test(node.textContent)) {
         return this.component.$("html:li.text", node.textContent);
@@ -63,5 +98,28 @@
     };
 
   ]]></script>
+
+  <component id="elem">
+    <view>
+      <html:li>
+        <html:span id="tag" class="tag"/>
+      </html:li>
+    </view>
+    <watch>
+      <get property="tag"/>
+      <set view="tag"/>
+    </watch>
+    <watch>
+      <get property="ns">
+        if (value === flexo.XHTML_NS) {
+          flexo.add_class(this.views.tag, "html");
+        } else if (value === flexo.SVG_NS) {
+          flexo.add_class(this.views.tag, "svg");
+        } else if (value !== bender.NS) {
+          flexo.add_class(this.views.tag, "foreign");
+        }
+      </get>
+    </watch>
+  </component>
 
 </component>

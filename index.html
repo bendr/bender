@@ -662,6 +662,8 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             <li id="bug.10" class="done">Placeholder nodes are not deleted.</li>
             <li id="bug.11" class="done">Calculator: 1+2+3+= is 9, should be
             6.</li>
+            <li id="bug.12">Tree: after re-rendering the tree component, it
+            moves to the bottom of the page instead of staying at the top.</li>
           </ol>
         </section>
 
@@ -709,6 +711,12 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             declaratively.</li>
             <li>Restrict value ranges for properties (min/max, choice,
             etc.)</li>
+            <li>Track down additions of content to <code class="elem">use</code>
+            elements and reflect that in the corresponding <code
+              class="elem">content</code> node of the component. Add a <code
+              class="elem">empty</code> element to prevent default
+            content? (This may affect/be affected by <a href="bug.9">bug
+              #9</a>.)</li>
           </ul>
         </section>
 
@@ -717,6 +725,7 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           <ul>
             <li>Params bar should have an "about" button displaying the content
             of the <code class="elem">desc</code> of the running app.</li>
+            <li>Splitters (vertical/horizontal)</li>
           </ul>
         </section>
 
