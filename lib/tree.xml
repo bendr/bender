@@ -1,0 +1,67 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Bender tree visualizer</title>
+
+  <view>
+    <target q="head" once="true">
+      <html:style>
+        .bender_tree { border-bottom: dashed thin black; padding-bottom: 8px;
+          background-color: white; margin-top: 0; padding-top: 8px; }
+        ul.bender_tree, ul.bender_tree ul { list-style-type: none; }
+        .bender_tree span.tag { font-weight: bold; }
+        .bender_tree span.attr { font-style: italic; }
+        .bender_tree span.attr-value { font-family: monospace; }
+        .bender_tree li.text { font-family: monospace; white-space: pre }
+      </html:style>
+    </target>
+    <html:ul id="ul" class="bender_tree"/>
+  </view>
+
+  <script><![CDATA[
+
+    this._prototype.make_tree_from_node = function(node)
+    {
+      flexo.listen(node.ownerDocument, "@refresh", (function(e) {
+          var component = e.instance.component;
+          var li = component.__li;
+          if (li) {
+            var parent = li.parentNode;
+            var ref = li.nextSibling;
+            parent.removeChild(li);
+            parent.insertBefore(this.li_for_node(component), ref);
+          }
+        }).bind(this));
+      this.views.ul.appendChild(this.li_for_node(node));
+    };
+
+    this._prototype.li_for_node = function(node)
+    {
+      if (node.nodeType === 1) {
+        var li = this.component.$("html:li.elem",
+          this.component.$("html:span.tag", node.localName));
+        [].forEach.call(node.attributes, function(attr) {
+            if (!/^xmlns:?/.test(attr.name)) {
+              li.appendChild(this.component.ownerDocument.createTextNode(" "));
+              li.appendChild(this.component.$("html:span.attr", attr.name));
+              li.appendChild(this.component.ownerDocument.createTextNode("="));
+              li.appendChild(this.component.$("html:span.attr-value",
+                attr.value));
+            }
+          }, this);
+        var ul = li.appendChild(this.component.$("html:ul"));
+        [].forEach.call(node.childNodes, function(ch) {
+            var new_li = this.li_for_node(ch);
+            if (new_li) ul.appendChild(new_li);
+          }, this);
+        if (ul.childNodes.length === 0) li.removeChild(ul);
+        node.__li = li;
+        return li;
+      } else if ((node.nodeType === 3 || node.nodeType === 4) &&
+        /\S/.test(node.textContent)) {
+        return this.component.$("html:li.text", node.textContent);
+      }
+    };
+
+  ]]></script>
+
+</component>

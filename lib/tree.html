@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Bender tree view</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      body {
+        font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+        padding: 0;
+        margin: 0;
+      }
+      .app { padding: 4px 8px; }
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script>
+
+      var load = function()
+      {
+        if (this.uses.app) {
+          this.uses.tree.make_tree_from_node(this.uses.app.component);
+        }
+      };
+
+      var args = flexo.get_args();
+      args.id = "app";
+      var context = bender.create_context(document.body);
+      if (args.href) {
+        var use = context.$("use", args);
+        context.appendChild(
+          context.$("component",
+            context.$("view",
+              context.$("use", { href: "tree.xml", id: "tree" }),
+              context.$("html:div.app",
+                context.$("use", args))),
+              context.$("watch",
+                context.$get({ use: "$self", event: "@rendered" }, load))));
+        context.appendChild(context.$("use", { q: "component" }));
+      }
+
+    </script>
+  </body>
+</html>

@@ -50,6 +50,7 @@
     context._refreshed_instance = function(instance)
     {
       flexo.remove_from_array(render_queue, instance);
+      flexo.notify(this, "@refresh", { instance: instance });
     };
     context._refresh_instance = function(instance)
     {
@@ -255,8 +256,7 @@
               // Render content: record the top-level target for this content,
               // the <content> node itself to fetch its attributes, the target
               // instance (since we may switch instances to record ids inside
-              // this node) and the parent content (TODO we don't use this at
-              // the moment, but we should?)
+              // this node) and the parent content
               content = { target: dest, node: ch, instance: this,
                 parent: content };
               if (this.use.childNodes.length > 0) {
@@ -295,16 +295,21 @@
             d.setAttribute(attr.localName, attr.value);
           }
         }, this);
-      if (content && dest === content.target) {
-        [].forEach.call(content.node.attributes, function(attr) {
-            if (attr.name === "id") return;
-            if (attr.name === "content-id") {
-              content.instance.views[attr.value.trim()] = d;
-            } else {
-              d.setAttribute(attr.name, attr.value);
-            }
-          });
-      }
+      var content_id = function(content) {
+        if (content && dest === content.target) {
+          flexo.log("content: node=", content.node, "parent=", content.parent);
+          content_id(content.parent);
+          [].forEach.call(content.node.attributes, function(attr) {
+              if (attr.name === "id") return;
+              if (attr.name === "content-id") {
+                content.instance.views[attr.value.trim()] = d;
+              } else {
+                d.setAttribute(attr.name, attr.value);
+              }
+            });
+        }
+      };
+      content_id(content);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
