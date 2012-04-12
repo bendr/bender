@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp"
-  xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:b="http://bender.igel.co.jp/b"
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Bender tree visualizer</title>
 
@@ -29,6 +29,8 @@
           font-family: monospace;
           white-space: pre;
         }
+        .bender_tree .disclosure { cursor: default; }
+        .bender_tree .__collapsed { display: none; }
       </html:style>
     </target>
     <html:ul id="ul" class="bender_tree"/>
@@ -38,71 +40,60 @@
 
     this._prototype.make_tree = function(instance)
     {
-      flexo.listen(instance.use.ownerDocument, "@refresh", (function(e) {
-          var component = e.instance.component;
-          var li = component.__li;
-          if (li) {
-            var parent = li.parentNode;
-            var ref = li.nextSibling;
-            parent.removeChild(li);
-            parent.insertBefore(this.li_for_node(component), ref);
-          }
-        }).bind(this));
       var ul = this.component.querySelector("ul");
-      ul.appendChild(this.li_for_node(instance.use));
-      ul.appendChild(this.li_for_node(instance.component));
+      /*flexo.listen(instance.use.ownerDocument, "@refresh", (function(e) {
+          var component = e.instance.component;
+          var use = component.__use;
+          if (use) {
+            var parent = use.parentNode;
+            var ref = use.nextSibling;
+            parent.removeChild(use);
+            parent.insertBefore(this.use_for_node(component), ref);
+          }
+          }).bind(this));*/
+      ul.appendChild(this.use_for_node(instance.use));
+      ul.appendChild(this.use_for_node(instance.component));
     };
 
-    this._prototype.li_for_node = function(node)
+    this._prototype.use_for_node = function(node)
     {
       if (node.nodeType === 1) {
-        /*
-        var li = this.component.$("html:li.elem",
-          this.component.$("html:span.tag{0}"
-            .fmt(node.namespaceURI === flexo.XHTML_NS ? ".html" :
-              node.namespaceURI === flexo.SVG_NS ? ".svg" : ""),
-            node.localName));
+        // New element
+        var use = this.component.$("use", { ref: "elem",
+          "e:tag": node.localName, "e:ns": node.namespaceURI });
+        // Attributes (skip namespace declarations)
         [].forEach.call(node.attributes, function(attr) {
             if (!/^xmlns:?/.test(attr.name)) {
-              li.appendChild(this.component.ownerDocument.createTextNode(" "));
-              li.appendChild(this.component.$("html:span.attr{0}"
-                .fmt(attr.namspaceURI === flexo.XHTML_NS ? ".html" :
-                  attr.namespaceURI === flexo.SVG_NS ? ".svg" :
-                  attr.namespaceURI === flexo.XLINK_NS ? ".xlink" :
-                  attr.namespaceURI === bender.NS_B ? ".bender" :
-                  attr.namespaceURI === bender.NS_E ? ".bender" :
-                  attr.namespaceURI === bender.NS_F ? ".bender" :
-                  attr.namespaceURI === bender.NS_J ? ".bender" :
-                  attr.namespaceURI ? ".foreign" : ""),
-                  attr.name));
-              li.appendChild(this.component.ownerDocument.createTextNode("="));
-              li.appendChild(this.component.$("html:span.attr-value",
-                attr.value));
+              use.appendChild(this.component.$("use", { ref: "attr",
+                "e:ns": attr.namespaceURI, "e:name": attr.name,
+                "e:value": attr.value }));
             }
           }, this);
-        var ul = li.appendChild(this.component.$("html:ul"));
+        // Child nodes (text and elements)
+        var ul = use.appendChild(this.component.$("html:ul"));
         [].forEach.call(node.childNodes, function(ch) {
-            var new_li = this.li_for_node(ch);
-            if (new_li) ul.appendChild(new_li);
+            var li = this.use_for_node(ch);
+            if (li) ul.appendChild(li);
           }, this);
-        if (ul.childNodes.length === 0) li.removeChild(ul);
-        node.__li = li;
-        return li;
-        */
-        return this.component.$("use", { ref: "elem", "e:tag": node.localName,
-          "e:ns": node.namespaceURI });
+        if (ul.childNodes.length === 0) use.removeChild(ul);
+        node.__use = use;
+        return use;
       } else if ((node.nodeType === 3 || node.nodeType === 4) &&
         /\S/.test(node.textContent)) {
-        return this.component.$("html:li.text", node.textContent);
+        // Non-whitespace text node
+        // TODO keep whitespace when necessary
+        return this.component.$("use", { ref: "text" }, node.textContent);
       }
     };
 
   ]]></script>
 
-  <component id="elem">
+  <component id="elem" b:expanded="true">
     <view>
-      <html:li>
-        <html:span id="tag" class="tag"/>
+      <html:li id="li">
+        <html:span id="disclosure" class="disclosure"/><html:span id="tag"
+          class="tag"/>
+        <content/>
       </html:li>
     </view>
     <watch>
@@ -120,6 +111,61 @@
         }
       </get>
     </watch>
+    <watch>
+      <get property="expanded">
+        var ul = this.views.li.querySelector("ul");
+        if (ul) {
+          flexo.set_class_iff(ul, "__collapsed", !value);
+          return value;
+        }
+      </get>
+      <set view="disclosure">
+        return value === true ? "▾ " : value === false ? "▸ " : "";
+      </set>
+    </watch>
+    <watch>
+      <get view="disclosure" event="click"/>
+      <set property="expanded">return !this.properties.expanded;</set>
+    </watch>
+  </component>
+
+  <component id="attr">
+    <view>
+      <html:span class="attr">
+        <html:span class="attr-name" id="name"/>=<html:span class="attr-value"
+          id="value"/>
+      </html:span>
+    </view>
+    <watch>
+      <get property="ns">
+        if (value === flexo.XHTML_NS) {
+          flexo.add_class(this.views.name, "html");
+        } else if (value === flexo.SVG_NS) {
+          flexo.add_class(this.views.name, "svg");
+        } else if (value === flexo.XLINK_NS) {
+          flexo.add_class(this.views.name, "xlink");
+        } else if (value === bender.NS_B || value === bender.NS_E ||
+          value === bender.NS_F || value === bender.NS_J) {
+          flexo.add_class(this.views.name, "bender");
+        } else if (value) {
+          flexo.add_class(this.views.name, "foreign");
+        }
+      </get>
+    </watch>
+    <watch>
+      <get property="name"/>
+      <set view="name"/>
+    </watch>
+    <watch>
+      <get property="value"/>
+      <set view="value"/>
+    </watch>
+  </component>
+
+  <component id="text">
+    <view>
+      <html:li class="text"><content/></html:li>
+    </view>
   </component>
 
 </component>

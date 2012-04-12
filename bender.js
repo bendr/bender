@@ -282,8 +282,8 @@
     // render_children() above.
     render_foreign: function(node, dest, ref, content)
     {
-      var d = dest.ownerDocument.createElementNS(node.namespaceURI,
-          node.localName);
+      var d = wrap_element(dest.ownerDocument.createElementNS(node.namespaceURI,
+          node.localName));
       [].forEach.call(node.attributes, function(attr) {
           if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
@@ -1221,6 +1221,7 @@
       if (!e.hasOwnProperty(p)) e[p] = prototypes[""][p];
     }
     if (e._init) e._init();
+    e.__wrapped = true;
     return e;
   }
 
