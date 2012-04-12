@@ -205,7 +205,7 @@
     refresh_component_instance: function()
     {
       this.component.ownerDocument._refreshed_instance(this);
-      this.unrender();
+      var last = this.unrender();
       this.component.__instance = this;
       if (flexo.root(this.use) !== this.use.ownerDocument) return;
       if (this.use.__placeholder) {
@@ -215,11 +215,11 @@
         this.views.$document = this.target.ownerDocument;
         this.pending = 0;
         this.component._uses.forEach(function(u) {
-            this.render_use(u, this.target, this.use.__placeholder);
+            this.render_use(u, this.target, this.use.__placeholder || last);
           }, this);
         if (this.component._view) {
           this.render_children(this.component._view, this.target,
-              this.use.__placeholder);
+              this.use.__placeholder || last);
         }
         flexo.safe_remove(this.use.__placeholder);
         delete this.use.__placeholder;
@@ -391,17 +391,23 @@
       delete this.component.__instance;
     },
 
+    // Unrender this instance, returning the next sibling of the last of the
+    // rendered node (if any) so that re-rendering will happen at the right
+    // place.
     unrender: function()
     {
+      var ref = this.rendered[this.rendered.length - 1] &&
+        this.rendered[this.rendered.length - 1].nextSibling;
       this.rendered.forEach(function(r) {
-        if (r instanceof Node) {
-          r.parentNode.removeChild(r);
-        } else {
-          flexo.remove_from_array(r.component._instances, r);
-          r.unrender();
-        }
-      }, this);
+          if (r instanceof Node) {
+            r.parentNode.removeChild(r);
+          } else {
+            flexo.remove_from_array(r.component._instances, r);
+            r.unrender();
+          }
+        }, this);
       this.rendered = [];
+      return ref;
     },
 
     update_title: function()

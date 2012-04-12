@@ -8,7 +8,6 @@
       <html:style>
         .bender_tree {
           border-bottom: dashed thin black;
-          border-top: dashed thin black;
           padding-bottom: 8px;
           background-color: white;
           margin-top: 0;
