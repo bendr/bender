@@ -7,15 +7,16 @@
     <target q="head" once="true">
       <html:style>
         .bender_tree {
-          border-bottom: dashed thin black;
-          padding-bottom: 8px;
           background-color: white;
+          border-bottom: dashed thin black;
           margin-top: 0;
+          padding-bottom: 8px;
           padding-top: 8px;
         }
         .bender_tree, .bender_tree ul {
           list-style-type: none;
-          padding-left: 16px; }
+          padding-left: 16px;
+        }
         .bender_tree span.tag { font-weight: bold; }
         .bender_tree .html { color: #f80; }
         .bender_tree .svg { color: #f08; }
@@ -49,7 +50,7 @@
             parent.removeChild(use);
             parent.insertBefore(this.use_for_node(component), ref);
           }
-          }).bind(this));*/
+        }).bind(this));*/
       ul.appendChild(this.use_for_node(instance.use));
       ul.appendChild(this.use_for_node(instance.component));
     };
