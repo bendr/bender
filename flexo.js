@@ -221,6 +221,7 @@ Function.prototype.get_thunk = function() { return [this, arguments]; };
     }
     var args = defaults || {};
     argstr.split("&").forEach(function(q) {
+        if (!q) return;
         var sep = q.indexOf("=");
         args[q.substr(0, sep)] = decodeURIComponent(q.substr(sep + 1));
       });

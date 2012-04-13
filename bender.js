@@ -174,6 +174,7 @@
       this.component._instances.push(this);
       this.uses.$self = this;
       this.uses.$parent = parent;
+      this.uses.$context = use.ownerDocument;
       return this;
     },
 
@@ -490,12 +491,14 @@
     // Utility function to create listener functions for get elements
     make_listener: function(get, target)
     {
+      var enabled = true;
       var active = false;
       var that = this;
       return function(value, prev)
       {
-        if (that.enabled && !active) {
+        if (that.enabled && !active && enabled) {
           active = true;
+          enabled = !get._once;
           var watch = that.component_instance.watch;
           that.component_instance.watch = that;
           var prev_get = that.get;
@@ -877,6 +880,8 @@
         if (name === "event" || name === "property" ||
             name === "use" || name === "view") {
           this["_" + name] = value.trim();
+        } else if (name === "once") {
+          this._once = flexo.is_true(value);
         }
       },
 

@@ -25,7 +25,7 @@
         .bender_tree .bender { color: #08f; }
         .bender_tree span.attr { font-style: italic; }
         .bender_tree span.attr-value { font-family: monospace; }
-        .bender_tree li.text {
+        .bender_tree li.text div {
           font-family: monospace;
           white-space: pre;
         }
@@ -33,60 +33,10 @@
         .bender_tree .__collapsed { display: none; }
       </html:style>
     </target>
-    <html:ul id="ul" class="bender_tree"/>
+    <html:ul id="ul" class="bender_tree">
+      <content/>
+    </html:ul>
   </view>
-
-  <script><![CDATA[
-
-    this._prototype.make_tree = function(instance)
-    {
-      var ul = this.component.querySelector("ul");
-      /*flexo.listen(instance.use.ownerDocument, "@refresh", (function(e) {
-          var component = e.instance.component;
-          var use = component.__use;
-          if (use) {
-            var parent = use.parentNode;
-            var ref = use.nextSibling;
-            parent.removeChild(use);
-            parent.insertBefore(this.use_for_node(component), ref);
-          }
-        }).bind(this));*/
-      ul.appendChild(this.use_for_node(instance.use));
-      ul.appendChild(this.use_for_node(instance.component));
-    };
-
-    this._prototype.use_for_node = function(node)
-    {
-      if (node.nodeType === 1) {
-        // New element
-        var use = this.component.$("use", { ref: "elem",
-          "e:tag": node.localName, "e:ns": node.namespaceURI });
-        // Attributes (skip namespace declarations)
-        [].forEach.call(node.attributes, function(attr) {
-            if (!/^xmlns:?/.test(attr.name)) {
-              use.appendChild(this.component.$("use", { ref: "attr",
-                "e:ns": attr.namespaceURI, "e:name": attr.name,
-                "e:value": attr.value }));
-            }
-          }, this);
-        // Child nodes (text and elements)
-        var ul = use.appendChild(this.component.$("html:ul"));
-        [].forEach.call(node.childNodes, function(ch) {
-            var li = this.use_for_node(ch);
-            if (li) ul.appendChild(li);
-          }, this);
-        if (ul.childNodes.length === 0) use.removeChild(ul);
-        node.__use = use;
-        return use;
-      } else if ((node.nodeType === 3 || node.nodeType === 4) &&
-        /\S/.test(node.textContent)) {
-        // Non-whitespace text node
-        // TODO keep whitespace when necessary
-        return this.component.$("use", { ref: "text" }, node.textContent);
-      }
-    };
-
-  ]]></script>
 
   <component id="elem" b:expanded="true">
     <view>
@@ -162,10 +112,38 @@
     </watch>
   </component>
 
-  <component id="text">
+  <component id="text" b:editable="false">
     <view>
-      <html:li class="text"><content/></html:li>
+      <html:li class="text">
+        <html:div id="text"><content/></html:div>
+        <html:textarea id="input"/>
+      </html:li>
     </view>
+    <watch>
+      <get view="text" event="click"/>
+      <set view="input" property="value">
+        return this.views.text.textContent
+      </set>
+      <set property="editable">return true;</set>
+    </watch>
+    <watch>
+      <get view="input" event="blur"/>
+      <set property="editable">return false;</set>
+    </watch>
+    <watch>
+      <get view="input" event="change"/>
+      <set view="text">
+        this.use.__node.parentNode._textContent(this.views.input.value);
+        return this.views.input.value
+      </set>
+    </watch>
+    <watch>
+      <get property="editable">
+        flexo.set_class_iff(this.views.text, "__collapsed", value);
+        flexo.set_class_iff(this.views.input, "__collapsed", !value);
+        if (value) this.views.input.focus();
+      </get>
+    </watch>
   </component>
 
 </component>
