@@ -16,8 +16,6 @@
   };
 
   // Create a Bender context for the given target (host document by default.)
-  // Elements created in this context will be extended with the Bender
-  // prototypes.
   bender.create_context = function(target)
   {
     if (!target) target = document;
@@ -150,6 +148,7 @@
   // <script> element.
   var component_instance =
   {
+
     // Initialize the instance from a <use> element given a <component>
     // description node.
     init: function(use, parent, target)
@@ -738,6 +737,7 @@
         this._instances = [];   // instances of this component
         this._properties = {};  // properties map
         this._uses = [];        // use children (outside of a view)
+        this._ids = {};         // all "local" ids
         this._uri = "";
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },

@@ -27,8 +27,7 @@
         args.q = "app";
         context.appendChild(context.$("app",
           context.$("title", "Untitled Bender App"),
-          context.$("view",
-            context.$("html:p", "Hello, World!"))));
+          context.$("view")));
       }
       context.appendChild(context.$("use", args));
       context.appendChild(context.$("watch",
@@ -38,9 +37,16 @@
           })));
       context.appendChild(context.$("watch",
         context.$get({ use: "$context", event: "@refresh" }, function(e) {
-            var n = e.instance.component.__tree_node;
-            if (n) {
-              flexo.log("refresh:", n);
+            var component = e.instance.component;
+            var node = component.__tree_node;
+            if (node && node.parentNode && !component.__refresh) {
+              flexo.log("refresh:", node);
+              component.__refresh = true;
+              var parent = node.parentNode;
+              var ref = node.nextSibling;
+              parent.removeChild(node);
+              parent.insertBefore(tree_node(component), ref);
+              component.__refresh = false;
             }
           })));
 

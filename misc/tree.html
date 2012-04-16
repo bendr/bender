@@ -1,69 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Bender application launcher</title>
+    <title>Tree editor prototype</title>
     <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
     <style>
-      body { font-family: "Helvetica Neue", Helvetica, sans-serif; }
-      #bender { background-color: #08f; color: white }
-      #bender2 { background-color: #8f0; }
-      #bender3 { background-color: #f08; color: white }
-      .strong { font-weight: bold; }
-
-      .bender-button { display: inline-block; cursor: default; color: black;
-        padding: .3em .5em; background-color:#ddd; -moz-border-radius: 6px;
-        -webkit-border-radius: 6px; border-radius: 6px;
-        box-shadow: 0px 1px 0px #ccc; text-shadow: 0px 1px 0px #fff; }
-      .bender-button.__disabled, .bender-button.__down { opacity: 0.5; }
-      .bender-naked .bender-button { padding: 0; border: none;
-        background-color: transparent; text-shadow: 0px 0px 0px; }
-
+      body {
+        font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .app { padding: 4px 8px; }
+      .__refreshed { background-color: #ff0; }
+      .bender_tree {
+        background-color: white;
+        border-bottom: dashed thin black;
+        margin-top: 0;
+        padding-bottom: 8px;
+        padding-top: 8px;
+      }
+      .bender_tree, .bender_tree ul {
+        list-style-type: none;
+        padding-left: 16px;
+      }
+      .bender_tree div.elem { display: inline-block; }
+      .bender_tree div.actions { display: none; }
+      .bender_tree div.actions span {
+        margin-left: 1em;
+        padding: 2px 4px;
+        background-color: #ddd;
+        border-radius: 4px;
+        cursor: default;
+      }
+      .bender_tree span.delete {
+        background-color: #ff4040 !important;
+        color: white;
+      }
+      .bender_tree span.tag {
+        cursor: default;
+        font-weight: bold;
+      }
+      .bender_tree .html { color: #f80; }
+      .bender_tree .svg { color: #f08; }
+      .bender_tree .xlink { color: #f88; }
+      .bender_tree .foreign { color: #f00; }
+      .bender_tree .bender { color: #08f; }
+      .bender_tree span.attr { font-style: italic; }
+      .bender_tree span.attr-value { font-family: Menlo, Consolas, monospace; }
+      .bender_tree li.text div.text {
+        font-family: Menlo, Consolas, monospace;
+        font-size: smaller;
+        white-space: pre;
+        cursor: default;
+      }
+      .bender_tree li.text textarea { display: none; }
+      .bender_tree .disclosure { cursor: default; }
+      .bender_tree .__collapsed { display: none; }
+      .bender_tree .__selected { background-color: #ff0; }
+      .bender_tree .__selected span.tag { display: none; }
+      .bender_tree .__selected span.tag.fixed { display: inline-block; }
+      .bender_tree .__selected div.actions { display: inline-block; }
+      .bender_tree li.text.__selected div.text { display: none; }
+      .bender_tree li.text.__selected textarea { display: inline-block; }
     </style>
-    <script src="../core/flexo.js"></script>
-    <script src="../core/bender.js"></script>
+    <script src="../flexo.js"></script>
   </head>
   <body>
-    <p>Bender application launcher</p>
-    <div id="bender"></div>
-    <div id="bender2"></div>
-    <div id="bender3"></div>
+    <ul class="bender_tree"/>
     <script>
 
-      bender.DEBUG_LEVEL = 1;
-      var context = bender.create_context();
-      var app = context.createElement("app");
-      context.documentElement.appendChild(app);
-      var title = context.createElement("title");
-      title.textContent = "Welcome to Bender!";
-      app.appendChild(title);
-      var view = context.createElement("view");
-      app.appendChild(view);
-      view.appendChild(flexo.html("p", { id: "p" }, "Welcome to Bender!"));
-      var p = flexo.html("p");
-      view.appendChild(p);
+      var selection = null;
+      var tree = document.implementation.createDocument("", "context", null);
+      var context = document.querySelector(".bender_tree")
+        .appendChild(create_element(tree.documentElement));
+      var app_e = tree.createElement("app");
+      var app = add_child(context, tree.documentElement, app_e);
+      var title_e = tree.createElement("title");
+      var title = add_child(app, app_e, title_e);
+      var title_text = add_text(title, title_e, "Untitled Bender application");
+      add_child(app, app_e, tree.createElement("view"));
+      title_text.selected = true;
 
+      function select(li)
+      {
+        if (selection && selection !== li) selection.selected = false;
+        selection = li;
+      }
 
-      var button = context.createElement("component");
-      button.setAttribute("id", "button");
-      app.appendChild(button);
-      var view_ = context.createElement("view");
-      button.appendChild(view_);
-      var content = context.createElement("content");
-      content.textContent = "OK?";
-      view_.appendChild(flexo.html("div", { "class": "bender-button" },
-        [content]));
+      document.addEventListener("click", function() { select(null); }, false);
 
-      var c = context.createElement("component");
-      c.setAttribute("ref", "button");
-      c.textContent = "Thanks";
-      p.appendChild(c);
-      //view.update_view();
+      function add_child(li, element, e)
+      {
+        if (!e) e = tree.createElement("default");
+        var ch = element.appendChild(e);
+        var ch_li = create_element(ch);
+        li.insert_before(ch_li);
+        ch_li.selected = true;
+        return ch_li;
+      }
 
-      app.instantiate().render(document.getElementById("bender"), true);
-      //app.instantiate().render(document.getElementById("bender2"));
+      function insert_sibling(li, element)
+      {
+        var ch = element.parentNode.insertBefore(tree.createElement("default"),
+          element);
+        var ch_li = create_element(ch);
+        li.parentNode.parentNode.insert_before(ch_li, li);
+        ch_li.selected = true;
+        return ch_li;
+      }
 
-      content.set_text_content("OK!");
-      //console.log(context.documentElement);
+      function add_text(li, element, text)
+      {
+        var ch = element.parentNode.appendChild(tree
+          .createTextNode(text || "New text content"));
+        var ch_li = create_text(ch);
+        li.insert_before(ch_li);
+        ch_li.selected = true;
+        return ch_li;
+      }
+
+      function create_text(element)
+      {
+        var div = flexo.ez_elem("div.text", element.textContent);
+        var textarea = flexo.ez_elem("textarea", { autofocus: true });
+        var del = flexo.ez_elem("span.delete", "-delete");
+        var actions = flexo.ez_elem("div.actions", del);
+        del.addEventListener("click", function(e) {
+            element.parentNode.removeChild(element);
+            li.parentNode.removeChild(li);
+            e.stopPropagation();
+          }, false);
+        var li = flexo.ez_elem("li.text", div, textarea, actions);
+        var selected = false;
+        flexo.getter_setter(li, "selected", function() { return selected; },
+          function(p) {
+            if (p) {
+              select(li);
+              textarea.value = element.textContent;
+            }
+            selected = p;
+            flexo.set_class_iff(li, "__selected", selected);
+          });
+        div.addEventListener("click", function(e) {
+            li.selected = true;
+            e.stopPropagation();
+          }, false);
+        textarea.addEventListener("click", function(e) { e.stopPropagation(); },
+          false);
+        textarea.addEventListener("focus", function(e) { textarea.select(); },
+          false);
+        textarea.addEventListener("change", function(e) {
+            div.textContent =
+            element.textContent = textarea.value;
+          }, false);
+        return li;
+      }
+
+      function create_element(element)
+      {
+        var li = flexo.ez_elem("li");
+        var ul = null;
+        li.insert_before = function(ch, ref)
+        {
+          if (!ul) {
+            ul = flexo.ez_elem("ul");
+            li.appendChild(ul);
+          }
+          ul.insertBefore(ch, ref);
+        };
+        var disclosure = flexo.ez_elem("span.disclosure");
+        var collapsed;
+        flexo.getter_setter(li, "collapsed", function() { return collapsed; },
+          function(p) {
+            collapsed = p;
+            disclosure.textContent = collapsed ? "▸" : "▾";
+            if (ul) flexo.set_class_iff(ul, "__collapsed", collapsed);
+          });
+        li.collapsed = false;
+        disclosure.addEventListener("click", function() {
+            li.collapsed = !collapsed;
+          }, false);
+        var tag = flexo.ez_elem("span.tag", element.localName);
+        var actions = flexo.ez_elem("div.actions");
+        var child = flexo.ez_elem("span", "+child");
+        actions.appendChild(child);
+        child.addEventListener("click", function(e) {
+            add_child(li, element);
+            e.stopPropagation();
+          }, false);
+        if (element.parentElement) {
+          var tagname = flexo.ez_elem("input",
+            { type: "text", autofocus: true });
+          actions.insertBefore(tagname, child);
+          tagname.addEventListener("click", function(e) { e.stopPropagation(); },
+            false);
+          tagname.addEventListener("focus", function(e) { tagname.select(); },
+            false);
+          tagname.addEventListener("change", function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              var n = element.ownerDocument.createElement(tagname.value.trim());
+              element.parentNode.replaceChild(n, element);
+              element = n;
+              tag.textContent = n.localName;
+              // TODO deal with attributes
+              [].forEach.call(element.childNodes, function(ch) {
+                  element.removeChild(ch);
+                  n.appendChild(ch);
+                });
+            }, false);
+          var sibling = flexo.ez_elem("span", "+sibling");
+          sibling.addEventListener("click", function(e) {
+              insert_sibling(li, element);
+              e.stopPropagation();
+            }, false);
+          actions.appendChild(sibling);
+          var text = flexo.ez_elem("span", "+text");
+          actions.appendChild(text);
+          text.addEventListener("click", function(e) {
+              add_text(li, element);
+              e.stopPropagation();
+            }, false);
+          var del = flexo.ez_elem("span.delete", "-delete");
+          del.addEventListener("click", function(e) {
+              element.parentNode.removeChild(element);
+              li.parentNode.removeChild(li);
+              e.stopPropagation();
+            }, false);
+          actions.appendChild(del);
+        } else {
+          flexo.add_class(tag, "fixed");
+        }
+        var div = flexo.ez_elem("div.elem", disclosure, " ", tag, actions);
+        var selected = false;
+        flexo.getter_setter(li, "selected", function() { return selected; },
+          function(p) {
+            if (p) {
+              select(li);
+              if (tagname) tagname.value = element.localName;
+            }
+            selected = p;
+            flexo.set_class_iff(div, "__selected", selected);
+          });
+        tag.addEventListener("click", function(e) {
+            li.selected = !selected;
+            e.stopPropagation();
+          }, false);
+        li.appendChild(div);
+        return li;
+      }
 
     </script>
   </body>
