@@ -20,10 +20,8 @@
     <script>
 
       var context = bender.create_context(document.body);
-
-      /*
-      var context = bender.create_context(document.body);
       context.appendChild(context.$("use", { href: "tree.xml", id: "tree" }));
+
       var args = flexo.get_args({ "class": "app" });
       args.id = "app";
       if (!args.href) {
@@ -33,26 +31,24 @@
           context.$("view")));
       }
       context.appendChild(context.$("use", args));
+
       context.appendChild(context.$("watch",
         context.$get({ use: "$self", event: "@rendered" }, function() {
             this.uses.tree.use.appendChild(tree_node(this.uses.app.use));
             this.uses.tree.use.appendChild(tree_node(this.uses.app.component));
           })));
-      context.appendChild(context.$("watch",
-        context.$get({ use: "$context", event: "@refresh" }, function(e) {
-            var component = e.instance.component;
-            var node = component.__tree_node;
-            if (node && node.parentNode && !component.__refresh) {
-              flexo.log("refresh:", node);
-              component.__refresh = true;
-              var parent = node.parentNode;
-              var ref = node.nextSibling;
-              parent.removeChild(node);
-              parent.insertBefore(tree_node(component), ref);
-              component.__refresh = false;
-            }
-          })));
 
+      // Make a use node in the display tree from a node in the app
+      function tree_node(app_node)
+      {
+        var use = context.$("use", { href: "tree.xml#elem" });
+        flexo.listen(use, "@instance", function(e) {
+            e.instance.app_node = app_node;
+          });
+        return use;
+      }
+
+      /*
       function tree_node(node)
       {
         if (node.nodeType === 1) {

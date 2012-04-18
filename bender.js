@@ -1088,6 +1088,7 @@
           Object.create(component._prototype || component_instance)
             .init(this, parent, target);
         if (this._instance.instantiated) this._instance.instantiated();
+        flexo.notify(this, "@instance", { instance: this._instance });
         this._instance.refresh_component_instance();
         return this._instance;
       },

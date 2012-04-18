@@ -46,6 +46,18 @@
         <content/>
       </html:li>
     </view>
+    <script>
+      this._prototype.instantiated = function()
+      {
+        var app_node;
+        flexo.getter_setter(this, "app_node", function() { return app_node; },
+          function(n) {
+            app_node = n;
+            this.properties.ns = app_node.namespaceURI;
+            this.properties.tag = app_node.localName;
+          });
+      };
+    </script>
     <watch>
       <get property="tag"/>
       <set view="tag"/>
