@@ -48,41 +48,6 @@
         return use;
       }
 
-      /*
-      function tree_node(node)
-      {
-        if (node.nodeType === 1) {
-          // New element
-          var use = context.$("use", { href: "tree.xml#elem",
-            "e:tag": node.localName, "e:ns": node.namespaceURI });
-          node.__tree_node = use;
-          // Attributes (skip namespace declarations)
-          [].forEach.call(node.attributes, function(attr) {
-              if (!/^xmlns:?/.test(attr.name)) {
-                use.appendChild(context.$("use", { href: "tree.xml#attr",
-                  "e:ns": attr.namespaceURI, "e:name": attr.name,
-                  "e:value": attr.value }));
-              }
-            });
-          // Child nodes (text and elements)
-          var ul = use.appendChild(context.$("html:ul"));
-          [].forEach.call(node.childNodes, function(ch) {
-              var li = tree_node(ch);
-              if (li) ul.appendChild(li);
-            });
-          if (ul.childNodes.length === 0) use.removeChild(ul);
-          return use;
-        } else if ((node.nodeType === 3 || node.nodeType === 4) &&
-          /\S/.test(node.textContent)) {
-          // Non-whitespace text node
-          // TODO keep whitespace when necessary
-          var use = context.$("use", { href: "tree.xml#text" }, node.textContent);
-          use.__node = node;
-          return use;
-        }
-      };
-      */
-
     </script>
   </body>
 </html>

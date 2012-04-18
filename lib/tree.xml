@@ -13,24 +13,63 @@
           padding-bottom: 8px;
           padding-top: 8px;
         }
+        .bender_tree {
+          background-color: white;
+          border-bottom: dashed thin black;
+          margin-top: 0;
+          padding-bottom: 8px;
+          padding-top: 8px;
+        }
         .bender_tree, .bender_tree ul {
           list-style-type: none;
           padding-left: 16px;
         }
-        .bender_tree span.tag { font-weight: bold; }
+        .bender_tree div.elem { display: inline-block; }
+        .bender_tree div.actions { display: none; }
+        .bender_tree div.actions span {
+          margin-left: 1em;
+          padding: 2px 4px;
+          background-color: #ddd;
+          border-radius: 4px;
+          cursor: default;
+        }
+        .bender_tree span.delete {
+          background-color: #ff4040 !important;
+          color: white;
+        }
+        .bender_tree span.tag {
+          cursor: default;
+          font-weight: bold;
+        }
         .bender_tree .html { color: #f80; }
         .bender_tree .svg { color: #f08; }
         .bender_tree .xlink { color: #f88; }
         .bender_tree .foreign { color: #f00; }
         .bender_tree .bender { color: #08f; }
-        .bender_tree span.attr { font-style: italic; }
-        .bender_tree span.attr-value { font-family: monospace; }
-        .bender_tree li.text div {
-          font-family: monospace;
-          white-space: pre;
+        .bender_tree span.attr { margin-left: 1em; }
+        .bender_tree span.attr-name {
+          font-style: italic;
+          cursor: default;
         }
+        .bender_tree span.attr-value {
+          font-family: Menlo, Consolas, monospace;
+          cursor: default;
+        }
+        .bender_tree li.text div.text {
+          font-family: Menlo, Consolas, monospace;
+          font-size: smaller;
+          white-space: pre;
+          cursor: default;
+        }
+        .bender_tree li.text textarea { display: none; }
         .bender_tree .disclosure { cursor: default; }
         .bender_tree .__collapsed { display: none; }
+        .bender_tree .__selected { background-color: #ff0; }
+        .bender_tree .__selected span.tag { display: none; }
+        .bender_tree .__selected span.tag.fixed { display: inline-block; }
+        .bender_tree .__selected div.actions { display: inline-block; }
+        .bender_tree li.text.__selected div.text { display: none; }
+        .bender_tree li.text.__selected textarea { display: inline-block; }
       </html:style>
     </target>
     <html:ul id="ul" class="bender_tree">
@@ -41,38 +80,66 @@
   <component id="elem" b:expanded="true">
     <view>
       <html:li id="li">
-        <html:span id="disclosure" class="disclosure"/><html:span id="tag"
-          class="tag"/>
+        <html:span id="disclosure" class="disclosure"/><use ref="tag"/>
         <content/>
       </html:li>
     </view>
-    <script>
+    <script><![CDATA[
+
       this._prototype.instantiated = function()
       {
         var app_node;
         flexo.getter_setter(this, "app_node", function() { return app_node; },
           function(n) {
             app_node = n;
-            this.properties.ns = app_node.namespaceURI;
-            this.properties.tag = app_node.localName;
+            flexo.listen(n, "@refresh", (function(e) {
+                flexo.log("~~~ refresh ~~~");
+                this.refresh_node();
+              }).bind(this));
+            this.refresh_node();
           });
       };
-    </script>
-    <watch>
-      <get property="tag"/>
-      <set view="tag"/>
-    </watch>
-    <watch>
-      <get property="ns">
-        if (value === flexo.XHTML_NS) {
-          flexo.add_class(this.views.tag, "html");
-        } else if (value === flexo.SVG_NS) {
-          flexo.add_class(this.views.tag, "svg");
-        } else if (value !== bender.NS) {
-          flexo.add_class(this.views.tag, "foreign");
+
+      this._prototype.refresh_node = function()
+      {
+        this.properties.ns = this.app_node.namespaceURI;
+        this.properties.tag = this.app_node.localName;
+        flexo.remove_children(this.use);
+        // Attributes
+        [].forEach.call(this.app_node.attributes, function(attr) {
+            if (!/^xmlns:?/.test(attr.name)) {
+              this.use.appendChild(this.use.$("use",
+                { href: "tree.xml#attr", "e:ns": attr.namespaceURI,
+                  "e:name": attr.name, "e:value": attr.value }));
+            }
+          }, this);
+        // Child nodes (text and elements)
+        var ul = this.use.$("html:ul");
+        [].forEach.call(this.app_node.childNodes, function(ch) {
+            var li;
+            if (ch.nodeType === 1) {
+              li = this.use.$("use", { href: "tree.xml#elem" });
+            } else if (ch.nodeType === 3 || ch.nodeType === 4 &&
+              /\S/.test(ch.textContent)) {
+              // Non-whitespace text node
+              // TODO keep whitespace when necessary
+              li = this.use.$("use", { href: "tree.xml#text" },
+                ch.textContent);
+            }
+            if (li) {
+              flexo.listen(li, "@instance", function(e) {
+                  e.instance.app_node = ch;
+                });
+              ul.appendChild(li);
+            }
+          }, this);
+        if (ul.childNodes.length > 0) {
+          this.use.appendChild(ul);
+          this.children = ul;
         }
-      </get>
-    </watch>
+      };
+
+    ]]></script>
     <watch>
       <get property="expanded">
         var ul = this.views.li.querySelector("ul");
@@ -88,6 +155,27 @@
     <watch>
       <get view="disclosure" event="click"/>
       <set property="expanded">return !this.properties.expanded;</set>
+    </watch>
+  </component>
+
+  <component id="tag">
+    <view>
+      <html:span id="tag" class="tag"/>
+    </view>
+    <watch>
+      <get use="$parent" property="tag"/>
+      <set view="tag"/>
+    </watch>
+    <watch>
+      <get use="$parent" property="ns">
+        if (value === flexo.XHTML_NS) {
+          flexo.add_class(this.views.tag, "html");
+        } else if (value === flexo.SVG_NS) {
+          flexo.add_class(this.views.tag, "svg");
+        } else if (value !== bender.NS) {
+          flexo.add_class(this.views.tag, "foreign");
+        }
+      </get>
     </watch>
   </component>
 
@@ -127,7 +215,7 @@
   <component id="text" b:editable="false">
     <view>
       <html:li class="text">
-        <html:div id="text"><content/></html:div>
+        <html:div id="text" class="text"><content/></html:div>
         <html:textarea id="input"/>
       </html:li>
     </view>
