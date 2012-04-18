@@ -48,7 +48,7 @@
     context._refreshed_instance = function(instance)
     {
       flexo.remove_from_array(render_queue, instance);
-      flexo.notify(this, "@refresh", { instance: instance });
+      flexo.notify(this, "@refreshed", { instance: instance });
     };
     context._refresh_instance = function(instance)
     {
@@ -639,6 +639,19 @@
         this._refresh();
       },
 
+      removeAttribute: function(name, value)
+      {
+        Object.getPrototypeOf(this).removeAttribute.call(this, name, value);
+        this._refresh();
+      },
+
+      removeAttributeNS: function(ns, name, value)
+      {
+        Object.getPrototypeOf(this).removeAttributeNS.call(this, ns, name,
+            value);
+        this._refresh();
+      },
+
       _textContent: function(t)
       {
         this.textContent = t;
@@ -711,15 +724,19 @@
         }
       },
 
+      // The node was modified (a child was added or removed, text content
+      // changed, or an attribute was set.) Instances of the component that the
+      // node is part of (if any) will be scheduled for refresh. A @refresh
+      // event is sent.
       _refresh: function()
       {
-        // if (!parent) parent = this.parentNode;
         var component = component_of(this);
         if (component) {
           component._instances.forEach(function(i) {
               component.ownerDocument._refresh_instance(i);
             });
         }
+        flexo.notify(this, "@refresh");
       },
 
       _serialize: function()
