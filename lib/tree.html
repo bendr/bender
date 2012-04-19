@@ -32,10 +32,24 @@
       }
       context.appendChild(context.$("use", args));
 
+      var init = false;
+
       context.appendChild(context.$("watch",
-        context.$get({ use: "$self", event: "@rendered" }, function() {
-            this.uses.tree.use.appendChild(tree_node(this.uses.app.use));
-            this.uses.tree.use.appendChild(tree_node(this.uses.app.component));
+        context.$get({ use: "$self", event: "@rendered" },
+          function() {
+            if (!init) {
+              init = true;
+              var n = context.ownerDocument._clone_node(this.uses.tree
+                .component._components["text-span"], { text: "name" });
+              n.setAttribute("id", "name-span");
+              this.uses.tree.component.appendChild(n);
+              var v = context.ownerDocument._clone_node(this.uses.tree
+                .component._components["text-span"], { text: "value" });
+              v.setAttribute("id", "value-span");
+              this.uses.tree.component.appendChild(v);
+              this.uses.tree.use.appendChild(tree_node(this.uses.app.use));
+              this.uses.tree.use.appendChild(tree_node(this.uses.app.component));
+            }
           })));
 
       // Make a use node in the display tree from a node in the app

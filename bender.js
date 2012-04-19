@@ -1,19 +1,15 @@
 (function(bender)
 {
+  "use strict";
+
   bender.NS = "http://bender.igel.co.jp";      // Bender namespace
   bender.NS_B = "http://bender.igel.co.jp/b";  // Boolean properties namespace
   bender.NS_E = "http://bender.igel.co.jp/e";  // Properties namespace
   bender.NS_F = "http://bender.igel.co.jp/f";  // Float properties namespace
   bender.NS_J = "http://bender.igel.co.jp/j";  // JSON properties namespace
+  bender.NS_P = "http://bender.igel.co.jp/p";  // Component parameter namespace
 
   bender.VERSION = "0.5.1";
-
-  //bender.die = true;
-  bender.warn = function()
-  {
-    flexo.log.apply(this, arguments);
-    if (bender.die) throw "Died :(";
-  };
 
   // Create a Bender context for the given target (host document by default.)
   bender.create_context = function(target)
@@ -271,7 +267,8 @@
             this.render_foreign(ch, dest, ref, content);
           }
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
-          var d = dest.ownerDocument.createTextNode(ch.textContent);
+          var d =
+            dest.ownerDocument.createTextNode(this.unparam(ch.textContent));
           dest.insertBefore(d, ref);
           if (dest === this.target) this.rendered.push(d);
         }
@@ -285,25 +282,27 @@
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
       [].forEach.call(node.attributes, function(attr) {
+          var val = this.unparam(attr.value);
           if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
-            this.views[attr.value.trim()] = d;
+            this.views[val.trim()] = d;
           } else if (attr.namespaceURI &&
             attr.namespaceURI !== node.namespaceURI) {
-            d.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
+            d.setAttributeNS(attr.namespaceURI, attr.localName, val);
           } else {
-            d.setAttribute(attr.localName, attr.value);
+            d.setAttribute(attr.localName, val);
           }
         }, this);
       var content_id = function(content) {
         if (content && dest === content.target) {
           content_id(content.parent);
           [].forEach.call(content.node.attributes, function(attr) {
+              var val = this.unparam(attr.value);
               if (attr.name === "id") return;
               if (attr.name === "content-id") {
-                content.instance.views[attr.value.trim()] = d;
+                content.instance.views[val.trim()] = d;
               } else {
-                d.setAttribute(attr.name, attr.value);
+                d.setAttribute(attr.name, val);
               }
             });
         }
@@ -317,7 +316,7 @@
                 attr.namespaceURI === bender.NS_E ||
                 attr.namespaceURI === bender.NS_F ||
                 attr.namespaceURI === bender.NS_J)) {
-              d.setAttribute(attr.name, attr.value);
+              d.setAttribute(attr.name, this.unparam(attr.value));
             }
           }, this);
         this.rendered.push(d);
@@ -353,7 +352,7 @@
         this.rendered.push(use._instance);
         if (use._id) this.uses[use._id] = use._instance;
       } else {
-        bender.warn("rendered_use: no instance for", use);
+        console.warn("rendered_use: no instance for", use);
       }
     },
 
@@ -389,6 +388,22 @@
         this.uses.$parent.render_watches();
       }
       delete this.component.__instance;
+    },
+
+    // Return the input string with the parameters replace. Warn when no
+    // suitable parameter was found.
+    unparam: function(t)
+    {
+      if (t) {
+        return t.replace(/\{(\w+)\}/g, (function(_, p) {
+            var param = this.use._params.hasOwnProperty(p) ?
+              this.use._params[p] : this.component._params[p];
+            if (param === undefined) {
+              console.warn("No value for param {0}".fmt(p));
+            }
+            return param;
+          }).bind(this));
+      }
     },
 
     // Unrender this instance, returning the next sibling of the last of the
@@ -466,7 +481,7 @@
           if (set._view) {
             var target = this.component_instance.views[set._view];
             if (!target) {
-              bender.warn("No view for \"{0}\" in".fmt(set._view), set);
+              console.warn("No view for \"{0}\" in".fmt(set._view), set);
             } else {
               if (set._attr) {
                 target.setAttribute(set._attr, val);
@@ -479,7 +494,7 @@
               this.component_instance
                 .find_instance_with_property(set._property);
             if (!target) {
-              bender.warn("(got) No use for \"{0}\" in".fmt(set._property), set);
+              console.warn("(got) No use for \"{0}\" in".fmt(set._property), set);
             } else if (val !== undefined) {
               target.properties[set._property] = val;
             }
@@ -533,25 +548,28 @@
           var active = false;
           var that = this;
           if (get._event) {
+            var _event = this.component_instance.unparam(get._event);
             if (get._view) {
               // DOM event
-              var target = this.component_instance.views[get._view];
+              var _view = this.component_instance.unparam(get._view);
+              var target = this.component_instance.views[_view];
               if (!target) {
-                bender.warn("render_watch_instance: No view for \"{0}\" in"
+                console.warn("render_watch_instance: No view for \"{0}\" in"
                   .fmt(get._view), get);
               } else {
                 var listener = this.make_listener(get, target);
-                target.addEventListener(get._event, listener, false);
+                target.addEventListener(_event, listener, false);
                 this.ungets.push(function() {
-                    target.removeEventListener(get._event, listener, false);
+                    target.removeEventListener(_event, listener, false);
                   });
               }
             } else if (get._use) {
+              var _use = this.component_instance.unparam(get._use);
               // Custom event
-              var target = this.component_instance.uses[get._use];
+              var target = this.component_instance.uses[_use];
               if (!target) {
-                bender.warn("(render get/use) No use for \"{0}\" in"
-                  .fmt(get._use), get);
+                console.warn("(render get/use) No use for \"{0}\" in"
+                  .fmt(_use), get);
               } else {
                 var listener = this.make_listener(get, target);
                 flexo.listen(target, get._event, listener);
@@ -561,20 +579,22 @@
               }
             }
           } else if (get._property) {
+            var _use = this.component_instance.unparam(get._use);
+            var _property = this.component_instance.unparam(get._property);
             // Property change
-            var target = get._use ? this.component_instance.uses[get._use] :
+            var target = _use ? this.component_instance.uses[_use] :
               this.component_instance
-                .find_instance_with_property(get._property);
+                .find_instance_with_property(_property);
             if (!target) {
-              bender.warn("(render get/property) No use for \"{0}\""
-                  .fmt(get._property));
+              console.warn("(render get/property) No use for \"{0}\""
+                  .fmt(_property));
             } else {
               var h = this.make_listener(get, target);
               h._watch = this;
-              target.watch_property(get._property, h);
-              this.gets.push(function() { h(target.property(get._property)); });
+              target.watch_property(_property, h);
+              this.gets.push(function() { h(target.property(_property)); });
               this.ungets.push(function() {
-                  target.unwatch_property(get._property, h);
+                  target.unwatch_property(_property, h);
                 });
             }
           }
@@ -683,7 +703,7 @@
               (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "") +
               classes.join(" ");
           }
-          for (a in attrs) {
+          for (var a in attrs) {
             if (attrs.hasOwnProperty(a) &&
                 attrs[a] !== undefined && attrs[a] !== null) {
               var split = a.split(":");
@@ -707,7 +727,8 @@
         }
       },
 
-      _parse_property: function(ns, name, value)
+      // Parse a property definition (b, e, f, j) or a parameter (p)
+      _parse_property_or_param: function(ns, name, value)
       {
         if (ns === bender.NS_B) {
           this._properties[name] = value.trim().toLowerCase() === "true";
@@ -721,6 +742,8 @@
           } catch (_) {
             this._properties[name] = null;
           }
+        } else if (ns === bender.NS_P) {
+          this._params[name] = value;
         }
       },
 
@@ -752,6 +775,7 @@
         this._components = {};  // child components
         this._watches = [];     // child watches
         this._instances = [];   // instances of this component
+        this._params = {};      // parameters map
         this._properties = {};  // properties map
         this._uses = [];        // use children (outside of a view)
         this._ids = {};         // all "local" ids
@@ -831,7 +855,7 @@
       // TODO support xml:id?
       setAttributeNS: function(ns, name, value)
       {
-        this._parse_property(ns, name, value);
+        this._parse_property_or_param(ns, name, value);
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
@@ -1014,6 +1038,7 @@
     {
       _init: function()
       {
+        this._params = {};
         this._properties = {};
       },
 
@@ -1031,7 +1056,7 @@
 
       setAttributeNS: function(ns, name, value)
       {
-        this._parse_property(ns, name, value);
+        this._parse_property_or_param(ns, name, value);
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
@@ -1077,7 +1102,7 @@
         } else if (component) {
           return this._render_component(component, target, parent);
         } else {
-          bender.warn("use._render: No component for", this);
+          console.warn("use._render: No component for", this);
         }
       },
 

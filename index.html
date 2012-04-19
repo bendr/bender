@@ -457,6 +457,17 @@
               </ul>
             </div>
 
+            <p>In addition to properties, components may have
+            <em>parameters</em>. A parameter differs from a property in that
+            parameters are solved at instantiation time and are static, as
+            opposed to properties which are dynamic and solved at runtime. The
+            role of parameters is to allow the customization of some component
+            attributes or text content. Parameters are introduced by using curly
+            braces <code>{}</code> in text or attribute values (tag and
+            attribute names are not parametrizable.) <span class="TODO">Default
+            values on <code>component</code> elements, override in
+            <code>use</code> elements, <code>p</code> namespace.</span>
+
             <p>The <code class="elem">script</code> element contains custom
             Javascript code. This code is executed when the element is added to
             its parent component element <em>and</em> its text content is set
@@ -894,6 +905,11 @@ context.appendChild(context.$("use", { href: ... }));</pre>
           the instance!)</li>
           <li><a href="lib/run.html?href=../tests/watch-once.xml">Watch an event
             only once</a></li>
+          <li><a href="lib/run.html?href=../tests/hello-p.xml">Hello world!</a>
+          with p:aram</li>
+          <li><a
+            href="file:///Users/julien/bender/master/lib/params.html?href=../tests/text-span.xml">Parametrized
+            component</a></li>
         </ol>
       </section>
 

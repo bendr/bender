@@ -70,6 +70,9 @@
         .bender_tree .__selected div.actions { display: inline-block; }
         .bender_tree li.text.__selected div.text { display: none; }
         .bender_tree li.text.__selected textarea { display: inline-block; }
+
+
+        .bender_tree .__editable .text-input { display: none; }
       </html:style>
     </target>
     <html:ul id="ul" class="bender_tree">
@@ -80,7 +83,8 @@
   <component id="elem" b:expanded="true">
     <view>
       <html:li id="li">
-        <html:span id="disclosure" class="disclosure"/><use ref="tag"/>
+        <html:span id="disclosure" class="disclosure"/>
+        <use ref="name-span" id="tag"/>
         <content/>
       </html:li>
     </view>
@@ -103,7 +107,7 @@
       this._prototype.refresh_node = function()
       {
         this.properties.ns = this.app_node.namespaceURI;
-        this.properties.tag = this.app_node.localName;
+        this.properties.name = this.app_node.localName;
         flexo.remove_children(this.use);
         // Attributes
         [].forEach.call(this.app_node.attributes, function(attr) {
@@ -158,58 +162,61 @@
     </watch>
   </component>
 
-  <component id="tag">
+  <!-- Prototype for name-span and value-span -->
+  <component id="text-span" b:editable="false">
     <view>
-      <html:span id="tag" class="tag"/>
+      <html:div>
+
+          CLASS STUFF HERE
+
+        <html:span id="span" class="text-span"/>
+        <html:input type="text" id="input" class="text-input"/>
+      </html:div>
     </view>
     <watch>
-      <get use="$parent" property="tag"/>
-      <set view="tag"/>
+      <get use="$parent" property="{text}"/>
+      <set view="span"/>
+      <set view="input" property="value"/>
     </watch>
     <watch>
       <get use="$parent" property="ns">
         if (value === flexo.XHTML_NS) {
-          flexo.add_class(this.views.tag, "html");
+          flexo.add_class(this.views.span, "html");
         } else if (value === flexo.SVG_NS) {
-          flexo.add_class(this.views.tag, "svg");
-        } else if (value !== bender.NS) {
-          flexo.add_class(this.views.tag, "foreign");
+          flexo.add_class(this.views.span, "svg");
+        } else if (value === flexo.XLINK_NS) {
+          flexo.add_class(this.views.span, "xlink");
+        } else if (value === bender.NS || value === bender.NS_B ||
+          value === bender.NS_E || value === bender.NS_F ||
+          value === bender.NS_J) {
+          flexo.add_class(this.views.span, "bender");
+        } else if (value) {
+          flexo.add_class(this.views.span, "foreign");
         }
       </get>
+    </watch>
+    <watch>
+      <get use="$self" property="editable">
+        flexo.set_class_iff(this.views.span, "__editable", value);
+      </get>
+    </watch>
+    <watch>
+      <get view="span" event="click"/>
+      <set use="$self" property="editable">return true;</set>
+    </watch>
+    <watch>
+      <get view="input" event="change"/>
+      <set use="$parent" property="{text}">return value.target.value;</set>
     </watch>
   </component>
 
   <component id="attr">
     <view>
       <html:span class="attr">
-        <html:span class="attr-name" id="name"/>=<html:span class="attr-value"
-          id="value"/>
+        <use ref="name-span" id="name" class="attr-name"/> =
+        <use ref="value-span" id="value" class="attr-value"/>
       </html:span>
     </view>
-    <watch>
-      <get property="ns">
-        if (value === flexo.XHTML_NS) {
-          flexo.add_class(this.views.name, "html");
-        } else if (value === flexo.SVG_NS) {
-          flexo.add_class(this.views.name, "svg");
-        } else if (value === flexo.XLINK_NS) {
-          flexo.add_class(this.views.name, "xlink");
-        } else if (value === bender.NS_B || value === bender.NS_E ||
-          value === bender.NS_F || value === bender.NS_J) {
-          flexo.add_class(this.views.name, "bender");
-        } else if (value) {
-          flexo.add_class(this.views.name, "foreign");
-        }
-      </get>
-    </watch>
-    <watch>
-      <get property="name"/>
-      <set view="name"/>
-    </watch>
-    <watch>
-      <get property="value"/>
-      <set view="value"/>
-    </watch>
   </component>
 
   <component id="text" b:editable="false">
@@ -219,6 +226,7 @@
         <html:textarea id="input"/>
       </html:li>
     </view>
+    <!--
     <watch>
       <get view="text" event="click"/>
       <set view="input" property="value">
@@ -226,6 +234,7 @@
       </set>
       <set property="editable">return true;</set>
     </watch>
+    -->
     <watch>
       <get view="input" event="blur"/>
       <set property="editable">return false;</set>

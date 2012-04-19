@@ -1,87 +1,80 @@
 // General purpose Javascript support library; as used by Bender
 
 
-// Simple format function for messages and templates. Use {0}, {1}...
-// as slots for parameters. Missing parameters are replaced with the empty
-// string.
-String.prototype.fmt = function()
-{
-  var args = [].slice.call(arguments);
-  return this.replace(/{(\d+)}/g, function(_, p) {
-      return args[p] === undefined ? "" : args[p];
-    });
-};
+(function () {
+  "use strict";
 
-String.prototype.format = function(params)
-{
-  return this.replace(/{(\w+)}/g, function(str, p) {
-      return params[p] === undefined ? "" : params[p];
-    });
-};
-
-// Wrap a string to fit with the given width
-String.prototype.wrap = function(width)
-{
-  var w = width + 1;
-  return this.trim().split(/\s+/).map(function(word, i) {
-      w -= (word.length + 1);
-      if (w < 0) {
-        w = width - word.length;
-        return (i === 0 ? "" : "\n") + word;
-      } else {
-        return (i === 0 ? "" : " ") + word;
-      }
-    }).join("");
-  return out;
-};
-
-
-// Bind the function f to the object x. Additional arguments can be provided to
-// specialize the bound function.
-if (typeof Function.prototype.bind !== "function") {
-  Function.prototype.bind = function(x)
+  // Simple format function for messages and templates. Use {0}, {1}...
+  // as slots for parameters. Missing parameters are replaced with the empty
+  // string.
+  String.prototype.fmt = function()
   {
-    var f = this;
-    var args = [].slice.call(arguments, 1);
-    return function() { return f.apply(x, [].concat.apply(args, arguments)); };
+    var args = [].slice.call(arguments);
+    return this.replace(/\{(\d+)\}/g, function(_, p) {
+        return args[p] === undefined ? "" : args[p];
+      });
   };
-}
 
-// Shim for forEach since we use it extensively (from MDN)
-if (typeof Array.prototype.forEach !== "function") {
-  Array.prototype.forEach = function(f, self)
+  String.prototype.format = function(params)
   {
-    if (!this) throw new TypeError("Null or undefined array for forEach");
-    if (!self) self = this;
-    var o = Object(this);
-    var n = o.length >>> 0;
-    for (var i = 0; i < n; ++i) {
-      if (i in o) f.call(self, o[i.toString()], i, o);
-    }
+    return this.replace(/\{(\w+)\}/g, function(str, p) {
+        return params[p] === undefined ? "" : params[p];
+      });
   };
-}
+
+  // Wrap a string to fit with the given width
+  String.prototype.wrap = function(width)
+  {
+    var w = width + 1;
+    return this.trim().split(/\s+/).map(function(word, i) {
+        w -= (word.length + 1);
+        if (w < 0) {
+          w = width - word.length;
+          return (i === 0 ? "" : "\n") + word;
+        } else {
+          return (i === 0 ? "" : " ") + word;
+        }
+      }).join("");
+  };
 
 
-// Trampoline calls, adapted from
-// http://github.com/spencertipping/js-in-ten-minutes
+  // Bind the function f to the object x. Additional arguments can be provided
+  // to specialize the bound function.
+  if (typeof Function.prototype.bind !== "function") {
+    Function.prototype.bind = function(x)
+    {
+      var f = this;
+      var args = [].slice.call(arguments, 1);
+      return function() {
+        return f.apply(x, [].concat.apply(args, arguments));
+      };
+    };
+  }
 
-// Use a trampoline to call a function; we expect a thunk to be returned
-// through the get_thunk() function below. Return nothing to step off the
-// trampoline (e.g. to wait for an event before continuing.)
-Function.prototype.trampoline = function()
-{
-  var c = [this, arguments];
-  var esc = arguments[arguments.length - 1];
-  while (c && c[0] !== esc) c = c[0].apply(this, c[1]);
-  if (c) return esc.apply(this, c[1]);
-};
 
-// Return a thunk suitable for the trampoline function above.
-Function.prototype.get_thunk = function() { return [this, arguments]; };
+  // Trampoline calls, adapted from
+  // http://github.com/spencertipping/js-in-ten-minutes
 
+  // Use a trampoline to call a function; we expect a thunk to be returned
+  // through the get_thunk() function below. Return nothing to step off the
+  // trampoline (e.g. to wait for an event before continuing.)
+  Function.prototype.trampoline = function()
+  {
+    var c = [this, arguments];
+    var esc = arguments[arguments.length - 1];
+    while (c && c[0] !== esc) c = c[0].apply(this, c[1]);
+    if (c) return esc.apply(this, c[1]);
+  };
+
+  // Return a thunk suitable for the trampoline function above.
+  Function.prototype.get_thunk = function() { return [this, arguments]; };
+
+}());
 
 (function (flexo)
 {
+  "use strict";
+
   // Useful XML namespaces
   flexo.SVG_NS = "http://www.w3.org/2000/svg";
   flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
