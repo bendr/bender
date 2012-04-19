@@ -1,5 +1,5 @@
-<component xmlns="http://bender.igel.co.jp"
-  xmlns:b="http://bender.igel.co.jp/b"
+<component xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:p="http://bender.igel.co.jp/p"
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Bender tree visualizer</title>
 
@@ -71,8 +71,17 @@
         .bender_tree li.text.__selected div.text { display: none; }
         .bender_tree li.text.__selected textarea { display: inline-block; }
 
+        div.attr-name, div.attr-value { display: inline-block; }
 
-        .bender_tree .__editable .text-input { display: none; }
+        .bender_tree div.tag-name { display: inline-block; }
+        .bender_tree .tag-name span,
+        .bender_tree .attr-name span,
+        .bender_tree .attr-value span { cursor: default; }
+        .bender_tree .tag-name input,
+        .bender_tree .attr-name input,
+        .bender_tree .attr-value input { display: none; }
+        .bender_tree .__editable input { display: inline; }
+        .bender_tree .__editable span { display: none; }
       </html:style>
     </target>
     <html:ul id="ul" class="bender_tree">
@@ -84,7 +93,7 @@
     <view>
       <html:li id="li">
         <html:span id="disclosure" class="disclosure"/>
-        <use ref="name-span" id="tag"/>
+        <use ref="text-span" id="tag" p:text="name" class="tag-name"/>
         <content/>
       </html:li>
     </view>
@@ -162,15 +171,11 @@
     </watch>
   </component>
 
-  <!-- Prototype for name-span and value-span -->
   <component id="text-span" b:editable="false">
     <view>
-      <html:div>
-
-          CLASS STUFF HERE
-
-        <html:span id="span" class="text-span"/>
-        <html:input type="text" id="input" class="text-input"/>
+      <html:div id="div" class="text-span">
+        <html:span id="span"/>
+        <html:input type="text" id="input"/>
       </html:div>
     </view>
     <watch>
@@ -197,7 +202,7 @@
     </watch>
     <watch>
       <get use="$self" property="editable">
-        flexo.set_class_iff(this.views.span, "__editable", value);
+        flexo.set_class_iff(this.views.div, "__editable", value);
       </get>
     </watch>
     <watch>
@@ -207,14 +212,19 @@
     <watch>
       <get view="input" event="change"/>
       <set use="$parent" property="{text}">return value.target.value;</set>
+      <set use="$self" property="editable">return false;</set>
+    </watch>
+    <watch>
+      <get view="input" event="blur"/>
+      <set use="$self" property="editable">return false;</set>
     </watch>
   </component>
 
   <component id="attr">
     <view>
       <html:span class="attr">
-        <use ref="name-span" id="name" class="attr-name"/> =
-        <use ref="value-span" id="value" class="attr-value"/>
+        <use ref="text-span" id="name" class="attr-name" p:text="name"/> =
+        <use ref="text-span" id="value" class="attr-value" p:text="value"/>
       </html:span>
     </view>
   </component>

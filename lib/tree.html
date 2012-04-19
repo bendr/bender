@@ -39,16 +39,9 @@
           function() {
             if (!init) {
               init = true;
-              var n = context.ownerDocument._clone_node(this.uses.tree
-                .component._components["text-span"], { text: "name" });
-              n.setAttribute("id", "name-span");
-              this.uses.tree.component.appendChild(n);
-              var v = context.ownerDocument._clone_node(this.uses.tree
-                .component._components["text-span"], { text: "value" });
-              v.setAttribute("id", "value-span");
-              this.uses.tree.component.appendChild(v);
               this.uses.tree.use.appendChild(tree_node(this.uses.app.use));
-              this.uses.tree.use.appendChild(tree_node(this.uses.app.component));
+              this.uses.tree.use.appendChild(
+                tree_node(this.uses.app.component));
             }
           })));
 
