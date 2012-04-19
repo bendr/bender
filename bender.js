@@ -778,7 +778,6 @@
         this._params = {};      // parameters map
         this._properties = {};  // properties map
         this._uses = [];        // use children (outside of a view)
-        this._ids = {};         // all "local" ids
         this._uri = "";
         flexo.getter_setter(this, "_is_component", function() { return true; });
       },
@@ -865,6 +864,20 @@
           // TODO check for duplicate id
           this._components[component._id] = component;
           this.ownerDocument._add_component(component);
+        }
+      },
+
+      _find_by_id: function(id)
+      {
+        var q = [].slice.call(this.childNodes);
+        while (q.length) {
+          var elem = q.shift();
+          if (elem.nodeType === 1 &&
+              (elem.getAttribute("id") === id ||
+               elem.getAttributeNS(flexo.XML_NS, "id") === id)) {
+            return elem;
+          }
+          [].push.apply(q, elem.childNodes);
         }
       },
     },
