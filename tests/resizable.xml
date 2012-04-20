@@ -1,0 +1,18 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:f="http://bender.igel.co.jp/f" xmlns:e="http://bender.igel.co.jp/e"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <title>Resizable component test</title>
+
+  <view>
+    <target q="head" once="true">
+      <html:style>
+        .r { width: 200px; height: 100px; background-color: #08f; }
+      </html:style>
+    </target>
+    <use href="resizable.xml">
+      <html:div class="r"/>
+    </use>
+  </view>
+
+</app>

@@ -295,19 +295,20 @@
         }, this);
       var content_id = function(content) {
         if (content && dest === content.target) {
-          content_id(content.parent);
+          content_id.call(this, content.parent);
           [].forEach.call(content.node.attributes, function(attr) {
               var val = this.unparam(attr.value);
               if (attr.name === "id") return;
               if (attr.name === "content-id") {
+                flexo.log("Content-id: {0}".fmt(val.trim()), d);
                 content.instance.views[val.trim()] = d;
               } else {
                 d.setAttribute(attr.name, val);
               }
-            });
+            }, this);
         }
       };
-      content_id(content);
+      content_id.call(this, content);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
         [].forEach.call(this.use.attributes, function(attr) {
