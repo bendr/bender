@@ -122,8 +122,8 @@
         [].forEach.call(this.app_node.attributes, function(attr) {
             if (!/^xmlns:?/.test(attr.name)) {
               this.use.appendChild(this.use.$("use",
-                { href: "tree.xml#attr", "e:ns": attr.namespaceURI,
-                  "e:name": attr.name, "e:value": attr.value }));
+                { href: "tree.xml#attr", "bender_e:ns": attr.namespaceURI,
+                  "bender_e:name": attr.name, "bender_e:value": attr.value }));
             }
           }, this);
         // Child nodes (text and elements)

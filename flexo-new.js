@@ -14,13 +14,6 @@
     });
   };
 
-  // Same as above but with named parameters passed as an object
-  String.prototype.format = function (params) {
-    return this.replace(/\{([\w$]+)\}/g, function (s, p) {
-      return params[p] === undefined ? s : params[p];
-    });
-  };
-
   // Useful XML namespaces
   flexo.SVG_NS = "http://www.w3.org/2000/svg";
   flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
@@ -96,9 +89,10 @@
     return Math.max(Math.min(value, max), min);
   };
 
-  // Simpler way to create elements, giving ns id and class directly within the
-  // name of the element (e.g. svg:rect#background.test)
-  flexo.elem = function (name, maybe_attrs) {
+  // Simple way to create elements, giving ns id and class directly within the
+  // name of the element (e.g. svg:rect#background.test) Beware of calling this
+  // function with `this` set to the target document.
+  flexo.create_element = function (name, maybe_attrs) {
     var m, ns, name_, elem, split, classes, a, argc = 1, attrs = {};
     if (typeof maybe_attrs === "object" && !(maybe_attrs instanceof Node)) {
       attrs = maybe_attrs;
@@ -113,9 +107,9 @@
     }
     m = name_.match(/^(?:(\w+):)?([\w.\-]+)(?:#([\w:.\-]+))?$/);
     if (m) {
-      ns = m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())];
-      elem = ns ? document.createElementNS(ns, m[2]) :
-          document.createElement(m[2]);
+      ns = (m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())]) ||
+        this.documentElement.namespaceURI;
+      elem = ns ? this.createElementNS(ns, m[2]) : this.createElement(m[2]);
       if (m[3]) {
         attrs.id = m[3];
       }
@@ -134,14 +128,18 @@
       [].forEach.call(arguments, function (ch, i) {
         if (i >= argc) {
           if (typeof ch === "string") {
-            elem.appendChild(document.createTextNode(ch));
+            elem.appendChild(this.createTextNode(ch));
           } else if (ch instanceof Node) {
             elem.appendChild(ch);
           }
         }
-      });
+      }, this);
       return elem;
     }
+  };
+
+  flexo.elem = function () {
+    return flexo.create_element.apply(document, arguments);
   };
 
   // Get clientX/clientY as an object { x: ..., y: ... } for events that may
@@ -240,9 +238,8 @@
 
   // Remove an item from an array
   flexo.remove_from_array = function (array, item) {
-    var index;
     if (array) {
-      index = array.indexOf(item);
+      var index = array.indexOf(item);
       if (index >= 0) {
         return array.splice(index, 1)[0];
       }
@@ -330,10 +327,7 @@
 
   // Stop listening
   flexo.unlisten = function (target, type, listener) {
-    var i = target[type].indexOf(listener);
-    if (i >= 0) {
-      target[type].splice(i, 1);
-    }
+    flexo.remove_from_array(target[type], listener);
   };
 
 }(typeof exports === "object" ? exports : this.flexo = {}));

@@ -21,24 +21,18 @@
     </html:div>
   </view>
   <script>
+
     var div = this.querySelector("span.contents");
-    var clones = [];
-    this._prototype.add_param = function(type, name, value)
-    {
-      var c = this.component.ownerDocument
-        ._clone_node(this.component._components[type], { name: name });
-      c.setAttribute("id", name);
-      this.component.appendChild(c);
-      clones.push(c);
-      div.appendChild(div.$("use", { ref: name }));
+
+    this._prototype.add_param = function (type, name, value) {
+      div.appendChild(div.$("use", { ref: type, "bender_p:name": name }));
       this.properties[name] = value;
     };
-    this._prototype.clear = function()
-    {
-      clones.forEach(function(c) { c.parentNode.removeChild(c); });
-      clones = [];
+
+    this._prototype.clear = function () {
       flexo.remove_children(div);
     };
+
   </script>
 
   <watch>

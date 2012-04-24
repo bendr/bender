@@ -18,14 +18,15 @@
       // TODO order of definitions
       // TODO also use outside of view in the app
       context.appendChild(
-        context.$("component#timer", { "f:rate": 1000 },
+        context.$("component#timer", { "bender_f:rate": 1000 },
           context.$("script", "timer(this._prototype);")));
 
       context.appendChild(
         context.$("app",
           context.$("title", "Timer"),
           context.$("view",
-            context.$("use", { id: "timer", ref: "timer", "f:rate": 500 }),
+            context.$("use", { id: "timer", ref: "timer",
+              "bender_f:rate": 500 }),
             context.$("html:p", "The time is now: ",
               context.$("html:span#time"))),
           context.$("watch",

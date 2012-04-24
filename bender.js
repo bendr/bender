@@ -1,109 +1,166 @@
+/*global exports, flexo, Element, Node, XMLSerializer */
+/*jslint browser: true, devel: true, evil: true, maxerr: 50, nomen: true, indent: 2 */
+
 (function (bender) {
   "use strict";
 
-  bender.NS = "http://bender.igel.co.jp";      // Bender namespace
-  bender.NS_B = "http://bender.igel.co.jp/b";  // Boolean properties namespace
-  bender.NS_E = "http://bender.igel.co.jp/e";  // Properties namespace
-  bender.NS_F = "http://bender.igel.co.jp/f";  // Float properties namespace
-  bender.NS_J = "http://bender.igel.co.jp/j";  // JSON properties namespace
-  bender.NS_P = "http://bender.igel.co.jp/p";  // Component parameter namespace
+  flexo.BENDER_NS = "http://bender.igel.co.jp";      // Bender namespace
+  flexo.BENDER_B_NS = "http://bender.igel.co.jp/b";  // Boolean properties
+  flexo.BENDER_E_NS = "http://bender.igel.co.jp/e";  // String properties
+  flexo.BENDER_F_NS = "http://bender.igel.co.jp/f";  // Float properties
+  flexo.BENDER_J_NS = "http://bender.igel.co.jp/j";  // JSON properties
+  flexo.BENDER_P_NS = "http://bender.igel.co.jp/p";  // Component parameter
 
   bender.VERSION = "0.5.1";
 
+  var PROTOTYPES, component_instance, watch_instance;
+
+  // The component of a node is itself if it is a component node (or app or
+  // context), or the component of its parent
+  function component_of(node) {
+    return node ? node._is_component ? node : component_of(node.parentNode) :
+        null;
+  }
+
+  // Import a node and its children from a foreign document and add it as a
+  // child of the parent element
+  function import_node(parent, node, uri) {
+    var i, m, n, attr, ch;
+    if (node.nodeType === 1) {
+      n = parent.ownerDocument
+        .createElementNS(node.namespaceURI, node.localName);
+      if (n._is_component) {
+        n._uri = uri;
+      }
+      parent.appendChild(n);
+      for (i = 0, m = node.attributes.length; i < m; i += 1) {
+        attr = node.attributes[i];
+        if (attr.namespaceURI) {
+          if (attr.namespaceURI === flexo.XMLNS_NS &&
+              attr.localName !== "xmlns") {
+            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
+          } else {
+            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+          }
+        } else {
+          n.setAttribute(attr.localName, attr.nodeValue);
+        }
+      }
+      for (ch = node.firstChild; ch; ch = ch.nextSibling) {
+        import_node(n, ch, uri);
+      }
+      return n;
+    }
+    if (node.nodeType === 3 || node.nodeType === 4) {
+      return parent.appendChild(parent.ownerDocument.importNode(node, false));
+    }
+  }
+
+  function normalize_url(base, ref) {
+    var url = flexo.split_uri(flexo.absolute_uri(base, ref)
+      .replace(/%([0-9a-f][0-9a-f])/gi, function (m, n) {
+        n = parseInt(n, 16);
+        return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
+          (n >= 0x30 && n <= 0x39) || n === 0x2d || n === 0x2e ||
+          n === 0x5f || n === 0x7e ? String.fromCharCode(n) : m.toUpperCase();
+      }));
+    if (url.scheme) {
+      url.scheme = url.scheme.toLowerCase();
+    }
+    if (url.authority) {
+      url.authority = url.authority.toLowerCase();
+    }
+    return flexo.unsplit_uri(url);
+  }
+
+  // Create a placeholder node for components to be rendered
+  function placeholder(dest, ref, use) {
+    var p = dest.ownerDocument.createComment(" placeholder ");
+    flexo.safe_remove(use.__placeholder);
+    return dest.insertBefore(p, ref);
+  }
+
+  // Extend an element with Bender methods and call the _init() method on the
+  // node if it exists.
+  function wrap_element(e) {
+    var p, proto = PROTOTYPES[e.localName] || {};
+    for (p in proto) {
+      if (proto.hasOwnProperty(p)) {
+        e[p] = proto[p];
+      }
+    }
+    for (p in PROTOTYPES[""]) {
+      if (PROTOTYPES[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
+        e[p] = PROTOTYPES[""][p];
+      }
+    }
+    e._init();
+    return e;
+  }
+
   // Create a Bender context for the given target (host document by default.)
-  bender.create_context = function(target)
-  {
-    if (!target) target = document;
-    var doc = target.ownerDocument || target;
-    var context = doc.implementation.createDocument(bender.NS, "bender", null);
+  bender.create_context = function (target) {
+    var doc, context, render_queue, timeout, flushing, flush_queue, component,
+      loaded, components;
+    if (!target) {
+      target = document;
+    }
+    doc = target.ownerDocument || target;
+    context =
+      doc.implementation.createDocument(flexo.BENDER_NS, "bender", null);
 
     // Wrap all new elements
-    context.createElement = function(name)
-    {
+    context.createElement = function (name) {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
-        .call(this, bender.NS, name));
+        .call(this, flexo.BENDER_NS, name));
     };
-    context.createElementNS = function(ns, qname)
-    {
+    context.createElementNS = function (ns, qname) {
       return wrap_element(Object.getPrototypeOf(this).createElementNS
         .call(this, ns, qname));
     };
 
     // Manage the render queue specific to this context
-    var render_queue = [];
-    var timeout = null;
-    var flushing = false;
-    var flush_queue = function()
-    {
+    render_queue = [];
+    timeout = null;
+    flushing = false;
+    flush_queue = function () {
       flushing = true;
-      while (render_queue[0]) render_queue[0].refresh_component_instance();
+      while (render_queue[0]) {
+        render_queue[0].refresh_component_instance();
+      }
       timeout = null;
       flushing = false;
     };
-    context._refreshed_instance = function(instance)
-    {
+    context._refreshed_instance = function (instance) {
       flexo.remove_from_array(render_queue, instance);
       flexo.notify(this, "@refreshed", { instance: instance });
     };
-    context._refresh_instance = function(instance)
-    {
-      if (flushing) return;
-      if (render_queue.indexOf(instance) >= 0) return;
+    context._refresh_instance = function (instance) {
+      if (flushing || render_queue.indexOf(instance) >= 0) {
+        return;
+      }
       render_queue.push(instance);
-      if (!timeout) timeout = setTimeout(flush_queue, 0);
+      if (!timeout) {
+        timeout = setTimeout(flush_queue, 0);
+      }
     };
 
     // Create a root context element and initiate rendering
-    var component = context.createElement("context");
+    component = context.createElement("context");
     context.documentElement.appendChild(component);
     component._insert_use.call(context.documentElement, { q: "context" },
         target);
 
-    var loaded = {};      // loaded URIs
-    var components = {};  // known components by URI/id
+    loaded = {};      // loaded URIs
+    components = {};  // known components by URI/id
     loaded[normalize_url(doc.baseURI, "")] = component;
 
     // Keep track of uri/id pairs to find components with the href attribute
-    context._add_component = function(component)
-    {
-      var uri = normalize_url(doc.baseURI,
-          component._uri + "#" + component._id);
+    context._add_component = function (component) {
+      var uri =
+        normalize_url(doc.baseURI, component._uri + "#" + component._id);
       components[uri] = component;
     };
-
-    // Create a deep clone of the given node with parameters for text/attributes
-    context._clone_node = function(prototype, params)
-    {
-      var doc = this;
-      var clone_node = function(node)
-      {
-        if (node.nodeType === 1) {
-          var n = doc.createElementNS(node.namespaceURI, node.localName);
-          for (var i = 0, m = node.attributes.length; i < m; ++i) {
-            var attr = node.attributes[i];
-            var value = attr.value.format(params);
-            if (attr.namespaceURI) {
-              if (attr.namespaceURI === flexo.XMLNS_NS &&
-                  attr.localName !== "xmlns") {
-                n.setAttribute("xmlns:{0}".fmt(attr.localName), value);
-              } else {
-                n.setAttributeNS(attr.namespaceURI, attr.localName, value);
-              }
-            } else {
-              n.setAttribute(attr.localName, value);
-            }
-          }
-          for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-            n.appendChild(clone_node(ch));
-          }
-          return n;
-        } else if (node.nodeType === 3 || node.nodeType === 4) {
-          return doc.createTextNode(node.textContent.format(params));
-        }
-      };
-      var clone = clone_node(prototype);
-      return clone;
-    },
 
     // Request for a component to be loaded. If the component was already
     // loaded, return the component node, otherwise return the normalized URL
@@ -111,29 +168,30 @@
     // has finished with a url parameter corresponding to the returned URL and
     // the loaded component; an "@error" event will be sent with the same URL
     // parameter in case of error.
-    context._load_component = function(url, use)
-    {
-      var split = url.split("#");
-      var locator = normalize_url(doc.baseURI, split[0]);
-      var id = split[1];
+    context._load_component = function (url) {
+      var split, locator, id, r;
+      split = url.split("#");
+      locator = normalize_url(doc.baseURI, split[0]);
+      id = split[1];
       if (typeof loaded[locator] === "object") {
-        return id ? components[locator + "#" + id] : loaded[locator];
+        r = id ? components[locator + "#" + id] : loaded[locator];
       } else {
         if (!loaded[locator]) {
           loaded[locator] = true;
-          flexo.ez_xhr(locator, { responseType: "document" }, function(req) {
-              if (!req.response) {
-                flexo.notify(context, "@error", { url: locator });
-              } else {
-                loaded[locator] = import_node(component,
-                  req.response.documentElement, locator);
-                flexo.notify(context, "@loaded",
-                  { component: loaded[locator], url: locator });
-              }
-            });
+          flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
+            if (!req.response) {
+              flexo.notify(context, "@error", { url: locator });
+            } else {
+              loaded[locator] =
+                import_node(component, req.response.documentElement, locator);
+              flexo.notify(context, "@loaded",
+                { component: loaded[locator], url: locator });
+            }
+          });
         }
-        return locator;
+        r = locator;
       }
+      return r;
     };
 
     return component;
@@ -141,13 +199,11 @@
 
   // Prototype for a component instance. Prototypes may be extended through the
   // <script> element.
-  var component_instance =
-  {
+  component_instance = {
 
     // Initialize the instance from a <use> element given a <component>
     // description node.
-    init: function(use, parent, target)
-    {
+    init: function (use, parent, target) {
       this.use = use;
       this.component = this.use._component;
       this.target = target;
@@ -157,14 +213,14 @@
       this.watchers = [];    // instances that have watches on this instance
       this.properties = {};  // watchable properties
       this.watched = {};     // watched properties
-      Object.keys(this.component._properties).forEach(function(k) {
-          if (!use._properties.hasOwnProperty(k)) {
-            this.properties[k] = this.component._properties[k];
-          }
-        }, this);
-      Object.keys(use._properties).forEach(function(k) {
-          this.properties[k] = use._properties[k];
-        }, this);
+      Object.keys(this.component._properties).forEach(function (k) {
+        if (!use._properties.hasOwnProperty(k)) {
+          this.properties[k] = this.component._properties[k];
+        }
+      }, this);
+      Object.keys(use._properties).forEach(function (k) {
+        this.properties[k] = use._properties[k];
+      }, this);
       this.component._instances.push(this);
       this.uses.$self = this;
       this.uses.$parent = parent;
@@ -174,44 +230,48 @@
 
     // Find the value of a property in scope
     // Create a new property on the top-level instance if not found
-    find_instance_with_property: function(name)
-    {
-      if (this.properties.hasOwnProperty(name)) return this;
-      if (this.uses.$parent) {
-        return this.uses.$parent.find_instance_with_property(name);
-      } else {
-        this.properties[name] = undefined;
+    find_instance_with_property: function (name) {
+      if (this.properties.hasOwnProperty(name)) {
         return this;
       }
+      if (this.uses.$parent) {
+        return this.uses.$parent.find_instance_with_property(name);
+      }
+      this.properties[name] = undefined;
+      return this;
     },
 
     // Get or set a property in self or nearest ancestor
-    property: function(name, value)
-    {
+    property: function (name, value) {
       var instance = this.find_instance_with_property(name);
       if (value) {
-        if (!instance) instance = this;
+        if (!instance) {
+          instance = this;
+        }
         instance.properties[name] = value;
       }
-      if (instance) return instance.properties[name];
+      if (instance) {
+        return instance.properties[name];
+      }
     },
 
     // Unrender, then render the view when the target is an Element.
-    refresh_component_instance: function()
-    {
+    refresh_component_instance: function () {
       this.component.ownerDocument._refreshed_instance(this);
       var last = this.unrender();
       this.component.__instance = this;
-      if (flexo.root(this.use) !== this.use.ownerDocument) return;
+      if (flexo.root(this.use) !== this.use.ownerDocument) {
+        return;
+      }
       if (this.use.__placeholder) {
         this.target = this.use.__placeholder.parentNode;
       }
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
         this.pending = 0;
-        this.component._uses.forEach(function(u) {
-            this.render_use(u, this.target, this.use.__placeholder || last);
-          }, this);
+        this.component._uses.forEach(function (u) {
+          this.render_use(u, this.target, this.use.__placeholder || last);
+        }, this);
         if (this.component._view) {
           this.render_children(this.component._view, this.target,
               this.use.__placeholder || last);
@@ -219,7 +279,9 @@
         flexo.safe_remove(this.use.__placeholder);
         delete this.use.__placeholder;
         this.update_title();
-        if (this.pending === 0) this.render_watches();
+        if (this.pending === 0) {
+          this.render_watches();
+        }
       }
     },
 
@@ -230,11 +292,11 @@
     // asynchronously.) `content`, if defined, is an object containing
     // information about the closest <content> element ancestor in the Bender
     // tree so that its attributes may be copied to destination nodes.
-    render_children: function(node, dest, ref, content)
-    {
-      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
+    render_children: function (node, dest, ref, content) {
+      var ch, component, d;
+      for (ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
-          if (ch.namespaceURI === bender.NS) {
+          if (ch.namespaceURI === flexo.BENDER_NS) {
             if (ch.localName === "use") {
               this.render_use(ch, dest, ref, content);
             } else if (ch.localName === "target") {
@@ -255,7 +317,7 @@
               content = { target: dest, node: ch, instance: this,
                 parent: content };
               if (this.use.childNodes.length > 0) {
-                var component = component_of(this.use);
+                component = component_of(this.use);
                 component.__instance.render_children(this.use, dest, ref,
                     content);
               } else {
@@ -266,123 +328,135 @@
             this.render_foreign(ch, dest, ref, content);
           }
         } else if (ch.nodeType === 3 || ch.nodeType === 4) {
-          var d =
-            dest.ownerDocument.createTextNode(this.unparam(ch.textContent));
+          d = dest.ownerDocument.createTextNode(this.unparam(ch.textContent));
           dest.insertBefore(d, ref);
-          if (dest === this.target) this.rendered.push(d);
+          if (dest === this.target) {
+            this.rendered.push(d);
+          }
         }
       }
     },
 
     // Render foreign nodes within a view; arguments are the same as
     // render_children() above.
-    render_foreign: function(node, dest, ref, content)
-    {
-      var d = dest.ownerDocument.createElementNS(node.namespaceURI,
-          node.localName);
-      [].forEach.call(node.attributes, function(attr) {
-          var val = this.unparam(attr.value);
-          if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
+    render_foreign: function (node, dest, ref, content) {
+      var content_id,
+        d = dest.ownerDocument.createElementNS(node.namespaceURI, node.localName);
+      [].forEach.call(node.attributes, function (attr) {
+        var val = this.unparam(attr.value);
+        if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
-            this.views[val.trim()] = d;
-          } else if (attr.namespaceURI &&
+          this.views[val.trim()] = d;
+        } else if (attr.namespaceURI &&
             attr.namespaceURI !== node.namespaceURI) {
-            d.setAttributeNS(attr.namespaceURI, attr.localName, val);
-          } else {
-            d.setAttribute(attr.localName, val);
-          }
-        }, this);
-      var content_id = function(content) {
+          d.setAttributeNS(attr.namespaceURI, attr.localName, val);
+        } else {
+          d.setAttribute(attr.localName, val);
+        }
+      }, this);
+      content_id = function (content) {
         if (content && dest === content.target) {
           content_id.call(this.uses.$parent, content.parent);
-          [].forEach.call(content.node.attributes, function(attr) {
-              var val = this.unparam(attr.value);
-              if (attr.name === "id") return;
-              if (attr.name === "content-id") {
-                console.log("Content-id: {0}".fmt(val.trim()), d);
-                content.instance.views[val.trim()] = d;
-              } else {
-                d.setAttribute(attr.name, val);
-              }
-            }, this);
+          [].forEach.call(content.node.attributes, function (attr) {
+            var val = this.unparam(attr.value);
+            if (attr.name === "id") {
+              return;
+            }
+            if (attr.name === "content-id") {
+              console.log("Content-id: {0}".fmt(val.trim()), d);
+              content.instance.views[val.trim()] = d;
+            } else {
+              d.setAttribute(attr.name, val);
+            }
+          }, this);
         }
       };
       content_id.call(this, content);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
-        [].forEach.call(this.use.attributes, function(attr) {
-            if (!(this.use._attributes.hasOwnProperty(attr.localName) ||
-                attr.namespaceURI === bender.NS_B ||
-                attr.namespaceURI === bender.NS_E ||
-                attr.namespaceURI === bender.NS_F ||
-                attr.namespaceURI === bender.NS_J)) {
-              d.setAttribute(attr.name, this.unparam(attr.value));
-            }
-          }, this);
+        [].forEach.call(this.use.attributes, function (attr) {
+          if (!(this.use._attributes.hasOwnProperty(attr.localName) ||
+              attr.namespaceURI === flexo.BENDER_B_NS ||
+              attr.namespaceURI === flexo.BENDER_E_NS ||
+              attr.namespaceURI === flexo.BENDER_F_NS ||
+              attr.namespaceURI === flexo.BENDER_J_NS)) {
+            d.setAttribute(attr.name, this.unparam(attr.value));
+          }
+        }, this);
         this.rendered.push(d);
       }
       this.render_children(node, d);
     },
 
     // Render a use node (TODO can we safely ignore `content`?)
-    render_use: function(use, dest, ref)
-    {
+    render_use: function (use, dest, ref) {
       use.__placeholder = placeholder(dest, ref, use);
       if (use.__pending) {
-        ++this.pending;
+        this.pending += 1;
         return;
       }
       var instance = use._render(dest, this);
       if (instance === true) {
         this.__pending = true;
-        ++this.pending;
-        flexo.listen(use, "@loaded", (function() {
-            delete use.__pending;
-            this.rendered_use(use);
-            if (--this.pending === 0) this.render_watches();
-          }).bind(this));
+        this.pending += 1;
+        flexo.listen(use, "@loaded", function () {
+          delete use.__pending;
+          this.rendered_use(use);
+          this.pending -= 1;
+          if (this.pending === 0) {
+            this.render_watches();
+          }
+        }.bind(this));
       } else if (instance) {
         this.rendered_use(use);
       }
     },
 
-    rendered_use: function(use)
-    {
+    rendered_use: function (use) {
       if (use._instance) {
         this.rendered.push(use._instance);
-        if (use._id) this.uses[use._id] = use._instance;
+        if (use._id) {
+          this.uses[use._id] = use._instance;
+        }
       } else {
         console.warn("rendered_use: no instance for", use);
       }
     },
 
-    render_watches: function()
-    {
-      var pending = function(instance) {
+    render_watches: function () {
+      var instances, pending = function (instance) {
+        var i, n;
         // TODO improve this
         // The point is that we should not render watches before any of the
         // instances down the tree are done rendering themselves
-        if (!instance.rendered) return false;
-        var p = false;
-        for (var i = 0, n = instance.rendered.length; i < n; ++i) {
-          if (instance.rendered[i].pending > 0) return true;
+        if (!instance.rendered) {
+          return false;
         }
-        for (var i = 0, n = instance.rendered.length; i < n; ++i) {
-          if (pending(instance.rendered[i])) return true;
+        for (i = 0, n = instance.rendered.length; i < n; i += 1) {
+          if (instance.rendered[i].pending > 0) {
+            return true;
+          }
+        }
+        for (i = 0; i < n; i += 1) {
+          if (pending(instance.rendered[i])) {
+            return true;
+          }
         }
         return false;
-      }
+      };
       this.__pending_watches = pending(this);
-      if (this.__pending_watches) return;
+      if (this.__pending_watches) {
+        return;
+      }
       delete this.__pending_watches;
-      var instances = [];
-      this.component._watches.forEach(function(watch) {
-          var instance = Object.create(watch_instance).init(watch, this);
-          instance.render_watch_instance();
-          this.rendered.push(instance);
-          instances.push(instance);
-        }, this);
-      instances.forEach(function(instance) { instance.pull_gets(); });
+      instances = [];
+      this.component._watches.forEach(function (watch) {
+        var instance = Object.create(watch_instance).init(watch, this);
+        instance.render_watch_instance();
+        this.rendered.push(instance);
+        instances.push(instance);
+      }, this);
+      instances.forEach(function (instance) { instance.pull_gets(); });
       flexo.notify(this, "@rendered");
       if (this.uses.$parent && this.uses.$parent.__pending_watches) {
         this.uses.$parent.render_watches();
@@ -392,78 +466,73 @@
 
     // Return the input string with the parameters replace. Warn when no
     // suitable parameter was found.
-    unparam: function(t)
-    {
+    unparam: function (t) {
       if (t) {
-        return t.replace(/\{(\w+)\}/g, (function(_, p) {
-            var param = this.use._params.hasOwnProperty(p) ?
+        return t.replace(/\{(\w+)\}/g, function (s, p) {
+          var param = this.use._params.hasOwnProperty(p) ?
               this.use._params[p] : this.component._params[p];
-            if (param === undefined) {
-              console.warn("No value for param {0}".fmt(p));
-            }
-            return param;
-          }).bind(this));
+          if (param === undefined) {
+            console.warn("No value for param {0}".fmt(p));
+            param = s;
+          }
+          return param;
+        }.bind(this));
       }
     },
 
     // Unrender this instance, returning the next sibling of the last of the
     // rendered node (if any) so that re-rendering will happen at the right
     // place.
-    unrender: function()
-    {
+    unrender: function () {
       var ref = this.rendered[this.rendered.length - 1] &&
         this.rendered[this.rendered.length - 1].nextSibling;
-      this.rendered.forEach(function(r) {
-          if (r instanceof Node) {
-            r.parentNode.removeChild(r);
-          } else {
-            flexo.remove_from_array(r.component._instances, r);
-            r.unrender();
-          }
-        }, this);
+      this.rendered.forEach(function (r) {
+        if (r instanceof Node) {
+          r.parentNode.removeChild(r);
+        } else {
+          flexo.remove_from_array(r.component._instances, r);
+          r.unrender();
+        }
+      }, this);
       this.rendered = [];
       return ref;
     },
 
-    update_title: function()
-    {
+    update_title: function () {
       if (this.target instanceof Element &&
           this.component.localName === "app" && this.component._title) {
         this.target.ownerDocument.title = this.component._title.textContent;
       }
     },
 
-    watch_property: function(property, handler)
-    {
+    watch_property: function (property, handler) {
       if (!(this.watched.hasOwnProperty(property))) {
+        var p = this.properties[property], that = this;
         this.watched[property] = [];
-        var p = this.properties[property];
-        var that = this;
-        flexo.getter_setter(this.properties, property, function() { return p; },
-            function(p_) {
-              var prev = p;
-              p = p_;
-              that.watched[property].slice().forEach(function(h) {
-                  h.call(that, p, prev);
-                });
+        flexo.getter_setter(this.properties, property,
+          function () { return p; },
+          function (p_) {
+            var prev = p;
+            p = p_;
+            that.watched[property].slice().forEach(function (h) {
+              h.call(that, p, prev);
             });
+          });
       }
       this.watched[property].push(handler);
     },
 
-    unwatch_property: function(property, handler)
-    {
+    unwatch_property: function (property, handler) {
       flexo.remove_from_array(this.watched[property], handler);
       if (this.watched[property] && this.watched[property].length === 0) {
         delete this.watched[property];
       }
-    },
+    }
   };
 
-  var watch_instance =
-  {
-    init: function(watch, component_instance)
-    {
+  watch_instance = {
+
+    init: function (watch, component_instance) {
       this.watch = watch;
       this.component_instance = component_instance;
       this.component = this.component_instance.component;
@@ -473,51 +542,47 @@
       return this;
     },
 
-    got: function(value)
-    {
-      this.watch._sets.forEach(function(set) {
-          var val = set._action ?
+    got: function (value) {
+      this.watch._sets.forEach(function (set) {
+        var target, val = set._action ?
             set._action.call(this.component_instance, value) : value;
-          if (set._view) {
-            var target = this.component_instance.views[set._view];
-            if (!target) {
-              console.warn("No view for \"{0}\" in".fmt(set._view), set);
+        if (set._view) {
+          target = this.component_instance.views[set._view];
+          if (!target) {
+            console.warn("No view for \"{0}\" in".fmt(set._view), set);
+          } else {
+            if (set._attr) {
+              target.setAttribute(set._attr, val);
             } else {
-              if (set._attr) {
-                target.setAttribute(set._attr, val);
-              } else {
-                target[set._property || "textContent"] = val;
-              }
-            }
-          } else if (set._property) {
-            var target = set._use ? this.component_instance.uses[set._use] :
-              this.component_instance
-                .find_instance_with_property(set._property);
-            if (!target) {
-              console.warn("(got) No use for \"{0}\" in".fmt(set._property), set);
-            } else if (val !== undefined) {
-              target.properties[set._property] = val;
+              target[set._property || "textContent"] = val;
             }
           }
-        }, this);
+        } else if (set._property) {
+          target = set._use ? this.component_instance.uses[set._use] :
+              this.component_instance
+                .find_instance_with_property(set._property);
+          if (!target) {
+            console.warn("(got) No use for \"{0}\" in".fmt(set._property), set);
+          } else if (val !== undefined) {
+            target.properties[set._property] = val;
+          }
+        }
+      }, this);
     },
 
     // Utility function to create listener functions for get elements
-    make_listener: function(get, target)
-    {
-      var enabled = true;
-      var active = false;
-      var that = this;
-      return function(value, prev)
-      {
+    make_listener: function (get, target) {
+      var enabled = true, active = false, that = this;
+      return function (value, prev) {
+        var watch, prev_get, prev_target;
         if (that.enabled && !active && enabled) {
           active = true;
           enabled = !get._once;
-          var watch = that.component_instance.watch;
+          watch = that.component_instance.watch;
           that.component_instance.watch = that;
-          var prev_get = that.get;
+          prev_get = that.get;
           that.get = get;
-          var prev_target = that.target;
+          prev_target = that.target;
           that.target = target;
           that.got((get._action || flexo.id).call(that.component_instance,
               value, prev));
@@ -541,208 +606,151 @@
       };
     },
 
-    render_watch_instance: function()
-    {
+    render_watch_instance: function () {
       this.gets = [];
-      this.watch._gets.forEach(function(get) {
-          var active = false;
-          var that = this;
-          if (get._event) {
-            var _event = this.component_instance.unparam(get._event);
-            if (get._view) {
-              // DOM event
-              var _view = this.component_instance.unparam(get._view);
-              var target = this.component_instance.views[_view];
-              if (!target) {
-                console.warn("render_watch_instance: No view for \"{0}\" in"
-                  .fmt(get._view), get);
-              } else {
-                var listener = this.make_listener(get, target);
-                target.addEventListener(_event, listener, false);
-                this.ungets.push(function() {
-                    target.removeEventListener(_event, listener, false);
-                  });
-              }
-            } else if (get._use) {
-              var _use = this.component_instance.unparam(get._use);
-              // Custom event
-              var target = this.component_instance.uses[_use];
-              if (!target) {
-                console.warn("(render get/use) No use for \"{0}\" in"
-                  .fmt(_use), get);
-              } else {
-                var listener = this.make_listener(get, target);
-                flexo.listen(target, get._event, listener);
-                this.ungets.push(function() {
-                    flexo.unlisten(target, get._event, listener);
-                  });
-              }
-            }
-          } else if (get._property) {
-            var _use = this.component_instance.unparam(get._use);
-            var _property = this.component_instance.unparam(get._property);
-            // Property change
-            var target = _use ? this.component_instance.uses[_use] :
-              this.component_instance
-                .find_instance_with_property(_property);
+      this.watch._gets.forEach(function (get) {
+        var _event, _view, listener, target, _use, _property, h;
+        if (get._event) {
+          _event = this.component_instance.unparam(get._event);
+          if (get._view) {
+            // DOM event
+            _view = this.component_instance.unparam(get._view);
+            target = this.component_instance.views[_view];
             if (!target) {
-              console.warn("(render get/property) No use for \"{0}\""
-                  .fmt(_property));
+              console.warn("render_watch_instance: No view for \"{0}\" in"
+                .fmt(get._view), get);
             } else {
-              var h = this.make_listener(get, target);
-              h._watch = this;
-              target.watch_property(_property, h);
-              this.gets.push(function() { h(target.property(_property)); });
-              this.ungets.push(function() {
-                  target.unwatch_property(_property, h);
-                });
+              listener = this.make_listener(get, target);
+              target.addEventListener(_event, listener, false);
+              this.ungets.push(function () {
+                target.removeEventListener(_event, listener, false);
+              });
+            }
+          } else if (get._use) {
+            _use = this.component_instance.unparam(get._use);
+            // Custom event
+            target = this.component_instance.uses[_use];
+            if (!target) {
+              console.warn("(render get/use) No use for \"{0}\" in".fmt(_use),
+                  get);
+            } else {
+              listener = this.make_listener(get, target);
+              flexo.listen(target, get._event, listener);
+              this.ungets.push(function () {
+                flexo.unlisten(target, get._event, listener);
+              });
             }
           }
-        }, this);
+        } else if (get._property) {
+          _use = this.component_instance.unparam(get._use);
+          _property = this.component_instance.unparam(get._property);
+          // Property change
+          target = _use ? this.component_instance.uses[_use] :
+              this.component_instance.find_instance_with_property(_property);
+          if (!target) {
+            console.warn("(render get/property) No use for \"{0}\""
+                .fmt(_property));
+          } else {
+            h = this.make_listener(get, target);
+            h._watch = this;
+            target.watch_property(_property, h);
+            this.gets.push(function () { h(target.property(_property)); });
+            this.ungets.push(function () {
+              target.unwatch_property(_property, h);
+            });
+          }
+        }
+      }, this);
     },
 
-    pull_gets: function()
-    {
-      this.gets.forEach(function(get) { get(); });
+    pull_gets: function () {
+      this.gets.forEach(function (get) { get(); });
     },
 
-    unrender: function()
-    {
-      this.ungets.forEach(function(unget) { unget(); });
+    unrender: function () {
+      this.ungets.forEach(function (unget) { unget(); });
     }
   };
 
-  var prototypes =
-  {
-    "":
-    {
-      appendChild: function(ch) { return this.insertBefore(ch, null); },
+  PROTOTYPES = {
 
-      cloneNode: function(deep)
-      {
+    "": {
+      appendChild: function (ch) { return this.insertBefore(ch, null); },
+
+      cloneNode: function (deep) {
         var clone =
-          wrap_element(Object.getPrototypeOf(this).cloneNode.call(this, false));
+          wrap_element(Object.getPrototypeOf(this).cloneNode.call(this, false)),
+          component, uri;
         if (deep) {
-          var component = component_of(this)._uri;
-          var uri = component ? component._uri : "";
-          [].forEach.call(this.childNodes, function(ch) {
-              import_node(clone, ch);
-            });
+          component = component_of(this)._uri;
+          uri = component ? component._uri : "";
+          [].forEach.call(this.childNodes, function (ch) {
+            import_node(clone, ch);
+          });
         }
         return clone;
       },
 
-      insertBefore: function(ch, ref)
-      {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         this._refresh();
         return ch;
       },
 
-      removeChild: function(ch)
-      {
+      removeChild: function (ch) {
         var parent = this.parentNode;
         Object.getPrototypeOf(this).removeChild.call(this, ch);
         this._refresh(parent);
         return ch;
       },
 
-      setAttribute: function(name, value)
-      {
+      setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         this._refresh();
       },
 
-      setAttributeNS: function(ns, name, value)
-      {
+      setAttributeNS: function (ns, name, value) {
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
         this._refresh();
       },
 
-      removeAttribute: function(name, value)
-      {
+      removeAttribute: function (name, value) {
         Object.getPrototypeOf(this).removeAttribute.call(this, name, value);
         this._refresh();
       },
 
-      removeAttributeNS: function(ns, name, value)
-      {
+      removeAttributeNS: function (ns, name, value) {
         Object.getPrototypeOf(this).removeAttributeNS.call(this, ns, name,
             value);
         this._refresh();
       },
 
-      _textContent: function(t)
-      {
+      _textContent: function (t) {
         this.textContent = t;
         this._refresh();
       },
 
-      $: function(name)
-      {
-        var argc = 1;
-        var attrs = {};
-        if (typeof arguments[1] === "object" &&
-            !(arguments[1] instanceof Node)) {
-          argc = 2;
-          attrs = arguments[1];
-        }
-        var m = name.match(
-            // 1: prefix 2: name  3: classes    4: id        5: more classes
-            /^(?:(\w+):)?([\w\-]+)(?:\.([^#]+))?(?:#([^.]+))?(?:\.(.+))?$/
-          );
-        if (m) {
-          var ns = m[1] && flexo[m[1].toUpperCase() + "_NS"];
-          var elem = ns ? this.ownerDocument.createElementNS(ns, m[2]) :
-            this.ownerDocument.createElement(m[2]);
-          var classes = m[3] ? m[3].split(".") : [];
-          if (m[5]) [].push.apply(classes, m[5].split("."));
-          if (m[4]) attrs.id = m[4];
-          if (classes.length > 0) {
-            attrs["class"] =
-              (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "") +
-              classes.join(" ");
-          }
-          for (var a in attrs) {
-            if (attrs.hasOwnProperty(a) &&
-                attrs[a] !== undefined && attrs[a] !== null) {
-              var split = a.split(":");
-              ns = split[1] && (bender["NS_" + split[0].toUpperCase()] ||
-                  flexo[split[0].toUpperCase() + "_NS"]);
-              if (ns) {
-                elem.setAttributeNS(ns, split[1], attrs[a]);
-              } else {
-                elem.setAttribute(a, attrs[a]);
-              }
-            }
-          }
-          [].slice.call(arguments, argc).forEach(function(ch) {
-              if (typeof ch === "string") {
-                elem.insertBefore(this.ownerDocument.createTextNode(ch));
-              } else if (ch instanceof Node) {
-                elem.insertBefore(ch);
-              }
-            }, this);
-          return elem;
-        }
+      _init: function () {},
+
+      $: function () {
+        return flexo.create_element.apply(this.ownerDocument, arguments);
       },
 
       // Parse a property definition (b, e, f, j) or a parameter (p)
-      _parse_property_or_param: function(ns, name, value)
-      {
-        if (ns === bender.NS_B) {
+      _parse_property_or_param: function (ns, name, value) {
+        if (ns === flexo.BENDER_B_NS) {
           this._properties[name] = value.trim().toLowerCase() === "true";
-        } else if (ns === bender.NS_E) {
+        } else if (ns === flexo.BENDER_E_NS) {
           this._properties[name] = value;
-        } else if (ns === bender.NS_F) {
+        } else if (ns === flexo.BENDER_F_NS) {
           this._properties[name] = parseFloat(value);
-        } else if (ns === bender.NS_J) {
+        } else if (ns === flexo.BENDER_J_NS) {
           try {
             this._properties[name] = JSON.parse(value);
           } catch (_) {
             this._properties[name] = null;
           }
-        } else if (ns === bender.NS_P) {
+        } else if (ns === flexo.BENDER_P_NS) {
           this._params[name] = value;
         }
       },
@@ -751,27 +759,25 @@
       // changed, or an attribute was set.) Instances of the component that the
       // node is part of (if any) will be scheduled for refresh. A @refresh
       // event is sent.
-      _refresh: function()
-      {
+      _refresh: function () {
         var component = component_of(this);
         if (component) {
-          component._instances.forEach(function(i) {
-              component.ownerDocument._refresh_instance(i);
-            });
+          component._instances.forEach(function (i) {
+            component.ownerDocument._refresh_instance(i);
+          });
         }
         flexo.notify(this, "@refresh");
       },
 
-      _serialize: function()
-      {
-        return (new XMLSerializer).serializeToString(this);
+      // TODO make a smarter serializer
+      _serialize: function () {
+        return new XMLSerializer().serializeToString(this);
       }
     },
 
-    component:
-    {
-      _init: function()
-      {
+    component: {
+
+      _init: function () {
         this._components = {};  // child components
         this._watches = [];     // child watches
         this._instances = [];   // instances of this component
@@ -779,13 +785,13 @@
         this._properties = {};  // properties map
         this._uses = [];        // use children (outside of a view)
         this._uri = "";
-        flexo.getter_setter(this, "_is_component", function() { return true; });
+        flexo.getter_setter(this, "_is_component",
+            function () { return true; });
       },
 
-      insertBefore: function(ch, ref)
-      {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS) {
+        if (ch.namespaceURI === flexo.BENDER_NS) {
           if (ch.localName === "app" || ch.localName === "component") {
             this._add_component(ch);
           } else if (ch.localName === "desc") {
@@ -800,7 +806,7 @@
               Object.getPrototypeOf(this).removeChild.call(this, this._title);
             }
             this._title = ch;
-            this._instances.forEach(function(i) { i.update_title(); });
+            this._instances.forEach(function (i) { i.update_title(); });
           } else if (ch.localName === "view") {
             if (this._view) {
               Object.getPrototypeOf(this).removeChild.call(this, this._view);
@@ -818,8 +824,7 @@
         return ch;
       },
 
-      removeChild: function(ch)
-      {
+      removeChild: function (ch) {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
         if (ch._id && this._components[ch._id]) {
           delete this._components[ch._id];
@@ -840,8 +845,7 @@
         return ch;
       },
 
-      setAttribute: function(name, value)
-      {
+      setAttribute: function (name, value) {
         if (name === "id") {
           this._id = value.trim();
           if (this.parentNode && this.parentNode._add_component) {
@@ -852,14 +856,12 @@
       },
 
       // TODO support xml:id?
-      setAttributeNS: function(ns, name, value)
-      {
+      setAttributeNS: function (ns, name, value) {
         this._parse_property_or_param(ns, name, value);
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
-      _add_component: function(component)
-      {
+      _add_component: function (component) {
         if (component._id) {
           // TODO check for duplicate id
           this._components[component._id] = component;
@@ -867,11 +869,10 @@
         }
       },
 
-      _find_by_id: function(id)
-      {
-        var q = [].slice.call(this.childNodes);
+      _find_by_id: function (id) {
+        var q = [].slice.call(this.childNodes), elem;
         while (q.length) {
-          var elem = q.shift();
+          elem = q.shift();
           if (elem.nodeType === 1 &&
               (elem.getAttribute("id") === id ||
                elem.getAttributeNS(flexo.XML_NS, "id") === id)) {
@@ -879,7 +880,7 @@
           }
           [].push.apply(q, elem.childNodes);
         }
-      },
+      }
     },
 
     // The content element is a placeholder for contents to be added at
@@ -899,37 +900,37 @@
     //     <content id="b"/>          </use>
     //   </view>
     // </component>
-    content:
-    {
-      setAttribute: function(name, value)
-      {
+    content: {
+      setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "content-id" || name === "id") {
           this["_" + name.replace(/-i/, "I")] = value.trim();
         }
         this._refresh();
-      },
+      }
     },
 
-    get:
-    {
-      _init: function()
-      {
+    get: {
+      _init: function () {
         flexo.getter_setter(this, "_content",
-            function() { return this._action; },
-            function(f) { if (typeof f === "function") this._action = f; });
+          function () { return this._action; },
+          function (f) {
+            if (typeof f === "function") {
+              this._action = f;
+            }
+          });
         return this;
       },
 
-      insertBefore: function(ch, ref)
-      {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === 3 || ch.nodeType === 4) this._update_action();
+        if (ch.nodeType === 3 || ch.nodeType === 4) {
+          this._update_action();
+        }
         return ch;
       },
 
-      setAttribute: function(name, value)
-      {
+      setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "event" || name === "property" ||
             name === "use" || name === "view") {
@@ -939,14 +940,12 @@
         }
       },
 
-      _textContent: function(t)
-      {
+      _textContent: function (t) {
         this.textContent = t;
         this._update_action();
       },
 
-      _update_action: function()
-      {
+      _update_action: function () {
         if (/\S/.test(this.textContent)) {
           // TODO handle errors
           this._action = new Function("value", this.textContent);
@@ -956,47 +955,44 @@
       }
     },
 
-    script:
-    {
-      insertBefore: function(ch, ref)
-      {
+    script: {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === 3 || ch.nodeType === 4) this._run();
+        if (ch.nodeType === 3 || ch.nodeType === 4) {
+          this._run();
+        }
         return ch;
       },
 
       // TODO setAttribute: href for script file location
 
-      _textContent: function(t)
-      {
+      _textContent: function (t) {
         this.textContent = t;
         this._run();
       },
 
-      _run: function()
-      {
+      _run: function () {
         if (!this.parentNode || this._ran || !/\S/.test(this.textContent)) {
           return;
         }
         if (!this.parentNode._prototype) {
           this.parentNode._prototype = Object.create(component_instance);
         }
-        (new Function(this.textContent)).call(this.parentNode);
+        new Function(this.textContent).call(this.parentNode);
         this._ran = true;
       }
     },
 
-    set:
-    {
-      insertBefore: function(ch, ref)
-      {
+    set: {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === 3 || ch.nodeType === 4) this._update_action();
+        if (ch.nodeType === 3 || ch.nodeType === 4) {
+          this._update_action();
+        }
         return ch;
       },
 
-      setAttribute: function(name, value)
-      {
+      setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "attr" || name === "property" ||
             name === "use" || name === "view") {
@@ -1004,14 +1000,12 @@
         }
       },
 
-      _textContent: function(t)
-      {
+      _textContent: function (t) {
         this.textContent = t;
         this._update_action();
       },
 
-      _update_action: function()
-      {
+      _update_action: function () {
         if (/\S/.test(this.textContent)) {
           // TODO handle errors
           this._action = new Function("value", this.textContent);
@@ -1021,10 +1015,8 @@
       }
     },
 
-    target:
-    {
-      setAttribute: function(name, value)
-      {
+    target: {
+      setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "q" || name === "ref") {
           this["_" + name] = value.trim();
@@ -1035,22 +1027,19 @@
         }
       },
 
-      _find_target: function(dest)
-      {
+      _find_target: function (dest) {
         if (this._q) {
           return dest.ownerDocument.querySelector(this._q);
-        } else if (this._ref) {
-          return dest.ownerDocument.getElementById(this._ref);
-        } else {
-          return dest;
         }
+        if (this._ref) {
+          return dest.ownerDocument.getElementById(this._ref);
+        }
+        return dest;
       }
     },
 
-    use:
-    {
-      _init: function()
-      {
+    use: {
+      _init: function () {
         this._params = {};
         this._properties = {};
       },
@@ -1058,8 +1047,7 @@
       // Attributes interpreted by use
       _attributes: { href: true, id: true, q: true, ref: true },
 
-      setAttribute: function(name, value)
-      {
+      setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (this._attributes.hasOwnProperty(name)) {
           this["_" + name] = value.trim();
@@ -1067,40 +1055,40 @@
         this._refresh();
       },
 
-      setAttributeNS: function(ns, name, value)
-      {
+      setAttributeNS: function (ns, name, value) {
         this._parse_property_or_param(ns, name, value);
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
-      _find_component: function()
-      {
-        var component = undefined;
+      _find_component: function () {
+        var component, parent_component, href;
         if (this._ref) {
-          var parent_component = component_of(this);
+          parent_component = component_of(this);
           while (!component && parent_component) {
             component = parent_component._components[this._ref];
             parent_component = component_of(parent_component.parentNode);
           }
           return component;
-        } else if (this._q) {
+        }
+        if (this._q) {
           return this.ownerDocument.querySelector(this._q);
-        } else if (this._href) {
-          var href =
-            (this._href.indexOf("#") === 0 ? component_of(this)._uri : "") +
-            this._href;
-          return this.ownerDocument._load_component(href, this);
+        }
+        if (this._href) {
+          href = (this._href.indexOf("#") === 0 ? component_of(this)._uri : "")
+            + this._href;
+          return this.ownerDocument._load_component(href);
         }
       },
 
-      _render: function(target, parent)
-      {
+      _render: function (target, parent) {
         var component = this._find_component();
         if (typeof component === "string") {
           this.__target = target;
           this.__parent = parent;
-          if (this.__loading) return;
-          this.__loading = (function(e) {
+          if (this.__loading) {
+            return;
+          }
+          this.__loading = function (e) {
             if (e.url === component) {
               flexo.notify(this, "@loaded", { instance: this
                 ._render_component(e.component, this.__target, this.__parent) });
@@ -1109,43 +1097,41 @@
               delete this.__target;
               delete this.__parent;
             }
-          }).bind(this);
+          }.bind(this);
           flexo.listen(this.ownerDocument, "@loaded", this.__loading);
           return true;
-        } else if (component) {
-          return this._render_component(component, target, parent);
-        } else {
-          console.warn("use._render: No component for", this);
         }
+        if (component) {
+          return this._render_component(component, target, parent);
+        }
+        console.warn("use._render: No component for", this);
       },
 
-      _render_component: function(component, target, parent)
-      {
+      _render_component: function (component, target, parent) {
         this._component = component;
         this._instance =
           Object.create(component._prototype || component_instance)
             .init(this, parent, target);
-        if (this._instance.instantiated) this._instance.instantiated();
+        if (this._instance.instantiated) {
+          this._instance.instantiated();
+        }
         flexo.notify(this, "@instance", { instance: this._instance });
         this._instance.refresh_component_instance();
         return this._instance;
       },
 
-      _unrender: function()
-      {
+      _unrender: function () {
         if (this._instance) {
           this._instance.unrender();
           delete this._instance;
         }
-      },
+      }
     },
 
-    view:
-    {
-      insertBefore: function(ch, ref)
-      {
+    view: {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS) {
+        if (ch.namespaceURI === flexo.BENDER_NS) {
           if (ch.localName === "use") {
             this._refresh();
           }
@@ -1155,27 +1141,23 @@
         return ch;
       },
 
-      removeChild: function(ch)
-      {
+      removeChild: function (ch) {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
         this._refresh();
         return ch;
-      },
+      }
     },
 
-    watch:
-    {
-      _init: function()
-      {
+    watch: {
+      _init: function () {
         this._gets = [];
         this._sets = [];
         this._watches = [];
       },
 
-      insertBefore: function(ch, ref)
-      {
+      insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS) {
+        if (ch.namespaceURI === flexo.BENDER_NS) {
           if (ch.localName === "get") {
             this._gets.push(ch);
           } else if (ch.localName === "set") {
@@ -1184,112 +1166,35 @@
             this._watches.push(ch);
           }
         }
-      },
+      }
     }
   };
 
   // Specific functions to create get, set and script attributes with an actual
   // function rather than a string to create a function for the action
-  ["get", "set", "script"].forEach(function(name) {
-      prototypes.component["$" + name] = function(attrs, action)
-      {
-        var elem = action ? this.$(name, attrs) : this.$(name);
-        if (typeof action === "function") {
-          elem._action = action;
-        } else if (typeof attrs === "function") {
-          elem._action = attrs;
-        }
-        return elem;
-      };
-    });
+  ["get", "set", "script"].forEach(function (name) {
+    PROTOTYPES.component["$" + name] = function (attrs, action) {
+      var elem = action ? this.$(name, attrs) : this.$(name);
+      if (typeof action === "function") {
+        elem._action = action;
+      } else if (typeof attrs === "function") {
+        elem._action = attrs;
+      }
+      return elem;
+    };
+  });
 
-  prototypes.app = prototypes.component;
-  prototypes.context = prototypes.component;
+  PROTOTYPES.app = PROTOTYPES.component;
+  PROTOTYPES.context = PROTOTYPES.component;
 
   // Insert a newly created use element (using the attributes passed as first
   // argument) in the context and render it to the given target
-  prototypes.context._insert_use = function(attrs, target)
-  {
-    var use = prototypes[""].$.call(this, "use", attrs);
+  PROTOTYPES.context._insert_use = function (attrs, target) {
+    var use = PROTOTYPES[""].$.call(this, "use", attrs);
     this.appendChild(use);
     use._render(target);
     return use;
   };
 
-  // The component of a node is itself if it is a component node (or app or
-  // context), or the component of its parent
-  function component_of(node)
-  {
-    return node ? node._is_component ? node : component_of(node.parentNode) :
-      null;
-  }
+}(typeof exports === "object" ? exports : this.bender = {}));
 
-  function import_node(parent, node, uri)
-  {
-    if (node.nodeType === 1) {
-      var n = parent.ownerDocument
-        .createElementNS(node.namespaceURI, node.localName);
-      if (n._is_component) n._uri = uri;
-      parent.appendChild(n);
-      for (var i = 0, m = node.attributes.length; i < m; ++i) {
-        var attr = node.attributes[i];
-        if (attr.namespaceURI) {
-          if (attr.namespaceURI === flexo.XMLNS_NS &&
-              attr.localName !== "xmlns") {
-            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
-          } else {
-            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
-          }
-        } else {
-          n.setAttribute(attr.localName, attr.nodeValue);
-        }
-      }
-      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-        import_node(n, ch, uri);
-      }
-      return n;
-    } else if (node.nodeType === 3 || node.nodeType === 4) {
-      var n = parent.ownerDocument.importNode(node, false);
-      parent.appendChild(n);
-    }
-  }
-
-  function normalize_url(base, ref)
-  {
-    var url = flexo.split_uri(flexo.absolute_uri(base, ref)
-      .replace(/%([0-9a-f][0-9a-f])/gi,
-        function(m, n) {
-          n = parseInt(n, 16);
-          return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
-            (n >= 0x30 && n <= 0x39) || n === 0x2d || n === 0x2e ||
-            n === 0x5f || n == 0x7e ? String.fromCharCode(n) : m.toUpperCase();
-        }));
-    if (url.scheme) url.scheme = url.scheme.toLowerCase();
-    if (url.authority) url.authority = url.authority.toLowerCase();
-    return flexo.unsplit_uri(url);
-  }
-
-  // Create a placeholder node for components to be rendered
-  function placeholder(dest, ref, use)
-  {
-    flexo.safe_remove(use.__placeholder);
-    var p = dest.ownerDocument.createComment(" placeholder ");
-    dest.insertBefore(p, ref);
-    return p;
-  }
-
-  // Extend an element with Bender methods and call the _init() method on the
-  // node if it exists.
-  function wrap_element(e)
-  {
-    var proto = prototypes[e.localName] || {};
-    for (var p in proto) e[p] = proto[p];
-    for (var p in prototypes[""]) {
-      if (!e.hasOwnProperty(p)) e[p] = prototypes[""][p];
-    }
-    if (e._init) e._init();
-    e.__wrapped = true;
-    return e;
-  }
-
-})(typeof exports === "object" ? exports : this.bender = {});

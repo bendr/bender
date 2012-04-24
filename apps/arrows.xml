@@ -42,8 +42,8 @@
       for (var x = 0; x < this.property("width"); ++x) {
         for (var y = 0; y < this.property("height"); ++y) {
           v.appendChild(v.$("use", { ref: "arrow",
-            "f:x": x * this.property("size"),
-            "f:y": y * this.property("size") }));
+            "bender_f:x": x * this.property("size"),
+            "bender_f:y": y * this.property("size") }));
         }
       }
     ]]></set>
