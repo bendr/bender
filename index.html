@@ -32,7 +32,8 @@
       svg { width: 128px; height: 144px; margin: 8px 0; }
       #welcome { border: dashed thin #102040; padding: 8px; margin: 0 20px; }
     </style>
-    <script src="flexo.js"></script>
+    <script src="flexo-new.js"></script>
+    <script src="flexo-svg.js"></script>
     <script src="bender.js"></script>
   </head>
   <body>
@@ -70,7 +71,7 @@
           g.setAttribute("stroke", color);
           var p = document.querySelector("polygon");
           p.setAttribute("points",
-            flexo.svg_polygon_points(7, 42, Math.random()));
+            flexo.polygon_points(7, 42, Math.random()));
         </script>
       </svg>
 
@@ -915,7 +916,7 @@ context.appendChild(context.$("use", { href: ... }));</pre>
             component</a></li>
           <li><a href="lib/run.html?href=../tests/movable.xml">Movable component
             test</a></li>
-          <li><a href="lib/run.html?href=../tests/resizable.xml">Movable component
+          <li><a href="lib/run.html?href=../tests/resizable.xml">Resizable component
             test</a></li>
         </ol>
       </section>

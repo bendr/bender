@@ -9,6 +9,7 @@
     return Math.sqrt(x * x + y * y);
   };
 
+  // TODO flag for closed/open path (right now closed) and default for smoothing
   flexo.path_from_points = function (points, smoothing) {
     var i, n, d, x0, y0, x1, y1, tx, ty, l, x2, y2, xa, ya, xb, yb;
     d = "M{0},{1}".fmt(points[0].x, points[0].y);
