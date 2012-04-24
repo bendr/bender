@@ -1,5 +1,4 @@
-(function(bender)
-{
+(function (bender) {
   "use strict";
 
   bender.NS = "http://bender.igel.co.jp";      // Bender namespace
@@ -295,12 +294,12 @@
         }, this);
       var content_id = function(content) {
         if (content && dest === content.target) {
-          content_id.call(this, content.parent);
+          content_id.call(this.uses.$parent, content.parent);
           [].forEach.call(content.node.attributes, function(attr) {
               var val = this.unparam(attr.value);
               if (attr.name === "id") return;
               if (attr.name === "content-id") {
-                flexo.log("Content-id: {0}".fmt(val.trim()), d);
+                console.log("Content-id: {0}".fmt(val.trim()), d);
                 content.instance.views[val.trim()] = d;
               } else {
                 d.setAttribute(attr.name, val);

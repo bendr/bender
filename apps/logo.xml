@@ -1,5 +1,6 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:e="http://bender.igel.co.jp/e"
   xmlns:f="http://bender.igel.co.jp/f" xmlns:b="http://bender.igel.co.jp/b"
+  xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns:svg="http://www.w3.org/2000/svg" e:color="" f:sides="7" f:rotation="0"
   f:outer-radius="42" f:inner-radius="36" b:star="false">
 
@@ -38,9 +39,9 @@
     <get property="star"/>
     <set view="poly" attr="points">
       return this.properties.star ?
-        flexo.svg_star_points(this.properties.sides,
+        flexo.star_points(this.properties.sides,
           this.properties["outer-radius"], this.properties["inner-radius"]) :
-        flexo.svg_polygon_points(this.properties.sides,
+        flexo.polygon_points(this.properties.sides,
           this.properties["outer-radius"]);
     </set>
   </watch>

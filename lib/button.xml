@@ -34,11 +34,12 @@
     <get view="b" event="mousedown"><![CDATA[
       if (value.button === 0) {
         value.preventDefault();
-        if (this.properties.enabled) flexo.add_class(this.views.b, "__down");
+        if (this.properties.enabled) this.views.b.classList.add("__down");
       }
     ]]></get>
     <get view="b" event="mouseup"><![CDATA[
-      if (flexo.remove_class(this.views.b, "__down")) {
+      if (this.views.b.classList.contains("__down")) {
+        this.views.b.classList.remove("__down");
         flexo.notify(this, "@pushed");
       }
     ]]></get>

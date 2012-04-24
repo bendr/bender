@@ -19,7 +19,7 @@
 
   <watch>
     <get use="$self" event="@rendered">
-      flexo.add_class(this.views.moving, "__movable");
+      this.views.moving.classList.add("__movable");
     </get>
   </watch>
 
@@ -27,7 +27,7 @@
     <get view="moving" event="mousedown"><![CDATA[
       if (value.button === 0 && !this.properties.locked) {
         value.preventDefault();
-        flexo.add_class(this.views.moving, "__moving");
+        this.views.moving.classList.add("__moving");
         var p = flexo.event_client_pos(value);
         this.__offset = { x: p.x - this.properties.x,
           y: p.y - this.properties.y };
@@ -41,7 +41,7 @@
       }
     </get>
     <get view="$document" event="mouseup">
-      flexo.remove_class(this.views.moving, "__moving");
+      this.views.moving.classList.remove("__moving");
       delete this.__offset;
     </get>
   </watch>

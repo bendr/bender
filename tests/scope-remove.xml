@@ -25,9 +25,6 @@
     <watch>
       <get property="value"/>
       <set view="v" property="value"/>
-      <set>
-        flexo.log("Set value to {0}".fmt(value));
-      </set>
     </watch>
     <watch>
       <get view="v" event="change">

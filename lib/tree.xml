@@ -106,7 +106,7 @@
           function(n) {
             app_node = n;
             flexo.listen(n, "@refresh", (function(e) {
-                flexo.log("~~~ refresh ~~~");
+                console.log("~~~ refresh ~~~");
                 this.refresh_node();
               }).bind(this));
             this.refresh_node();
@@ -186,17 +186,17 @@
     <watch>
       <get use="$parent" property="ns">
         if (value === flexo.XHTML_NS) {
-          flexo.add_class(this.views.span, "html");
+          this.view.span.classList.add("html");
         } else if (value === flexo.SVG_NS) {
-          flexo.add_class(this.views.span, "svg");
+          this.view.span.classList.add("svg");
         } else if (value === flexo.XLINK_NS) {
-          flexo.add_class(this.views.span, "xlink");
+          this.view.span.classList.add("xlink");
         } else if (value === bender.NS || value === bender.NS_B ||
           value === bender.NS_E || value === bender.NS_F ||
           value === bender.NS_J) {
-          flexo.add_class(this.views.span, "bender");
+          this.view.span.classList.add("bender");
         } else if (value) {
-          flexo.add_class(this.views.span, "foreign");
+          this.view.span.classList.add("foreign");
         }
       </get>
     </watch>

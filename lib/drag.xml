@@ -17,12 +17,12 @@
   <watch>
     <get view="g" event="mousedown">
       value.preventDefault();
-      this._svg = flexo.find_svg(value.target);
+      this._svg = document.querySelector("svg");
       document.body.style.cursor = "none";
     </get>
     <get view="$document" event="mousemove">
       if (this._svg) {
-        var p = flexo.event_svg_point(value, this._svg);
+        var p = flexo.point_from_event(value, this._svg);
         this.properties.x = flexo.clamp(p.x,
           this.properties["min-x"], this.properties["max-x"]);
         this.properties.y = flexo.clamp(p.y,

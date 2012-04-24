@@ -4,7 +4,7 @@
   </view>
   <watch>
     <get use="timer" event="@tick">
-      flexo.log("TOCK");
+      console.log("TOCK");
     </get>
   </watch>
 </app>

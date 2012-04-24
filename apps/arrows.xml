@@ -54,7 +54,7 @@
     <get view="$document" event="touchstart"/>
     <get view="$document" event="touchmove"/>
     <set use="$self" property="focus">
-      return flexo.event_svg_point(value, this.views.root);
+      return flexo.point_from_event(value, this.views.root);
     </set>
   </watch>
 
