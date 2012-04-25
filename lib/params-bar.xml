@@ -100,7 +100,7 @@
       <get view="input" event="change">
         try {
           return JSON.parse(this.views.input.value);
-        } catch (_) {
+        } catch (e) {
         }
       </get>
       <set use="$parent" property="{name}"/>

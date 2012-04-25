@@ -36,12 +36,12 @@
             name = attr.localName;
             this.uses.params.add_param(type, name,
               this.uses.app.properties[name]);
-            // watches.push(component.appendChild(component.$("watch",
-            //  component.$("get", { use: "params", property: name }),
-            //  component.$("set", { use: "app", property: name }))));
-            //watches.push(component.appendChild(component.$("watch",
-            //  component.$("get", { use: "app", property: name }),
-            //  component.$("set", { use: "params", property: name }))));
+            watches.push(component.appendChild(component.$("watch",
+              component.$("get", { use: "params", property: name }),
+              component.$("set", { use: "app", property: name }))));
+            watches.push(component.appendChild(component.$("watch",
+              component.$("get", { use: "app", property: name }),
+              component.$("set", { use: "params", property: name }))));
           }
         }, this);
       };

@@ -4,6 +4,7 @@
 (function (bender) {
   "use strict";
 
+  // Add to flexo so that create_element works with these namespaces
   flexo.BENDER_NS = "http://bender.igel.co.jp";      // Bender namespace
   flexo.BENDER_B_NS = "http://bender.igel.co.jp/b";  // Boolean properties
   flexo.BENDER_E_NS = "http://bender.igel.co.jp/e";  // String properties
@@ -429,7 +430,7 @@
     },
 
     render_watches: function () {
-      var instances, pending = function (instance) {
+      var instances = [], pending = function (instance) {
         var i, n;
         // TODO improve this
         // The point is that we should not render watches before any of the
@@ -454,7 +455,6 @@
         return;
       }
       delete this.__pending_watches;
-      instances = [];
       this.component._watches.forEach(function (watch) {
         var instance = Object.create(watch_instance).init(watch, this);
         instance.render_watch_instance();
@@ -480,6 +480,7 @@
             console.warn("No value for param {0}".fmt(p));
             param = s;
           }
+          console.log("unparam: {0} -> `{1}`".fmt(s, param));
           return param;
         }.bind(this));
       }
@@ -549,27 +550,31 @@
 
     got: function (value) {
       this.watch._sets.forEach(function (set) {
-        var target, val = set._action ?
+        var target, _view, _use, _property, val = set._action ?
             set._action.call(this.component_instance, value) : value;
+        _property = this.component_instance.unparam(set._property);
         if (set._view) {
-          target = this.component_instance.views[set._view];
+          _view = this.component_instance.unparam(set._view);
+          target = this.component_instance.views[_view];
           if (!target) {
-            console.warn("No view for \"{0}\" in".fmt(set._view), set);
+            console.warn("No view for \"{0}\" in".fmt(_view), set);
           } else {
             if (set._attr) {
-              target.setAttribute(set._attr, val);
+              target.setAttribute(this.component_instance.unparam(set._attr),
+                val);
             } else {
-              target[set._property || "textContent"] = val;
+              target[_property || "textContent"] = val;
             }
           }
-        } else if (set._property) {
-          target = set._use ? this.component_instance.uses[set._use] :
+        } else if (_property) {
+          _use = this.component_instance.unparam(set._use);
+          target = _use ? this.component_instance.uses[_use] :
               this.component_instance
-                .find_instance_with_property(set._property);
+                .find_instance_with_property(_property);
           if (!target) {
-            console.warn("(got) No use for \"{0}\" in".fmt(set._property), set);
+            console.warn("(got) No use for \"{0}\" in".fmt(_property), set);
           } else if (val !== undefined) {
-            target.properties[set._property] = val;
+            target.properties[_property] = val;
           }
         }
       }, this);
