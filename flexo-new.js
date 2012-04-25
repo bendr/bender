@@ -83,10 +83,7 @@
 
   // Return the value constrained between min and max.
   flexo.clamp = function (value, min, max) {
-    if (isNaN(value)) {
-      value = 0;
-    }
-    return Math.max(Math.min(value, max), min);
+    return Math.max(Math.min(isNaN(value) ? 0 : value, max), min);
   };
 
   // Simple way to create elements, giving ns id and class directly within the
