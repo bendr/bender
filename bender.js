@@ -18,7 +18,9 @@
   // The component of a node is itself if it is a component node (or app or
   // context), or the component of its parent
   function component_of(node) {
-    return node ? node._is_component ? node : component_of(node.parentNode) :
+    return node ?
+        node._is_component ?
+            node : component_of(node.parentNode) :
         null;
   }
 
@@ -412,9 +414,12 @@
       }
     },
 
+    // After a <use> was rendered, keep track of its instance. We add instances
+    // before nodes so that the last rendered node is always the last item in
+    // the rendered list (as unrender() relies on this.)
     rendered_use: function (use) {
       if (use._instance) {
-        this.rendered.push(use._instance);
+        this.rendered.unshift(use._instance);
         if (use._id) {
           this.uses[use._id] = use._instance;
         }
@@ -453,7 +458,7 @@
       this.component._watches.forEach(function (watch) {
         var instance = Object.create(watch_instance).init(watch, this);
         instance.render_watch_instance();
-        this.rendered.push(instance);
+        this.rendered.unshift(instance);
         instances.push(instance);
       }, this);
       instances.forEach(function (instance) { instance.pull_gets(); });
