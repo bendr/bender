@@ -300,7 +300,7 @@
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === flexo.BENDER_NS) {
             if (ch.localName === "use") {
-              this.render_use(ch, dest, ref);
+              r = this.render_use(ch, dest, ref);
             } else if (ch.localName === "target") {
               // `target` ignores ref
               if (ch._once) {
@@ -320,6 +320,7 @@
               } else {
                 r = this.render_children(ch, dest, ref);
               }
+              console.log("<content> =>", r);
               if (r) {
                 if (ch._contentId) {
                   this.views[this.unparam(ch._contentId).trim()] = r;
@@ -344,9 +345,8 @@
     // Render foreign nodes within a view; arguments and return vlaue are the
     // same as render_children() above.
     render_foreign: function (node, dest, ref) {
-      var content_id,
-        d = dest.ownerDocument.createElementNS(node.namespaceURI,
-            node.localName);
+      var d = dest.ownerDocument.createElementNS(node.namespaceURI,
+          node.localName);
       [].forEach.call(node.attributes, function (attr) {
         var val = this.unparam(attr.value);
         if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
@@ -379,16 +379,11 @@
     // Render a use node
     render_use: function (use, dest, ref) {
       use.__placeholder = placeholder(dest, ref, use);
-      if (use.__pending) {
-        this.pending += 1;
-        return;
-      }
       var instance = use._render(dest, this);
       if (instance === true) {
         this.__pending = true;
         this.pending += 1;
         flexo.listen(use, "@loaded", function () {
-          delete use.__pending;
           this.rendered_use(use);
           this.pending -= 1;
           if (this.pending === 0) {
@@ -1054,6 +1049,9 @@
         Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
       },
 
+      // Find the component referred to by the node (through the ref, q or href
+      // attribute, checked in that order.) Return the component node or its URL
+      // if it needs loading.
       _find_component: function () {
         var component, parent_component, href;
         if (this._ref) {
@@ -1074,25 +1072,20 @@
         }
       },
 
+      // Render the node in the given target and parent instance; return the new
+      // instance or true to mark a promise that this component will be
+      // rendered. TODO: dummy instance?
       _render: function (target, parent) {
-        var component = this._find_component();
+        var h, component = this._find_component();
         if (typeof component === "string") {
-          this.__target = target;
-          this.__parent = parent;
-          if (this.__loading) {
-            return;
-          }
-          this.__loading = function (e) {
+          h = function (e) {
             if (e.url === component) {
               flexo.notify(this, "@loaded", { instance: this
-                ._render_component(e.component, this.__target, this.__parent) });
-              flexo.unlisten(this.ownerDocument, "@loaded", this.__loading);
-              delete this.__loading;
-              delete this.__target;
-              delete this.__parent;
+                ._render_component(e.component, target, parent) });
+              flexo.unlisten(this.ownerDocument, "@loaded", h);
             }
           }.bind(this);
-          flexo.listen(this.ownerDocument, "@loaded", this.__loading);
+          flexo.listen(this.ownerDocument, "@loaded", h);
           return true;
         }
         if (component) {
