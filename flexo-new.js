@@ -293,12 +293,26 @@
 
   // Custom events
 
-  // Listen to a custom event
+  // Listen to a custom event. Listener is a function or an object whose
+  // "handleEvent" function will then be invoked.
   flexo.listen = function (target, type, listener) {
     if (!(target.hasOwnProperty(type))) {
       target[type] = [];
     }
     target[type].push(listener);
+  };
+
+  // Listen to an event only once
+  flexo.listen_once = function (target, type, listener) {
+    var h = function (e) {
+      flexo.unlisten(target, type, h);
+      if (typeof listener.handleEvent === "function") {
+        listener.handleEvent.call(listener, e);
+      } else {
+        listener(e);
+      }
+    };
+    flexo.listen(target, type, h);
   };
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
@@ -327,4 +341,4 @@
     flexo.remove_from_array(target[type], listener);
   };
 
-}(typeof exports === "object" ? exports : this.flexo = {}));
+}(typeof exports === "object" ? exports : window.flexo = {}));

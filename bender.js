@@ -2,7 +2,7 @@
 /*jslint browser: true, devel: true, evil: true, maxerr: 50, nomen: true, indent: 2 */
 
 (function (bender) {
-  "use strict";
+//  "use strict";
 
   // Add to flexo so that create_element works with these namespaces
   flexo.BENDER_NS = "http://bender.igel.co.jp";      // Bender namespace
@@ -262,19 +262,21 @@
     refresh_component_instance: function () {
       this.component.ownerDocument._refreshed_instance(this);
       var last = this.unrender();
-      this.component.__instance = this;
       if (flexo.root(this.use) !== this.use.ownerDocument) {
         return;
       }
+      this.component.__instance = this;
       if (this.use.__placeholder) {
         this.target = this.use.__placeholder.parentNode;
       }
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
         this.pending = 0;
+        // Render the <use> elements outside of the view
         this.component._uses.forEach(function (u) {
           this.render_use(u, this.target, this.use.__placeholder || last);
         }, this);
+        // Render the <view> element
         if (this.component._view) {
           this.render_children(this.component._view, this.target,
               this.use.__placeholder || last);
@@ -295,7 +297,7 @@
     // asynchronously.) Return the last rendered element (text nodes are not
     // returned.)
     render_children: function (node, dest, ref) {
-      var ch, component, d, r;
+      var ch, parent_of, d, r;
       for (ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === flexo.BENDER_NS) {
@@ -315,18 +317,15 @@
               // <content> renders either the contents of the <use> node or its
               // own by default.
               if (this.use.childNodes.length > 0) {
-                component = component_of(this.use);
-                r = component.__instance.render_children(this.use, dest, ref);
+                parent_of = function (n) {
+                  return n.__instance && n || parent_of(n.parentNode);
+                };
+                r = parent_of(node).__instance
+                  .render_children(this.use, dest, ref);
               } else {
                 r = this.render_children(ch, dest, ref);
               }
-              console.log("<content> =>", r);
-              if (r) {
-                if (ch._contentId) {
-                  this.views[this.unparam(ch._contentId).trim()] = r;
-                }
-                // TODO add attributes from <use> or <content>
-              }
+              this.render_use_params(r, ch);
             }
           } else {
             r = this.render_foreign(ch, dest, ref);
@@ -376,7 +375,8 @@
       return d;
     },
 
-    // Render a use node
+    // Render a use node, return either the instance or the promise of a future
+    // instance.
     render_use: function (use, dest, ref) {
       use.__placeholder = placeholder(dest, ref, use);
       var instance = use._render(dest, this);
@@ -393,14 +393,39 @@
       } else if (instance) {
         this.rendered_use(use);
       }
+      return instance;
     },
 
-    // After a <use> was rendered, keep track of its instance. We add instances
-    // before nodes so that the last rendered node is always the last item in
-    // the rendered list (as unrender() relies on this.)
+    // Set the parameters of a <use> node on its root rendered node r (if any);
+    // set content_id as well.
+    render_use_params: function (r, content) {
+      var find_elem = function (x) {
+        var i, elem;
+        if (x instanceof Element) {
+          return x;
+        } else if (x && x.rendered) {
+          for (i = x.rendered.length - 1; i >= 0 && !elem; i -= 1) {
+            if (x.rendered[i] instanceof Element) {
+              elem = x.rendered[i];
+            } else if (x.rendered[i].rendered) {
+              elem = find_elem(x.rendered[i]);
+            }
+          }
+          return elem;
+        }
+      }, elem = find_elem(r);
+      if (elem) {
+        if (content._contentId) {
+          this.views[this.unparam(content._contentId).trim()] = elem;
+        }
+        // TODO add attributes from <use> or <content>
+      }
+    },
+
+    // After a <use> was rendered, keep track of its instance.
     rendered_use: function (use) {
       if (use._instance) {
-        this.rendered.unshift(use._instance);
+        this.rendered.push(use._instance);
         if (use._id) {
           this.uses[use._id] = use._instance;
         }
@@ -438,7 +463,7 @@
       this.component._watches.forEach(function (watch) {
         var instance = Object.create(watch_instance).init(watch, this);
         instance.render_watch_instance();
-        this.rendered.unshift(instance);
+        this.rendered.push(instance);
         instances.push(instance);
       }, this);
       instances.forEach(function (instance) { instance.pull_gets(); });
@@ -469,18 +494,18 @@
     // rendered node (if any) so that re-rendering will happen at the right
     // place.
     unrender: function () {
-      var ref = this.rendered[this.rendered.length - 1] &&
-        this.rendered[this.rendered.length - 1].nextSibling;
+      var ref;
       this.rendered.forEach(function (r) {
         if (r instanceof Node) {
+          ref = r;
           r.parentNode.removeChild(r);
         } else {
           flexo.remove_from_array(r.component._instances, r);
-          r.unrender();
+          ref = r.unrender();
         }
-      }, this);
+      });
       this.rendered = [];
-      return ref;
+      return ref && ref.nextSibling;
     },
 
     update_title: function () {
@@ -1076,16 +1101,14 @@
       // instance or true to mark a promise that this component will be
       // rendered. TODO: dummy instance?
       _render: function (target, parent) {
-        var h, component = this._find_component();
+        var component = this._find_component();
         if (typeof component === "string") {
-          h = function (e) {
+          flexo.listen_once(this.ownerDocument, "@loaded", function (e) {
             if (e.url === component) {
               flexo.notify(this, "@loaded", { instance: this
                 ._render_component(e.component, target, parent) });
-              flexo.unlisten(this.ownerDocument, "@loaded", h);
             }
-          }.bind(this);
-          flexo.listen(this.ownerDocument, "@loaded", h);
+          }.bind(this));
           return true;
         }
         if (component) {
@@ -1183,5 +1206,4 @@
     return use;
   };
 
-}(typeof exports === "object" ? exports : this.bender = {}));
-
+}(typeof exports === "object" ? exports : window.bender = {}));
