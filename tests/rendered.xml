@@ -1,11 +1,12 @@
-<component xmlns="http://bender.igel.co.jp">
+<app xmlns="http://bender.igel.co.jp">
+  <title>@rendered test</title>
   <view>
     <p xmlns="http://www.w3.org/1999/xhtml">
-      Rendered? <span id="rendered"/>
+      Rendered? <span id="rendered">No :(</span>
     </p>
   </view>
   <watch>
     <get use="$self" event="@rendered"/>
     <set view="rendered">return "Yes!";</set>
   </watch>
-</component>
+</app>

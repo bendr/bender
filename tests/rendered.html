@@ -7,7 +7,7 @@
     <style>
       body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
     </style>
-    <script src="../flexo.js"></script>
+    <script src="../flexo-new.js"></script>
     <script src="../bender.js"></script>
   </head>
   <body>
@@ -16,7 +16,8 @@
       context.appendChild(
         context.$("component",
           context.$("view",
-            context.$("html:p", "Rendered? ", context.$("html:span#rendered"))),
+            context.$("html:p", "Rendered? ",
+              context.$("html:span#rendered", "No :("))),
           context.$("watch",
             context.$("get", { use: "$self", event: "@rendered" }),
             context.$("set", { view: "rendered" }, "return 'Yes!';"))));

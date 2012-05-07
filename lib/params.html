@@ -23,6 +23,7 @@
       var args = flexo.get_args(), watches = [], context, load;
 
       load = function () {
+        console.log("load", this);
         this.uses.params.clear();
         watches.forEach(function (w) { flexo.safe_remove(w); });
         watches = [];
