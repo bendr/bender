@@ -1,8 +1,8 @@
 /*global exports, flexo, Element, Node, XMLSerializer */
-/*jslint browser: true, devel: true, evil: true, maxerr: 50, nomen: true, indent: 2 */
+/*jslint browser: true, devel: true, evil: true, nomen: true, indent: 2 */
 
 (function (bender) {
-//  "use strict";
+  //"use strict";
 
   // Add to flexo so that create_element works with these namespaces
   flexo.BENDER_NS = "http://bender.igel.co.jp";      // Bender namespace
@@ -23,6 +23,24 @@
         node._is_component ?
             node : component_of(node.parentNode) :
         null;
+  }
+
+  // TODO document this
+  function find_elem(x) {
+    var i, elem;
+    if (x instanceof Element) {
+      return x;
+    }
+    if (x && x.rendered) {
+      for (i = x.rendered.length - 1; i >= 0 && !elem; i -= 1) {
+        if (x.rendered[i] instanceof Element) {
+          elem = x.rendered[i];
+        } else if (x.rendered[i].rendered) {
+          elem = find_elem(x.rendered[i]);
+        }
+      }
+      return elem;
+    }
   }
 
   // Import a node and its children from a foreign document and add it as a
@@ -74,6 +92,10 @@
       url.authority = url.authority.toLowerCase();
     }
     return flexo.unsplit_uri(url);
+  }
+
+  function parent_of(n) {
+    return (n.__instance && n) || parent_of(n.parentNode);
   }
 
   // Create a placeholder node for components to be rendered
@@ -297,7 +319,7 @@
     // asynchronously.) Return the last rendered element (text nodes are not
     // returned.)
     render_children: function (node, dest, ref) {
-      var ch, parent_of, d, r;
+      var ch, d, r;
       for (ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === 1) {
           if (ch.namespaceURI === flexo.BENDER_NS) {
@@ -317,9 +339,6 @@
               // <content> renders either the contents of the <use> node or its
               // own by default.
               if (this.use.childNodes.length > 0) {
-                parent_of = function (n) {
-                  return n.__instance && n || parent_of(n.parentNode);
-                };
                 r = parent_of(node).__instance
                   .render_children(this.use, dest, ref);
               } else {
@@ -399,21 +418,7 @@
     // Set the parameters of a <use> node on its root rendered node r (if any);
     // set content_id as well.
     render_use_params: function (r, content) {
-      var find_elem = function (x) {
-        var i, elem;
-        if (x instanceof Element) {
-          return x;
-        } else if (x && x.rendered) {
-          for (i = x.rendered.length - 1; i >= 0 && !elem; i -= 1) {
-            if (x.rendered[i] instanceof Element) {
-              elem = x.rendered[i];
-            } else if (x.rendered[i].rendered) {
-              elem = find_elem(x.rendered[i]);
-            }
-          }
-          return elem;
-        }
-      }, elem = find_elem(r);
+      var elem = find_elem(r);
       if (elem) {
         if (content._contentId) {
           this.views[this.unparam(content._contentId).trim()] = elem;

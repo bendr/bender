@@ -1,10 +1,11 @@
-// General purpose Javascript support library; as used by Bender
+// SVG-specific Javascript support library additions to flexo
 /*jslint browser: true, maxerr: 50, indent: 2 */
 /*global exports */
 
 (function (flexo) {
   "use strict";
 
+  // Magnitude of a 2D vector
   flexo.magnitude = function (x, y) {
     return Math.sqrt(x * x + y * y);
   };
