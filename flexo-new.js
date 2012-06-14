@@ -341,4 +341,46 @@
     flexo.remove_from_array(target[type], listener);
   };
 
+
+  // Trampoline calls, adapted from
+  // http://github.com/spencertipping/js-in-ten-minutes
+
+  // Use a trampoline to call a function; we expect a thunk to be returned
+  // through the get_thunk() function below. Return nothing to step off the
+  // trampoline (e.g. to wait for an event before continuing.)
+  Function.prototype.trampoline = function () {
+    var c = [this, arguments],
+      esc = arguments[arguments.length - 1];
+    while (c && c[0] !== esc) {
+      c = c[0].apply(this, c[1]);
+    }
+    if (c) {
+      return esc.apply(this, c[1]);
+    }
+  };
+
+  // Return a thunk suitable for the trampoline function above.
+  Function.prototype.get_thunk = function () {
+    return [this, arguments];
+  };
+
+  // Asynchronous foldl
+  flexo.async_foldl = function (f, z, a, k) {
+    var n = a.length;
+    return (function iter(i) {
+      return i < n ? f.get_thunk(function (v) {
+        z = v;
+        return iter.get_thunk(i + 1);
+      }, z, a[i], i, a) : k.get_thunk(z);
+    }).get_thunk(0);
+  };
+
+  // Asynchronous foreach
+  flexo.async_foreach = function (f, a, k) {
+    var n = a.length, i = 0;
+    return (function iter() {
+      return i < n ? f.get_thunk(iter, a[i], i++, a) : k.get_thunk();
+    }).get_thunk();
+  };
+
 }(typeof exports === "object" ? exports : window.flexo = {}));
