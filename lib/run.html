@@ -13,12 +13,15 @@
   </head>
   <body>
     <script>
-      var context = bender.create_context(document.body);
-      flexo.listen(context.ownerDocument, "@error", function(e) {
-          alert("Error loading " + e.url);
-        });
-      var args = flexo.get_args();
-      if (args.href) context.appendChild(context.$("use", args));
+      "use strict";
+      var args = flexo.get_args(),
+        context = bender.create_context(document.body);
+      flexo.listen(context.ownerDocument, "@error", function (e) {
+        alert("Error loading " + e.url);
+      });
+      if (args.href) {
+        context.appendChild(context.$("use", args));
+      }
     </script>
   </body>
 </html>
