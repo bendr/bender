@@ -135,6 +135,7 @@
     }
   };
 
+  // Shortcut to create an element in the current document
   flexo.elem = function () {
     return flexo.create_element.apply(document, arguments);
   };

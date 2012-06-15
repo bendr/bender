@@ -47,7 +47,7 @@
   // child of the parent element
   function import_node(parent, node, uri) {
     var i, m, n, attr, ch;
-    if (node.nodeType === 1) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
       n = parent.ownerDocument
         .createElementNS(node.namespaceURI, node.localName);
       if (n._is_component) {
@@ -72,7 +72,8 @@
       }
       return n;
     }
-    if (node.nodeType === 3 || node.nodeType === 4) {
+    if (node.nodeType === Node.TEXT_NODE ||
+        node.nodeType === Node.CDATA_SECTION_NODE) {
       return parent.appendChild(parent.ownerDocument.importNode(node, false));
     }
   }
@@ -145,6 +146,11 @@
     };
 
     // Manage the render queue specific to this context
+    // The purpose of the render queue is to gather refresh requests from
+    // different instances (including multiple requests frome the same instance)
+    // before doing the actual rendering in order to avoid multiple refreshes
+    // and cycles (as rendering requests are ignored while the queue is being
+    // flushed.)
     render_queue = [];
     timeout = null;
     flushing = false;
@@ -160,6 +166,7 @@
       flexo.remove_from_array(render_queue, instance);
       flexo.notify(this, "@refreshed", { instance: instance });
     };
+    // Method called by instances to request a refresh
     context._refresh_instance = function (instance) {
       if (flushing || render_queue.indexOf(instance) >= 0) {
         return;
@@ -321,7 +328,7 @@
     render_children: function (node, dest, ref) {
       var ch, d, r;
       for (ch = node.firstChild; ch; ch = ch.nextSibling) {
-        if (ch.nodeType === 1) {
+        if (ch.nodeType === Node.ELEMENT_NODE) {
           if (ch.namespaceURI === flexo.BENDER_NS) {
             if (ch.localName === "use") {
               r = this.render_use(ch, dest, ref);
@@ -349,7 +356,8 @@
           } else {
             r = this.render_foreign(ch, dest, ref);
           }
-        } else if (ch.nodeType === 3 || ch.nodeType === 4) {
+        } else if (ch.nodeType === Node.TEXT_NODE ||
+            ch.nodeType === Node.CDATA_SECTION_NODE) {
           d = dest.ownerDocument.createTextNode(this.unparam(ch.textContent));
           dest.insertBefore(d, ref);
           if (dest === this.target) {
@@ -892,7 +900,7 @@
         var q = [].slice.call(this.childNodes), elem;
         while (q.length) {
           elem = q.shift();
-          if (elem.nodeType === 1 &&
+          if (elem.nodeType === Node.ELEMENT_NODE &&
               (elem.getAttribute("id") === id ||
                elem.getAttributeNS(flexo.XML_NS, "id") === id)) {
             return elem;
@@ -943,7 +951,8 @@
 
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === 3 || ch.nodeType === 4) {
+        if (ch.nodeType === Node.TEXT_NODE ||
+            ch.nodeType === Node.CDATA_SECTION_NODE) {
           this._update_action();
         }
         return ch;
@@ -977,7 +986,8 @@
     script: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === 3 || ch.nodeType === 4) {
+        if (ch.nodeType === Node.TEXT_NODE ||
+            ch.nodeType === Node.CDATA_SECTION_NODE) {
           this._run();
         }
         return ch;
@@ -1005,7 +1015,8 @@
     set: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === 3 || ch.nodeType === 4) {
+        if (ch.nodeType === Node.TEXT_NODE ||
+            ch.nodeType === Node.CDATA_SECTION_NODE) {
           this._update_action();
         }
         return ch;
