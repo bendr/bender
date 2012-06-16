@@ -1,6 +1,6 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
   xmlns:f="http://bender.igel.co.jp/f" xmlns:svg="http://www.w3.org/2000/svg"
-  f:w="1600" f:h="1000" f:hw="" f:hh="" f:asteroids="8" b:running="true"
+  f:w="1600" f:h="1200" f:hw="" f:hh="" f:asteroids="8" b:running="true"
   f:stars_density="0.0005" f:star_r="3">
 
   <title>Asteroids</title>
@@ -43,6 +43,13 @@
       return "-{hw} -{hh} {w} {h}".format(this.properties);
     </set>
     <set><![CDATA[
+      if (window.__initialized || isNaN(this.properties.hw) ||
+        isNaN(this.properties.hh)) {
+        console.log("--- skip ({0})".fmt(window.__initialized || "NaN"));
+        return;
+      }
+      console.log("+++ init");
+      window.__initialized = true;
       // Add stars
       var g = this.component.querySelector("#stars");
       flexo.remove_children(g);
@@ -65,7 +72,7 @@
             flexo.random_int(-this.properties.hh, this.properties.hh),
           "bender_f:vx": this.random_velocity(),
           "bender_f:vy": this.random_velocity(),
-          "bender_f:va": this.random_velocity() / 12,
+          "bender_f:va": this.random_velocity() / 7,
         }));
       }
     ]]></set>
@@ -117,7 +124,23 @@
     };
 
     this._prototype.split = function (asteroid) {
-      console.log(asteroid);
+      var p = asteroid.use.parentNode;
+      p.insertBefore(p.$("use", { ref: "asteroid",
+        "bender_f:x": asteroid.properties.x,
+        "bender_f:y": asteroid.properties.y,
+        "bender_f:vx": asteroid.properties.vx,
+        "bender_f:vy": -asteroid.properties.vy,
+        "bender_f:va": asteroid.properties.va,
+        "berfer_f:r": asteroid.properties.r / 2
+      }), asteroid.use);
+      p.insertBefore(p.$("use", { ref: "asteroid",
+        "bender_f:x": asteroid.properties.x,
+        "bender_f:y": asteroid.properties.y,
+        "bender_f:vx": -asteroid.properties.vx,
+        "bender_f:vy": asteroid.properties.vy,
+        "bender_f:va": -asteroid.properties.va,
+        "berfer_f:r": asteroid.properties.r / 2
+      }), asteroid.use);
       flexo.safe_remove(asteroid.use);
     };
 
