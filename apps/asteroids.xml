@@ -1,12 +1,14 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:b="http://bender.igel.co.jp/b"
   xmlns:f="http://bender.igel.co.jp/f" xmlns:svg="http://www.w3.org/2000/svg"
-  f:w="1200" f:h="1200" f:hw="" f:hh="" f:asteroids="12" b:running="true">
+  f:w="1600" f:h="1000" f:hw="" f:hh="" f:asteroids="8" b:running="true"
+  f:stars_density="0.0005" f:star_r="3">
 
   <title>Asteroids</title>
 
   <view>
     <svg:svg id="svg">
       <svg:rect fill="black" id="bg"/>
+      <svg:g id="stars"/>
       <svg:g id="asteroids"/>
       <use ref="ship" id="ship"/>
     </svg:svg>
@@ -41,9 +43,21 @@
       return "-{hw} -{hh} {w} {h}".format(this.properties);
     </set>
     <set><![CDATA[
-      var g = this.component.querySelector("#asteroids");
+      // Add stars
+      var g = this.component.querySelector("#stars");
       flexo.remove_children(g);
-      for (var i = 0; i < this.properties.asteroids; ++i) {
+      for (var i = 0; i < this.properties.stars_density * this.properties.w *
+        this.properties.h; ++i) {
+        g.appendChild(g.$("svg:circle", {
+          r: Math.random() * this.properties.star_r,
+          cx: Math.random() * this.properties.w - this.properties.hw,
+          cy: Math.random() * this.properties.w - this.properties.hw,
+          fill: "white", "fill-opacity": Math.random() }));
+      }
+      // Add asteroids
+      g = this.component.querySelector("#asteroids");
+      flexo.remove_children(g);
+      for (i = 0; i < this.properties.asteroids; ++i) {
         g.appendChild(g.$("use", { ref: "asteroid",
           "bender_f:x":
             flexo.random_int(-this.properties.hw, this.properties.hw),
@@ -102,12 +116,17 @@
       window.__running = window.webkitRequestAnimationFrame(update);
     };
 
+    this._prototype.split = function (asteroid) {
+      console.log(asteroid);
+      flexo.safe_remove(asteroid.use);
+    };
+
   ]]> </script>
 
 
   <component id="ship" f:x="0" f:y="0" f:angle="0" f:r="15">
     <view>
-      <svg:path d="M20,0L-20,15L-10,0L-20,-15Z" stroke="white" fill="none"
+      <svg:path d="M20,0L-20,15L-10,0L-20,-15Z" stroke="white" fill="black"
         stroke-width="4" stroke-linejoin="round" id="path"/>
     </view>
     <watch>
@@ -129,7 +148,7 @@
   <component id="asteroid" f:x="0" f:y="0" f:angle="0" f:r="50" f:ramp="5"
     f:vx="0" f:vy="0" f:va="0" f:sectors="12">
     <view>
-      <svg:path stroke="white" fill="none" stroke-width="4"
+      <svg:path stroke="white" fill="black" stroke-width="4"
         stroke-linejoin="round" id="path"/>
     </view>
     <watch>
@@ -154,20 +173,26 @@
       </set>
     </watch>
     <watch>
-      <get use="$parent" event="@update">
-        var p = this.uses.$parent;
-        var dx = this.properties.vx * value.dt / 1000;
-        var dy = this.properties.vy * value.dt / 1000;
-        this.properties.x = (this.properties.x + dx + p.properties.hw +
-          p.properties.w) % p.properties.w - p.properties.hw;
-        this.properties.y = (this.properties.y + dy + p.properties.hh +
-          p.properties.h) % p.properties.h - p.properties.hh;
-        return value;
-      </get>
+      <get use="$parent" event="@update"/>
+      <set use="$self" property="x">
+        return (this.properties.x + (this.properties.vx * value.dt / 1000) +
+          value.source.properties.hw + value.source.properties.w) %
+          value.source.properties.w - value.source.properties.hw;
+      </set>
+      <set use="$self" property="y">
+        return (this.properties.y + (this.properties.vy * value.dt / 1000) +
+          value.source.properties.hh + value.source.properties.h) %
+          value.source.properties.h - value.source.properties.hh;
+      </set>
       <set use="$self" property="angle">
         return (this.properties.angle + (this.properties.va * value.dt / 1000) +
           360) % 360;
       </set>
+    </watch>
+    <watch>
+      <get view="path" event="click">
+        this.uses.$parent.split(this);
+      </get>
     </watch>
   </component>
 
