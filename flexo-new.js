@@ -14,6 +14,14 @@
     });
   };
 
+  // Another format function for messages and templates; this time, the only
+  // argument is an object and string parameters are keys.
+  String.prototype.format = function (args) {
+    return this.replace(/\{([^}]*)\}/g, function (s, p) {
+      return args.hasOwnProperty(p) ? args[p] : s;
+    });
+  };
+
   // Useful XML namespaces
   flexo.SVG_NS = "http://www.w3.org/2000/svg";
   flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
