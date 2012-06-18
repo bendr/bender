@@ -276,11 +276,16 @@
     // Get or set a property in self or nearest ancestor
     property: function (name, value) {
       var instance = this.find_instance_with_property(name);
+      var new_property = false;
       if (value) {
         if (!instance) {
           instance = this;
+          new_property = true;
         }
         instance.properties[name] = value;
+        if (new_property) {
+          flexo.notify(this, "@property", { name: name });
+        }
       }
       if (instance) {
         return instance.properties[name];
@@ -487,7 +492,7 @@
       delete this.component.__instance;
     },
 
-    // Return the input string with the parameters replace. Warn when no
+    // Return the input string with the parameters replaced. Warn when no
     // suitable parameter was found.
     unparam: function (t) {
       if (t) {
@@ -508,6 +513,7 @@
     // place.
     unrender: function () {
       var ref;
+      flexo.notify(this, "@unrender");
       this.rendered.forEach(function (r) {
         if (r instanceof Node) {
           ref = r;
