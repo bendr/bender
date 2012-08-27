@@ -1,6 +1,3 @@
-/*global exports, flexo, Element, Node, XMLSerializer */
-/*jslint browser: true, devel: true, evil: true, nomen: true, indent: 2 */
-
 (function (bender) {
   //"use strict";
 
@@ -20,19 +17,20 @@
   // context), or the component of its parent
   function component_of(node) {
     return node ?
-        node._is_component ?
-            node : component_of(node.parentNode) :
-        null;
+      node._is_component ?
+        node :
+        component_of(node.parentNode) :
+      null;
   }
 
   // TODO document this
   function find_elem(x) {
-    var i, elem;
     if (x instanceof Element) {
       return x;
     }
+    var elem;
     if (x && x.rendered) {
-      for (i = x.rendered.length - 1; i >= 0 && !elem; i -= 1) {
+      for (var i = x.rendered.length - 1; i >= 0 && !elem; --i) {
         if (x.rendered[i] instanceof Element) {
           elem = x.rendered[i];
         } else if (x.rendered[i].rendered) {

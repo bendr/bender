@@ -1,24 +1,23 @@
 // General purpose Javascript support library; as used by Bender
-/*jslint browser: true, maxerr: 50, nomen: true, regexp: true, indent: 2 */
-/*global Node, exports */
 
 (function (flexo) {
   "use strict";
 
   // Simple format function for messages and templates. Use {0}, {1}...
-  // as slots for parameters. Missing parameters are note replaced.
+  // as slots for parameters. Null and undefined are replaced by an empty
+  // string.
   String.prototype.fmt = function () {
-    var args = [].slice.call(arguments);
-    return this.replace(/\{(\d+)\}/g, function (s, p) {
-      return args[p] === undefined ? s : args[p];
+    var args = arguments;
+    return this.replace(/\{(\d+)\}/g, function (_, p) {
+      return args[p] === undefined || args[p] === null ? "" : args[p];
     });
   };
 
   // Another format function for messages and templates; this time, the only
   // argument is an object and string parameters are keys.
   String.prototype.format = function (args) {
-    return this.replace(/\{([^}]*)\}/g, function (s, p) {
-      return args.hasOwnProperty(p) ? args[p] : s;
+    return this.replace(/\{([^}]*)\}/g, function (_, p) {
+      return args[p] === undefined || args[p] === null ? "" : args[p];
     });
   };
 
