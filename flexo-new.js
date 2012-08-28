@@ -3,6 +3,9 @@
 (function (flexo) {
   "use strict";
 
+
+  // Strings -- formatting functions for easy templating
+
   // Simple format function for messages and templates. Use {0}, {1}...
   // as slots for parameters. Null and undefined are replaced by an empty
   // string.
@@ -21,27 +24,23 @@
     });
   };
 
-  // Useful XML namespaces
-  flexo.SVG_NS = "http://www.w3.org/2000/svg";
-  flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
-  flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
-  flexo.XML_NS = "http://www.w3.org/1999/xml";
-  flexo.XMLNS_NS = "http://www.w3.org/2000/xmlns/";
-  flexo.HTML_NS = flexo.XHTML_NS;
+
+  // URIs: parsing and resolving relative URIs (e.g. to load resources)
 
   // Utility function for absolute_uri
   function remove_dot_segments(path) {
-    var input = path, output = "", m;
+    var input = path;
+    var output = "";
     while (input) {
-      m = input.match(/^\.\.?\//);
+      var m = input.match(/^\.\.?\//);
       if (m) {
         input = input.substr(m[0].length);
       } else {
-        m = input.match(/^\/\.\/|\/\.$/);
+        m = input.match(/^\/\.(?:\/|$)/);
         if (m) {
           input = "/" + input.substr(m[0].length);
         } else {
-          m = input.match(/^\/\.\.\/|\/\.\.$/);
+          m = input.match(/^\/\.\.(:?\/|$)/);
           if (m) {
             input = "/" + input.substr(m[0].length);
             output = output.replace(/\/?[^\/]*$/, "");
@@ -60,11 +59,11 @@
 
   // Return an absolute URI for the reference URI for a given base URI
   flexo.absolute_uri = function (base, ref) {
-    var b, r = flexo.split_uri(ref);
+    var r = flexo.split_uri(ref);
     if (r.scheme) {
       r.path = remove_dot_segments(r.path);
     } else {
-      b = flexo.split_uri(base);
+      var b = flexo.split_uri(base);
       r.scheme = b.scheme;
       if (r.authority) {
         r.path = remove_dot_segments(r.path);
@@ -87,6 +86,43 @@
     }
     return flexo.unsplit_uri(r);
   };
+
+  // Split an URI into an object with the five parts scheme, authority, path,
+  // query, and fragment (without the extra punctuation; i.e. query does not
+  // have a leading "?") Fields not in the URI are undefined.
+  flexo.split_uri = function (uri) {
+    var m = uri.match(/^(?:([^:\/?#]+):)?(?:\/\/([^\/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/);
+    if (m) {
+      var u = {};
+      ["scheme", "authority", "path", "query", "fragment"]
+        .forEach(function (k, i) {
+          u[k] = m[i + 1];
+        });
+      return u;
+    }
+  };
+
+  // Rebuild an URI string from an object as split by flexo.split_uri
+  flexo.unsplit_uri = function (r) {
+    return (r.scheme ? r.scheme + ":" : "") +
+      (r.authority ? "//" + r.authority : "") +
+      r.path +
+      (r.query ? "?" + r.query : "") +
+      (r.fragment ? "#" + r.fragment : "");
+  };
+
+
+
+
+
+
+  // Useful XML namespaces
+  flexo.SVG_NS = "http://www.w3.org/2000/svg";
+  flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
+  flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
+  flexo.XML_NS = "http://www.w3.org/1999/xml";
+  flexo.XMLNS_NS = "http://www.w3.org/2000/xmlns/";
+  flexo.HTML_NS = flexo.XHTML_NS;
 
   // Return the value constrained between min and max.
   flexo.clamp = function (value, min, max) {
@@ -272,30 +308,6 @@
     } else {
       elem.classList.remove(c);
     }
-  };
-
-  // Split an URI into an object with the five parts scheme, authority, path,
-  // query, and fragment (without the extra punctuation; i.e. query does not
-  // have a leading "?")
-  flexo.split_uri = function (uri) {
-    var m = uri.match(/^(?:([a-zA-Z](?:[a-zA-Z0-9+.\-]*)):(?:\/\/([^\/]*))?)?([^#?]*)(?:\?([^#]*))?(?:#(.*))?$/),
-      u = {};
-    ["scheme", "authority", "path", "query", "fragment"]
-      .forEach(function (k, i) {
-        if (m && m[i + 1]) {
-          u[k] = m[i + 1];
-        }
-      });
-    return u;
-  };
-
-  // Rebuild an URI string from an object as split by flexo.split_uri
-  flexo.unsplit_uri = function (r) {
-    return (r.scheme ? r.scheme + ":" : "") +
-      "//" + (r.authority || "") +
-      r.path +
-      (r.query ? "?" + r.query : "") +
-      (r.fragment ? "#" + r.fragment : "");
   };
 
 
