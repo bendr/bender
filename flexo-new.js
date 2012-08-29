@@ -27,6 +27,30 @@
 
   // URIs: parsing and resolving relative URIs (e.g. to load resources)
 
+  // Split an URI into an object with the five parts scheme, authority, path,
+  // query, and fragment (without the extra punctuation; i.e. query does not
+  // have a leading "?") Fields not in the URI are undefined.
+  flexo.split_uri = function (uri) {
+    var m = uri.match(/^(?:([^:\/?#]+):)?(?:\/\/([^\/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/);
+    if (m) {
+      var u = {};
+      ["scheme", "authority", "path", "query", "fragment"]
+        .forEach(function (k, i) {
+          u[k] = m[i + 1];
+        });
+      return u;
+    }
+  };
+
+  // Rebuild an URI string from an object as split by flexo.split_uri
+  flexo.unsplit_uri = function (r) {
+    return (r.scheme ? r.scheme + ":" : "") +
+      (r.authority ? "//" + r.authority : "") +
+      r.path +
+      (r.query ? "?" + r.query : "") +
+      (r.fragment ? "#" + r.fragment : "");
+  };
+
   // Utility function for absolute_uri
   function remove_dot_segments(path) {
     var input = path;
@@ -87,28 +111,23 @@
     return flexo.unsplit_uri(r);
   };
 
-  // Split an URI into an object with the five parts scheme, authority, path,
-  // query, and fragment (without the extra punctuation; i.e. query does not
-  // have a leading "?") Fields not in the URI are undefined.
-  flexo.split_uri = function (uri) {
-    var m = uri.match(/^(?:([^:\/?#]+):)?(?:\/\/([^\/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/);
-    if (m) {
-      var u = {};
-      ["scheme", "authority", "path", "query", "fragment"]
-        .forEach(function (k, i) {
-          u[k] = m[i + 1];
-        });
-      return u;
+  // Get args from an URL
+  flexo.get_args = function (defaults, argstr) {
+    var sep, args = defaults || {};
+    if (!argstr) {
+      argstr = typeof window === "object" &&
+        typeof window.location === "object" &&
+        typeof window.location.search === "string" ?
+            window.location.search.substring(1) : "";
     }
-  };
-
-  // Rebuild an URI string from an object as split by flexo.split_uri
-  flexo.unsplit_uri = function (r) {
-    return (r.scheme ? r.scheme + ":" : "") +
-      (r.authority ? "//" + r.authority : "") +
-      r.path +
-      (r.query ? "?" + r.query : "") +
-      (r.fragment ? "#" + r.fragment : "");
+    argstr.split("&").forEach(function (q) {
+      if (!q) {
+        return;
+      }
+      sep = q.indexOf("=");
+      args[q.substr(0, sep)] = decodeURIComponent(q.substr(sep + 1));
+    });
+    return args;
   };
 
 
@@ -204,25 +223,6 @@
     }
     req.onload = function () { f(req); };
     req.send(params.data || "");
-  };
-
-  // Get args from an URL
-  flexo.get_args = function (defaults, argstr) {
-    var sep, args = defaults || {};
-    if (!argstr) {
-      argstr = typeof window === "object" &&
-        typeof window.location === "object" &&
-        typeof window.location.search === "string" ?
-            window.location.search.substring(1) : "";
-    }
-    argstr.split("&").forEach(function (q) {
-      if (!q) {
-        return;
-      }
-      sep = q.indexOf("=");
-      args[q.substr(0, sep)] = decodeURIComponent(q.substr(sep + 1));
-    });
-    return args;
   };
 
   // Define a getter/setter for a property, using Object.defineProperty if
@@ -367,10 +367,10 @@
 
   // Use a trampoline to call a function; we expect a thunk to be returned
   // through the get_thunk() function below. Return nothing to step off the
-  // trampoline (e.g. to wait for an event before continuing.)
+  // trampoline (e.g., to wait for an event before continuing.)
   Function.prototype.trampoline = function () {
-    var c = [this, arguments],
-      esc = arguments[arguments.length - 1];
+    var c = [this, arguments];
+    var esc = arguments[arguments.length - 1];
     while (c && c[0] !== esc) {
       c = c[0].apply(this, c[1]);
     }
@@ -401,6 +401,17 @@
     return (function iter() {
       return i < n ? f.get_thunk(iter, a[i], i++, a) : k.get_thunk();
     }).get_thunk();
+  };
+
+  flexo.forEach_async = function (f, a, k) {
+    return function (f, a, k) {
+      var n = a.length;
+      var i = 0;
+      var iter = function () {
+        return i < n ? f.get_thunk(iter, a[i], i++, a) : k.get_thunk();
+      };
+      return iter.get_thunk();
+    }.trampoline(f, a, k);
   };
 
 }(typeof exports === "object" ? exports : window.flexo = {}));
