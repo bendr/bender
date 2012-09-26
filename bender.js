@@ -1,5 +1,5 @@
 (function (bender) {
-  //"use strict";
+  "use strict";
 
   // Add to flexo so that create_element works with these namespaces
   flexo.BENDER_NS = "http://bender.igel.co.jp";      // Bender namespace
@@ -10,8 +10,6 @@
   flexo.BENDER_P_NS = "http://bender.igel.co.jp/p";  // Component parameter
 
   bender.VERSION = "0.5.1";
-
-  var PROTOTYPES, component_instance, watch_instance;
 
   // The component of a node is itself if it is a component node (or app or
   // context), or the component of its parent
@@ -28,8 +26,8 @@
     if (x instanceof Element) {
       return x;
     }
-    var elem;
     if (x && x.rendered) {
+      var elem;
       for (var i = x.rendered.length - 1; i >= 0 && !elem; --i) {
         if (x.rendered[i] instanceof Element) {
           elem = x.rendered[i];
@@ -44,20 +42,19 @@
   // Import a node and its children from a foreign document and add it as a
   // child of the parent element
   function import_node(parent, node, uri) {
-    var i, m, n, attr, ch;
     if (node.nodeType === Node.ELEMENT_NODE) {
-      n = parent.ownerDocument
+      var n = parent.ownerDocument
         .createElementNS(node.namespaceURI, node.localName);
       if (n._is_component) {
         n._uri = uri;
       }
       parent.appendChild(n);
-      for (i = 0, m = node.attributes.length; i < m; i += 1) {
-        attr = node.attributes[i];
+      for (var i = 0, m = node.attributes.length; i < m; ++i) {
+        var attr = node.attributes[i];
         if (attr.namespaceURI) {
           if (attr.namespaceURI === flexo.XMLNS_NS &&
               attr.localName !== "xmlns") {
-            n.setAttribute("xmlns:{0}".fmt(attr.localName), attr.nodeValue);
+            n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
           } else {
             n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
           }
@@ -65,12 +62,11 @@
           n.setAttribute(attr.localName, attr.nodeValue);
         }
       }
-      for (ch = node.firstChild; ch; ch = ch.nextSibling) {
+      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         import_node(n, ch, uri);
       }
       return n;
-    }
-    if (node.nodeType === Node.TEXT_NODE ||
+    } else if (node.nodeType === Node.TEXT_NODE ||
         node.nodeType === Node.CDATA_SECTION_NODE) {
       return parent.appendChild(parent.ownerDocument.importNode(node, false));
     }
@@ -107,8 +103,8 @@
   // Extend an element with Bender methods and call the _init() method on the
   // node if it exists.
   function wrap_element(e) {
-    var p, proto = PROTOTYPES[e.localName] || {};
-    for (p in proto) {
+    var proto = PROTOTYPES[e.localName] || {};
+    for (var p in proto) {
       if (proto.hasOwnProperty(p)) {
         e[p] = proto[p];
       }
@@ -123,14 +119,12 @@
   }
 
   // Create a Bender context for the given target (host document by default.)
+  // All Bender applications run in a context, which is itself a document with a
+  // <bender> root element.
   bender.create_context = function (target) {
-    var doc, context, render_queue, timeout, flushing, flush_queue, component,
-      loaded, components;
-    if (!target) {
-      target = document;
-    }
-    doc = target.ownerDocument || target;
-    context =
+    target = target || document;
+    var doc = target.ownerDocument || target;
+    var context =
       doc.implementation.createDocument(flexo.BENDER_NS, "bender", null);
 
     // Wrap all new elements
@@ -143,16 +137,17 @@
         .call(this, ns, qname));
     };
 
-    // Manage the render queue specific to this context
-    // The purpose of the render queue is to gather refresh requests from
-    // different instances (including multiple requests frome the same instance)
-    // before doing the actual rendering in order to avoid multiple refreshes
-    // and cycles (as rendering requests are ignored while the queue is being
-    // flushed.)
-    render_queue = [];
-    timeout = null;
-    flushing = false;
-    flush_queue = function () {
+    // Manage the render queue specific to this context. The purpose of the
+    // render queue is to gather refresh requests from different instances
+    // (including multiple requests frome the same instance) before doing the
+    // actual rendering in order to avoid multiple refreshes and cycles (as
+    // rendering requests are ignored while the queue is being flushed.)
+    var render_queue = [];
+    var timeout = null;
+    var flushing = false;
+
+    // Flush the queue: actually do the rendering for the instances in the queue
+    var flush_queue = function () {
       flushing = true;
       while (render_queue[0]) {
         render_queue[0].refresh_component_instance();
@@ -160,10 +155,13 @@
       timeout = null;
       flushing = false;
     };
+
+    // Unqueue an instance that was just refreshed and notify it
     context._refreshed_instance = function (instance) {
       flexo.remove_from_array(render_queue, instance);
       flexo.notify(this, "@refreshed", { instance: instance });
     };
+
     // Method called by instances to request a refresh
     context._refresh_instance = function (instance) {
       if (flushing || render_queue.indexOf(instance) >= 0) {
@@ -176,13 +174,13 @@
     };
 
     // Create a root context element and initiate rendering
-    component = context.createElement("context");
+    var component = context.createElement("context");
     context.documentElement.appendChild(component);
     component._insert_use.call(context.documentElement, { q: "context" },
         target);
 
-    loaded = {};      // loaded URIs
-    components = {};  // known components by URI/id
+    var loaded = {};      // loaded URIs
+    var components = {};  // known components by URI/id
     loaded[normalize_url(doc.baseURI, "")] = component;
 
     // Keep track of uri/id pairs to find components with the href attribute
@@ -193,24 +191,23 @@
     };
 
     // Request for a component to be loaded. If the component was already
-    // loaded, return the component node, otherwise return the normalized URL
-    // requested. In that situation, a "@loaded" event will be sent when loading
-    // has finished with a url parameter corresponding to the returned URL and
-    // the loaded component; an "@error" event will be sent with the same URL
-    // parameter in case of error.
+    // loaded, return the component node, otherwise return the requested URL
+    // normalized. In that situation, a "@loaded" event will be sent when
+    // loading has finished with a url parameter corresponding to the returned
+    // URL and the loaded component; an "@error" event will be sent with the
+    // same URL parameter in case of error.
     context._load_component = function (url) {
-      var split, locator, id, r;
-      split = url.split("#");
-      locator = normalize_url(doc.baseURI, split[0]);
-      id = split[1];
+      var split = url.split("#");
+      var locator = normalize_url(doc.baseURI, split[0]);
+      var id = split[1];
       if (typeof loaded[locator] === "object") {
-        r = id ? components[locator + "#" + id] : loaded[locator];
+        return id ? components[locator + "#" + id] : loaded[locator];
       } else {
         if (!loaded[locator]) {
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
             if (!req.response) {
-              flexo.notify(context, "@error", { url: locator });
+              flexo.notify(context, "@error", { url: locator, req: req });
             } else {
               loaded[locator] =
                 import_node(component, req.response.documentElement, locator);
@@ -219,17 +216,17 @@
             }
           });
         }
-        r = locator;
+        return locator;
       }
-      return r;
     };
 
     return component;
   };
 
+
   // Prototype for a component instance. Prototypes may be extended through the
   // <script> element.
-  component_instance = {
+  var component_instance = {
 
     // Initialize the instance from a <use> element given a <component>
     // description node.
@@ -258,8 +255,8 @@
       return this;
     },
 
-    // Find the value of a property in scope
-    // Create a new property on the top-level instance if not found
+    // Find the nearest instance in the ancestor list that has the given
+    // property, if any
     find_instance_with_property: function (name) {
       if (this.properties.hasOwnProperty(name)) {
         return this;
@@ -267,15 +264,13 @@
       if (this.uses.$parent) {
         return this.uses.$parent.find_instance_with_property(name);
       }
-      this.properties[name] = undefined;
-      return this;
     },
 
-    // Get or set a property in self or nearest ancestor
+    // Get or set a property in self or nearest ancestor. It is an error to set
+    // an undefined property
     property: function (name, value) {
       var instance = this.find_instance_with_property(name);
-      var new_property = false;
-      if (value) {
+      if (value !== undefined) {
         if (!instance) {
           instance = this;
           new_property = true;

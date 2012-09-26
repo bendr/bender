@@ -1,5 +1,4 @@
 // Morbo HTTP server for use with Bender
-/*jslint indent: 2 */
 
 (function () {
   "use strict";

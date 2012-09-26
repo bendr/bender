@@ -12,7 +12,7 @@
   String.prototype.fmt = function () {
     var args = arguments;
     return this.replace(/\{(\d+)\}/g, function (_, p) {
-      return args[p] === undefined || args[p] === null ? "" : args[p];
+      return args[p] == null ? "" : args[p];
     });
   };
 
@@ -20,7 +20,7 @@
   // argument is an object and string parameters are keys.
   String.prototype.format = function (args) {
     return this.replace(/\{([^}]*)\}/g, function (_, p) {
-      return args[p] === undefined || args[p] === null ? "" : args[p];
+      return args[p] == null ? "" : args[p];
     });
   };
 

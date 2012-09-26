@@ -11,7 +11,7 @@
   {
     var args = [].slice.call(arguments);
     return this.replace(/\{(\d+)\}/g, function(_, p) {
-        return args[p] === undefined ? "" : args[p];
+        return args[p] == undefined ? "" : args[p];
       });
   };
 
@@ -621,7 +621,7 @@
   {
     var elem = ns ? document.createElementNS(ns, name) :
       document.createElement(name);
-    for (attr in attrs) {
+    for (var attr in attrs) {
       if (attrs.hasOwnProperty(attr) && attrs[attr] !== undefined) {
         elem.setAttribute(attr, attrs[attr]);
       }
