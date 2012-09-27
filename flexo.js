@@ -6,7 +6,7 @@
   var A = Array.prototype;
   var browser = typeof window === "object";
 
-  // Strings -- formatting functions for easy templating
+  // Strings
 
   // Simple format function for messages and templates. Use {0}, {1}...
   // as slots for parameters. Null and undefined are replaced by an empty
@@ -24,6 +24,62 @@
     return this.replace(/\{([^}]*)\}/g, function (_, p) {
       return args[p] == null ? "" : args[p];
     });
+  };
+
+  // Pad a string to the given length with the given padding (defaults to 0)
+  // if it is shorter. The padding is added at the beginning of the string.
+  flexo.pad = function(string, length, padding) {
+    if (typeof padding !== "string") {
+      padding = "0";
+    }
+    if (typeof string !== "string") {
+      string = string.toString();
+    }
+    var l = length + 1 - string.length;
+    return l > 0 ? (Array(l).join(padding)) + string : string;
+  };
+
+
+  // Numbers
+
+  // Return the value constrained between min and max. A NaN value is converted
+  // to 0 before being clamped. min and max are assumed to be numbers such that
+  // min <= max.
+  flexo.clamp = function (value, min, max) {
+    return Math.max(Math.min(isNaN(value) ? 0 : value, max), min);
+  };
+
+  // Remap a value from a given range to another range (from Processing)
+  flexo.remap = function (value, istart, istop, ostart, ostop) {
+    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+  };
+
+  // Return a random integer in the [min, max] range, assuming min <= max.
+  // The min parameter may be omitted and defaults to zero.
+  flexo.random_int = function (min, max) {
+    if (max === undefined) {
+      max = min;
+      min = 0;
+    }
+    return min + Math.floor(Math.random() * (max + 1 - min));
+  };
+
+
+  // Arrays
+
+  // Return a random element from an array
+  flexo.random_element = function (a) {
+    return a[flexo.random_int(a.length - 1)];
+  };
+
+  // Remove an item from an array
+  flexo.remove_from_array = function (array, item) {
+    if (array) {
+      var index = array.indexOf(item);
+      if (index >= 0) {
+        return array.splice(index, 1)[0];
+      }
+    }
   };
 
 
@@ -133,10 +189,6 @@
   };
 
 
-
-
-
-
   // Element creation
 
   // Known XML namespaces for use with create_element below. A variable of the
@@ -227,10 +279,9 @@
     });
   }
 
-  // Return the value constrained between min and max.
-  flexo.clamp = function (value, min, max) {
-    return Math.max(Math.min(isNaN(value) ? 0 : value, max), min);
-  };
+
+
+  // TO BE TESTED
 
   // Get clientX/clientY as an object { x: ..., y: ... } for events that may
   // be either a mouse event or a touch event, in which case the position of
@@ -281,39 +332,10 @@
   // Identity function
   flexo.id = function (x) { return x; };
 
-  // Return a random element from an array
-  flexo.random_element = function (a) {
-    return a[flexo.random_int(a.length - 1)];
-  };
-
-  // Return a random integer in the [min, max] range
-  flexo.random_int = function (min, max) {
-    if (max === undefined) {
-      max = min;
-      min = 0;
-    }
-    return min + Math.floor(Math.random() * (max + 1 - min));
-  };
-
-  // Remap a value from a given range to another range (from Processing)
-  flexo.remap = function (value, istart, istop, ostart, ostop) {
-    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
-  };
-
   // Remove all children of an element
   flexo.remove_children = function (elem) {
     while (elem.firstChild) {
       elem.removeChild(elem.firstChild);
-    }
-  };
-
-  // Remove an item from an array
-  flexo.remove_from_array = function (array, item) {
-    if (array) {
-      var index = array.indexOf(item);
-      if (index >= 0) {
-        return array.splice(index, 1)[0];
-      }
     }
   };
 

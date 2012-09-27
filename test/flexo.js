@@ -5,9 +5,9 @@
     window.chai.assert;
   var flexo = typeof require === "function" && require("flexo") || window.flexo;
 
-  describe("String", function () {
+  describe("Strings", function () {
 
-    describe(".fmt(...)", function () {
+    describe("String.fmt(...)", function () {
       it("replaces its arguments when specified", function () {
         assert.strictEqual("foo = 1", "foo = {0}".fmt(1));
         assert.strictEqual("foo = 1, bar = 2",
@@ -23,7 +23,7 @@
         });
     });
 
-    describe(".format(obj)", function () {
+    describe("String.format(obj)", function () {
       var x = { foo: 1, bar: 2, fum: undefined, baz: null };
       it("replaces its arguments when specified", function () {
         assert.strictEqual("foo = 1, bar = 2",
@@ -37,6 +37,96 @@
         });
     });
 
+    describe("flexo.pad(string, length, padding=\"0\")", function () {
+      it("pads a string to the given length with padding", function () {
+        assert.strictEqual(flexo.pad("2", 2), "02");
+        assert.strictEqual(flexo.pad("right-aligned", 16, " "),
+          "   right-aligned");
+      });
+      it("converts the first argument to a string (useful for numbers)",
+        function () {
+          assert.strictEqual(flexo.pad(2, 2), "02");
+        });
+      it("is useful to create strings with a repeated pattern", function () {
+        assert.strictEqual(flexo.pad("", 10, "*"), "**********");
+        assert.strictEqual(flexo.pad("", 10, "**"), "********************");
+      });
+    });
+
+  });
+
+  
+  describe("Numbers", function () {
+
+    describe("flexo.clamp(n, min, max)", function () {
+      it("clamps the value of n between min and max, assuming min <= max",
+        function () {
+          assert.strictEqual(flexo.clamp(0, 1, 1), 1);
+          assert.strictEqual(flexo.clamp(1, 1, 1), 1);
+          assert.strictEqual(flexo.clamp(1, 1, 10), 1);
+          assert.strictEqual(flexo.clamp(10, 1, 10), 10);
+          assert.strictEqual(flexo.clamp(0, 1, 10), 1);
+          assert.strictEqual(flexo.clamp(100, 1, 10), 10);
+          assert.strictEqual(flexo.clamp(1, -Infinity, +Infinity), 1);
+        });
+      it("treats NaN as 0 for the n parameter", function () {
+        assert.strictEqual(flexo.clamp("Not a number!", -10, 10), 0);
+        assert.strictEqual(flexo.clamp("Not a number!", 1, 10), 1);
+      });
+    });
+
+    describe("flexo.random_int([min,] max)", function () {
+      it("returns an integer in the [min, max] range, assuming min <= max",
+        function () {
+          for (var i = 0; i < 100; ++i) {
+            var r = flexo.random_int(-10, 10);
+            assert.ok(r >= -10 && r <= 10 && Math.round(r) === r);
+          }
+        });
+      it("defaults to 0 for min if only parameter is given", function () {
+        for (var i = 0; i < 100; ++i) {
+          var r = flexo.random_int(10);
+          assert.ok(r >= 0 && r <= 10 && Math.round(r) === r);
+        }
+      });
+    });
+
+    describe("flexo.remap(value, istart, istop, ostart, ostop)", function () {
+      it("remaps a value from an input range to an output range", function () {
+        assert.strictEqual(flexo.remap(5, 0, 10, 10, 20), 15);
+        assert.strictEqual(flexo.remap(5, 0, 10, 0, 20), 10);
+        assert.strictEqual(flexo.remap(60, 0, 360, 0, 2 * Math.PI),
+          Math.PI / 3);
+      });
+    });
+  });
+
+
+  describe("Arrays", function () {
+
+    describe("flexo.random_element(array)", function () {
+      it("returns a random element from an array", function () {
+        var a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        for (var i = 0; i < 100; ++i) {
+          var r = flexo.random_element(a);
+          assert.ok(a.indexOf(r) >= 0);
+        }
+      });
+    });
+
+    describe("flexo.remove_from_array(array, item)", function () {
+      it("removes the first occurrence of the item from the array, if present and returns it",
+        function () {
+          var a = [1, 2, 3, 4, 2];
+          assert.strictEqual(flexo.remove_from_array(a, 1), 1);
+          assert.deepEqual(a, [2, 3, 4, 2]);
+          assert.strictEqual(flexo.remove_from_array(a, 2), 2);
+          assert.deepEqual(a, [3, 4, 2]);
+          assert.strictEqual(flexo.remove_from_array(a, 5));
+          assert.deepEqual(a, [3, 4, 2]);
+          assert.strictEqual(flexo.remove_from_array(null, 5));
+        });
+    });
   });
 
 
@@ -218,12 +308,14 @@
               assert.ok(p.classList.contains("b"));
               assert.ok(p.classList.contains("c"));
               assert.ok(!p.classList.contains("a.b.c"));
-              var g = flexo.create_element.call(document, "svg:g#x.y.z");
-              assert.strictEqual("http://www.w3.org/2000/svg", g.namespaceURI);
-              assert.strictEqual("g", g.tagName.toLowerCase());
-              assert.strictEqual("x", g.id);
-              assert.ok(g.classList.contains("y"));
-              assert.ok(g.classList.contains("z"));
+              var q = flexo.create_element.call(document, "html:p#x.y.z");
+              assert.strictEqual("http://www.w3.org/1999/xhtml", q.namespaceURI);
+              assert.strictEqual("p", q.tagName.toLowerCase());
+              assert.strictEqual("x", q.id);
+              // An earlier version of this test used an svg element but SVG and
+              // classList don't play well together (this failed in Chrome)
+              assert.ok(q.classList.contains("y"));
+              assert.ok(q.classList.contains("z"));
               // Be careful of ordering id and classes: id must come first
               var wrong = flexo.create_element.call(document, "p.a#b.c")
               assert.notStrictEqual("b", wrong.id);
