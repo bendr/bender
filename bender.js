@@ -124,8 +124,8 @@
   bender.create_context = function (target) {
     target = target || document;
     var doc = target.ownerDocument || target;
-    var context =
-      doc.implementation.createDocument(flexo.BENDER_NS, "bender", null);
+    var context = doc.implementation.createDocument(flexo.BENDER_NS, "bender",
+        null);
 
     // Wrap all new elements
     context.createElement = function (name) {
@@ -552,7 +552,7 @@
     }
   };
 
-  watch_instance = {
+  var watch_instance = {
 
     init: function (watch, component_instance) {
       this.watch = watch;
@@ -698,7 +698,7 @@
     }
   };
 
-  PROTOTYPES = {
+  var PROTOTYPES = {
 
     "": {
       appendChild: function (ch) { return this.insertBefore(ch, null); },
