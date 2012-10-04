@@ -40,4 +40,42 @@
 
   });
 
+  describe("Test applications", function () {
+
+    it("Hello, world! (create a component with only a view programmatically)", function (done) {
+      var div = window.document.createElement("div");
+      var context = bender.create_context(div);
+      var component = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p", "Hello, world!"))));
+      context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          setTimeout(function () {
+            if (div.textContent === "Hello, world!") {
+              done();
+            }
+            console.log("Div = ", div.textContent);
+          }, 0);
+        }
+      });
+    });
+
+    it("Text-only view", function (done) {
+      var context = bender.create_context(document.querySelector("p"));
+      var component = context.appendChild(
+        context.$("component",
+          context.$("view", "Hello, world!")));
+      context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        console.log("Refreshed", e.instance);
+        if (e.instance.component === component) {
+          done();
+        }
+      });
+    });
+
+  });
+
 }(window.chai.assert, window.flexo, window.bender));

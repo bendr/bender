@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | Hello, World!/Text-only</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="example.css">
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script src="example.js"></script>
+    <script>
+(function () {
+  "use strict";
+
+  var context = bender.create_context(document.querySelector("p"));
+  var component = context.appendChild(
+    context.$("component",
+      context.$("view", "Hello, world!")));
+  context.appendChild(context.$("use", { q: "component" }));
+  flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+    console.log("Refreshed", e.instance);
+    if (e.instance.component === component) {
+      example.ok();
+    }
+  });
+
+}());
+    </script>
+  </body>
+</html>

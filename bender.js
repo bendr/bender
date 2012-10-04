@@ -149,7 +149,7 @@
     // Flush the queue: actually do the rendering for the instances in the queue
     var flush_queue = function () {
       flushing = true;
-      while (render_queue[0]) {
+      while (render_queue.length > 0) {
         render_queue[0].refresh_component_instance();
       }
       timeout = null;
@@ -164,7 +164,7 @@
 
     // Method called by instances to request a refresh
     context._refresh_instance = function (instance) {
-      if (flushing || render_queue.indexOf(instance) >= 0) {
+      if (render_queue.indexOf(instance) >= 0) {
         return;
       }
       render_queue.push(instance);
@@ -181,14 +181,15 @@
     context.documentElement.appendChild(use);
     use._render(target);
 
+    // The context keeps track of loaded URIs and catalogues all components
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
     loaded[normalize_url(doc.baseURI, "")] = component;
 
     // Keep track of uri/id pairs to find components with the href attribute
     context._add_component = function (component) {
-      var uri =
-        normalize_url(doc.baseURI, component._uri + "#" + component._id);
+      var uri = normalize_url(doc.baseURI,
+          component._uri + "#" + component._id);
       components[uri] = component;
     };
 
