@@ -369,7 +369,7 @@
       return r;
     },
 
-    // Render foreign nodes within a view; arguments and return vlaue are the
+    // Render foreign nodes within a view; arguments and return value are the
     // same as render_children() above.
     render_foreign: function (node, dest, ref) {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,

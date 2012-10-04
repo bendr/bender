@@ -14,8 +14,13 @@
 (function () {
   "use strict";
 
-  var context = bender.create_context();
-  context.appendChild(context.$("use", { href: "hello-world.xml" }));
+  var context = bender.create_context(document.body);
+  var use = context.appendChild(context.$("use", { href: "hello-world.xml" }));
+  flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+    if (e.instance.use === use) {
+      example.ok();
+    }
+  });
 
 }());
     </script>

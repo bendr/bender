@@ -56,7 +56,22 @@
             if (div.textContent === "Hello, world!") {
               done();
             }
-            console.log("Div = ", div.textContent);
+          }, 0);
+        }
+      });
+    });
+
+    it("Hello, world! (load a component with only a view)", function (done) {
+      var div = window.document.createElement("div");
+      var context = bender.create_context(div);
+      var use = context.appendChild(context.$("use",
+          { href: "hello-world.xml" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.use === use) {
+          setTimeout(function () {
+            if (div.textContent.trim() === "Hello, world!") {
+              done();
+            }
           }, 0);
         }
       });
@@ -70,7 +85,6 @@
           context.$("view", "Hello, world!")));
       context.appendChild(context.$("use", { q: "component" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        console.log("Refreshed", e.instance);
         if (e.instance.component === component) {
           done();
         }
