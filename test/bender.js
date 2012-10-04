@@ -63,7 +63,8 @@
     });
 
     it("Text-only view", function (done) {
-      var context = bender.create_context(document.querySelector("p"));
+      var p = window.document.createElement("p");
+      var context = bender.create_context(p);
       var component = context.appendChild(
         context.$("component",
           context.$("view", "Hello, world!")));
