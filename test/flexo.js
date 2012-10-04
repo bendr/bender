@@ -267,6 +267,88 @@
   });
 
 
+  describe("Custom events", function () {
+    var source = {};
+
+    describe("flexo.listen(target, type, listener)", function () {
+      it("listens to events of `type` from `target` and executes the listener", function () {
+        var tests = 0;
+        flexo.listen(source, "@test-listen", function () {
+          ++tests;
+        });
+        flexo.notify(source, "@test-listen");
+        flexo.notify(source, "@test-listen");
+        assert.strictEqual(tests, 2);
+      });
+    });
+
+    describe("flexo.listen_once(target, type, listener)", function () {
+      it("listens to events of `type` from `target` and executes the listener, then immediately stops listening", function () {
+        var tests = 0;
+        flexo.listen_once(source, "@test-once", function () {
+          ++tests;
+        });
+        flexo.notify(source, "@test-once");
+        flexo.notify(source, "@test-once");
+        assert.strictEqual(tests, 1);
+      });
+    });
+
+    describe("flexo.notify(source, type, [arguments])", function () {
+      it("sends an event notification of `type` on behalf of `source`", function (done) {
+        flexo.listen(source, "@test-notify", function () {
+          done();
+        });
+        flexo.notify(source, "@test-notify");
+      });
+      it("sends additional arguments through the `arguments` object", function () {
+        flexo.listen(source, "@test-args", function (e) {
+          assert.strictEqual(e.source, source);
+          assert.strictEqual(e.type, "@test-args");
+          assert.strictEqual(e.foo, 1);
+          assert.strictEqual(e.bar, 2);
+        });
+        flexo.notify(source, "@test-args", { foo: 1, bar: 2 });
+      });
+    });
+
+    describe("flexo.notify(e)", function () {
+      it("sends an event notification of `e.type` on behalf of `e.source` with additional arguments from `e`", function () {
+        flexo.listen(source, "@test-e", function (e) {
+          assert.strictEqual(e.source, source);
+          assert.strictEqual(e.type, "@test-e");
+          assert.strictEqual(e.foo, 1);
+          assert.strictEqual(e.bar, 2);
+        });
+        flexo.notify({ source: source, type: "@test-e", foo: 1, bar: 2 });
+      });
+    });
+
+    describe("flexo.unlisten(target, type, listener)", function () {
+      it("removes `listener` for events of `type` from `target`", function () {
+        var tests = 0;
+        var h = function () {
+          ++tests;
+        };
+        flexo.listen(source, "@test-unlisten", h);
+        flexo.notify(source, "@test-unlisten");
+        flexo.unlisten(source, "@test-unlisten", h);
+        flexo.notify(source, "@test-unlisten");
+        assert.strictEqual(tests, 1);
+
+        flexo.listen(source, "@test-unlisten2", h);
+        flexo.listen(source, "@test-unlisten2", function () {
+          ++tests;
+        });
+        flexo.notify(source, "@test-unlisten2");
+        flexo.unlisten(source, "@test-unlisten2", h);
+        flexo.notify(source, "@test-unlisten2");
+        assert.strictEqual(tests, 4);
+      });
+    });
+  });
+
+
   if (typeof window === "object") {
     describe("Element creation", function () {
 
