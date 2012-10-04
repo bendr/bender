@@ -1,0 +1,23 @@
+body {
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+a {
+  color: #ff4040;
+  text-decoration: none;
+}
+
+.testing {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  background-color: #08f;
+  color: white;
+  padding: 0.2em 0.5em;
+  border-radius: 0.2em;
+}
+
+.testing.ok {
+  background-color: #8f0;
+  color: #333;
+}

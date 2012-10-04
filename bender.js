@@ -127,14 +127,14 @@
     var context = doc.implementation.createDocument(flexo.BENDER_NS, "bender",
         null);
 
-    // Wrap all new elements
+    // Wrap all new elements created in this context
     context.createElement = function (name) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS
-        .call(this, flexo.BENDER_NS, name));
+      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
+            flexo.BENDER_NS, name));
     };
     context.createElementNS = function (ns, qname) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS
-        .call(this, ns, qname));
+      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
+            ns, qname));
     };
 
     // Manage the render queue specific to this context. The purpose of the
@@ -175,9 +175,11 @@
 
     // Create a root context element and initiate rendering
     var component = context.createElement("context");
+    flexo.getter_setter(component, "target", function () { return target; });
     context.documentElement.appendChild(component);
-    component._insert_use.call(context.documentElement, { q: "context" },
-        target);
+    var use = component.$("use", { q: "context" });
+    context.documentElement.appendChild(use);
+    use._render(target);
 
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
@@ -1211,14 +1213,5 @@
 
   PROTOTYPES.app = PROTOTYPES.component;
   PROTOTYPES.context = PROTOTYPES.component;
-
-  // Insert a newly created use element (using the attributes passed as first
-  // argument) in the context and render it to the given target
-  PROTOTYPES.context._insert_use = function (attrs, target) {
-    var use = PROTOTYPES[""].$.call(this, "use", attrs);
-    this.appendChild(use);
-    use._render(target);
-    return use;
-  };
 
 }(typeof exports === "object" ? exports : window.bender = {}));
