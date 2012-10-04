@@ -14,8 +14,12 @@
 (function () {
   "use strict";
 
-  var context = bender.create_context(document.body);
+  var context = bender.create_context();
   var use = context.appendChild(context.$("use", { href: "hello-world.xml" }));
+  flexo.listen(context.ownerDocument, "@loaded", function (e) {
+    console.log("Loaded component at URL {0}:".fmt(e.url),
+      e.component._serialize());
+  });
   flexo.listen(context.ownerDocument, "@refreshed", function (e) {
     if (e.instance.use === use) {
       example.ok();

@@ -15,8 +15,8 @@
         assert.strictEqual(context.parentNode,
           context.ownerDocument.documentElement);
       });
-      it("the target parameter defaults to `document`", function () {
-        assert.strictEqual(context.target, window.document);
+      it("the target parameter defaults to the host document root element, or body if any (e.g. <body> for HTML, <svg> for SVG, &c.)", function () {
+        assert.strictEqual(context.target, window.document.body);
       });
     });
 

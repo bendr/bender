@@ -118,11 +118,20 @@
     return e;
   }
 
-  // Create a Bender context for the given target (host document by default.)
-  // All Bender applications run in a context, which is itself a document with a
-  // <bender> root element.
+  // Create a Bender context for the given target (host document root element or
+  // body by default.) All Bender applications run in a context, which is itself
+  // a document that can be represented as:
+  //
+  //   <bender xmlns="http://bender.igel.co.jp">
+  //     <context/>
+  //     <use q="context"/>
+  //   </bender>
+  //
+  // The <context> element is returned; this is a Bender component that acts as
+  // root of the context tree. The target of the context is the root of the host
+  // document subtree where rendering happens.
   bender.create_context = function (target) {
-    target = target || document;
+    target = target || document.body || document.documentElement;
     var doc = target.ownerDocument || target;
     var context = doc.implementation.createDocument(flexo.BENDER_NS, "bender",
         null);
