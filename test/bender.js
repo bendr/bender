@@ -91,6 +91,27 @@
       });
     });
 
+    it("Several contexts in the same target document", function (done) {
+      var make_component = function () {
+        var p = window.document.createElement("p");
+        var context = bender.create_context(p);
+        var component = context.appendChild(
+          context.$("component",
+            context.$("view", "Simple component")));
+        context.appendChild(context.$("use", { q: "component" }));
+        flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+          if (e.instance.component === component) {
+            if (++j === n) {
+              done();
+            }
+          }
+        });
+      };
+      for (var i = 0, j = 0, n = 3; i < n; ++i) {
+        make_component();
+      }
+    });
+
   });
 
 }(window.chai.assert, window.flexo, window.bender));
