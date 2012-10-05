@@ -1,5 +1,12 @@
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+  margin: 2em;
+}
+
+h1 {
+  font-size: 150%;
+  font-weight: normal;
+  color: #102040;
 }
 
 a {

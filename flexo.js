@@ -169,6 +169,21 @@
     return flexo.unsplit_uri(r);
   };
 
+  // Make an XMLHttpRequest with optional params and a callback when done
+  flexo.ez_xhr = function (uri, params, f) {
+    var req = new XMLHttpRequest();
+    if (f === undefined) {
+      f = params;
+      params = {};
+    }
+    req.open(params.method || "GET", uri);
+    if (params.hasOwnProperty("responseType")) {
+      req.responseType = params.responseType;
+    }
+    req.onload = req.onerror = function () { f(req); };
+    req.send(params.data || "");
+  };
+
   // Get args from an URL
   flexo.get_args = function (defaults, argstr) {
     var sep, args = defaults || {};
@@ -189,7 +204,58 @@
   };
 
 
-  // Element creation
+  // Custom events
+
+  // Listen to a custom event. Listener is a function or an object whose
+  // "handleEvent" function will then be invoked.
+  flexo.listen = function (target, type, listener) {
+    if (!(target.hasOwnProperty(type))) {
+      target[type] = [];
+    }
+    target[type].push(listener);
+  };
+
+  // Listen to an event only once
+  flexo.listen_once = function (target, type, listener) {
+    var h = function (e) {
+      flexo.unlisten(target, type, h);
+      if (typeof listener.handleEvent === "function") {
+        listener.handleEvent.call(listener, e);
+      } else {
+        listener(e);
+      }
+    };
+    flexo.listen(target, type, h);
+  };
+
+  // Can be called as notify(e), notify(source, type) or notify(source, type, e)
+  flexo.notify = function (source, type, e) {
+    if (e) {
+      e.source = source;
+      e.type = type;
+    } else if (type) {
+      e = { source: source, type: type };
+    } else {
+      e = source;
+    }
+    if (e.source.hasOwnProperty(e.type)) {
+      e.source[e.type].slice().forEach(function (listener) {
+        if (typeof listener.handleEvent === "function") {
+          listener.handleEvent.call(listener, e);
+        } else {
+          listener(e);
+        }
+      });
+    }
+  };
+
+  // Stop listening
+  flexo.unlisten = function (target, type, listener) {
+    flexo.remove_from_array(target[type], listener);
+  };
+
+
+  // DOM
 
   // Known XML namespaces for use with create_element below. A variable of the
   // form flexo.{prefix}_NS will then be recognized when using {prefix} as the
@@ -279,59 +345,6 @@
     });
   }
 
-
-
-  // TO BE TESTED
-
-  // Get clientX/clientY as an object { x: ..., y: ... } for events that may
-  // be either a mouse event or a touch event, in which case the position of
-  // the first touch is returned.
-  flexo.event_client_pos = function (e) {
-    return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
-      y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
-  };
-
-  // Make an XMLHttpRequest with optional params and a callback when done
-  flexo.ez_xhr = function (uri, params, f) {
-    var req = new XMLHttpRequest();
-    if (f === undefined) {
-      f = params;
-      params = {};
-    }
-    req.open(params.method || "GET", uri);
-    if (params.hasOwnProperty("responseType")) {
-      req.responseType = params.responseType;
-    }
-    req.onload = function () { f(req); };
-    req.send(params.data || "");
-  };
-
-  // Define a getter/setter for a property, using Object.defineProperty if
-  // available, otherwise the deprecated __defineGetter__/__defineSetter__
-  flexo.getter_setter = function (o, prop, getter, setter) {
-    var props;
-    if (typeof Object.defineProperty === "function") {
-      props = { enumerable: true, configurable: true };
-      if (getter) {
-        props.get = getter;
-      }
-      if (setter) {
-        props.set = setter;
-      }
-      Object.defineProperty(o, prop, props);
-    } else {
-      if (getter) {
-        o.__defineGetter__(prop, getter);
-      }
-      if (setter) {
-        o.__defineSetter__(prop, setter);
-      }
-    }
-  };
-
-  // Identity function
-  flexo.id = function (x) { return x; };
-
   // Remove all children of an element
   flexo.remove_children = function (elem) {
     while (elem.firstChild) {
@@ -363,55 +376,42 @@
   };
 
 
-  // Custom events
 
-  // Listen to a custom event. Listener is a function or an object whose
-  // "handleEvent" function will then be invoked.
-  flexo.listen = function (target, type, listener) {
-    if (!(target.hasOwnProperty(type))) {
-      target[type] = [];
-    }
-    target[type].push(listener);
+  // TO BE TESTED
+
+  // Get clientX/clientY as an object { x: ..., y: ... } for events that may
+  // be either a mouse event or a touch event, in which case the position of
+  // the first touch is returned.
+  flexo.event_client_pos = function (e) {
+    return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
+      y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
   };
 
-  // Listen to an event only once
-  flexo.listen_once = function (target, type, listener) {
-    var h = function (e) {
-      flexo.unlisten(target, type, h);
-      if (typeof listener.handleEvent === "function") {
-        listener.handleEvent.call(listener, e);
-      } else {
-        listener(e);
+  // Define a getter/setter for a property, using Object.defineProperty if
+  // available, otherwise the deprecated __defineGetter__/__defineSetter__
+  flexo.getter_setter = function (o, prop, getter, setter) {
+    var props;
+    if (typeof Object.defineProperty === "function") {
+      props = { enumerable: true, configurable: true };
+      if (getter) {
+        props.get = getter;
       }
-    };
-    flexo.listen(target, type, h);
-  };
-
-  // Can be called as notify(e), notify(source, type) or notify(source, type, e)
-  flexo.notify = function (source, type, e) {
-    if (e) {
-      e.source = source;
-      e.type = type;
-    } else if (type) {
-      e = { source: source, type: type };
+      if (setter) {
+        props.set = setter;
+      }
+      Object.defineProperty(o, prop, props);
     } else {
-      e = source;
-    }
-    if (e.source.hasOwnProperty(e.type)) {
-      e.source[e.type].slice().forEach(function (listener) {
-        if (typeof listener.handleEvent === "function") {
-          listener.handleEvent.call(listener, e);
-        } else {
-          listener(e);
-        }
-      });
+      if (getter) {
+        o.__defineGetter__(prop, getter);
+      }
+      if (setter) {
+        o.__defineSetter__(prop, setter);
+      }
     }
   };
 
-  // Stop listening
-  flexo.unlisten = function (target, type, listener) {
-    flexo.remove_from_array(target[type], listener);
-  };
+  // Identity function
+  flexo.id = function (x) { return x; };
 
 
   // Trampoline calls, adapted from

@@ -77,6 +77,14 @@
       });
     });
 
+    it("Error loading (fail to load a component)", function (done) {
+      var context = bender.create_context();
+      var use = context.appendChild(context.$("use", { href: "errorzzz.xml" }));
+      flexo.listen(context.ownerDocument, "@error", function (e) {
+        done();
+      });
+    });
+
     it("Text-only view", function (done) {
       var p = window.document.createElement("p");
       var context = bender.create_context(p);

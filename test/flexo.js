@@ -38,7 +38,7 @@
     });
 
     describe("flexo.pad(string, length, padding=\"0\")", function () {
-      it("pads a string to the given length with padding", function () {
+      it("pads a string to the given length with `padding`, assuming the padding string is one character long", function () {
         assert.strictEqual(flexo.pad("2", 2), "02");
         assert.strictEqual(flexo.pad("right-aligned", 16, " "),
           "   right-aligned");
@@ -75,7 +75,7 @@
       });
     });
 
-    describe("flexo.random_int([min,] max)", function () {
+    describe("flexo.random_int(min=0, max)", function () {
       it("returns an integer in the [min, max] range, assuming min <= max",
         function () {
           for (var i = 0; i < 100; ++i) {
@@ -83,7 +83,7 @@
             assert.ok(r >= -10 && r <= 10 && Math.round(r) === r);
           }
         });
-      it("defaults to 0 for min if only parameter is given", function () {
+      it("defaults to 0 for min if only `max` is given", function () {
         for (var i = 0; i < 100; ++i) {
           var r = flexo.random_int(10);
           assert.ok(r >= 0 && r <= 10 && Math.round(r) === r);
@@ -243,7 +243,7 @@
       });
     });
 
-    describe("flexo.get_args(defaults, argstr)", function () {
+    describe("flexo.get_args(defaults={}, argstr=window.location.search.substr(1))", function () {
       it("parses the given argument string", function () {
         var argstr = "href=../apps/logo.xml&x=1";
         var args = flexo.get_args({}, argstr);
@@ -264,6 +264,15 @@
       }
     });
 
+    /*
+       Test along with Morbo for params
+    describe("flexo.ez_xhr(uri, params={}, f)", function () {
+      it("makes an XMLHttpRequest to `uri` parametrized by the `params` object and calls `f` on completion", function () {
+        
+      });
+    });
+    */
+
   });
 
 
@@ -271,7 +280,7 @@
     var source = {};
 
     describe("flexo.listen(target, type, listener)", function () {
-      it("listens to events of `type` from `target` and executes the listener", function () {
+      it("listens to events of `type` from `target` and executes the listener function", function () {
         var tests = 0;
         flexo.listen(source, "@test-listen", function () {
           ++tests;
@@ -279,6 +288,18 @@
         flexo.notify(source, "@test-listen");
         flexo.notify(source, "@test-listen");
         assert.strictEqual(tests, 2);
+      });
+      it("accepts an object as the listener parameter, whose `handleEvent` method is invoked on notifications", function () {
+        var listener = {
+          tests: 0,
+          handleEvent: function () {
+            ++this.tests;
+          }
+        };
+        flexo.listen(source, "@test-handleEvent", listener);
+        flexo.notify(source, "@test-handleEvent");
+        flexo.notify(source, "@test-handleEvent");
+        assert.strictEqual(listener.tests, 2);
       });
     });
 
@@ -294,7 +315,7 @@
       });
     });
 
-    describe("flexo.notify(source, type, [arguments])", function () {
+    describe("flexo.notify(source, type, arguments={})", function () {
       it("sends an event notification of `type` on behalf of `source`", function (done) {
         flexo.listen(source, "@test-notify", function () {
           done();
@@ -350,7 +371,7 @@
 
 
   if (typeof window === "object") {
-    describe("Element creation", function () {
+    describe("DOM", function () {
 
       describe("flexo.create_element(description, [attrs], [contents...])",
         function () {
@@ -440,6 +461,51 @@
           assert.strictEqual(foo.tagName, bar.tagName);
           assert.strictEqual(foo.id, bar.id);
           assert.strictEqual(foo.className, bar.className);
+        });
+      });
+
+      describe("flexo.remove_children(node)", function () {
+        it("removes all child nodes of `node`", function () {
+          var p = flexo.$p(
+            "This is a paragraph ",
+            flexo.$("strong", "with mixed content"),
+            " which will be removed.");
+          assert.strictEqual(p.childNodes.length, 3);
+          assert.strictEqual(p.textContent,
+            "This is a paragraph with mixed content which will be removed.");
+          flexo.remove_children(p);
+          assert.strictEqual(p.childNodes.length, 0);
+        });
+      });
+
+      var p = flexo.$p();
+
+      describe("flexo.root(node)", function () {
+        it("finds the furthest ancestor of `node` in the DOM tree, returning `node` if it has no parent", function () {
+          assert.strictEqual(flexo.root(p), p);
+          var span = p.appendChild(flexo.$span());
+          assert.strictEqual(flexo.root(span), p);
+        });
+        it("returns `document` if the node is in the main document", function () {
+          document.body.appendChild(p);
+          assert.strictEqual(flexo.root(p), document);
+        });
+        it("is safe to use with null or undefined values", function () {
+          assert.strictEqual(flexo.root());
+          assert.strictEqual(flexo.root(null), null);
+        });
+      });
+
+      describe("flexo.safe_remove(node)", function () {
+        it("removes a node from its parent", function () {
+          flexo.safe_remove(p);
+          assert.equal(flexo.parentNode, null);
+        });
+        it("is safe to use when the node is null or undefined, or has no parent", function () {
+          flexo.safe_remove();
+          flexo.safe_remove(null);
+          flexo.safe_remove(p);
+          assert.equal(flexo.parentNode, null);
         });
       });
 
