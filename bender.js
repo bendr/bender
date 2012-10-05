@@ -1105,9 +1105,9 @@
       // attribute, checked in that order.) Return the component node or its URL
       // if it needs loading.
       _find_component: function () {
-        var component, parent_component, href;
+        var component;
         if (this._ref) {
-          parent_component = component_of(this);
+          var parent_component = component_of(this);
           while (!component && parent_component) {
             component = parent_component._components[this._ref];
             parent_component = component_of(parent_component.parentNode);
@@ -1118,8 +1118,8 @@
           return this.ownerDocument.querySelector(this._q);
         }
         if (this._href) {
-          href = (this._href.indexOf("#") === 0 ? component_of(this)._uri : "")
-            + this._href;
+          var href = (this._href.indexOf("#") === 0 ? component_of(this)._uri :
+              "") + this._href;
           return this.ownerDocument._load_component(href);
         }
       },
