@@ -255,6 +255,43 @@
   };
 
 
+  // Functions and Asynchronicity
+
+  // Identity function
+  flexo.id = function (x) { return x; };
+
+  // Seq object for chaining asynchronous calls
+  var seq = {
+    _init: function () {
+      this._queue = [];
+      this._flushing = false;
+      return this;
+    },
+
+    _flush: function () {
+      var f = this._queue.shift();
+      if (f) {
+        f(this._flush.bind(this));
+      } else {
+        this._flushing = false;
+        flexo.notify(this, "@done");
+      }
+    },
+
+    add: function(f) {
+      this._queue.push(f);
+      if (!this._flushing) {
+        this._flushing = true;
+        this._flush();
+      }
+    }
+  };
+
+  flexo.seq = function () {
+    return Object.create(seq)._init();
+  };
+
+
   // DOM
 
   // Known XML namespaces for use with create_element below. A variable of the
@@ -345,6 +382,14 @@
     });
   }
 
+  // Get clientX/clientY as an object { x: ..., y: ... } for events that may
+  // be either a mouse event or a touch event, in which case the position of
+  // the first touch is returned.
+  flexo.event_client_pos = function (e) {
+    return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
+      y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
+  };
+
   // Remove all children of an element
   flexo.remove_children = function (elem) {
     while (elem.firstChild) {
@@ -373,97 +418,6 @@
     } else {
       elem.classList.remove(c);
     }
-  };
-
-
-
-  // TO BE TESTED
-
-  // Get clientX/clientY as an object { x: ..., y: ... } for events that may
-  // be either a mouse event or a touch event, in which case the position of
-  // the first touch is returned.
-  flexo.event_client_pos = function (e) {
-    return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
-      y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
-  };
-
-  // Define a getter/setter for a property, using Object.defineProperty if
-  // available, otherwise the deprecated __defineGetter__/__defineSetter__
-  flexo.getter_setter = function (o, prop, getter, setter) {
-    var props;
-    if (typeof Object.defineProperty === "function") {
-      props = { enumerable: true, configurable: true };
-      if (getter) {
-        props.get = getter;
-      }
-      if (setter) {
-        props.set = setter;
-      }
-      Object.defineProperty(o, prop, props);
-    } else {
-      if (getter) {
-        o.__defineGetter__(prop, getter);
-      }
-      if (setter) {
-        o.__defineSetter__(prop, setter);
-      }
-    }
-  };
-
-  // Identity function
-  flexo.id = function (x) { return x; };
-
-
-  // Trampoline calls, adapted from
-  // http://github.com/spencertipping/js-in-ten-minutes
-
-  // Use a trampoline to call a function; we expect a thunk to be returned
-  // through the get_thunk() function below. Return nothing to step off the
-  // trampoline (e.g., to wait for an event before continuing.)
-  Function.prototype.trampoline = function () {
-    var c = [this, arguments];
-    var esc = arguments[arguments.length - 1];
-    while (c && c[0] !== esc) {
-      c = c[0].apply(this, c[1]);
-    }
-    if (c) {
-      return esc.apply(this, c[1]);
-    }
-  };
-
-  // Return a thunk suitable for the trampoline function above.
-  Function.prototype.get_thunk = function () {
-    return [this, arguments];
-  };
-
-  // Asynchronous foldl
-  flexo.async_foldl = function (f, z, a, k) {
-    var n = a.length;
-    return (function iter(i) {
-      return i < n ? f.get_thunk(function (v) {
-        z = v;
-        return iter.get_thunk(i + 1);
-      }, z, a[i], i, a) : k.get_thunk(z);
-    }).get_thunk(0);
-  };
-
-  // Asynchronous foreach
-  flexo.async_foreach = function (f, a, k) {
-    var n = a.length, i = 0;
-    return (function iter() {
-      return i < n ? f.get_thunk(iter, a[i], i++, a) : k.get_thunk();
-    }).get_thunk();
-  };
-
-  flexo.forEach_async = function (f, a, k) {
-    return function (f, a, k) {
-      var n = a.length;
-      var i = 0;
-      var iter = function () {
-        return i < n ? f.get_thunk(iter, a[i], i++, a) : k.get_thunk();
-      };
-      return iter.get_thunk();
-    }.trampoline(f, a, k);
   };
 
 }(typeof exports === "object" ? exports : window.flexo = {}));

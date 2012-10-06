@@ -3,99 +3,55 @@
 (function () {
   "use strict";
 
-  var args,
-    fs = require("fs"),
-    http = require("http"),
-    path = require("path"),
-    url = require("url"),
-    util = require("util"),
-    flexo = require("flexo"),
-    APPS = [],
-    PORT = 8910,
-    IP = "",
-    HELP = false;
-
+  var fs = require("fs");
+  var http = require("http");
+  var path = require("path");
+  var url = require("url");
+  var util = require("util");
+  var flexo = require("flexo");
 
   // These can (and sometime should) be overridden
-
-  // Default document root
-  exports.DOCUMENTS = path.join(process.cwd(), "docs");
-
-  // Default server name
-  exports.SERVER_NAME = "MORBO!";
+  exports.DOCUMENTS = process.cwd();  // default document root
+  exports.SERVER_NAME = "MORBO!";     // default server name
 
   // Patterns for dispatch: applications will add their own patterns
   // A pattern is of the form: [/path regex/, { GET: ..., PUT: ... }]
   exports.PATTERNS = [];
 
   // Known MIME types associated with file extensions
-  exports.TYPES = {
-    css: "text/css",
-    es: "application/ecmascript",
-    html: "text/html",
-    jpg: "image/jpeg",
-    js: "application/javascript",
-    json: "application/json",
-    m4v: "video/mp4",
-    manifest: "text/cache-manifest",
-    mp3: "audio/mpeg",
-    ogg: "audio/ogg",
-    png: "image/png",
-    pdf: "application/pdf",
-    svg: "image/svg+xml",
-    ttf: "application/octet-stream",
-    wav: "audio/x-wav",
-    xml: "application/xml",
-    xhtml: "application/xhtml+xml",
-    xslt: "application/xslt+xml",
+  exports.TYPES = { css: "text/css", es: "application/ecmascript",
+    html: "text/html", jpg: "image/jpeg", js: "application/javascript",
+    json: "application/json", m4v: "video/mp4", manifest: "text/cache-manifest",
+    mp3: "audio/mpeg", ogg: "audio/ogg", png: "image/png",
+    pdf: "application/pdf", svg: "image/svg+xml",
+    ttf: "application/octet-stream", wav: "audio/x-wav", xml: "application/xml",
+    xhtml: "application/xhtml+xml", xslt: "application/xslt+xml"
   };
 
   // Known error codes
   exports.STATUS_CODES = {
     // 1xx Informational
-    100: "Continue",
-    101: "Switching Protocols",
+    100: "Continue", 101: "Switching Protocols",
     // 2xx Successful
-    200: "OK",
-    201: "Created",
-    202: "Accepted",
-    203: "Non-Authoritative Information",
-    204: "No Content",
-    205: "Reset Content",
-    206: "Partial Content",
+    200: "OK", 201: "Created", 202: "Accepted",
+    203: "Non-Authoritative Information", 204: "No Content",
+    205: "Reset Content", 206: "Partial Content",
     // 3xx Redirection
-    300: "Multiple Choices",
-    301: "Moved Permanently",
-    302: "Found",
-    303: "See Other",
-    304: "See Other",
-    305: "Use Proxy",
+    300: "Multiple Choices", 301: "Moved Permanently", 302: "Found",
+    303: "See Other", 304: "See Other", 305: "Use Proxy",
     307: "Temporary Redirect",
     // 4xx Client error
-    400: "Bad Request",
-    401: "Unauthorized",
-    402: "Payment Required",
-    403: "Forbidden",
-    404: "Not Found",
-    405: "Method Not Allowed",
-    406: "Not Acceptable",
-    407: "Proxy Authentication Required",
-    408: "Request Timeout",
-    409: "Conflict",
-    410: "Gone",
-    411: "Length Required",
-    412: "Precondition Failed",
-    413: "Request Entity Too Large",
-    414: "Request-URI Too Long",
-    415: "Unsupported Media Type",
-    416: "Request Range Not Satisfiable",
-    417: "Expectation Failed",
+    400: "Bad Request", 401: "Unauthorized", 402: "Payment Required",
+    403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed",
+    406: "Not Acceptable", 407: "Proxy Authentication Required",
+    408: "Request Timeout", 409: "Conflict", 410: "Gone",
+    411: "Length Required", 412: "Precondition Failed",
+    413: "Request Entity Too Large", 414: "Request-URI Too Long",
+    415: "Unsupported Media Type", 416: "Request Range Not Satisfiable",
+    417: "Expectation Failed", 418: "I'm a teapot",
     // 5xx Server error
-    500: "Internal Server Error",
-    501: "Not Implemented",
-    502: "Bad Gateway",
-    503: "Service Unavailable",
-    504: "Gateway Timeout",
+    500: "Internal Server Error", 501: "Not Implemented", 502: "Bad Gateway",
+    503: "Service Unavailable", 504: "Gateway Timeout",
     505: "HTTP Version Not Supported"
   };
 
@@ -108,7 +64,6 @@
   }
 
   // Write the correct headers (plus the ones already given, if any)
-  // TODO don't replace headers that have already been set
   function write_head(transaction, code, type, data, params) {
     if (typeof params !== "object") {
       params = {};
@@ -131,44 +86,43 @@
     transaction.log_info += " {0} {1}".fmt(code, params["Content-Length"]);
   }
 
-  // Serve a file from its actual path after we checked that it is indeed a file.
-  // Pass the stats result along to fill out the headers, and the URI if it was a
-  // directory request to set the Content-Location header
+  // Serve a file from its actual path after we checked that it is indeed a
+  // file. Pass the stats result along to fill out the headers, and the URI if
+  // it was a directory request to set the Content-Location header
   // TODO improve range request stuff (factor it out?)
   function serve_file(transaction, p, stats, uri) {
-    var d, type, params, m, from, to, size, buffers, length, file, buffer, pos;
     if (transaction.request.headers.hasOwnProperty("if-modified-since")) {
-      d = new Date(transaction.request.headers["if-modified-since"]);
+      var d = new Date(transaction.request.headers["if-modified-since"]);
       if (stats.mtime <= d) {
         transaction.serve_data(304);
         return;
       }
     }
     // TODO If-None-Match
-    type = exports.TYPES[path.extname(p).substr(1).toLowerCase()] || "";
-    params = { "Last-Modified": stats.mtime.toUTCString(),
+    var type = exports.TYPES[path.extname(p).substr(1).toLowerCase()] || "";
+    var params = { "Last-Modified": stats.mtime.toUTCString(),
       ETag: "\"{0}-{1}-{2}\"".fmt(stats.ino.toString(16),
         stats.size.toString(16), stats.mtime.valueOf().toString(16)) };
     if (uri) {
       params["Content-Location"] = uri;
     }
     if (transaction.request.headers.hasOwnProperty("range")) {
-      m = (transaction.request.headers.range.match(/^bytes=(\d+)\-(\d*)/));
+      var m = (transaction.request.headers.range.match(/^bytes=(\d+)\-(\d*)/));
       if (m) {
-        from = parseInt(m[1], 10);
-        to = m[2] ? parseInt(m[2], 10) : stats.size - 1;
-        size = to - from + 1;
+        var from = parseInt(m[1], 10);
+        var to = m[2] ? parseInt(m[2], 10) : stats.size - 1;
+        var size = to - from + 1;
         if (size < stats.size) {
-          buffers = [];
-          length = 0;
-          file = fs.createReadStream(p);
+          var buffers = [];
+          var length = 0;
+          var file = fs.createReadStream(p);
           file.on("data", function (chunk) {
             buffers.push(chunk);
             length += chunk.length;
           });
           file.on("end", function () {
-            buffer = new Buffer(length);
-            pos = 0;
+            var buffer = new Buffer(length);
+            var pos = 0;
             buffers.forEach(function (b) {
               b.copy(buffer, pos);
               pos += b.length;
@@ -203,8 +157,8 @@
 
   // Simply serve the requested file if found, otherwise return a 404/500 error
   // or a 403 error if it's not a file. The index parameter is set to true when
-  // we're looking for the index page of a directory. No directory listing at the
-  // moment.
+  // we're looking for the index page of a directory. No directory listing at
+  // the moment.
   // TODO optionally allow directory listing
   // TODO alternatives for index page
   function serve_file_or_index(transaction, uri, index) {
@@ -212,7 +166,7 @@
     if (!check_path(p, exports.DOCUMENTS)) {
       transaction.serve_error(403, "Path \"{0}\" is out of bounds".fmt(p));
     }
-    path.exists(p, function (exists) {
+    fs.exists(p, function (exists) {
       if (!exists) {
         if (index) {
           return transaction.serve_error(403,
@@ -273,8 +227,8 @@
       this.request.on("end", function () { f(data); });
     },
 
-    // Serve data by writing the correct headers (plus the ones already given, if
-    // any) and the data
+    // Serve data by writing the correct headers (plus the ones already given,
+    // if any) and the data
     serve_data: function (code, type, data, params) {
       write_head(this, code, type, data, params);
       if (this.request.method.toUpperCase() === "HEAD") {
@@ -284,7 +238,7 @@
       }
       util.log(this.log_info);
       if (this.log_error) {
-        util.log(this.log_error);
+        util.error(this.log_error);
       }
     },
 
@@ -344,20 +298,19 @@
   // pathname)
   exports.run = function (ip, port) {
     http.createServer(function (request, response) {
-      var i, m, n, methods, allowed, args,
-        transaction = Object.create(exports.TRANSACTION).init(exports,
-          request, response),
-        pathname = decodeURIComponent(transaction.url.pathname),
-        method = request.method.toUpperCase();
+      var transaction = Object.create(exports.TRANSACTION).init(exports,
+        request, response);
+      var pathname = decodeURIComponent(transaction.url.pathname);
+      var method = request.method.toUpperCase();
       if (method === "HEAD") {
         method = "GET";
       }
-      for (i = 0, n = exports.PATTERNS.length; i < n; i += 1) {
-        m = pathname.match(exports.PATTERNS[i][0]);
+      for (var i = 0, n = exports.PATTERNS.length; i < n; i += 1) {
+        var m = pathname.match(exports.PATTERNS[i][0]);
         if (m) {
-          methods = exports.PATTERNS[i][1];
+          var methods = exports.PATTERNS[i][1];
           if (!methods.hasOwnProperty(method)) {
-            allowed = [];
+            var allowed = [];
             if (methods.hasOwnProperty("GET")) {
               allowed.push("HEAD");
             }
@@ -366,7 +319,7 @@
             return transaction.serve_error(405,
               "Method {0} not allowed for {1}".fmt(method, pathname));
           }
-          args = m.slice(1);
+          var args = m.slice(1);
           args.unshift(transaction);
           return methods[method].apply(exports, args);
         }
@@ -393,14 +346,13 @@
   // need to be closed)
   // TODO handle encoding (at least of attribute values)
   function html_tag(tag) {
-    var attrs, a, v, keep_open,
-      out = "<" + tag,
-      contents = [].slice.call(arguments, 1);
+    var out = "<" + tag;
+    var contents = [].slice.call(arguments, 1);
     if (typeof contents[0] === "object") {
-      attrs = contents.shift();
-      for (a in attrs) {
+      var attrs = contents.shift();
+      for (var a in attrs) {
         if (attrs.hasOwnProperty(a)) {
-          v = attrs[a];
+          var v = attrs[a];
           // true and false act as special values: when true, just output the
           // attribute name (without any value); when false, skip the attribute
           // altogether
@@ -411,7 +363,7 @@
       }
     }
     out += ">";
-    keep_open = typeof contents[contents.length - 1] === "boolean" ?
+    var keep_open = typeof contents[contents.length - 1] === "boolean" ?
         contents.pop() : false;
     out += contents.join("");
     if (!keep_open) {
@@ -443,10 +395,11 @@
     "option", "output", "p", "param", "path", "pattern", "polygon", "polyline",
     "pre", "progress", "q", "radialGradient", "rect", "rp", "rt", "ruby", "s",
     "samp", "script", "section", "select", "set", "small", "source", "span",
-    "stop", "strong", "style", "sub", "summary", "sup", "svg", "switch", "symbol",
-    "table", "tbody", "td", "text", "textarea", "textPath", "tfoot", "th",
-    "thead", "time", "title", "tr", "tref", "tspan", "track", "u", "ul", "use",
-    "var", "video", "view", "vkern", "wbr"].forEach(function (tag) {
+    "stop", "strong", "style", "sub", "summary", "sup", "svg", "switch",
+    "symbol", "table", "tbody", "td", "text", "textarea", "textPath", "tfoot",
+    "th", "thead", "time", "title", "tr", "tref", "tspan", "track", "u", "ul",
+    "use", "var", "video", "view", "vkern", "wbr"
+  ].forEach(function (tag) {
     this["$" + tag] = html_tag.bind(this, tag);
   }.bind(this));
 
@@ -500,53 +453,58 @@
   }.call(this));
 
   // Parse arguments from the command line
-  function parse_args(args) {
+  function parse_args(argv) {
     var m;
-    args.forEach(function (arg) {
-      if (m = arg.match(/^port=(\d+)/)) {
-        PORT = parseInt(m[1], 10);
-      } else if (m = arg.match(/^ip=(\S*)/)) {
-        IP = m[1];
+    var args = { port: 8910, ip: "", apps: [] };
+    argv.forEach(function (arg) {
+      if (m = arg.match(/^port=(\d+)/i)) {
+        args.port = parseInt(m[1], 10);
+      } else if (m = arg.match(/^ip=(\S*)/i)) {
+        args.ip = m[1];
       } else if (arg.match(/^h(elp)?$/i)) {
-        HELP = true;
-      } else if (m = arg.match(/^documents=(\S+)/)) {
+        args.help = true;
+      } else if (m = arg.match(/^doc(ument)?s=(\S+)/)) {
         exports.DOCUMENTS = m[1];
-      } else if (m = arg.match(/^app=(\S+)/)) {
-        APPS.push(m[1]);
+      } else if (m = arg.match(/^app=(\S+)/i)) {
+        args.apps.push(m[1]);
       }
     });
+    return args;
   }
 
   // Show help info and quit
   function show_help(node, name) {
     console.log("\nUsage: {0} {1} [options]\n\nOptions:".fmt(node, name));
-    console.log("  app=<app.js>:         path to application file");
-    console.log("  documents=<apps dir>: path to the documents directory");
-    console.log("  help:                 show this help message");
-    console.log("  ip=<ip address>:      IP address to listen to");
-    console.log("  port=<port number>:   port number for the server");
+    console.log("  app=<app.js>:       path to application file");
+    console.log("  documents=<dir>:    path to the documents directory");
+    console.log("  help:               show this help message");
+    console.log("  ip=<ip address>:    IP address to listen to");
+    console.log("  port=<port number>: port number for the server");
     console.log("");
     process.exit(0);
   }
 
   if (require.main === module) {
-    // Run the server
-    args = process.argv.slice(2);
-    parse_args(args);
-    if (HELP) {
+    var argv = process.argv.slice(2);
+    var args = parse_args(argv);
+    if (args.help) {
       show_help.apply(null, process.argv);
     }
-    util.log("Documents root: " + exports.DOCUMENTS);
-    flexo.async_foreach.trampoline(function (k, appname) {
-      util.log("App: {0} ({1})".fmt(appname, require.resolve(appname)));
-      var app = require(appname);
-      [].unshift.apply(exports.PATTERNS, app.PATTERNS);
-      if (app.init) {
-        return app.init.get_thunk(exports, args, k);
-      }
-      return k.get_thunk();
-    }, APPS, function () {
-      exports.run(IP, PORT);
+    var seq = flexo.seq();
+    args.apps.forEach(function (appname) {
+      seq.add(function (k) {
+        util.log("App: {0} ({1})".fmt(appname, require.resolve(appname)));
+        var app = require(appname);
+        Array.prototype.unshift.apply(exports.PATTERNS, app.PATTERNS);
+        if (typeof app.init === "function") {
+          app.init(exports, argv, k);
+        } else {
+          k();
+        }
+      });
+    });
+    seq.add(function () {
+      exports.run(args.ip, args.port);
     });
   }
 

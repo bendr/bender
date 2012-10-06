@@ -369,6 +369,31 @@
     });
   });
 
+  describe("Functions and Asynchronicity", function () {
+
+    describe("flexo.id", function () {
+      it("returns its first argument unchanged", function () {
+        assert.strictEqual(flexo.id(1), 1);
+        assert.strictEqual(flexo.id("test"), "test");
+      });
+    });
+
+    describe("flexo.seq", function () {
+      it("executes asynchronous commands in sequence", function (done) {
+        var seq = flexo.seq();
+        var timeout = function (k) {
+          setTimeout(k, 10);
+        };
+        flexo.listen(seq, "@done", function () {
+          done();
+        });
+        for (var i = 0; i < 10; ++i) {
+          seq.add(timeout);
+        }
+      });
+    });
+  });
+
 
   if (typeof window === "object") {
     describe("DOM", function () {
@@ -464,6 +489,24 @@
         });
       });
 
+      describe("flexo.event_client_pos(e)", function () {
+        it("returns an { x: e.clientX, y: e.clientY } object for a mouse event", function (done) {
+          var div = document.createElement("div");
+          div.addEventListener("mousedown", function (e) {
+            var p = flexo.event_client_pos(e);
+            assert.equal(p.x, 10);
+            assert.equal(p.y, 20);
+            done();
+          }, false);
+          var e = document.createEvent("MouseEvent");
+          e.initMouseEvent("mousedown", true, true, window, 0, 0, 0, 10, 20,
+            false, false, false, false, 0, null);
+          div.dispatchEvent(e);
+        });
+
+        // TODO: Test touch event
+      });
+
       describe("flexo.remove_children(node)", function () {
         it("removes all child nodes of `node`", function () {
           var p = flexo.$p(
@@ -506,6 +549,17 @@
           flexo.safe_remove(null);
           flexo.safe_remove(p);
           assert.equal(flexo.parentNode, null);
+        });
+      });
+
+      describe("flexo.set_class_iff(element, class, p)", function () {
+        it("sets `class` on `element` if `p` is true, and removes it otherwise", function () {
+          var div = flexo.$("div.test");
+          assert.ok(div.classList.contains("test"));
+          flexo.set_class_iff(div, "addl", true);
+          assert.ok(div.classList.contains("addl"));
+          flexo.set_class_iff(div, "test", false);
+          assert.ok(!div.classList.contains("test"));
         });
       });
 

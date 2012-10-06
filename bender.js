@@ -158,8 +158,8 @@
     // Flush the queue: actually do the rendering for the instances in the queue
     var flush_queue = function () {
       flushing = true;
-      while (render_queue.length > 0) {
-        render_queue[0].refresh_component_instance();
+      for (var i = 0; i < render_queue.length; ++i) {
+        render_queue[i].refresh_component_instance();
       }
       timeout = null;
       flushing = false;
@@ -184,7 +184,9 @@
 
     // Create a root context element and initiate rendering
     var component = context.createElement("context");
-    flexo.getter_setter(component, "target", function () { return target; });
+    Object.defineProperty(component, "target", { enumerable: true,
+      get: function () { return target; }
+    });
     context.documentElement.appendChild(component);
     var use = component.$("use", { q: "context" });
     context.documentElement.appendChild(use);
@@ -543,15 +545,16 @@
       if (!(this.watched.hasOwnProperty(property))) {
         var p = this.properties[property], that = this;
         this.watched[property] = [];
-        flexo.getter_setter(this.properties, property,
-          function () { return p; },
-          function (p_) {
+        Object.defineProperty(this.properties, property, { enumerable: true,
+          get: function () { return p; },
+          set: function (p_) {
             var prev = p;
             p = p_;
             that.watched[property].slice().forEach(function (h) {
               h.call(that, p, prev);
             });
-          });
+          }
+        });
       }
       this.watched[property].push(handler);
     },
@@ -823,8 +826,9 @@
         this._properties = {};  // properties map
         this._uses = [];        // use children (outside of a view)
         this._uri = "";
-        flexo.getter_setter(this, "_is_component",
-            function () { return true; });
+        Object.defineProperty(this, "_is_component", { enumerable: true,
+          get: function () { return true; }
+        });
       },
 
       insertBefore: function (ch, ref) {
@@ -950,13 +954,14 @@
 
     get: {
       _init: function () {
-        flexo.getter_setter(this, "_content",
-          function () { return this._action; },
-          function (f) {
+        Object.defineProperty(this, "_content", { enumerable: true,
+          get: function () { return this._action; },
+          set: function (f) {
             if (typeof f === "function") {
               this._action = f;
             }
-          });
+          }
+        });
         return this;
       },
 
