@@ -70,20 +70,24 @@
     return (n.__instance && n) || parent_of(n.parentNode);
   }
 
-  // Create a placeholder node for components to be rendered
+  // Create a placeholder node to mark the right location in the render tree for
+  // a component. This placeholder can be replaced by the component's tree when
+  // it becomes available.
   function placeholder(dest, ref, use) {
     var p = dest.ownerDocument.createComment(" placeholder ");
     flexo.safe_remove(use.__placeholder);
     return dest.insertBefore(p, ref);
   }
 
-  // Extend an element with Bender methods and call the _init() method on the
-  // node if it exists.
+  // Extend an element with Bender methods, calls its _init() method, and return
+  // the wrapped element.
   function wrap_element(e) {
-    var proto = PROTOTYPES[e.localName] || {};
-    for (var p in proto) {
-      if (proto.hasOwnProperty(p)) {
-        e[p] = proto[p];
+    var proto = PROTOTYPES[e.localName];
+    if (proto) {
+      for (var p in proto) {
+        if (proto.hasOwnProperty(p)) {
+          e[p] = proto[p];
+        }
       }
     }
     for (p in PROTOTYPES[""]) {
@@ -106,7 +110,8 @@
   //
   // The <context> element is returned; this is a Bender component that acts as
   // root of the context tree. The target of the context is the root of the host
-  // document subtree where rendering happens.
+  // document subtree where rendering happens. The <use> element initiates the
+  // rendering process if the target is an element, making the context live.
   bender.create_context = function (target) {
     target = target || document.body || document.documentElement;
     var doc = target.ownerDocument || target;
@@ -181,13 +186,13 @@
     };
 
     // Request for a component to be loaded. If the component was already
-    // loaded, return the component node, otherwise return the requested URL
+    // loaded, return the component node, otherwise return the requested URI
     // normalized. In that situation, a "@loaded" event will be sent when
-    // loading has finished with a url parameter corresponding to the returned
-    // URL and the loaded component; an "@error" event will be sent with the
-    // same URL parameter in case of error.
-    context._load_component = function (url) {
-      var split = url.split("#");
+    // loading has finished with a uri parameter corresponding to the returned
+    // URI and the loaded component; an "@error" event will be sent with the
+    // same URI parameter in case of error.
+    context._load_component = function (uri) {
+      var split = uri.split("#");
       var locator = flexo.normalize_uri(doc.baseURI, split[0]);
       var id = split[1];
       if (typeof loaded[locator] === "object") {
@@ -197,12 +202,12 @@
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
             if (!req.response) {
-              flexo.notify(context, "@error", { url: locator, req: req });
+              flexo.notify(context, "@error", { uri: locator, req: req });
             } else {
               loaded[locator] =
                 import_node(component, req.response.documentElement, locator);
               flexo.notify(context, "@loaded",
-                { component: loaded[locator], url: locator });
+                { component: loaded[locator], uri: locator });
             }
           });
         }
@@ -1083,7 +1088,7 @@
       },
 
       // Find the component referred to by the node (through the ref, q or href
-      // attribute, checked in that order.) Return the component node or its URL
+      // attribute, checked in that order.) Return the component node or its URI
       // if it needs loading.
       _find_component: function () {
         var component;
@@ -1112,7 +1117,7 @@
         var component = this._find_component();
         if (typeof component === "string") {
           flexo.listen_once(this.ownerDocument, "@loaded", function (e) {
-            if (e.url === component) {
+            if (e.uri === component) {
               flexo.notify(this, "@loaded", { instance: this
                 ._render_component(e.component, target, parent) });
             }

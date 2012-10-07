@@ -17,8 +17,8 @@
   var context = bender.create_context();
   var use = context.appendChild(context.$("use", { href: "errorzzz.xml" }));
   flexo.listen(context.ownerDocument, "@error", function (e) {
-    console.log("Could not load component at URL {0}: {1}"
-      .fmt(e.url, e.req.status));
+    console.log("Could not load component at URI {0}: {1}"
+      .fmt(e.uri, e.req.status));
     example.ok();
   });
 

@@ -206,7 +206,7 @@
     req.send(params.data || "");
   };
 
-  // Get args from an URL
+  // Get args from an URI
   flexo.get_args = function (defaults, argstr) {
     var sep, args = defaults || {};
     if (!argstr) {

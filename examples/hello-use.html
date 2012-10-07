@@ -17,7 +17,7 @@
   var context = bender.create_context();
   var use = context.appendChild(context.$("use", { href: "hello-world.xml" }));
   flexo.listen(context.ownerDocument, "@loaded", function (e) {
-    console.log("Loaded component at URL {0}:".fmt(e.url),
+    console.log("Loaded component at URI {0}:".fmt(e.uri),
       e.component._serialize());
   });
   flexo.listen(context.ownerDocument, "@refreshed", function (e) {
