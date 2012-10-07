@@ -1,15 +1,9 @@
 (function (bender) {
   "use strict";
 
-  // Add to flexo so that create_element works with these namespaces
-  flexo.BENDER_NS = "http://bender.igel.co.jp";      // Bender namespace
-  flexo.BENDER_B_NS = "http://bender.igel.co.jp/b";  // Boolean properties
-  flexo.BENDER_E_NS = "http://bender.igel.co.jp/e";  // String properties
-  flexo.BENDER_F_NS = "http://bender.igel.co.jp/f";  // Float properties
-  flexo.BENDER_J_NS = "http://bender.igel.co.jp/j";  // JSON properties
-  flexo.BENDER_P_NS = "http://bender.igel.co.jp/p";  // Component parameter
-
-  bender.VERSION = "0.5.1";
+  // Bender namespace (added to the flexo module for create_element to work as
+  // expected with the "bender" namespace prefix, e.g. flexo.$("bender:app")
+  bender.NS = flexo.BENDER_NS = "http://bender.igel.co.jp";
 
   // The component of a node is itself if it is a component node (or app or
   // context), or the component of its parent
@@ -43,8 +37,8 @@
   // child of the parent element
   function import_node(parent, node, uri) {
     if (node.nodeType === Node.ELEMENT_NODE) {
-      var n = parent.ownerDocument
-        .createElementNS(node.namespaceURI, node.localName);
+      var n = parent.ownerDocument.createElementNS(node.namespaceURI,
+          node.localName);
       if (n._is_component) {
         n._uri = uri;
       }
@@ -133,13 +127,12 @@
   bender.create_context = function (target) {
     target = target || document.body || document.documentElement;
     var doc = target.ownerDocument || target;
-    var context = doc.implementation.createDocument(flexo.BENDER_NS, "bender",
-        null);
+    var context = doc.implementation.createDocument(bender.NS, "bender", null);
 
     // Wrap all new elements created in this context
     context.createElement = function (name) {
       return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            flexo.BENDER_NS, name));
+            bender.NS, name));
     };
     context.createElementNS = function (ns, qname) {
       return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
@@ -341,7 +334,7 @@
       var ch, d, r;
       for (ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === Node.ELEMENT_NODE) {
-          if (ch.namespaceURI === flexo.BENDER_NS) {
+          if (ch.namespaceURI === bender.NS) {
             if (ch.localName === "use") {
               r = this.render_use(ch, dest, ref);
             } else if (ch.localName === "target") {
@@ -833,7 +826,7 @@
 
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === flexo.BENDER_NS) {
+        if (ch.namespaceURI === bender.NS) {
           if (ch.localName === "app" || ch.localName === "component") {
             this._add_component(ch);
           } else if (ch.localName === "desc") {
@@ -1173,7 +1166,7 @@
     view: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === flexo.BENDER_NS) {
+        if (ch.namespaceURI === bender.NS) {
           if (ch.localName === "use") {
             this._refresh();
           }
@@ -1199,7 +1192,7 @@
 
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === flexo.BENDER_NS) {
+        if (ch.namespaceURI === bender.NS) {
           if (ch.localName === "get") {
             this._gets.push(ch);
           } else if (ch.localName === "set") {

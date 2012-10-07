@@ -1,11 +1,19 @@
 (function (assert, flexo, bender) {
   "use strict";
 
+  describe("Bender namespace ({0})".fmt(flexo.BENDER_NS), function () {
+    it("extends flexo to create elements in the Bender namespace with the \"bender\" prefix", function () {
+      var app = flexo.$("bender:app");
+      assert.strictEqual(app.namespaceURI, bender.NS);
+      assert.strictEqual(app.localName, "app");
+    });
+  });
+
   describe("Bender context", function () {
 
     var context = bender.create_context();
 
-    describe("bender.create_context(target?)", function () {
+    describe("bender.create_context(target=document.body || document.documentElement)", function () {
       it("creates a Bender context for the target element and returns a <context> element", function () {
         var div = window.document.createElement(div);
         var context = bender.create_context(div);
