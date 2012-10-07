@@ -66,23 +66,6 @@
     }
   }
 
-  function normalize_url(base, ref) {
-    var url = flexo.split_uri(flexo.absolute_uri(base, ref)
-      .replace(/%([0-9a-f][0-9a-f])/gi, function (m, n) {
-        n = parseInt(n, 16);
-        return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
-          (n >= 0x30 && n <= 0x39) || n === 0x2d || n === 0x2e ||
-          n === 0x5f || n === 0x7e ? String.fromCharCode(n) : m.toUpperCase();
-      }));
-    if (url.scheme) {
-      url.scheme = url.scheme.toLowerCase();
-    }
-    if (url.authority) {
-      url.authority = url.authority.toLowerCase();
-    }
-    return flexo.unsplit_uri(url);
-  }
-
   function parent_of(n) {
     return (n.__instance && n) || parent_of(n.parentNode);
   }
@@ -188,11 +171,11 @@
     // The context keeps track of loaded URIs and catalogues all components
     var loaded = {};      // loaded URIs
     var components = {};  // known components by URI/id
-    loaded[normalize_url(doc.baseURI, "")] = component;
+    loaded[flexo.normalize_uri(doc.baseURI, "")] = component;
 
     // Keep track of uri/id pairs to find components with the href attribute
     context._add_component = function (component) {
-      var uri = normalize_url(doc.baseURI,
+      var uri = flexo.normalize_uri(doc.baseURI,
           component._uri + "#" + component._id);
       components[uri] = component;
     };
@@ -205,7 +188,7 @@
     // same URL parameter in case of error.
     context._load_component = function (url) {
       var split = url.split("#");
-      var locator = normalize_url(doc.baseURI, split[0]);
+      var locator = flexo.normalize_uri(doc.baseURI, split[0]);
       var id = split[1];
       if (typeof loaded[locator] === "object") {
         return id ? components[locator + "#" + id] : loaded[locator];

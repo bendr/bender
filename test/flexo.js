@@ -243,6 +243,28 @@
       });
     });
 
+    describe("flexo.normalize_uri(base, ref)", function () {
+      var base = "http://a/b/c/d;p?q";
+      it("converts scheme and host to lowercase", function () {
+        assert.strictEqual("http://a/b/c/d",
+          flexo.normalize_uri(base, "HTTP://A/b/c/d"));
+      });
+      it("converts escape sequences to uppercase", function () {
+        assert.strictEqual("http://a/b/c/a%C2%B1b",
+          flexo.normalize_uri(base, "a%c2%b1b"));
+      });
+      it("unescapes letters, digits, hypen, period, underscore, tilde", function () {
+        assert.strictEqual("http://a/b/c/~a%C2%B1z09-._",
+          flexo.normalize_uri(base, "%7e%61%c2%b1%7a%30%39%2d%2e%5f"));
+      });
+      it("removes the default port", function () {
+        assert.strictEqual("http://a/b/c/d",
+          flexo.normalize_uri(base, "HTTP://A:80/b/c/d"));
+        assert.strictEqual("http://a:8910/b/c/d",
+          flexo.normalize_uri(base, "HTTP://A:8910/b/c/d"));
+      });
+    });
+
     describe("flexo.get_args(defaults={}, argstr=window.location.search.substr(1))", function () {
       it("parses the given argument string", function () {
         var argstr = "href=../apps/logo.xml&x=1";

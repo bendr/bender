@@ -169,6 +169,28 @@
     return flexo.unsplit_uri(r);
   };
 
+  // Return an absolute, normalized URI:
+  //   * scheme and host are converted to lowercase
+  //   * escape sequences are converted to uppercase
+  //   * escaped letters, digits, hyphen, period and underscore are unescaped
+  //   * remove port 80 from authority
+  flexo.normalize_uri = function (base, ref) {
+    var uri = flexo.split_uri(flexo.absolute_uri(base, ref)
+      .replace(/%([0-9a-f][0-9a-f])/gi, function (m, n) {
+        n = parseInt(n, 16);
+        return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
+          (n >= 0x30 && n <= 0x39) || n === 0x2d || n === 0x2e ||
+          n === 0x5f || n === 0x7e ? String.fromCharCode(n) : m.toUpperCase();
+      }));
+    if (uri.scheme) {
+      uri.scheme = uri.scheme.toLowerCase();
+    }
+    if (uri.authority) {
+      uri.authority = uri.authority.replace(/:80$/, "").toLowerCase();
+    }
+    return flexo.unsplit_uri(uri);
+  };
+
   // Make an XMLHttpRequest with optional params and a callback when done
   flexo.ez_xhr = function (uri, params, f) {
     var req = new XMLHttpRequest();
