@@ -34,7 +34,7 @@ code {
     flexo.listen(context.ownerDocument, "@error", function (e) {
       document.body.appendChild(flexo.$("p.runtime-error",
         "Error loading ",
-        flexo.$code(e.url),
+        flexo.$code(e.uri),
         " (status: {0})".fmt(e.req.status)));
     });
     context.appendChild(context.$("use", args));

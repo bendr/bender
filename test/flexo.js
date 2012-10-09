@@ -37,6 +37,21 @@
         });
     });
 
+    describe("flexo.is_true(string)", function () {
+      it("returns true for strings that equal \"true\", regardless of trailing and leading whitespace, and case", function () {
+        assert.strictEqual(true, flexo.is_true("true"));
+        assert.strictEqual(true, flexo.is_true("TRUE"));
+        assert.strictEqual(true, flexo.is_true("True"));
+        assert.strictEqual(true, flexo.is_true("    true"));
+        assert.strictEqual(true, flexo.is_true("TRUE     "));
+        assert.strictEqual(true, flexo.is_true("     tRuE     "));
+        assert.strictEqual(false, flexo.is_true("false"));
+        assert.strictEqual(false, flexo.is_true("yes"));
+        assert.strictEqual(false, flexo.is_true(""));
+        assert.strictEqual(false, flexo.is_true(""));
+      });
+    });
+
     describe("flexo.pad(string, length, padding=\"0\")", function () {
       it("pads a string to the given length with `padding`, assuming the padding string is one character long", function () {
         assert.strictEqual(flexo.pad("2", 2), "02");
@@ -420,7 +435,7 @@
   if (typeof window === "object") {
     describe("DOM", function () {
 
-      describe("flexo.create_element(description, [attrs], [contents...])",
+      describe("flexo.create_element(description, attrs={}, [contents...])",
         function () {
           it("is called with the target document as `this` for new elements",
             function () {
@@ -500,7 +515,7 @@
             });
         });
 
-      describe("flexo.$(description, [attrs], [contents...])", function () {
+      describe("flexo.$(description, attrs={}, [contents...])", function () {
         it("is a shortcut bound to window.document", function () {
           var foo = flexo.$("p#bar.baz");
           var bar = flexo.create_element.call(document, "p#bar.baz");

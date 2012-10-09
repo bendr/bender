@@ -48,6 +48,38 @@
 
   });
 
+  describe("Properties", function () {
+
+    var context = bender.create_context();
+    var empty = context.$("property", { name: "empty" });
+    var component = context.appendChild(context.$("component", empty));
+
+    it("<property name=\"n\"> child of <component> defines a property", function () {
+      assert.strictEqual(component._properties.empty, empty);
+      assert.strictEqual(component._property_values.empty, "");
+    });
+
+    var string = context.$("property", { name: "string", type: "string" });
+    component.appendChild(string);
+    var boolean = context.$("property", { name: "boolean", type: "boolean" });
+    component.appendChild(boolean);
+    var number = context.$("property", { name: "number", type: "number" });
+    component.appendChild(number);
+    var object = context.$("property", { name: "object", type: "object" });
+    component.appendChild(object);
+
+    it("The type attribute sets the type of the value, can be \"string\" (by default), \"boolean\", \"number\", or \"object\" (in JSON notation)", function () {
+      assert.strictEqual(component._properties.string, string);
+      assert.strictEqual(component._property_values.string, "");
+      assert.strictEqual(component._properties.boolean, boolean);
+      assert.strictEqual(component._property_values.boolean, false);
+      assert.strictEqual(component._properties.number, number);
+      assert.ok(isNaN(component._property_values.number));
+      assert.strictEqual(component._properties.object, object);
+      assert.strictEqual(component._property_values.object, "");
+    });
+  });
+
   describe("Test applications", function () {
 
     it("Hello, world! (create a component with only a view programmatically)", function (done) {

@@ -4,9 +4,9 @@ var md = require("github-flavored-markdown");
 
 var WIKI_PATH = "../wiki";
 
-exports.PATTERNS =
-[
-  [/^\/wiki\/$/, { GET: function(transaction) {
+exports.PATTERNS = [
+  [/^\/wiki\/$/, {
+    GET: function(transaction) {
       fs.readdir(WIKI_PATH, function(error, filenames) {
           if (error) {
             transaction.serve_error(500, "wiki: " + error);
@@ -32,18 +32,3 @@ exports.PATTERNS =
         });
     }} ]
 ];
-
-function head()
-{
-  return $html({ lang: "en" },
-      $head(
-        $title("Bender Wiki"),
-        $meta({ charset: "UTF-8" }, true),
-        $link({ rel: "stylesheet", href: "/bender.css" }, true)),
-      $body({ "class": "wiki", true));
-}
-
-function tail()
-{
-  return "</body></html>";
-}
