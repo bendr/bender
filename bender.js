@@ -1,6 +1,8 @@
 (function (bender) {
   "use strict";
 
+  var A = Array.prototype;
+
   // Bender namespace (added to the flexo module for create_element to work as
   // expected with the "bender" namespace prefix, e.g. flexo.$("bender:app")
   bender.NS = flexo.BENDER_NS = "http://bender.igel.co.jp";
@@ -366,7 +368,7 @@
     render_foreign: function (node, dest, ref) {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
-      [].forEach.call(node.attributes, function (attr) {
+      A.forEach.call(node.attributes, function (attr) {
         var val = this.unparam(attr.value);
         if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
@@ -380,12 +382,9 @@
       }, this);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
-        [].forEach.call(this.use.attributes, function (attr) {
-          if (!(this.use._attributes.hasOwnProperty(attr.localName) ||
-              attr.namespaceURI === flexo.BENDER_B_NS ||
-              attr.namespaceURI === flexo.BENDER_E_NS ||
-              attr.namespaceURI === flexo.BENDER_F_NS ||
-              attr.namespaceURI === flexo.BENDER_J_NS)) {
+        A.forEach.call(this.use.attributes, function (attr) {
+          if (!this.use._attributes.hasOwnProperty(attr.localName)) {
+            // TODO check attributes for properties
             d.setAttribute(attr.name, this.unparam(attr.value));
           }
         }, this);
@@ -482,6 +481,7 @@
 
     // Return the input string with the parameters replaced. Warn when no
     // suitable parameter was found.
+    // TODO setup watches here so that the parameter is live?
     unparam: function (t) {
       if (t) {
         return t.replace(/\{(\w+)\}/g, function (s, p) {
@@ -706,7 +706,7 @@
         if (deep) {
           component = component_of(this)._uri;
           uri = component ? component._uri : "";
-          [].forEach.call(this.childNodes, function (ch) {
+          A.forEach.call(this.childNodes, function (ch) {
             import_node(clone, ch);
           });
         }
@@ -893,7 +893,7 @@
       },
 
       _find_by_id: function (id) {
-        var q = [].slice.call(this.childNodes), elem;
+        var q = A.slice.call(this.childNodes), elem;
         while (q.length) {
           elem = q.shift();
           if (elem.nodeType === Node.ELEMENT_NODE &&
@@ -901,7 +901,7 @@
                elem.getAttributeNS(flexo.XML_NS, "id") === id)) {
             return elem;
           }
-          [].push.apply(q, elem.childNodes);
+          A.push.apply(q, elem.childNodes);
         }
       }
     },
