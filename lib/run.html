@@ -15,7 +15,6 @@ code {
   color: #888;
   font-style: italic;
 }
-
 .runtime-error {
   color: #ff4040;
 }
@@ -25,26 +24,24 @@ code {
   </head>
   <body>
     <script>
-(function () {
-  "use strict";
+"use strict";
 
-  var args = flexo.get_args();
-  if (args.href) {
-    var context = bender.create_context();
-    flexo.listen(context.ownerDocument, "@error", function (e) {
-      document.body.appendChild(flexo.$("p.runtime-error",
-        "Error loading ",
-        flexo.$code(e.uri),
-        " (status: {0})".fmt(e.req.status)));
-    });
-    context.appendChild(context.$("use", args));
-  } else {
-    document.body.appendChild(flexo.$("p.runtime-message",
-      "Nothing to run. Please specify a Bender component to load with the ", 
-      flexo.$code("href"), " URL parameter."));
-  }
+var args = flexo.get_args();
+if (args.href) {
+  var context = bender.create_context();
+  flexo.listen(context.ownerDocument, "@error", function (e) {
+    document.body.appendChild(flexo.$("p.runtime-error",
+      "Error loading ",
+      flexo.$code(e.uri),
+      " (status: {0})".fmt(e.req.status)));
+  });
+  context.appendChild(context.$("use", args));
+} else {
+  document.body.appendChild(flexo.$("p.runtime-message",
+    "Nothing to run. Please specify a Bender component to load with the ", 
+    flexo.$code("href"), " URL parameter."));
+}
 
-}());
     </script>
   </body>
 </html>
