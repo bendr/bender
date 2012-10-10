@@ -56,7 +56,6 @@
 
     it("<property name=\"n\"> child of <component> defines a property", function () {
       assert.strictEqual(component._properties.empty, empty);
-      assert.strictEqual(component._property_values.empty, "");
     });
 
     var string = context.$("property", { name: "string", type: "string" });
@@ -67,17 +66,24 @@
     component.appendChild(number);
     var object = context.$("property", { name: "object", type: "object" });
     component.appendChild(object);
+    var wrong = context.$("property", { name: "wrong", type: "wrong" });
+    component.appendChild(wrong);
 
     it("The type attribute sets the type of the value, can be \"string\" (by default), \"boolean\", \"number\", or \"object\" (in JSON notation)", function () {
       assert.strictEqual(component._properties.string, string);
-      assert.strictEqual(component._property_values.string, "");
+      assert.strictEqual(component._properties.string._type, "string");
       assert.strictEqual(component._properties.boolean, boolean);
-      assert.strictEqual(component._property_values.boolean, false);
+      assert.strictEqual(component._properties.boolean._type, "boolean");
       assert.strictEqual(component._properties.number, number);
-      assert.ok(isNaN(component._property_values.number));
+      assert.strictEqual(component._properties.number._type, "number");
       assert.strictEqual(component._properties.object, object);
-      assert.strictEqual(component._property_values.object, "");
+      assert.strictEqual(component._properties.object._type, "object");
+      assert.strictEqual(component._properties.wrong, wrong);
+      assert.strictEqual(component._properties.wrong._type, "string");
     });
+
+    var use = context.appendChild(context.$("use", { q: "component" }));
+
   });
 
   describe("Test applications", function () {

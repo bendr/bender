@@ -240,21 +240,41 @@
       this.uses = {};        // rendered uses by id
       this.rendered = [];    // root DOM nodes and use instances
       this.watchers = [];    // instances that have watches on this instance
-      this.properties = {};  // watchable properties
+      this.properties = {};  // properties defined by <property> elements
       this.watched = {};     // watched properties
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k)) {
-          this.properties[k] = this.component._properties[k];
+          this._init_property(this.component._properties[k]);
         }
       }, this);
       Object.keys(use._properties).forEach(function (k) {
-        this.properties[k] = use._properties[k];
+        this._init_property(use._properties[k]);
       }, this);
       this.component._instances.push(this);
       this.uses.$self = this;
       this.uses.$parent = parent;
       this.uses.$context = use.ownerDocument;
       return this;
+    },
+
+    // Initialize a property for the instance defined by a <property> element
+    // (either from the original component or from the <use> element that
+    // instantiated it.)
+    _init_property: function (property, value) {
+      Object.defineProperty(this.properties, property.name, { enumerable: true,
+        get: function () { return value; },
+        set: function (v) {
+          if (typeof v === "string") {
+            v = property._get_value(v);
+          }
+          if (v !== value) {
+            var prev = value;
+            value = v;
+            flexo.notify(this, "@property-change",
+              { name: property._name, prev: prev });
+          }
+        }
+      });
     },
 
     // Find the nearest instance in the ancestor list that has the given
@@ -265,25 +285,6 @@
       }
       if (this.uses.$parent) {
         return this.uses.$parent.find_instance_with_property(name);
-      }
-    },
-
-    // Get or set a property in self or nearest ancestor. It is an error to set
-    // an undefined property
-    property: function (name, value) {
-      var instance = this.find_instance_with_property(name);
-      if (value !== undefined) {
-        if (!instance) {
-          instance = this;
-          new_property = true;
-        }
-        instance.properties[name] = value;
-        if (new_property) {
-          flexo.notify(this, "@property", { name: name });
-        }
-      }
-      if (instance) {
-        return instance.properties[name];
       }
     },
 
@@ -525,31 +526,6 @@
           this.component.localName === "app" && this.component._title) {
         this.target.ownerDocument.title = this.component._title.textContent;
       }
-    },
-
-    watch_property: function (property, handler) {
-      if (!(this.watched.hasOwnProperty(property))) {
-        var p = this.properties[property], that = this;
-        this.watched[property] = [];
-        Object.defineProperty(this.properties, property, { enumerable: true,
-          get: function () { return p; },
-          set: function (p_) {
-            var prev = p;
-            p = p_;
-            that.watched[property].slice().forEach(function (h) {
-              h.call(that, p, prev);
-            });
-          }
-        });
-      }
-      this.watched[property].push(handler);
-    },
-
-    unwatch_property: function (property, handler) {
-      flexo.remove_from_array(this.watched[property], handler);
-      if (this.watched[property] && this.watched[property].length === 0) {
-        delete this.watched[property];
-      }
     }
   };
 
@@ -704,7 +680,7 @@
     "string": flexo.id,
     "number": parseFloat,
     "boolean": flexo.is_true,
-    "json": function (value) {
+    "object": function (value) {
       try {
         return JSON.parse(value)
       } catch (e) {
@@ -713,18 +689,12 @@
     }
   };
 
-  // Delete a property value for a component or a use element
-  function delete_property_value(name) {
-    delete this._property_values[name];
-    this._refresh();
-  }
-
-  // Set property value for a component or a use element
-  function set_property_value(name, value) {
-    this._property_values[name] = value;
-    this._refresh();
-  }
-
+  // Note: we extend DOM objects and overload some of their methods here. When
+  // adding a custom method or property, we prefix it with `_` (e.g., _init(),
+  // _refresh(), _components, &c.) to distinguish them from regular DOM methods.
+  // _setTextContent() is necessary because we cannot override the textContent
+  // property for setting.
+  // TODO replace overloaded methods with Mutation Observers?
   var PROTOTYPES = {
 
     "": {
@@ -816,7 +786,6 @@
         this._watches = [];          // child watches
         this._properties = {};       // properties map (elements)
         this._uses = [];             // use children (outside of a view)
-        this._property_values = {};  // current property values
         this._instances = [];        // instances of this component
         this._uri = "";
         Object.defineProperty(this, "_is_component", { enumerable: true,
@@ -836,7 +805,6 @@
             this._desc = ch;
           } else if (ch.localName === "property") {
             this._properties[ch._name] = ch;
-            this._set_property_value(ch._name, ch._get_value(ch._value));
           } else if (ch.localName === "script") {
             ch._run();
           } else if (ch.localName === "title") {
@@ -877,7 +845,6 @@
           this._refresh();
         } else if (ch.hasOwnProperty("_value") && ch.hasOwnProperty("_name")) {
           delete this._properties[ch._name];
-          this._delete_property_value(ch._name);
         } else if (ch._render) {   // use node
           flexo.remove_from_array(this._uses, ch);
           this._refresh();
@@ -907,8 +874,6 @@
         }
       },
 
-      _delete_property_value: delete_property_value,
-
       _find_by_id: function (id) {
         var q = A.slice.call(this.childNodes);
         while (q.length) {
@@ -921,8 +886,6 @@
           A.push.apply(q, elem.childNodes);
         }
       },
-
-      _set_property_value: set_property_value
     },
 
     // The content element is a placeholder for contents to be added at
@@ -1014,13 +977,19 @@
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "name") {
           if (this.hasOwnProperty(name) && value !== this._name) {
-            if (this.parentNode &&
-                typeof this.parentNode._delete_property_value === "function") {
-              this.parentNode._delete_property_value(this._name);
+            if (this.parentNode) {
+              if (typeof this.parentNode._properties === "object") {
+                delete this.parentNode._properties[this._name];
+              }
+              if (typeof this.parentNode._property_values === "object") {
+                delete this.parentNode._property_values;
+              }
             }
-            this._name = value.trim();
-          } else {
-            this._name = value.trim();
+          }
+          this._name = value.trim();
+          if (this.parentNode &&
+              typeof this.parentNode._property_values === "object") {
+            this.parentNode._property_values[this._name] = this._get_value();
           }
         } else if (name === "type") {
           this._set_type(value);
@@ -1036,15 +1005,7 @@
 
       // Get the parsed value for the property
       _get_value: function (v) {
-        return PROPERTY_TYPES[this._type](this._value);
-      },
-
-      _set_value: function (v) {
-        this._value = v;
-        if (this.parentNode &&
-            typeof this.parentNode._set_property_value === "function") {
-          this.parentNode._set_property_value(this._name, this._get_value(v));
-        }
+        return PROPERTY_TYPES[this._type](v === undefined ? this._value : v);
       },
 
       _set_type: function (type) {
@@ -1143,7 +1104,6 @@
     use: {
       _init: function () {
         this._properties = {};
-        this._property_values = {};
       },
 
       // Attributes interpreted by use
@@ -1154,7 +1114,6 @@
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === bender.NS &&  ch.localName === "property") {
           this._properties[ch._name] = ch;
-          this._set_property_value(ch._name, ch._get_value(v));
         }
         return ch;
       },
@@ -1164,7 +1123,6 @@
         Object.getPrototypeOf(this).removeChild.call(this, ch);
         if (ch.hasOwnProperty("_value") && ch.hasOwnProperty("_name")) {
           delete this._properties[ch._name];
-          this._delete_property_value(ch._name);
         }
         return ch;
       },
@@ -1176,8 +1134,6 @@
         }
         this._refresh();
       },
-
-      _delete_property_value: delete_property_value,
 
       // Find the component referred to by the node (through the ref, q or href
       // attribute, checked in that order.) Return the component node or its URI
@@ -1234,8 +1190,6 @@
         this._instance.refresh_component_instance();
         return this._instance;
       },
-
-      _set_property_value: set_property_value,
 
       _unrender: function () {
         if (this._instance) {
