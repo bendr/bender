@@ -297,7 +297,7 @@
   // (default is simply to serve a file in the DOCUMENTS directory with the given
   // pathname)
   exports.run = function (ip, port) {
-    http.createServer(function (request, response) {
+    var server = http.createServer(function (request, response) {
       var transaction = Object.create(exports.TRANSACTION).init(exports,
         request, response);
       var pathname = decodeURIComponent(transaction.url.pathname);
@@ -331,9 +331,12 @@
         transaction.serve_error(405,
           "Method {0} not allowed for {1}".fmt(method, pathname));
       }
-    }).listen(port, ip, function () {
-      util.log("http://{0}:{1} ready".fmt(ip || "localhost", port));
     });
+    server.listen(port, ip, function () {
+      util.log("http://{0}:{1} ready".fmt(ip || "localhost", port));
+      util.log("Serving documents from {0}".fmt(exports.DOCUMENTS));
+    });
+    return server;
   };
 
 
@@ -457,15 +460,15 @@
     var m;
     var args = { port: 8910, ip: "", apps: [] };
     argv.forEach(function (arg) {
-      if (m = arg.match(/^port=(\d+)/i)) {
+      if (m = arg.match(/^-?-?port=(\d+)/i)) {
         args.port = parseInt(m[1], 10);
-      } else if (m = arg.match(/^ip=(\S*)/i)) {
+      } else if (m = arg.match(/^-?-?ip=(\S*)/i)) {
         args.ip = m[1];
-      } else if (arg.match(/^h(elp)?$/i)) {
+      } else if (arg.match(/^-?-?h(elp)?$/i)) {
         args.help = true;
-      } else if (m = arg.match(/^doc(ument)?s=(\S+)/)) {
+      } else if (m = arg.match(/^-?-?doc(?:ument)?s=(\S+)/)) {
         exports.DOCUMENTS = m[1];
-      } else if (m = arg.match(/^app=(\S+)/i)) {
+      } else if (m = arg.match(/^-?-?app=(\S+)/i)) {
         args.apps.push(m[1]);
       }
     });
@@ -504,7 +507,11 @@
       });
     });
     seq.add(function () {
-      exports.run(args.ip, args.port);
+      var server = exports.run(args.ip, args.port);
+      server.on("error", function (e) {
+        console.error("HTTP Server error: {0}".fmt(e.message));
+        process.exit(1);
+      });
     });
   }
 
