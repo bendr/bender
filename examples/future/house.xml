@@ -1,0 +1,51 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:svg="http://www.w3.org/2000/svg">
+  <title>A house in SVG</title>
+
+  <!-- Primary properties setting the ranges of possible values -->
+  <property name="roof-colors" type="object">
+    ["#333"]
+  </property>
+  <property name="wall-colors" type="object">
+    ["#ff4040"]
+  </property>
+  <property name="widths" type="object" value="[40, 50]"/>
+  <property name="heights" type="object" value="[40, 60]"/>
+
+  <!-- These are the main values used to draw the house, generated randomly from
+       the ranges specified above. -->
+  <property name="roof-color" type="dynamic"
+    value="flexo.random_element({roof-colors})"/>
+  <property name="wall-color" type="dynamic"
+    value="flexo.random_element({wall-colors})"/>
+  <property name="width" type="dynamic"
+    value="flexo.random_int.apply(this, {widths})"/>
+  <property name="height" type="dynamic"
+    value="flexo.random_int.apply(this, {heights})"/>
+  <property name="x" type="dynamic" value="{width} / 4"/>
+  <property name="y" type="dynamic" value="{height} / 2"/>
+
+  <!-- The house itself -->
+  <view>
+    <svg:g>
+      <!-- Façade -->
+      <polygon points="{{x / 2}},0 0,{y} 0,{h} {x},{h} {x}, {y}"
+        fill="{wall-color}"/>
+      <!-- Side wall -->
+      <rect x="{x}" y="{y}" width="{{w} - {x}}" height="{{h} - {y}}"
+        fill="{{color_shift({wall-color})}}"/>
+      <!-- Roof -->
+      <polygon points="{{x / 2}},0 {{{w} - {x} / 2}},0 {w},{y} {x},{y}"
+        fill="{roof-color}"/>
+    </svg:g>
+  </view>
+
+  <script once="true"><![CDATA[
+
+// Shift the given color to create a new color that is close to the original one
+function color_shift(color) {
+  return color;
+}
+
+]]></script>
+</component>
