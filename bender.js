@@ -244,11 +244,11 @@
       this.watched = {};     // watched properties
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k)) {
-          this._init_property(this.component._properties[k]);
+          this.init_property(this.component._properties[k]);
         }
       }, this);
       Object.keys(use._properties).forEach(function (k) {
-        this._init_property(use._properties[k]);
+        this.init_property(use._properties[k]);
       }, this);
       this.component._instances.push(this);
       this.uses.$self = this;
@@ -260,7 +260,7 @@
     // Initialize a property for the instance defined by a <property> element
     // (either from the original component or from the <use> element that
     // instantiated it.)
-    _init_property: function (property, value) {
+    init_property: function (property, value) {
       Object.defineProperty(this.properties, property.name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
@@ -677,16 +677,28 @@
 
   // Property type map with the corresponding parsing function
   var PROPERTY_TYPES = {
-    "string": flexo.id,
-    "number": parseFloat,
     "boolean": flexo.is_true,
+    "dynamic": function (value) {
+      try {
+        if (!/\n/.test(value)) {
+          value = "return " + value;
+        }
+        new Function(value).call(this);
+      } catch (e) {
+        console.warn("Error evaluating dynamic property \"{0}\": {1}"
+            .fmt(value, e.message));
+      }
+    },
+    "number": parseFloat,
     "object": function (value) {
       try {
         return JSON.parse(value)
       } catch (e) {
-        console.warn("Could not parse \"{0}\" as JSON: {1}".fmt(e.message));
+        console.warn("Could not parse \"{0}\" as JSON: {1}"
+          .fmt(value, e.message));
       }
-    }
+    },
+    "string": flexo.id
   };
 
   // Note: we extend DOM objects and overload some of their methods here. When

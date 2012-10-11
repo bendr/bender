@@ -66,10 +66,12 @@
     component.appendChild(number);
     var object = context.$("property", { name: "object", type: "object" });
     component.appendChild(object);
+    var dynamic = context.$("property", { name: "dynamic", type: "dynamic" });
+    component.appendChild(dynamic);
     var wrong = context.$("property", { name: "wrong", type: "wrong" });
     component.appendChild(wrong);
 
-    it("The type attribute sets the type of the value, can be \"string\" (by default), \"boolean\", \"number\", or \"object\" (in JSON notation)", function () {
+    it("the type attribute sets the type of the value; can be \"string\" (by default), \"boolean\", \"number\", \"object\" (using JSON notation), or \"dynamic\" (Javascript code)", function () {
       assert.strictEqual(component._properties.string, string);
       assert.strictEqual(component._properties.string._type, "string");
       assert.strictEqual(component._properties.boolean, boolean);
@@ -78,6 +80,8 @@
       assert.strictEqual(component._properties.number._type, "number");
       assert.strictEqual(component._properties.object, object);
       assert.strictEqual(component._properties.object._type, "object");
+      assert.strictEqual(component._properties.dynamic, dynamic);
+      assert.strictEqual(component._properties.dynamic._type, "dynamic");
       assert.strictEqual(component._properties.wrong, wrong);
       assert.strictEqual(component._properties.wrong._type, "string");
     });
