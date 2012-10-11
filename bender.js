@@ -244,11 +244,13 @@
       this.watched = {};     // watched properties
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k)) {
-          this.init_property(this.component._properties[k]);
+          this.init_property(this.component._properties[k],
+            this.component._properties[k]._get_value());
         }
       }, this);
       Object.keys(use._properties).forEach(function (k) {
-        this.init_property(use._properties[k]);
+        this.init_property(use._properties[k],
+          this.component._properties[k]._get_value());
       }, this);
       this.component._instances.push(this);
       this.uses.$self = this;
@@ -260,8 +262,9 @@
     // Initialize a property for the instance defined by a <property> element
     // (either from the original component or from the <use> element that
     // instantiated it.)
+    // TODO proper initialization
     init_property: function (property, value) {
-      Object.defineProperty(this.properties, property.name, { enumerable: true,
+      Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
           if (typeof v === "string") {
@@ -683,7 +686,7 @@
         if (!/\n/.test(value)) {
           value = "return " + value;
         }
-        new Function(value).call(this);
+        return new Function(value).call(this);
       } catch (e) {
         console.warn("Error evaluating dynamic property \"{0}\": {1}"
             .fmt(value, e.message));
@@ -692,7 +695,7 @@
     "number": parseFloat,
     "object": function (value) {
       try {
-        return JSON.parse(value)
+        return JSON.parse(value);
       } catch (e) {
         console.warn("Could not parse \"{0}\" as JSON: {1}"
           .fmt(value, e.message));
@@ -1006,7 +1009,7 @@
         } else if (name === "type") {
           this._set_type(value);
         } else if (name === "value") {
-          this._set_value(value);
+          this._value = value;
         }
       },
 

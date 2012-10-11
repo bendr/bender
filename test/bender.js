@@ -70,6 +70,17 @@
     component.appendChild(dynamic);
     var wrong = context.$("property", { name: "wrong", type: "wrong" });
     component.appendChild(wrong);
+    var foo = component.appendChild(context.$("property", { name: "foo",
+      value: "bar" }));
+    var flag = component.appendChild(context.$("property", { name: "flag",
+      type: "boolean", value: "true" }));
+    var x = component.appendChild(context.$("property", { name: "x",
+      type: "number", value: "42" }));
+    var array = component.appendChild(context.$("property", { name: "array",
+      type: "object", value: "[1, 2, 3, 4]" }));
+    var random = component.appendChild(context.$("property", { name: "random",
+      type: "dynamic", value: "flexo.random_int(1, 10)" }));
+
 
     it("the type attribute sets the type of the value; can be \"string\" (by default), \"boolean\", \"number\", \"object\" (using JSON notation), or \"dynamic\" (Javascript code)", function () {
       assert.strictEqual(component._properties.string, string);
@@ -84,9 +95,38 @@
       assert.strictEqual(component._properties.dynamic._type, "dynamic");
       assert.strictEqual(component._properties.wrong, wrong);
       assert.strictEqual(component._properties.wrong._type, "string");
+      assert.strictEqual(component._properties.foo, foo);
+      assert.strictEqual(component._properties.foo._type, "string");
+      assert.strictEqual(component._properties.flag, flag);
+      assert.strictEqual(component._properties.flag._type, "boolean");
+      assert.strictEqual(component._properties.x, x);
+      assert.strictEqual(component._properties.x._type, "number");
+      assert.strictEqual(component._properties.array, array);
+      assert.strictEqual(component._properties.array._type, "object");
+      assert.strictEqual(component._properties.random, random);
+      assert.strictEqual(component._properties.random._type, "dynamic");
     });
 
-    var use = context.appendChild(context.$("use", { q: "component" }));
+    it("the properties are initialized with given values for instances of the component", function (done) {
+      var use = context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          assert.strictEqual(e.instance.properties.string, "");
+          assert.strictEqual(e.instance.properties.boolean, false);
+          assert.ok(isNaN(e.instance.properties.number));
+          assert.strictEqual(e.instance.properties.object);
+          assert.strictEqual(e.instance.properties.dynamic);
+          assert.strictEqual(e.instance.properties.wrong, "");
+          assert.strictEqual(e.instance.properties.foo, "bar");
+          assert.strictEqual(e.instance.properties.flag, true);
+          assert.strictEqual(e.instance.properties.x, 42);
+          assert.deepEqual(e.instance.properties.array, [1, 2, 3, 4]);
+          assert.ok(e.instance.properties.random >= 1 &&
+            e.instance.properties.random <= 10);
+          done();
+        }
+      });
+    });
 
   });
 

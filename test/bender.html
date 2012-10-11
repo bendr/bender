@@ -18,7 +18,9 @@
   <body>
     <div id="mocha"></div>
     <script src="bender.js"></script>
-    <script>mocha.run();</script>
+    <script>
+      mocha.run().globals(["console", "getInterface", "navigator"]);
+    </script>
   </body>
 </html>
 
