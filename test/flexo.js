@@ -37,6 +37,13 @@
         });
     });
 
+    describe("flexo.chomp(string)", function () {
+      it("chops the last character of a string if and only if it is a newline (\\n)", function () {
+        assert.strictEqual(flexo.chomp("Test\n"), "Test");
+        assert.strictEqual(flexo.chomp(flexo.chomp("Test\n")), "Test");
+      });
+    });
+
     describe("flexo.is_true(string)", function () {
       it("returns true for strings that equal \"true\", regardless of trailing and leading whitespace, and case", function () {
         assert.strictEqual(true, flexo.is_true("true"));
@@ -64,7 +71,46 @@
         });
       it("is useful to create strings with a repeated pattern", function () {
         assert.strictEqual(flexo.pad("", 10, "*"), "**********");
-        assert.strictEqual(flexo.pad("", 10, "**"), "********************");
+        assert.strictEqual(flexo.pad("", 8, "xo"), "xoxoxoxoxoxoxoxo");
+      });
+    });
+
+    describe("flexo.to_roman(n)", function () {
+      it("returns `n` in roman numerals (in lowercase)", function () {
+        assert.strictEqual(flexo.to_roman(1), "i");
+        assert.strictEqual(flexo.to_roman(2), "ii");
+        assert.strictEqual(flexo.to_roman(3), "iii");
+        assert.strictEqual(flexo.to_roman(4), "iv");
+        assert.strictEqual(flexo.to_roman(5), "v");
+        assert.strictEqual(flexo.to_roman(6), "vi");
+        assert.strictEqual(flexo.to_roman(7), "vii");
+        assert.strictEqual(flexo.to_roman(8), "viii");
+        assert.strictEqual(flexo.to_roman(9), "ix");
+        assert.strictEqual(flexo.to_roman(10), "x");
+        assert.strictEqual(flexo.to_roman(50), "l");
+        assert.strictEqual(flexo.to_roman(100), "c");
+        assert.strictEqual(flexo.to_roman(500), "d");
+        assert.strictEqual(flexo.to_roman(1000), "m");
+        assert.strictEqual(flexo.to_roman(1888), "mdccclxxxviii");
+        assert.strictEqual(flexo.to_roman(1999), "mcmxcix");
+        assert.strictEqual(flexo.to_roman(2012), "mmxii");
+        assert.strictEqual(flexo.to_roman(10000), "mmmmmmmmmm");
+      });
+      it("considers the integer part of `n` only", function () {
+        assert.strictEqual(flexo.to_roman(123.45), "cxxiii");
+        assert.strictEqual(flexo.to_roman(Math.E), "ii");
+        assert.strictEqual(flexo.to_roman(Math.PI), "iii");
+      });
+      it("returns \"nulla\" for zero", function () {
+        assert.strictEqual(flexo.to_roman(0), "nulla");
+      });
+      it("returns nothing if `n` is not a positive number", function () {
+        assert.strictEqual(flexo.to_roman(-1));
+        assert.strictEqual(flexo.to_roman(true));
+        assert.strictEqual(flexo.to_roman("mmxii"));
+        assert.strictEqual(flexo.to_roman());
+        assert.strictEqual(flexo.to_roman(null));
+        assert.strictEqual(flexo.to_roman({ n: 123 }));
       });
     });
 
@@ -87,6 +133,18 @@
       it("treats NaN as 0 for the n parameter", function () {
         assert.strictEqual(flexo.clamp("Not a number!", -10, 10), 0);
         assert.strictEqual(flexo.clamp("Not a number!", 1, 10), 1);
+      });
+    });
+
+    describe("flexo.lerp(from, to, ratio)", function () {
+      it("returns the linear interpolation between `from` and `to` for `ratio`", function () {
+        assert.strictEqual(flexo.lerp(0, 1, 0), 0);
+        assert.strictEqual(flexo.lerp(0, 1, 1), 1);
+        assert.strictEqual(flexo.lerp(0, 1, 0.5), 0.5);
+        assert.strictEqual(flexo.lerp(0, 1, 2), 2);
+        assert.strictEqual(flexo.lerp(10, -10, 0), 10);
+        assert.strictEqual(flexo.lerp(10, -10, 0.25), 5);
+        assert.strictEqual(flexo.lerp(10, -10, 1), -10);
       });
     });
 
@@ -439,7 +497,8 @@
         function () {
           it("is called with the target document as `this` for new elements",
             function () {
-              var e = document.createElement("p");
+              var e = document.createElementNS("http://www.w3.org/1999/xhtml",
+                "p");
               var e_ = flexo.create_element.call(document, "p");
               assert.deepEqual(e, e_);
             });

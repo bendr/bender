@@ -26,6 +26,11 @@
     });
   };
 
+  // Chop the last character of a string iff it's a newline
+  flexo.chomp = function(string) {
+    return string.replace(/\n$/, "");
+  };
+
   // Get a true or false value from a string; true if the string matches "true"
   // in case-insensitive, whitespace-tolerating way
   flexo.is_true = function (string) {
@@ -45,6 +50,41 @@
     return l > 0 ? (Array(l).join(padding)) + string : string;
   };
 
+  // Convert a number to roman numerals (integer part only; n must be positive
+  // or zero.) Now that's an important function to have in any framework.
+  flexo.to_roman = function(n) {
+    var unit = function (n, i, v, x) {
+      var r = "";
+      if (n % 5 === 4) {
+        r += i;
+        ++n;
+      }
+      if (n === 10) {
+        r += x;
+      } else {
+        if (n >= 5) {
+          r += v;
+        }
+        for (var j = 0; j < n % 5; ++j) {
+          r += i;
+        }
+      }
+      return r;
+    }
+    if (typeof n === "number" && n >= 0) {
+      n = Math.floor(n);
+      if (n === 0) {
+        return "nulla";
+      }
+      var r = "";
+      for (var i = 0; i < Math.floor(n / 1000); ++i) r += "m";
+      return r +
+        unit(Math.floor(n / 100) % 10, "c", "d", "m") +
+        unit(Math.floor(n / 10) % 10, "x", "l", "c") +
+        unit(n % 10, "i", "v", "x");
+    }
+  };
+
 
   // Numbers
 
@@ -53,6 +93,11 @@
   // min <= max.
   flexo.clamp = function (value, min, max) {
     return Math.max(Math.min(isNaN(value) ? 0 : value, max), min);
+  };
+
+  // Linear interpolation
+  flexo.lerp = function(from, to, ratio) {
+    return from + (to - from) * ratio;
   };
 
   // Remap a value from a given range to another range (from Processing)
