@@ -515,7 +515,7 @@
             });
         });
 
-      describe("flexo.$(description, attrs={}, [contents...])", function () {
+      describe("flexo.$(description, attrs={}, [contents])", function () {
         it("is a shortcut bound to window.document", function () {
           var foo = flexo.$("p#bar.baz");
           var bar = flexo.create_element.call(document, "p#bar.baz");
@@ -523,6 +523,25 @@
           assert.strictEqual(foo.tagName, bar.tagName);
           assert.strictEqual(foo.id, bar.id);
           assert.strictEqual(foo.className, bar.className);
+        });
+      });
+
+      describe("flexo.$<tagname>(attrs={}, [contents])", function () {
+        it("is a shortcut for HTML and (most) SVG elements, such as flexo.$div(), flexo.$rect(), &c. ", function () {
+          var div = flexo.$div();
+          var rect = flexo.$rect();
+          assert.strictEqual(div.localName, "div");
+          assert.strictEqual(rect.localName, "rect");
+          assert.strictEqual(rect.namespaceURI, flexo.SVG_NS);
+        });
+      });
+
+      describe("flexo.$use(href, attrs={}, [contents])", function () {
+        it("allows to create an SVG <use> element with the xlink:href attribute in the correct namespace", function () {
+          var use = flexo.$use("#test");
+          assert.strictEqual(use.localName, "use");
+          assert.strictEqual(use.namespaceURI, flexo.SVG_NS);
+          assert.strictEqual(use.href.baseVal, "#test");
         });
       });
 

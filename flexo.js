@@ -384,7 +384,7 @@
     }
   };
 
-  // Shortcut to create elements, e.g. flexo.$("svg#main.zap-content")
+  // Shortcut to create elements, e.g. flexo.$("svg#main.content")
   flexo.$ = function () {
     return flexo.create_element.apply(window.document, arguments);
   };
@@ -408,6 +408,41 @@
     ].forEach(function (tag) {
       flexo["$" + tag] = flexo.create_element.bind(window.document, tag);
     });
+
+    // SVG elements (a, color-profile, font-face, font-face-format,
+    // font-face-name, font-face-src, font-face-uri, missing-glyph, script,
+    // style, and title are omitted because of clashes with the HTML namespace
+    // or lexical issues with Javascript; elements that have an xlink:href
+    // attribute such as use are defined below.)
+    // Cf. http://www.w3.org/TR/SVG/eltindex.html
+    ["altGlyph", "altGlyphDef", "altGlyphItem", "animate", "animateColor",
+      "animateMotion", "animateTransform", "circle", "clipPath", "cursor",
+      "defs", "desc", "ellipse", "feBlend", "feColorMatrix",
+      "feComponentTransfer", "feComposite", "feConvolveMatrix",
+      "feDiffuseLighting", "feDisplacementMap", "feDistantLight", "feFlood",
+      "feFuncA", "feFuncB", "feFuncG", "feFuncR", "feGaussianBlur", "feImage",
+      "feMerge", "feMergeNode", "feMorphology", "feOffset", "fePointLight",
+      "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence", "filter",
+      "font", "foreignObject", "g", "glyph", "glyphRef", "hkern", "image",
+      "line", "linearGradient", "marker", "mask", "metadata", "mpath", "path",
+      "pattern", "polygon", "polyline", "radialGradient", "rect", "set", "stop",
+      "svg", "switch", "symbol", "text", "textPath", "tref", "tspan", "view",
+      "vkern"
+    ].forEach(function (tag) {
+      flexo["$" + tag] = flexo.create_element.bind(window.document,
+        "svg:" + tag);
+    });
+
+    // $use takes an initial xlink:href attribute to simplify its creation
+    // TODO other elements that use xlink:href?
+    flexo.$use = function (href) {
+      var use = flexo.create_element.apply(window.document,
+          ["svg:use"].concat(A.slice.call(arguments, 1)));
+      use.setAttributeNS(flexo.XLINK_NS, "href", href);
+      return use;
+    };
+
+    // TODO MathML
   }
 
   // Get clientX/clientY as an object { x: ..., y: ... } for events that may
