@@ -21,7 +21,14 @@
   // Another format function for messages and templates; this time, the only
   // argument is an object and string parameters are keys.
   String.prototype.format = function (args) {
-    return this.replace(/\{([^}]*)\}/g, function (_, p) {
+    return this.replace(/\{\{([^}]*)\}\}/g, function (_, p) {
+      try {
+        var v = new Function("return " + p).call(args);
+        return v == null ? "" : v;
+      } catch (e) {
+        return "";
+      }
+    }).replace(/\{([^}]*)\}/g, function (_, p) {
       return args[p] == null ? "" : args[p];
     });
   };

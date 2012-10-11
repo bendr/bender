@@ -80,6 +80,9 @@
       type: "object", value: "[1, 2, 3, 4]" }));
     var random = component.appendChild(context.$("property", { name: "random",
       type: "dynamic", value: "flexo.random_int(1, 10)" }));
+    var multiline = component.appendChild(context.$("property",
+          { name: "multiline", type: "dynamic" },
+          "var x = 6;\nvar y = 7;\nreturn x * y"));
 
 
     it("the type attribute sets the type of the value; can be \"string\" (by default), \"boolean\", \"number\", \"object\" (using JSON notation), or \"dynamic\" (Javascript code)", function () {
@@ -105,6 +108,8 @@
       assert.strictEqual(component._properties.array._type, "object");
       assert.strictEqual(component._properties.random, random);
       assert.strictEqual(component._properties.random._type, "dynamic");
+      assert.strictEqual(component._properties.multiline, multiline);
+      assert.strictEqual(component._properties.multiline._type, "dynamic");
     });
 
     it("the properties are initialized with given values for instances of the component", function (done) {
@@ -123,6 +128,7 @@
           assert.deepEqual(e.instance.properties.array, [1, 2, 3, 4]);
           assert.ok(e.instance.properties.random >= 1 &&
             e.instance.properties.random <= 10);
+          assert.strictEqual(e.instance.properties.multiline, 42);
           done();
         }
       });

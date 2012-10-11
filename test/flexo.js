@@ -35,6 +35,10 @@
           assert.strictEqual("baz = ", "baz = {baz}".format(x));
           assert.strictEqual("quux = ", "quux = {quux}".format(x));
         });
+      it("evaluates code in {{ }} with `obj` as `this`", function () {
+        assert.strictEqual("x * y = {{this.x * this.y}}".format({ x: 6, y: 7 }),
+          "x * y = 42");
+      });
     });
 
     describe("flexo.chomp(string)", function () {

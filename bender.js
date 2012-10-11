@@ -988,6 +988,14 @@
         this._type = "string";
       },
 
+      insertBefore: function (ch, ref) {
+        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+        if (ch.nodeType === Node.TEXT_NODE ||
+            ch.nodeType === Node.CDATA_SECTION_NODE) {
+          this._value = this.textContent;
+        }
+      },
+
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "name") {
@@ -1015,7 +1023,7 @@
 
       _textContent: function (t) {
         this.textContent = t;
-        this._set_value(t);
+        this._value = t;
       },
 
       // Get the parsed value for the property
