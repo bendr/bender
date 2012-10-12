@@ -384,12 +384,27 @@
   flexo.XML_NS = "http://www.w3.org/1999/xml";
   flexo.XMLNS_NS = "http://www.w3.org/2000/xmlns/";
 
+  // Append a child element `ch` to `elem`. If it is a string, create a text
+  // node with the string as content; if it is an array, append all elements of
+  // the array; if it is not a Node, then simply ignore it.
+  function append_child(elem, ch) {
+    if (typeof ch === "string") {
+      elem.appendChild(this.createTextNode(ch));
+    } else if (ch instanceof Array) {
+      ch.forEach(function (ch_) {
+        append_child.call(this, elem, ch_);
+      });
+    } else if (ch instanceof window.Node) {
+      elem.appendChild(ch);
+    }
+  }
+
   // Simple way to create elements, giving ns, id and classes directly within
   // the name of the element (e.g. svg:rect#background.test) If id is defined,
   // it must follow the element name and precede the class names; in this
-  // shortcut syntax, the id cannot contain a period. The second argument may be
-  // an object giving the attribute definitions (including id and class, if the
-  // shortcut syntax is not suitable) Beware of calling this function with
+  // shorthand syntax, the id cannot contain a period. The second argument may
+  // be an object giving the attribute definitions (including id and class, if
+  // the shorthand syntax is not suitable) Beware of calling this function with
   // `this` set to the target document.
   flexo.create_element = function (name, attrs) {
     var contents;
@@ -415,7 +430,7 @@
         attrs.id = m[3];
       }
       Object.keys(attrs).forEach(function (a) {
-        if (!!attrs[a] || attrs[a] === "") {
+        if (attrs[a] !== null && attrs[a] !== undefined && attrs[a] !== false) {
           var sp = a.split(":");
           var ns = sp[1] && flexo["{0}_NS".fmt(sp[0].toUpperCase())];
           if (ns) {
@@ -426,23 +441,28 @@
         }
       });
       contents.forEach(function (ch) {
-        if (typeof ch === "string") {
-          elem.appendChild(this.createTextNode(ch));
-        } else if (ch instanceof Node) {
-          elem.appendChild(ch);
-        }
+        append_child.call(this, elem, ch);
       }, this);
       return elem;
     }
   };
 
-  // Shortcut to create elements, e.g. flexo.$("svg#main.content")
+  // Shorthand to create elements, e.g. flexo.$("svg#main.content")
   flexo.$ = function () {
     return flexo.create_element.apply(window.document, arguments);
   };
 
+  // Shorthand to create a document fragment
+  flexo.$$ = function () {
+    var fragment = document.createDocumentFragment();
+    A.forEach.call(arguments, function (node) {
+      fragment.appendChild(node);
+    });
+    return fragment;
+  }
+
   if (browser) {
-    // Shortcut for HTML elements: the element name prefixed by a $ sign
+    // Shorthand for HTML elements: the element name prefixed by a $ sign
     // Cf. http://dev.w3.org/html5/spec/section-index.html#elements-1
     ["a", "abbr", "address", "area", "article", "aside", "audio", "b", "base",
       "bdi", "bdo", "blockquote", "body", "br", "button", "canvas", "caption",
@@ -464,8 +484,7 @@
     // SVG elements (a, color-profile, font-face, font-face-format,
     // font-face-name, font-face-src, font-face-uri, missing-glyph, script,
     // style, and title are omitted because of clashes with the HTML namespace
-    // or lexical issues with Javascript; elements that have an xlink:href
-    // attribute such as use are defined below.)
+    // or lexical issues with Javascript)
     // Cf. http://www.w3.org/TR/SVG/eltindex.html
     ["altGlyph", "altGlyphDef", "altGlyphItem", "animate", "animateColor",
       "animateMotion", "animateTransform", "circle", "clipPath", "cursor",
@@ -478,21 +497,12 @@
       "font", "foreignObject", "g", "glyph", "glyphRef", "hkern", "image",
       "line", "linearGradient", "marker", "mask", "metadata", "mpath", "path",
       "pattern", "polygon", "polyline", "radialGradient", "rect", "set", "stop",
-      "svg", "switch", "symbol", "text", "textPath", "tref", "tspan", "view",
-      "vkern"
+      "svg", "switch", "symbol", "text", "textPath", "tref", "tspan", "use",
+      "view", "vkern"
     ].forEach(function (tag) {
       flexo["$" + tag] = flexo.create_element.bind(window.document,
         "svg:" + tag);
     });
-
-    // $use takes an initial xlink:href attribute to simplify its creation
-    // TODO other elements that use xlink:href?
-    flexo.$use = function (href) {
-      var use = flexo.create_element.apply(window.document,
-          ["svg:use"].concat(A.slice.call(arguments, 1)));
-      use.setAttributeNS(flexo.XLINK_NS, "href", href);
-      return use;
-    };
 
     // TODO MathML
   }

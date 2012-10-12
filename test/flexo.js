@@ -8,14 +8,14 @@
   describe("Strings", function () {
 
     describe("String.fmt(...)", function () {
-      it("replaces its arguments when specified", function () {
+      it("replaces occurrences of {0}, {1}, &c. in the string with the corresponding arguments", function () {
         assert.strictEqual("foo = 1", "foo = {0}".fmt(1));
         assert.strictEqual("foo = 1, bar = 2",
           "foo = {0}, bar = {1}".fmt(1, 2));
         assert.strictEqual("bar = 2", "bar = {1}".fmt(1, 2, 3));
         assert.strictEqual("2012年8月30日", "{2}年{1}月{0}日".fmt(30, 8, 2012));
       });
-      it("outputs an empty string for null, undefined or missing values",
+      it("returns an empty string for null and undefined values",
         function () {
           assert.strictEqual("foo = ", "foo = {0}".fmt());
           assert.strictEqual("foo = ", "foo = {0}".fmt(undefined));
@@ -23,9 +23,9 @@
         });
     });
 
-    describe("String.format(obj)", function () {
+    describe("String.format(object)", function () {
       var x = { foo: 1, bar: 2, fum: undefined, baz: null };
-      it("replaces its arguments when specified", function () {
+      it("replaces occurrences of {<property>} in the string with object.<property>", function () {
         assert.strictEqual("foo = 1, bar = 2",
           "foo = {foo}, bar = {bar}".format(x));
       });
@@ -35,7 +35,7 @@
           assert.strictEqual("baz = ", "baz = {baz}".format(x));
           assert.strictEqual("quux = ", "quux = {quux}".format(x));
         });
-      it("evaluates code in {{ }} with `obj` as `this`", function () {
+      it("evaluates code in {{ ... }} with `obj` as `this`, automatically adding a return statement", function () {
         assert.strictEqual("x * y = {{{x} * {y}}}".format({ x: 6, y: 7 }),
           "x * y = 42");
         assert.strictEqual("x * y = {{this.mul({x}, {y})}}"
@@ -354,10 +354,11 @@
       });
       it("replaces defaults with values from the arg string", function () {
         var argstr = "href=../apps/logo.xml&x=2&y=4";
-        var args = flexo.get_args({ x: 1 }, argstr);
+        var args = flexo.get_args({ x: 1, z: 6 }, argstr);
         assert.strictEqual("../apps/logo.xml", args.href);
         assert.strictEqual("2", args.x);
         assert.strictEqual("4", args.y);
+        assert.strictEqual(6, args.z);
       });
       if (typeof window === "object") {
         it("uses the location search value by default", function () {
@@ -553,14 +554,6 @@
               assert.ok(wrong.classList.contains("a#b"));
               assert.ok(wrong.classList.contains("c"));
             });
-          it("takes an object as a second argument for attribute definitions",
-            function () {
-              var p = flexo.create_element.call(document, "p", { id: "bar",
-                "class": "baz", contenteditable: "" });
-              assert.strictEqual("bar", p.id);
-              assert.strictEqual("baz", p.className);
-              assert.ok(true, !!p.contentEditable);
-            });
           it("allows namespace-prefixed attribute names just like tag names",
             function () {
               var use = flexo.create_element.call(document, "svg:use",
@@ -568,14 +561,36 @@
               assert.strictEqual("#t",
                 use.getAttributeNS("http://www.w3.org/1999/xlink", "href"));
             });
+          it("takes an object as a second argument for attribute definitions", function () {
+            var p = flexo.create_element.call(document, "p", { id: "b.a.r",
+              "class": "baz", contenteditable: "" });
+            assert.strictEqual("b.a.r", p.id);
+            assert.strictEqual("baz", p.className);
+            assert.ok(true, !!p.contentEditable);
+          });
           it("skips undefined, null, and false-valued attributes", function () {
             var p = flexo.create_element.call(document, "p", { x: null,
-              y: undefined, z: false });
+              y: undefined, z: false, t: 0 });
             assert.strictEqual(null, p.getAttribute("x"));
             assert.strictEqual(null, p.getAttribute("y"));
             assert.strictEqual(null, p.getAttribute("z"));
+            assert.equal(0, p.getAttribute("t"));
           });
-          it("allows any number of text (string) and element child nodes",
+          it("allows the use of namespace prefixes for attributes", function () {
+            var u = flexo.create_element.call(document, "svg:use",
+              { "xlink:href": "#foo" });
+            assert.strictEqual(u.href.baseVal, "#foo");
+          });
+          it("adds the value of `class` to class names given in the description, but does not replace `id` if it was given in the description", function () {
+            var p = flexo.create_element.call(document, "p#x.y.z",
+              { "class": "t u", id: "v" });
+            assert.ok(p.classList.contains("y"));
+            assert.ok(p.classList.contains("z"));
+            assert.ok(p.classList.contains("t"));
+            assert.ok(p.classList.contains("u"));
+            assert.strictEqual(p.id, "x");
+          });
+          it("allows any number of text (string) and element child nodes, skipping undefined values",
             function () {
 
             });
@@ -599,15 +614,6 @@
           assert.strictEqual(div.localName, "div");
           assert.strictEqual(rect.localName, "rect");
           assert.strictEqual(rect.namespaceURI, flexo.SVG_NS);
-        });
-      });
-
-      describe("flexo.$use(href, attrs={}, [contents])", function () {
-        it("allows to create an SVG <use> element with the xlink:href attribute in the correct namespace", function () {
-          var use = flexo.$use("#test");
-          assert.strictEqual(use.localName, "use");
-          assert.strictEqual(use.namespaceURI, flexo.SVG_NS);
-          assert.strictEqual(use.href.baseVal, "#test");
         });
       });
 

@@ -362,11 +362,7 @@
           }
         } else if (ch.nodeType === Node.TEXT_NODE ||
             ch.nodeType === Node.CDATA_SECTION_NODE) {
-          d = dest.ownerDocument.createTextNode(this.unparam(ch.textContent));
-          dest.insertBefore(d, ref);
-          if (dest === this.target) {
-            this.rendered.push(d);
-          }
+          this.render_text(ch, dest, ref);
         }
       }
       return r;
@@ -378,7 +374,7 @@
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
       A.forEach.call(node.attributes, function (attr) {
-        var val = this.unparam(attr.value);
+        var val = attr.value;
         if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
           this.views[val.trim()] = d;
@@ -394,13 +390,22 @@
         A.forEach.call(this.use.attributes, function (attr) {
           if (!this.use._attributes.hasOwnProperty(attr.localName)) {
             // TODO check attributes for properties
-            d.setAttribute(attr.name, this.unparam(attr.value));
+            d.setAttribute(attr.name, attr.value);
           }
         }, this);
         this.rendered.push(d);
       }
       this.render_children(node, d);
       return d;
+    },
+
+    // Render a text node (or CDATA node)
+    render_text: function (node, dest, ref) {
+      var d = dest.ownerDocument.createTextNode(node.textContent);
+      dest.insertBefore(d, ref);
+      if (dest === this.target) {
+        this.rendered.push(d);
+      }
     },
 
     // Render a use node, return either the instance or the promise of a future
@@ -486,23 +491,6 @@
         this.uses.$parent.render_watches();
       }
       delete this.component.__instance;
-    },
-
-    // Return the input string with the parameters replaced. Warn when no
-    // suitable parameter was found.
-    // TODO setup watches here so that the parameter is live?
-    unparam: function (t) {
-      if (t) {
-        return t.replace(/\{(\w+)\}/g, function (s, p) {
-          var param = this.use._params.hasOwnProperty(p) ?
-              this.use._params[p] : this.component._params[p];
-          if (param === undefined) {
-            console.warn("No value for param {0}".fmt(p));
-            param = s;
-          }
-          return param;
-        }.bind(this));
-      }
     },
 
     // Unrender this instance, returning the next sibling of the last of the
