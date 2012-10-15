@@ -385,18 +385,18 @@
     xmlns: "http://www.w3.org/2000/xmlns/"
   };
 
-  // Append a child element `ch` to `elem`. If it is a string, create a text
+  // Append a child node `ch` to `node`. If it is a string, create a text
   // node with the string as content; if it is an array, append all elements of
   // the array; if it is not a Node, then simply ignore it.
-  function append_child(elem, ch) {
+  function append_child(node, ch) {
     if (typeof ch === "string") {
-      elem.appendChild(this.createTextNode(ch));
+      node.appendChild(node.ownerDocument.createTextNode(ch));
     } else if (ch instanceof Array) {
       ch.forEach(function (ch_) {
-        append_child.call(this, elem, ch_);
+        append_child(node, ch_);
       });
     } else if (ch instanceof window.Node) {
-      elem.appendChild(ch);
+      node.appendChild(ch);
     }
   }
 
@@ -442,8 +442,8 @@
         }
       });
       contents.forEach(function (ch) {
-        append_child.call(this, elem, ch);
-      }, this);
+        append_child(elem, ch);
+      });
       return elem;
     }
   };
@@ -455,9 +455,9 @@
 
   // Shorthand to create a document fragment
   flexo.$$ = function () {
-    var fragment = document.createDocumentFragment();
-    A.forEach.call(arguments, function (node) {
-      fragment.appendChild(node);
+    var fragment = window.document.createDocumentFragment();
+    A.forEach.call(arguments, function (ch) {
+      append_child(fragment, ch);
     });
     return fragment;
   }

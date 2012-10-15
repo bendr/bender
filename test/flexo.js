@@ -590,14 +590,39 @@
             assert.ok(p.classList.contains("u"));
             assert.strictEqual(p.id, "x");
           });
-          it("allows any number of text (string) and element child nodes, skipping undefined values",
-            function () {
-
-            });
+          it("adds DOM nodes, strings (creating a text node) and arrays of contents, skipping all other types of values", function () {
+            var lorem = "Lorem ipsum dolor...";
+            var p = flexo.create_element.call(document, "p", lorem);
+            assert.strictEqual(p.textContent, lorem);
+            assert.strictEqual(p.childNodes.length, 1);
+            assert.strictEqual(p.childNodes[0].nodeType, Node.TEXT_NODE);
+            assert.strictEqual(p.childNodes[0].textContent, lorem);
+            // Using shorthand here for convenience (also tested below)
+            var ol = flexo.$ol(flexo.$li("one"), flexo.$li("two"));
+            assert.strictEqual(ol.childNodes.length, 2);
+            assert.strictEqual(ol.childNodes[0].textContent, "one");
+            assert.strictEqual(ol.childNodes[1].textContent, "two");
+            var predicate = false;
+            var ul2 = flexo.$ul(flexo.$li("definitely"),
+              predicate && [flexo.$li("maybe"), flexo.$li("perhaps")],
+              flexo.$li("assuredly"));
+            assert.strictEqual(ul2.childNodes.length, 2);
+            assert.strictEqual(ul2.childNodes[0].textContent, "definitely");
+            assert.strictEqual(ul2.childNodes[1].textContent, "assuredly");
+            predicate = true;
+            var ul4 = flexo.$ul(flexo.$li("definitely"),
+              predicate && [flexo.$li("maybe"), flexo.$li("perhaps")],
+              flexo.$li("assuredly"));
+            assert.strictEqual(ul4.childNodes.length, 4);
+            assert.strictEqual(ul4.childNodes[0].textContent, "definitely");
+            assert.strictEqual(ul4.childNodes[1].textContent, "maybe");
+            assert.strictEqual(ul4.childNodes[2].textContent, "perhaps");
+            assert.strictEqual(ul4.childNodes[3].textContent, "assuredly");
+          });
         });
 
       describe("flexo.$(description, attrs={}, [contents])", function () {
-        it("is a shortcut bound to window.document", function () {
+        it("is a shorthand bound to window.document", function () {
           var foo = flexo.$("p#bar.baz");
           var bar = flexo.create_element.call(document, "p#bar.baz");
           assert.strictEqual(foo.ownerDocument, bar.ownerDocument);
@@ -608,7 +633,7 @@
       });
 
       describe("flexo.$<tagname>(attrs={}, [contents])", function () {
-        it("is a shortcut for HTML and (most) SVG elements, such as flexo.$div(), flexo.$rect(), &c. ", function () {
+        it("is a shorthand for HTML and (most) SVG elements, such as flexo.$div(), flexo.$rect(), &c. ", function () {
           var div = flexo.$div();
           var rect = flexo.$rect();
           assert.strictEqual(div.localName, "div");
@@ -616,6 +641,15 @@
           assert.strictEqual(rect.namespaceURI, flexo.ns.svg);
         });
       });
+
+      describe("flexo.$$(contents)", function () {
+        it("creates a document fragment in `window.document`, handling contents in the same way as flexo.$()", function () {
+          var fragment = flexo.$$("lorem ", [flexo.$strong("ipsum"), " dolor"]);
+          assert.strictEqual(fragment.childNodes.length, 3);
+          assert.strictEqual(fragment.childNodes[1].textContent, "ipsum");
+        });
+      });
+
 
       describe("flexo.event_client_pos(e)", function () {
         it("returns an { x: e.clientX, y: e.clientY } object for a mouse event", function (done) {
