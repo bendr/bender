@@ -5,7 +5,7 @@
 
   // Bender namespace (added to the flexo module for create_element to work as
   // expected with the "bender" namespace prefix, e.g. flexo.$("bender:app")
-  bender.NS = flexo.BENDER_NS = "http://bender.igel.co.jp";
+  bender.NS = flexo.ns.bender = "http://bender.igel.co.jp";
 
   // The component of a node is itself if it is a component node (or app or
   // context), or the component of its parent

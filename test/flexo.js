@@ -512,7 +512,7 @@
             });
           it("allows namespace prefixes (e.g., \"svg:g\")", function () {
             // Introduce a custom namespace
-            flexo.BENDER_NS = "http://bender.igel.co.jp";
+            flexo.ns.bender = "http://bender.igel.co.jp";
             [
               [document.createElementNS("http://www.w3.org/1999/xhtml", "p"),
               flexo.create_element.call(document, "p")],
@@ -613,7 +613,7 @@
           var rect = flexo.$rect();
           assert.strictEqual(div.localName, "div");
           assert.strictEqual(rect.localName, "rect");
-          assert.strictEqual(rect.namespaceURI, flexo.SVG_NS);
+          assert.strictEqual(rect.namespaceURI, flexo.ns.svg);
         });
       });
 

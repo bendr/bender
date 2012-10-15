@@ -1,7 +1,7 @@
 (function (assert, flexo, bender) {
   "use strict";
 
-  describe("Bender namespace ({0})".fmt(flexo.BENDER_NS), function () {
+  describe("Bender namespace ({0})".fmt(flexo.ns.bender), function () {
     it("extends flexo to create elements in the Bender namespace with the \"bender\" prefix", function () {
       var app = flexo.$("bender:app");
       assert.strictEqual(app.namespaceURI, bender.NS);
@@ -31,7 +31,7 @@
     describe("context.ownerDocument.createElement(name)", function () {
       it("creates new elements in the Bender namespace", function () {
         var title = context.ownerDocument.createElement("title");
-        assert.strictEqual(title.namespaceURI, flexo.BENDER_NS);
+        assert.strictEqual(title.namespaceURI, flexo.ns.bender);
       });
       it("wraps new elements by extending them with Bender methods", function () {
         var title = context.ownerDocument.createElement("title");

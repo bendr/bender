@@ -374,15 +374,16 @@
 
   // DOM
 
-  // Known XML namespaces for use with create_element below. A variable of the
-  // form flexo.{prefix}_NS will then be recognized when using {prefix} as the
-  // tagname namespace prefix. For instance, "svg:g" will be recognized as an
-  // element in the SVG namespace.
-  flexo.HTML_NS = flexo.XHTML_NS = "http://www.w3.org/1999/xhtml";
-  flexo.SVG_NS = "http://www.w3.org/2000/svg";
-  flexo.XLINK_NS = "http://www.w3.org/1999/xlink";
-  flexo.XML_NS = "http://www.w3.org/1999/xml";
-  flexo.XMLNS_NS = "http://www.w3.org/2000/xmlns/";
+  // Known XML namespaces and their prefixes for use with create_element below.
+  // For convenience both "html" and "xhtml" are defined as prefixes for XHTML.
+  flexo.ns = {
+    html: "http://www.w3.org/1999/xhtml",
+    svg: "http://www.w3.org/2000/svg",
+    xhtml: "http://www.w3.org/1999/xhtml",
+    xlink: "http://www.w3.org/1999/xlink",
+    xml: "http://www.w3.org/1999/xml",
+    xmlns: "http://www.w3.org/2000/xmlns/"
+  };
 
   // Append a child element `ch` to `elem`. If it is a string, create a text
   // node with the string as content; if it is an array, append all elements of
@@ -423,7 +424,7 @@
     }
     var m = name.match(/^(?:([^:]+):)?([^#]+)(?:#(.+))?$/);
     if (m) {
-      var ns = (m[1] && flexo["{0}_NS".fmt(m[1].toUpperCase())]) ||
+      var ns = (m[1] && flexo.ns[m[1].toLowerCase()]) ||
         this.documentElement.namespaceURI;
       var elem = ns ? this.createElementNS(ns, m[2]) : this.createElement(m[2]);
       if (m[3]) {
@@ -432,7 +433,7 @@
       Object.keys(attrs).forEach(function (a) {
         if (attrs[a] !== null && attrs[a] !== undefined && attrs[a] !== false) {
           var sp = a.split(":");
-          var ns = sp[1] && flexo["{0}_NS".fmt(sp[0].toUpperCase())];
+          var ns = sp[1] && flexo.ns[sp[0].toLowerCase()];
           if (ns) {
             elem.setAttributeNS(ns, sp[1], attrs[a]);
           } else {
