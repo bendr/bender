@@ -48,7 +48,7 @@
       for (var i = 0, m = node.attributes.length; i < m; ++i) {
         var attr = node.attributes[i];
         if (attr.namespaceURI) {
-          if (attr.namespaceURI === flexo.XMLNS_NS &&
+          if (attr.namespaceURI === flexo.ns.xmlns &&
               attr.localName !== "xmlns") {
             n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
           } else {
@@ -883,7 +883,7 @@
           var elem = q.shift();
           if (elem.nodeType === Node.ELEMENT_NODE &&
               (elem.getAttribute("id") === id ||
-               elem.getAttributeNS(flexo.XML_NS, "id") === id)) {
+               elem.getAttributeNS(flexo.ns.xml, "id") === id)) {
             return elem;
           }
           A.push.apply(q, elem.childNodes);
