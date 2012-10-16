@@ -3,7 +3,7 @@
 
   var A = Array.prototype;
 
-  // Bender namespace (added to the flexo module for create_element to work as
+  // Bender namespace; added to the flexo module for create_element to work as
   // expected with the "bender" namespace prefix, e.g. flexo.$("bender:app")
   bender.NS = flexo.ns.bender = "http://bender.igel.co.jp";
 
@@ -119,14 +119,20 @@
     var doc = target.ownerDocument || target;
     var context = doc.implementation.createDocument(bender.NS, "bender", null);
 
+    var hashes = 0;
+    context._hash = function (obj) {
+      obj._hash = "h-" + hashes++;
+      return obj;
+    };
+
     // Wrap all new elements created in this context
     context.createElement = function (name) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            bender.NS, name));
+      return this._hash(wrap_element(Object.getPrototypeOf(this).createElementNS
+            .call(this, bender.NS, name)));
     };
     context.createElementNS = function (ns, qname) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            ns, qname));
+      return this._hash(wrap_element(Object.getPrototypeOf(this).createElementNS
+            .call(this, ns, qname)));
     };
 
     // Manage the render queue specific to this context. The purpose of the
@@ -222,6 +228,39 @@
       }
     };
 
+    // Edges of the watch graph, indexed by their source node
+    var edges = {};
+
+    context._add_watch = function (watch) {
+      watch.gets.forEach(function (g) {
+        var source = "{0}.{1}".fmt(g.source.use._hash, g.property);
+        if (!edges.hasOwnProperty(source)) {
+          edges[source] = [];
+        }
+        edges[source].push(g);
+      });
+      if (!edges.hasOwnProperty(watch._hash)) {
+        edges[watch._hash] = [];
+      }
+      watch.sets.forEach(function (set) {
+        edges[watch._hash].push(set);
+      });
+    };
+
+    context.handleEvent = function (e) {
+      if (e.type === "@property-change") {
+        var key = "{0}.{1}".fmt(e.source.use._hash, e.property);
+        var e = edges[key];
+        if (e) {
+          e.forEach(function (edge) {
+            edge.watch.sets.forEach(function (s) {
+              s.set();
+            });
+          });
+        }
+      }
+    };
+
     return component;
   };
 
@@ -242,15 +281,14 @@
       this.watchers = [];    // instances that have watches on this instance
       this.properties = {};  // properties defined by <property> elements
       this.watched = {};     // watched properties
+      this.__init_properties = [];
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k)) {
-          this.init_property(this.component._properties[k],
-            this.component._properties[k]._get_value());
+          this.init_property(this.component._properties[k]);
         }
       }, this);
       Object.keys(use._properties).forEach(function (k) {
-        this.init_property(use._properties[k],
-          this.component._properties[k]._get_value());
+        this.init_property(use._properties[k]);
       }, this);
       this.component._instances.push(this);
       this.uses.$self = this;
@@ -264,6 +302,7 @@
     // instantiated it.)
     // TODO proper initialization
     init_property: function (property, value) {
+      var instance = this;
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
@@ -273,10 +312,14 @@
           if (v !== value) {
             var prev = value;
             value = v;
-            flexo.notify(this, "@property-change",
-              { name: property._name, prev: prev });
+            flexo.notify(instance, "@property-change",
+              { property: property._name, prev: prev });
           }
         }
+      });
+      flexo.listen(this, "@property-change", this.use.ownerDocument);
+      this.__init_properties.push(function () {
+        this.properties[property._name] = property._get_value();
       });
     },
 
@@ -298,7 +341,6 @@
       if (flexo.root(this.use) !== this.use.ownerDocument) {
         return;
       }
-      this.component.__instance = this;
       if (this.use.__placeholder) {
         this.target = this.use.__placeholder.parentNode;
       }
@@ -319,6 +361,12 @@
         this.update_title();
         if (this.pending === 0) {
           this.render_watches();
+          if (this.__init_properties) {
+            this.__init_properties.forEach(function (init) {
+              init.call(this);
+            }, this);
+            delete this.__init_properties;
+          }
         }
       }
     },
@@ -399,9 +447,37 @@
       return d;
     },
 
+    unprop_text: function (node) {
+      var text = node.textContent;
+      var props = text.match(/\{[^{}]+\}/g);
+      if (props) {
+        var watch = this.use.ownerDocument._hash({
+          gets: [],
+          sets: [{
+            view: node,
+            set: function () {
+              node.textContent = text.format(this.properties);
+            }.bind(this),
+            watch: watch
+          }]
+        });
+        var done = {};
+        props.forEach(function (p) {
+          p = p.substr(1, p.length - 2);
+          if (done[p] || !this.properties.hasOwnProperty(p)) {
+            return;
+          }
+          done[p] = true;
+          watch.gets.push({ source: this, property: p, watch: watch });
+        }, this);
+        this.use.ownerDocument._add_watch(watch);
+      }
+    },
+
     // Render a text node (or CDATA node)
     render_text: function (node, dest, ref) {
       var d = dest.ownerDocument.createTextNode(node.textContent);
+      this.unprop_text(d);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
         this.rendered.push(d);
@@ -490,7 +566,6 @@
       if (this.uses.$parent && this.uses.$parent.__pending_watches) {
         this.uses.$parent.render_watches();
       }
-      delete this.component.__instance;
     },
 
     // Unrender this instance, returning the next sibling of the last of the
@@ -704,12 +779,11 @@
       appendChild: function (ch) { return this.insertBefore(ch, null); },
 
       cloneNode: function (deep) {
-        var clone =
-          wrap_element(Object.getPrototypeOf(this).cloneNode.call(this, false)),
-          component, uri;
+        var clone = this.ownerDocument._hash(wrap_element(
+              Object.getPrototypeOf(this).cloneNode.call(this, false)));
         if (deep) {
-          component = component_of(this)._uri;
-          uri = component ? component._uri : "";
+          var component = component_of(this)._uri;
+          var uri = component ? component._uri : "";
           A.forEach.call(this.childNodes, function (ch) {
             import_node(clone, ch);
           });

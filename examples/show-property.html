@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | Show property</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="example.css">
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <script src="example.js"></script>
+    <script>
+(function () {
+  "use strict";
+
+  var context = bender.create_context();
+  var component = context.appendChild(
+    context.$("component",
+      context.$("property", { name: "foo", value: "bar" }),
+      context.$("view",
+        context.$("html:p", "foo = {foo}"))));
+  context.appendChild(context.$("use", { q: "component" }));
+  flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+    if (e.instance.component === component) {
+      setTimeout(function () {
+        var p = document.querySelector("p");
+        if (p && p.textContent === "foo = baz") {
+          example.ok();
+        }
+      }, 0);
+    }
+  });
+
+}());
+    </script>
+  </body>
+</html>
