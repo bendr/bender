@@ -116,20 +116,22 @@
       var use = context.appendChild(context.$("use", { q: "component" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
-          assert.strictEqual(e.instance.properties.string, "");
-          assert.strictEqual(e.instance.properties.boolean, false);
-          assert.ok(isNaN(e.instance.properties.number));
-          assert.strictEqual(e.instance.properties.object);
-          assert.strictEqual(e.instance.properties.dynamic);
-          assert.strictEqual(e.instance.properties.wrong, "");
-          assert.strictEqual(e.instance.properties.foo, "bar");
-          assert.strictEqual(e.instance.properties.flag, true);
-          assert.strictEqual(e.instance.properties.x, 42);
-          assert.deepEqual(e.instance.properties.array, [1, 2, 3, 4]);
-          assert.ok(e.instance.properties.random >= 1 &&
-            e.instance.properties.random <= 10);
-          assert.strictEqual(e.instance.properties.multiline, 42);
-          done();
+          setTimeout(function () {
+            assert.strictEqual(e.instance.properties.string, "");
+            assert.strictEqual(e.instance.properties.boolean, false);
+            assert.ok(isNaN(e.instance.properties.number));
+            assert.strictEqual(e.instance.properties.object);
+            assert.strictEqual(e.instance.properties.dynamic);
+            assert.strictEqual(e.instance.properties.wrong, "");
+            assert.strictEqual(e.instance.properties.foo, "bar");
+            assert.strictEqual(e.instance.properties.flag, true);
+            assert.strictEqual(e.instance.properties.x, 42);
+            assert.deepEqual(e.instance.properties.array, [1, 2, 3, 4]);
+            assert.ok(e.instance.properties.random >= 1 &&
+              e.instance.properties.random <= 10);
+            assert.strictEqual(e.instance.properties.multiline, 42);
+            done();
+          }, 0);
         }
       });
     });
