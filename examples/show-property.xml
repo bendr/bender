@@ -1,7 +1,0 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Show property</title>
-  <property name="foo" value="bar"/>
-  <view>
-    <html:p>foo = {foo}</html:p>
-  </view>
-</app>
