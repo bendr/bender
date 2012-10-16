@@ -249,6 +249,7 @@
 
     context.handleEvent = function (e) {
       if (e.type === "@property-change") {
+        console.log("property-change:", e, edges);
         var key = "{0}.{1}".fmt(e.source.use._hash, e.property);
         var e = edges[key];
         if (e) {
@@ -306,6 +307,7 @@
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
+          v = property._get_value(v, this);
           if (v !== value) {
             var prev = value;
             value = v;
@@ -316,7 +318,8 @@
       });
       flexo.listen(this, "@property-change", this.use.ownerDocument);
       this.__init_properties.push(function () {
-        this.properties[property._name] = property._get_value();
+        this.properties[property._name] =
+          property._get_value(undefined, this.properties);
       });
     },
 
@@ -1086,8 +1089,9 @@
       },
 
       // Get the parsed value for the property
-      _get_value: function (v) {
-        return PROPERTY_TYPES[this._type](v === undefined ? this._value : v);
+      _get_value: function (v, properties) {
+        return PROPERTY_TYPES[this._type]
+          .call(properties, v === undefined ? this._value : v);
       },
 
       _set_type: function (type) {
