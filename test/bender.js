@@ -216,6 +216,27 @@
       }
     });
 
+    it("Show a property value in a text node", function (done) {
+
+      var context = bender.create_context(flexo.$div());
+      var component = context.appendChild(
+        context.$("component",
+          context.$("property", { name: "foo", value: "bar" }),
+          context.$("view",
+            context.$("html:p#out", "foo = {foo}"))));
+      context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          setTimeout(function () {
+            if (e.instance.views.out.textContent === "foo = bar") {
+              done();
+            }
+          }, 0);
+        }
+      });
+
+    });
+
   });
 
 }(window.chai.assert, window.flexo, window.bender));

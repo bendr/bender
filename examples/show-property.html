@@ -19,13 +19,12 @@
     context.$("component",
       context.$("property", { name: "foo", value: "bar" }),
       context.$("view",
-        context.$("html:p", "foo = {foo}"))));
+        context.$("html:p#out", "foo = {foo}"))));
   context.appendChild(context.$("use", { q: "component" }));
   flexo.listen(context.ownerDocument, "@refreshed", function (e) {
     if (e.instance.component === component) {
       setTimeout(function () {
-        var p = document.querySelector("p");
-        if (p && p.textContent === "foo = baz") {
+        if (e.instance.views.out.textContent === "foo = bar") {
           example.ok();
         }
       }, 0);
