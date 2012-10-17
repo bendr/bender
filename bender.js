@@ -249,7 +249,6 @@
 
     context.handleEvent = function (e) {
       if (e.type === "@property-change") {
-        console.log("property-change:", e, edges);
         var key = "{0}.{1}".fmt(e.source.use._hash, e.property);
         var e = edges[key];
         if (e) {
@@ -416,6 +415,29 @@
       return r;
     },
 
+    // Extract a list of properties for a pattern. Only properties that are
+    // actually defined are extracted.
+    extract_props: function (pattern) {
+      var props = {};
+      var matches = pattern.match(/\{[^{}]+\}/g);
+      if (matches) {
+        matches.forEach(function (m) {
+          m = m.substr(1, m.length - 2);
+          if (!props.hasOwnProperty(m) && this.properties.hasOwnProperty(m)) {
+            props[m] = true;
+          }
+        }, this);
+      }
+      return Object.keys(props);
+    },
+
+    unprop_attr: function (node, attr) {
+      var pattern = attr.value;
+      var props = this.extract_props(pattern);
+      if (props.length > 0) {
+      }
+    },
+
     // Render foreign nodes within a view; arguments and return value are the
     // same as render_children() above.
     render_foreign: function (node, dest, ref) {
@@ -429,8 +451,10 @@
         } else if (attr.namespaceURI &&
             attr.namespaceURI !== node.namespaceURI) {
           d.setAttributeNS(attr.namespaceURI, attr.localName, val);
+          this.unprop_attr(d, attr);
         } else {
           d.setAttribute(attr.localName, val);
+          this.unprop_attr(d, attr);
         }
       }, this);
       dest.insertBefore(d, ref);
@@ -448,26 +472,21 @@
     },
 
     unprop_text: function (node) {
-      var text = node.textContent;
-      var props = text.match(/\{[^{}]+\}/g);
-      if (props) {
+      var pattern = node.textContent;
+      var props = this.extract_props(pattern);
+      if (props.length > 0) {
         var watch = this.use.ownerDocument._hash({
           gets: [],
           sets: [{
             view: node,
             set: function () {
-              node.textContent = text.format(this.properties);
+              node.textContent = pattern.format(this.properties);
             }.bind(this),
             watch: watch
           }]
         });
         var done = {};
         props.forEach(function (p) {
-          p = p.substr(1, p.length - 2);
-          if (done[p] || !this.properties.hasOwnProperty(p)) {
-            return;
-          }
-          done[p] = true;
           watch.gets.push({ source: this, property: p, watch: watch });
         }, this);
         this.use.ownerDocument._add_watch(watch);

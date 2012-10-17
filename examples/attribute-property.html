@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Bender | Example | Chain properties</title>
+    <title>Bender | Example | Property in attribute</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
     <link rel="stylesheet" href="example.css">
@@ -9,23 +9,23 @@
     <script src="../bender.js"></script>
   </head>
   <body>
-    <p class="context"></p>
+    <svg></svg>
     <script src="example.js"></script>
     <script>
 "use strict";
 
-var p = document.querySelector(".context");
-var context = bender.create_context(p);
+var context = bender.create_context(document.querySelector("svg"));
 var component = context.appendChild(
   context.$("component",
-    context.$("property", { name: "x", type: "integer", value: 1 }),
-    context.$("property", { name: "y", type: "integer", value: "{x} + 1" }),
-    context.$("view", "x = {x}, y = x + 1 = {y}")));
+    context.$("property", { name: "color", value: "#ff4040" }),
+    context.$("view",
+    context.$("svg:rect#r", { x: 50, y: 100, width: 200, height: 150,
+      fill: "{color}" }))));
 var u = context.appendChild(context.$("use", { q: "component" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === component) {
     setTimeout(function () {
-      if (p.textContent === "x = 1, y = x + 1 = 2") {
+      if (e.instance.views.r.getAttribute("fill") === "#ff4040") {
         example.ok();
       }
     }, 0);

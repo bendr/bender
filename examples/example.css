@@ -3,10 +3,17 @@ body {
   margin: 2em;
 }
 
-h1 {
-  font-size: 150%;
+h1, h2 {
   font-weight: normal;
   color: #102040;
+}
+
+h1 {
+  font-size: 150%;
+}
+
+h2 {
+  font-size: 120%;
 }
 
 a {
