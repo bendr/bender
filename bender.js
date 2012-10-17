@@ -282,6 +282,12 @@
       this.properties = {};  // properties defined by <property> elements
       this.watched = {};     // watched properties
       this.__init_properties = [];
+      // Setup a readonly $self property (pointing to this)
+      var self = this;
+      Object.defineProperty(this.properties, "$self", {
+        enumerable: true,
+        get: function () { return self; }
+      });
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k)) {
           this.init_property(this.component._properties[k]);
@@ -440,12 +446,13 @@
         }, this);
         watch.sets = [{ view: node, set: set, watch: watch }];
         this.use.ownerDocument._add_watch(watch);
+        return true;
       }
     },
 
     unprop_attr: function (node, attr) {
       var pattern = attr.value;
-      this.unprop_node(node, pattern,
+      return this.unprop_node(node, pattern,
         attr.namespaceURI && attr.namespaceURI !== node.namespaceURI ?
           function () {
             node.setAttributeNS(attr.namespaceURI, attr.localName,
@@ -459,7 +466,7 @@
 
     unprop_text: function (node) {
       var pattern = node.textContent;
-      this.unprop_node(node, pattern, function () {
+      return this.unprop_node(node, pattern, function () {
         node.textContent = pattern.format(this.properties);
       }.bind(this));
     },
@@ -476,11 +483,13 @@
           this.views[val.trim()] = d;
         } else if (attr.namespaceURI &&
             attr.namespaceURI !== node.namespaceURI) {
-          d.setAttributeNS(attr.namespaceURI, attr.localName, val);
-          this.unprop_attr(d, attr);
+          if (!this.unprop_attr(d, attr)) {
+            d.setAttributeNS(attr.namespaceURI, attr.localName, val);
+          }
         } else {
-          d.setAttribute(attr.localName, val);
-          this.unprop_attr(d, attr);
+          if (!this.unprop_attr(d, attr)) {
+            d.setAttribute(attr.localName, val);
+          }
         }
       }, this);
       dest.insertBefore(d, ref);

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Bender | Example | Chain properties</title>
+    <title>Bender | Example | Show computed value</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
     <link rel="stylesheet" href="example.css">
@@ -9,23 +9,21 @@
     <script src="../bender.js"></script>
   </head>
   <body>
-    <p class="context"></p>
     <script src="example.js"></script>
     <script>
 "use strict";
 
-var p = document.querySelector(".context");
+var p = document.body.appendChild(flexo.$p());
 var context = bender.create_context(p);
 var component = context.appendChild(
   context.$("component",
-    context.$("property", { name: "x", type: "integer", value: 1 }),
-    context.$("property", { name: "y", type: "integer", value: "{{{x} + 1}}" }),
-    context.$("view", "x = {x}, y = x + 1 = {y}")));
+    context.$("property", { name: "n", type: "number", value: "2012" }),
+    context.$("view", "n = {{flexo.to_roman({n})}} ({n})")));
 var u = context.appendChild(context.$("use", { q: "component" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === component) {
     setTimeout(function () {
-      if (p.textContent === "x = 1, y = x + 1 = 2") {
+      if (p.textContent === "n = mmxii (2012)") {
         example.ok();
       }
     }, 0);

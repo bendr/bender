@@ -227,8 +227,8 @@
           context.$("property", { name: "sz", type: "number", value: "200" }),
           context.$("property", { name: "color", value: "#ff4040" }),
           context.$("view",
-          context.$("svg:rect#r", { x: "{x}", y: "{y}", width: "{sz}",
-            height: "{sz}", fill: "{color}" }))));
+            context.$("svg:rect#r", { x: "{x}", y: "{y}", width: "{sz}",
+              height: "{sz}", fill: "{color}" }))));
       var u = context.appendChild(context.$("use", { q: "component" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
@@ -261,6 +261,24 @@
             if (e.instance.views.out.textContent === "foo = bar") {
               done();
             }
+          }, 0);
+        }
+      });
+    });
+
+    it("Show a live computed value in a text node", function (done) {
+      var p = flexo.$p();
+      var context = bender.create_context(p);
+      var component = context.appendChild(
+        context.$("component",
+          context.$("property", { name: "n", type: "number", value: "2012" }),
+          context.$("view", "n = {{flexo.to_roman({n})}} ({n})")));
+      var u = context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          setTimeout(function () {
+            assert.strictEqual(p.textContent, "n = mmxii (2012)");
+            done();
           }, 0);
         }
       });
