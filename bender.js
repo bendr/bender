@@ -232,18 +232,21 @@
     var edges = {};
 
     context._add_watch = function (watch) {
-      watch.gets.forEach(function (g) {
-        var source = "{0}.{1}".fmt(g.source.use._hash, g.property);
+      console.log("Add watch {0}".fmt(watch._hash));
+      watch.gets.forEach(function (get) {
+        var source = "{0}.{1}".fmt(get.source.use._hash, get.property);
         if (!edges.hasOwnProperty(source)) {
           edges[source] = [];
         }
-        edges[source].push(g);
+        edges[source].push(get);
+        console.log("  + get: {0} -> {1}".fmt(source, watch._hash));
       });
       if (!edges.hasOwnProperty(watch._hash)) {
         edges[watch._hash] = [];
       }
       watch.sets.forEach(function (set) {
         edges[watch._hash].push(set);
+        console.log("  + set: {0} ->".fmt(watch._hash), set);
       });
     };
 
@@ -324,6 +327,7 @@
         }
       });
       flexo.listen(this, "@property-change", this.use.ownerDocument);
+      this.unprop_value(property);
       this.__init_properties.push(function () {
         this.properties[property._name] =
           property._get_value(undefined, this.properties);
@@ -427,19 +431,21 @@
     // actually defined are extracted.
     extract_props: function (pattern) {
       var props = {};
-      var matches = pattern.match(/\{[^{}]+\}/g);
-      if (matches) {
-        matches.forEach(function (m) {
-          m = m.substr(1, m.length - 2);
-          if (!props.hasOwnProperty(m) && this.properties.hasOwnProperty(m)) {
-            props[m] = true;
-          }
-        }, this);
+      if (typeof pattern === "string") {
+        var matches = pattern.match(/\{[^{}]+\}/g);
+        if (matches) {
+          matches.forEach(function (m) {
+            m = m.substr(1, m.length - 2);
+            if (!props.hasOwnProperty(m) && this.properties.hasOwnProperty(m)) {
+              props[m] = true;
+            }
+          }, this);
+        }
       }
       return Object.keys(props);
     },
 
-    unprop_node: function (node, pattern, set) {
+    unprop_node: function (node, pattern, set, from) {
       var props = this.extract_props(pattern);
       if (props.length > 0) {
         var watch = this.use.ownerDocument._hash({});
@@ -461,6 +467,8 @@
                 pattern.format(this.properties));
           }.bind(this) :
           function () {
+            console.log("set/attribute={0} \"{1}\""
+              .fmt(attr.localName, pattern));
             node.setAttribute(attr.localName,
                 pattern.format(this.properties));
           }.bind(this));
@@ -469,7 +477,17 @@
     unprop_text: function (node) {
       var pattern = node.textContent;
       return this.unprop_node(node, pattern, function () {
+        console.log("set/text=\"{0}\"=\"{1}\"".fmt(pattern, pattern.format(this.properties)), this.properties);
         node.textContent = pattern.format(this.properties);
+      }.bind(this));
+    },
+
+    unprop_value: function (property) {
+      var pattern = property._value;
+      return this.unprop_node(property, pattern, function () {
+        console.log("set/property={0} \"{1}\"=\"{2}\""
+          .fmt(property._name, pattern, pattern.format(this.properties)));
+        this.properties[property._name] = pattern.format(this.properties);
       }.bind(this));
     },
 
