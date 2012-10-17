@@ -64,6 +64,10 @@
         assert.strictEqual(false, flexo.is_true(""));
         assert.strictEqual(false, flexo.is_true(""));
       });
+      it("returns false if the argument is not a string", function () {
+        assert.strictEqual(false, flexo.is_true());
+        assert.strictEqual(false, flexo.is_true(true));
+      });
     });
 
     describe("flexo.pad(string, length, padding=\"0\")", function () {

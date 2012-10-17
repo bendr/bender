@@ -431,11 +431,37 @@
       return Object.keys(props);
     },
 
-    unprop_attr: function (node, attr) {
-      var pattern = attr.value;
+    unprop_node: function (node, pattern, set) {
       var props = this.extract_props(pattern);
       if (props.length > 0) {
+        var watch = this.use.ownerDocument._hash({});
+        watch.gets = props.map(function (p) {
+          return { source: this, property: p, watch: watch };
+        }, this);
+        watch.sets = [{ view: node, set: set, watch: watch }];
+        this.use.ownerDocument._add_watch(watch);
       }
+    },
+
+    unprop_attr: function (node, attr) {
+      var pattern = attr.value;
+      this.unprop_node(node, pattern,
+        attr.namespaceURI && attr.namespaceURI !== node.namespaceURI ?
+          function () {
+            node.setAttributeNS(attr.namespaceURI, attr.localName,
+                pattern.format(this.properties));
+          }.bind(this) :
+          function () {
+            node.setAttribute(attr.localName,
+                pattern.format(this.properties));
+          }.bind(this));
+    },
+
+    unprop_text: function (node) {
+      var pattern = node.textContent;
+      this.unprop_node(node, pattern, function () {
+        node.textContent = pattern.format(this.properties);
+      }.bind(this));
     },
 
     // Render foreign nodes within a view; arguments and return value are the
@@ -469,28 +495,6 @@
       }
       this.render_children(node, d);
       return d;
-    },
-
-    unprop_text: function (node) {
-      var pattern = node.textContent;
-      var props = this.extract_props(pattern);
-      if (props.length > 0) {
-        var watch = this.use.ownerDocument._hash({
-          gets: [],
-          sets: [{
-            view: node,
-            set: function () {
-              node.textContent = pattern.format(this.properties);
-            }.bind(this),
-            watch: watch
-          }]
-        });
-        var done = {};
-        props.forEach(function (p) {
-          watch.gets.push({ source: this, property: p, watch: watch });
-        }, this);
-        this.use.ownerDocument._add_watch(watch);
-      }
     },
 
     // Render a text node (or CDATA node)

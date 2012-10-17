@@ -17,9 +17,12 @@
 var context = bender.create_context(document.querySelector("svg"));
 var component = context.appendChild(
   context.$("component",
+    context.$("property", { name: "x", type: "number", value: "100" }),
+    context.$("property", { name: "y", type: "number", value: "50" }),
+    context.$("property", { name: "sz", type: "number", value: "200" }),
     context.$("property", { name: "color", value: "#ff4040" }),
     context.$("view",
-    context.$("svg:rect#r", { x: 50, y: 100, width: 200, height: 150,
+    context.$("svg:rect#r", { x: "{x}", y: "{y}", width: "{sz}", height: "{sz}",
       fill: "{color}" }))));
 var u = context.appendChild(context.$("use", { q: "component" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {

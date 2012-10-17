@@ -218,8 +218,36 @@
       }
     });
 
-    it("Show a property value in a text node", function (done) {
+    it("Use property values in attributes", function (done) {
+      var context = bender.create_context(flexo.$svg());
+      var component = context.appendChild(
+        context.$("component",
+          context.$("property", { name: "x", type: "number", value: "100" }),
+          context.$("property", { name: "y", type: "number", value: "50" }),
+          context.$("property", { name: "sz", type: "number", value: "200" }),
+          context.$("property", { name: "color", value: "#ff4040" }),
+          context.$("view",
+          context.$("svg:rect#r", { x: "{x}", y: "{y}", width: "{sz}",
+            height: "{sz}", fill: "{color}" }))));
+      var u = context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          setTimeout(function () {
+            assert.strictEqual(e.instance.views.r.getAttribute("x"), "100");
+            assert.strictEqual(e.instance.views.r.getAttribute("y"), "50");
+            assert.strictEqual(e.instance.views.r.getAttribute("width"), "200");
+            assert.strictEqual(e.instance.views.r.getAttribute("height"),
+              "200");
+            assert.strictEqual(e.instance.views.r.getAttribute("fill"),
+              "#ff4040");
+            done();
+          }, 0);
+        }
+      });
 
+    });
+
+    it("Show a property value in a text node", function (done) {
       var context = bender.create_context(flexo.$div());
       var component = context.appendChild(
         context.$("component",
@@ -236,7 +264,6 @@
           }, 0);
         }
       });
-
     });
 
   });

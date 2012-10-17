@@ -41,7 +41,7 @@
   // Get a true or false value from a string; true if the string matches "true"
   // in case-insensitive, whitespace-tolerating way
   flexo.is_true = function (string) {
-    return !!string && string.trim().toLowerCase() === "true";
+    return typeof string === "string" && string.trim().toLowerCase() === "true";
   };
 
   // Pad a string to the given length with the given padding (defaults to 0)

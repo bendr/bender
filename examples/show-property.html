@@ -23,7 +23,7 @@ var u = context.appendChild(context.$("use", { q: "component" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === component) {
     setTimeout(function () {
-      if (e.instance.views.out.textContent === "x = 1, y = 2") {
+      if (e.instance.views.out.textContent === "foo = bar") {
         example.ok();
       }
     }, 0);
