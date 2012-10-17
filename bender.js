@@ -312,7 +312,9 @@
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
-          v = property._get_value(v, this);
+          if (property.type === "string") {
+            v = property._get_value(v, this);
+          }
           if (v !== value) {
             var prev = value;
             value = v;
