@@ -44,7 +44,6 @@
       if (n._is_component) {
         n._uri = uri;
       }
-      parent.appendChild(n);
       for (var i = 0, m = node.attributes.length; i < m; ++i) {
         var attr = node.attributes[i];
         if (attr.namespaceURI) {
@@ -61,6 +60,7 @@
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         import_node(n, ch, uri);
       }
+      parent.appendChild(n);
       return n;
     } else if (node.nodeType === Node.TEXT_NODE ||
         node.nodeType === Node.CDATA_SECTION_NODE) {
@@ -311,6 +311,7 @@
     // instantiated it.)
     // TODO proper initialization
     init_property: function (property, value) {
+      console.log("+++ init property", property);
       var instance = this;
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
