@@ -203,9 +203,9 @@
     // loading has finished with a uri parameter corresponding to the returned
     // URI and the loaded component; an "@error" event will be sent with the
     // same URI parameter in case of error.
-    context._load_component = function (uri) {
+    context._load_component = function (uri, base) {
       var split = uri.split("#");
-      var locator = flexo.normalize_uri(doc.baseURI, split[0]);
+      var locator = flexo.normalize_uri(base || doc.baseURI, split[0]);
       var id = split[1];
       if (typeof loaded[locator] === "object") {
         return id ? components[locator + "#" + id] : loaded[locator];
@@ -1272,8 +1272,8 @@
       // if it needs loading.
       _find_component: function () {
         var component;
+        var parent_component = component_of(this);
         if (this._ref) {
-          var parent_component = component_of(this);
           while (!component && parent_component) {
             component = parent_component._components[this._ref];
             parent_component = component_of(parent_component.parentNode);
@@ -1284,9 +1284,9 @@
           return this.ownerDocument.querySelector(this._q);
         }
         if (this._href) {
-          var href = (this._href.indexOf("#") === 0 ? component_of(this)._uri :
-              "") + this._href;
-          return this.ownerDocument._load_component(href);
+          var base = parent_component && parent_component._uri || "";
+          var href = (this._href.indexOf("#") === 0 ? base : "") + this._href;
+          return this.ownerDocument._load_component(href, base);
         }
       },
 
