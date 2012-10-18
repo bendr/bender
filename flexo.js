@@ -546,4 +546,46 @@
     }
   };
 
+
+  // Graphics
+  
+  // Color
+
+  // Convert a color from hsv space (hue in radians, saturation and brightness
+  // in the [0, 1] interval) to RGB, returned as an array of RGB values in the
+  // [0, 256[ interval.
+  flexo.hsv_to_rgb = function(h, s, v) {
+    s = flexo.clamp(s, 0, 1);
+    v = flexo.clamp(v, 0, 1);
+    if (s === 0) {
+      var v_ = Math.round(v * 255);
+      return [v_, v_, v_];
+    } else {
+      h = (((h * 180 / Math.PI) + 360) % 360) / 60;
+      var i = Math.floor(h);
+      var f = h - i;
+      var p = v * (1 - s);
+      var q = v * (1 - (s * f));
+      var t = v * (1 - (s * (1 - f)));
+      return [Math.round([v, q, p, p, t, v][i] * 255),
+        Math.round([t, v, v, q, p, p][i] * 255),
+        Math.round([p, p, t, v, v, q][i] * 255)];
+    }
+  };
+
+  // Convert a color from hsv space (hue in degrees, saturation and brightness
+  // in the [0, 1] interval) to an RGB hex value
+  flexo.hsv_to_hex = function(h, s, v) {
+    return flexo.rgb_to_hex.apply(this, flexo.hsv_to_rgb(h, s, v));
+  };
+
+  // Convert an RGB color (3 values in the [0, 256[ interval) to a hex value
+  flexo.rgb_to_hex = function() {
+    return "#" + A.map.call(arguments,
+      function (x) {
+        return flexo.pad(flexo.clamp(Math.floor(x), 0, 255).toString(16), 2);
+      }).join("");
+  };
+
+
 }(typeof exports === "object" ? exports : window.flexo = {}));

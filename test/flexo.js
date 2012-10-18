@@ -732,4 +732,49 @@
     });
   }
 
+  describe("Color", function () {
+
+    describe("flexo.hsv_to_rgb(h, s, v)", function () {
+      it("converts a color in HSV (hue in radian, saturation and value/brightness between 0 and 1) to RGB (array of three integer values in the [0, 256[ interval)", function () {
+        assert.deepEqual(flexo.hsv_to_rgb(Math.random(), 0, 1),
+          [255, 255, 255]);
+        assert.deepEqual(flexo.hsv_to_rgb(Math.random(), 0, 0.5),
+          [128, 128, 128]);
+        assert.deepEqual(flexo.hsv_to_rgb(Math.random(), Math.random(), 0),
+          [0, 0, 0]);
+        assert.deepEqual(flexo.hsv_to_rgb(0, 1, 1), [255, 0, 0]);
+        assert.deepEqual(flexo.hsv_to_rgb(Math.PI / 3, 1, 0.75), [191, 191, 0]);
+        assert.deepEqual(flexo.hsv_to_rgb(2 * Math.PI / 3, 1, 0.5), [0, 128, 0]);
+        assert.deepEqual(flexo.hsv_to_rgb(Math.PI, 0.5, 1), [128, 255, 255]);
+      });
+    });
+
+    describe("flexo.hsv_to_hex(h, s, v)", function () {
+      it("converts a color in HSV (hue in radian, saturation and value/brightness between 0 and 1) to hex (#rrggbb)", function () {
+        assert.strictEqual(flexo.hsv_to_hex(Math.random(), 0, 1), "#ffffff");
+        assert.strictEqual(flexo.hsv_to_hex(Math.random(), 0, 0.5), "#808080");
+        assert.strictEqual(flexo.hsv_to_hex(Math.random(), Math.random(), 0),
+          "#000000");
+        assert.strictEqual(flexo.hsv_to_hex(0, 1, 1), "#ff0000");
+        assert.strictEqual(flexo.hsv_to_hex(Math.PI / 3, 1, 0.75), "#bfbf00");
+        assert.strictEqual(flexo.hsv_to_hex(2 * Math.PI / 3, 1, 0.5),
+          "#008000");
+        assert.strictEqual(flexo.hsv_to_hex(Math.PI, 0.5, 1), "#80ffff");
+      });
+    });
+
+    describe("flexo.rgb_to_hex(r, g, b)", function () {
+      it("formats an array of RGB values (clamped to the [0, 256[ interval) to a hex value (#rrggbb)", function () {
+        assert.strictEqual(flexo.rgb_to_hex(255, 255, 255), "#ffffff");
+        assert.strictEqual(flexo.rgb_to_hex(128, 128, 128), "#808080");
+        assert.strictEqual(flexo.rgb_to_hex(0, 0, 0), "#000000");
+        assert.strictEqual(flexo.rgb_to_hex(255, 0, 0), "#ff0000");
+        assert.strictEqual(flexo.rgb_to_hex(191, 191, 0), "#bfbf00");
+        assert.strictEqual(flexo.rgb_to_hex(0, 128, 0), "#008000");
+        assert.strictEqual(flexo.rgb_to_hex(128, 255, 255), "#80ffff");
+      });
+    });
+
+  });
+
 }());
