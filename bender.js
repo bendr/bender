@@ -158,7 +158,6 @@
     // Unqueue an instance that was just refreshed and send a notification from
     // the context
     context._refreshed_instance = function (instance) {
-      flexo.remove_from_array(render_queue, instance);
       flexo.notify(this, "@refreshed", { instance: instance });
     };
 
@@ -232,21 +231,18 @@
     var edges = {};
 
     context._add_watch = function (watch) {
-      console.log("Add watch {0}".fmt(watch._hash));
       watch.gets.forEach(function (get) {
         var source = "{0}.{1}".fmt(get.source.use._hash, get.property);
         if (!edges.hasOwnProperty(source)) {
           edges[source] = [];
         }
         edges[source].push(get);
-        console.log("  + get: {0} -> {1}".fmt(source, watch._hash));
       });
       if (!edges.hasOwnProperty(watch._hash)) {
         edges[watch._hash] = [];
       }
       watch.sets.forEach(function (set) {
         edges[watch._hash].push(set);
-        console.log("  + set: {0} ->".fmt(watch._hash), set);
       });
     };
 
@@ -311,12 +307,11 @@
     // instantiated it.)
     // TODO proper initialization
     init_property: function (property, value) {
-      console.log("+++ init property", property);
       var instance = this;
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
-          if (property.type === "string") {
+          if (property._type === "string") {
             v = property._get_value(v, this);
           }
           if (v !== value) {
@@ -330,8 +325,10 @@
       flexo.listen(this, "@property-change", this.use.ownerDocument);
       this.unprop_value(property);
       this.__init_properties.push(function () {
-        this.properties[property._name] =
-          property._get_value(undefined, this.properties);
+        if (this.properties[property._name] === undefined) {
+          this.properties[property._name] =
+            property._get_value(undefined, this.properties);
+        }
       });
     },
 
@@ -453,7 +450,7 @@
         watch.gets = props.map(function (p) {
           return { source: this, property: p, watch: watch };
         }, this);
-        watch.sets = [{ view: node, set: set, watch: watch }];
+        watch.sets = [{ set: set, watch: watch }];
         this.use.ownerDocument._add_watch(watch);
         return true;
       }
@@ -468,8 +465,6 @@
                 pattern.format(this.properties));
           }.bind(this) :
           function () {
-            console.log("set/attribute={0} \"{1}\""
-              .fmt(attr.localName, pattern));
             node.setAttribute(attr.localName,
                 pattern.format(this.properties));
           }.bind(this));
@@ -478,7 +473,6 @@
     unprop_text: function (node) {
       var pattern = node.textContent;
       return this.unprop_node(node, pattern, function () {
-        console.log("set/text=\"{0}\"=\"{1}\"".fmt(pattern, pattern.format(this.properties)), this.properties);
         node.textContent = pattern.format(this.properties);
       }.bind(this));
     },
@@ -486,8 +480,6 @@
     unprop_value: function (property) {
       var pattern = property._value;
       return this.unprop_node(property, pattern, function () {
-        console.log("set/property={0} \"{1}\"=\"{2}\""
-          .fmt(property._name, pattern, pattern.format(this.properties)));
         this.properties[property._name] = pattern.format(this.properties);
       }.bind(this));
     },
@@ -1097,6 +1089,7 @@
     //   * `value` is the value of the property (defaults to "")
     //   * `type` is the type of the value, i.e., how the argument string should
     //   be parsed (defaults to "string"; see PROPERTY_TYPES for legal types)
+    // TODO adding, removing and modifying property nodes dynamically
     property: {
       _init: function () {
         this._value = "";

@@ -284,6 +284,26 @@
       });
     });
 
+    it("Chain properties", function (done) {
+      var p = flexo.$p();
+      var context = bender.create_context(p);
+      var component = context.appendChild(
+        context.$("component",
+          context.$("property", { name: "x", type: "number", value: 1 }),
+          context.$("property", { name: "y", type: "number",
+            value: "{{{x} + 1}}" }),
+          context.$("view", "x = {x}, y = x + 1 = {y}")));
+      var u = context.appendChild(context.$("use", { q: "component" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          setTimeout(function () {
+            assert.strictEqual(p.textContent, "x = 1, y = x + 1 = 2");
+            done();
+          }, 0);
+        }
+      });
+    });
+
   });
 
 }(window.chai.assert, window.flexo, window.bender));
