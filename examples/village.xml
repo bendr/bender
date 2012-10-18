@@ -3,9 +3,7 @@
   <view>
     <svg:svg viewBox="0 0 200 100">
       <use href="house.xml"/>
-      <svg:g transform="translate(100)">
-        <use href="house.xml"/>
-      </svg:g>
+      <use href="house.xml" x="100"/>
     </svg:svg>
   </view>
 </app>

@@ -17,9 +17,9 @@
 
   var context = bender.create_context(document.querySelector("p"));
   var component = context.appendChild(
-    context.$("component",
+    context.$("component", { id: "c" },
       context.$("view", "Hello, world!")));
-  context.appendChild(context.$("use", { q: "component" }));
+  context.appendChild(context.$("use", { href: "#c" }));
   flexo.listen(context.ownerDocument, "@refreshed", function (e) {
     console.log("Refreshed", e.instance);
     if (e.instance.component === component) {

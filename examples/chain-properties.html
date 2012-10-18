@@ -17,12 +17,13 @@
 var p = document.querySelector(".context");
 var context = bender.create_context(p);
 var component = context.appendChild(
-  context.$("component",
+  context.$("component", { id: "c" },
     context.$("property", { name: "x", type: "dynamic", value: 1 }),
     context.$("property", { name: "y", type: "number", value: "{{{x} + 1}}" }),
-    context.$("property", { name: "z", type: "number", value: "{{{x} + {y}}}" }),
+    context.$("property", { name: "z", type: "number",
+      value: "{{{x} + {y}}}" }),
     context.$("view", "x = {x}, y = x + 1 = {y}, z = x + y = {z}")));
-var u = context.appendChild(context.$("use", { q: "component" }));
+var u = context.appendChild(context.$("use", { href: "#c" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === component) {
     setTimeout(function () {

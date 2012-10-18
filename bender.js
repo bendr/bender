@@ -181,7 +181,8 @@
       get: function () { return target; }
     });
     context.documentElement.appendChild(component);
-    var use = component.$("use", { q: "context" });
+    var use = component.$("use");
+    use._find_component = function () { return component; };
     context.documentElement.appendChild(use);
     use._render(target);
 
@@ -507,12 +508,7 @@
       }, this);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
-        A.forEach.call(this.use.attributes, function (attr) {
-          if (!this.use._attributes.hasOwnProperty(attr.localName)) {
-            // TODO check attributes for properties
-            d.setAttribute(attr.name, attr.value);
-          }
-        }, this);
+        // TODO set property values
         this.rendered.push(d);
       }
       this.render_children(node, d);
@@ -1233,18 +1229,19 @@
       }
     },
 
+    // The <use> element instantiates a component. This element can appear
+    // anywhere in a view subtree or as a child of component (for components
+    // that have no view or do not need to render their view.) The component to
+    // be instantiated can be referred to with the `href` attribute
     use: {
       _init: function () {
         this._properties = {};
       },
 
-      // Attributes interpreted by use
-      _attributes: { href: true, id: true, q: true, ref: true },
-
       // Handle property elements
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS &&  ch.localName === "property") {
+        if (ch.namespaceURI === bender.NS && ch.localName === "property") {
           this._properties[ch._name] = ch;
         }
         return ch;
@@ -1259,13 +1256,19 @@
         return ch;
       },
 
+      // Set `href` or `id`, and treat any other attribute as a shorthand for a
+      // <property> child element
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (this._attributes.hasOwnProperty(name)) {
+        if (name === "href" || name === "id") {
           this["_" + name] = value.trim();
+        } else {
+          this._properties[name] = { name: name, value: value };
         }
         this._refresh();
       },
+
+      // TODO removeAttribute
 
       // Find the component referred to by the node (through the ref, q or href
       // attribute, checked in that order.) Return the component node or its URI
@@ -1273,20 +1276,12 @@
       _find_component: function () {
         var component;
         var parent_component = component_of(this);
-        if (this._ref) {
-          while (!component && parent_component) {
-            component = parent_component._components[this._ref];
-            parent_component = component_of(parent_component.parentNode);
-          }
-          return component;
-        }
-        if (this._q) {
-          return this.ownerDocument.querySelector(this._q);
-        }
         if (this._href) {
           var base = parent_component && parent_component._uri || "";
           var href = (this._href.indexOf("#") === 0 ? base : "") + this._href;
           return this.ownerDocument._load_component(href, base);
+        } else {
+          console.error("No href attribute for use; defaulting to ", this);
         }
       },
 

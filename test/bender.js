@@ -52,7 +52,8 @@
 
     var context = bender.create_context();
     var empty = context.$("property", { name: "empty" });
-    var component = context.appendChild(context.$("component", empty));
+    var component = context.appendChild(context.$("component", { id: "c" },
+        empty));
 
     it("<property name=\"n\"> child of <component> defines a property", function () {
       assert.strictEqual(component._properties.empty, empty);
@@ -113,7 +114,7 @@
     });
 
     it("the properties are initialized with given values for instances of the component", function (done) {
-      var use = context.appendChild(context.$("use", { q: "component" }));
+      var use = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {
@@ -144,10 +145,10 @@
       var div = window.document.createElement("div");
       var context = bender.create_context(div);
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("view",
             context.$("html:p", "Hello, world!"))));
-      context.appendChild(context.$("use", { q: "component" }));
+      context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {
@@ -187,9 +188,9 @@
       var p = window.document.createElement("p");
       var context = bender.create_context(p);
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("view", "Hello, world!")));
-      context.appendChild(context.$("use", { q: "component" }));
+      context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           done();
@@ -202,9 +203,9 @@
         var p = window.document.createElement("p");
         var context = bender.create_context(p);
         var component = context.appendChild(
-          context.$("component",
+          context.$("component", { id: "c" },
             context.$("view", "Simple component")));
-        context.appendChild(context.$("use", { q: "component" }));
+        context.appendChild(context.$("use", { href: "#c" }));
         flexo.listen(context.ownerDocument, "@refreshed", function (e) {
           if (e.instance.component === component) {
             if (++j === n) {
@@ -221,7 +222,7 @@
     it("Use property values in attributes", function (done) {
       var context = bender.create_context(flexo.$svg());
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("property", { name: "x", type: "number", value: "100" }),
           context.$("property", { name: "y", type: "number", value: "50" }),
           context.$("property", { name: "sz", type: "number", value: "200" }),
@@ -229,7 +230,7 @@
           context.$("view",
             context.$("svg:rect#r", { x: "{x}", y: "{y}", width: "{sz}",
               height: "{sz}", fill: "{color}" }))));
-      var u = context.appendChild(context.$("use", { q: "component" }));
+      var u = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {
@@ -250,11 +251,11 @@
     it("Show a property value in a text node", function (done) {
       var context = bender.create_context(flexo.$div());
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("property", { name: "foo", value: "bar" }),
           context.$("view",
             context.$("html:p#out", "foo = {foo}"))));
-      context.appendChild(context.$("use", { q: "component" }));
+      context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {
@@ -270,10 +271,10 @@
       var p = flexo.$p();
       var context = bender.create_context(p);
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("property", { name: "n", type: "number", value: "2012" }),
           context.$("view", "n = {{flexo.to_roman({n})}} ({n})")));
-      var u = context.appendChild(context.$("use", { q: "component" }));
+      var u = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {
@@ -288,12 +289,12 @@
       var p = flexo.$p();
       var context = bender.create_context(p);
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("property", { name: "x", type: "number", value: 1 }),
           context.$("property", { name: "y", type: "number",
             value: "{{{x} + 1}}" }),
           context.$("view", "x = {x}, y = x + 1 = {y}")));
-      var u = context.appendChild(context.$("use", { q: "component" }));
+      var u = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {

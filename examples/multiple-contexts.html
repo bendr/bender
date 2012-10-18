@@ -30,10 +30,10 @@
   spans.forEach(function (span, i) {
       var context = bender.create_context(span);
       var component = context.appendChild(
-        context.$("component",
+        context.$("component", { id: "c" },
           context.$("view",
             "Component " + (String.fromCharCode(i + "A".charCodeAt(0))))));
-      context.appendChild(context.$("use", { q: "component" }));
+      context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           if (++components === spans.length) {

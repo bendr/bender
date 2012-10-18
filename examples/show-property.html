@@ -15,11 +15,11 @@
 
 var context = bender.create_context();
 var component = context.appendChild(
-  context.$("component",
+  context.$("component", { id: "c" },
     context.$("property", { name: "foo", value: "bar" }),
     context.$("view",
       context.$("html:p#out", "foo = {foo}"))));
-var u = context.appendChild(context.$("use", { q: "component" }));
+var u = context.appendChild(context.$("use", { href: "#c" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === component) {
     setTimeout(function () {
