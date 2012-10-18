@@ -1,7 +1,7 @@
 <component xmlns="http://bender.igel.co.jp"
   xmlns:svg="http://www.w3.org/2000/svg">
   <title>A house in SVG</title>
-  <property name="façade-color" value="#b1c1a6"/>
+  <property name="façade-darkness" value="0.25"/>
   <property name="door-color" value="#574632"/>
   <property name="wall-color" value="#e1e4c4"/>
   <property name="roof-color" value="#850d1b"/>
@@ -9,14 +9,13 @@
   <property name="y" value="90"/>
   <view>
     <svg:g transform="translate({x}, {y})" stroke-linejoin="round">
-      <svg:polygon points="0,0 20,0 20,-40 10,-80 0,-40"
-        fill="{façade-color}" stroke="{façade-color}"/>
-      <svg:path d="M6,0 L14,0 L14,-24 A4,4 180 0,0 6,-24 Z" fill="{door-color}"
-        stroke="{door-color}"/>
-      <svg:rect x="20" y="-40" width="40" height="40" fill="{wall-color}"
-        stroke="{wall-color}"/>
-      <svg:polygon points="10,-80 50,-80 60,-40 20,-40"
-        fill="{roof-color}" stroke="{roof-color}"/>
+      <svg:polygon points="0,0 20,0 20,-40 10,-80 0,-40" fill="{wall-color}"/>
+      <svg:polygon points="0,0 20,0 20,-40 10,-80 0,-40" fill="black"
+        fill-opacity="{façade-darkness}"/>
+      <svg:path d="M6,0 L14,0 L14,-24 A4,4 180 0,0 6,-24 Z"
+        fill="{door-color}"/>
+      <svg:rect x="20" y="-40" width="40" height="40" fill="{wall-color}"/>
+      <svg:polygon points="10,-80 50,-80 60,-40 20,-40" fill="{roof-color}"/>
     </svg:g>
   </view>
 </component>

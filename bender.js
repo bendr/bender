@@ -289,12 +289,15 @@
         get: function () { return self; }
       });
       Object.keys(this.component._properties).forEach(function (k) {
-        if (!use._properties.hasOwnProperty(k)) {
+        if (!use._properties.hasOwnProperty(k) ||
+          !(use._properties[k] instanceof Node)) {
           this.init_property(this.component._properties[k]);
         }
       }, this);
       Object.keys(use._properties).forEach(function (k) {
-        this.init_property(use._properties[k]);
+        if (!this.component._properties.hasOwnProperty(k)) {
+          this.init_property(use._properties[k]);
+        }
       }, this);
       this.component._instances.push(this);
       this.uses.$self = this;
@@ -325,10 +328,16 @@
       });
       flexo.listen(this, "@property-change", this.use.ownerDocument);
       this.unprop_value(property);
+      var init_val;
+      if (this.use._properties.hasOwnProperty(property._name)) {
+        init_val = this.use._properties[property._name].value;
+      }
       this.__init_properties.push(function () {
         if (this.properties[property._name] === undefined) {
           this.properties[property._name] =
-            property._get_value(undefined, this.properties);
+            typeof property._get_value === "function" ?
+              property._get_value(init_val, this.properties) :
+              init_val;
         }
       });
     },
@@ -508,7 +517,6 @@
       }, this);
       dest.insertBefore(d, ref);
       if (dest === this.target) {
-        // TODO set property values
         this.rendered.push(d);
       }
       this.render_children(node, d);
