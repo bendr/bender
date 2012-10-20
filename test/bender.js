@@ -77,6 +77,8 @@
       type: "boolean", value: "true" }));
     var x = component.appendChild(context.$("property", { name: "x",
       type: "number", value: "42" }));
+    var y = component.appendChild(context.$("property", { name: "y",
+      type: "dynamic", value: "{x} - 5" }));
     var array = component.appendChild(context.$("property", { name: "array",
       type: "object", value: "[1, 2, 3, 4]" }));
     var random = component.appendChild(context.$("property", { name: "random",
@@ -105,6 +107,8 @@
       assert.strictEqual(component._properties.flag._type, "boolean");
       assert.strictEqual(component._properties.x, x);
       assert.strictEqual(component._properties.x._type, "number");
+      assert.strictEqual(component._properties.y, y);
+      assert.strictEqual(component._properties.y._type, "dynamic");
       assert.strictEqual(component._properties.array, array);
       assert.strictEqual(component._properties.array._type, "object");
       assert.strictEqual(component._properties.random, random);
@@ -127,10 +131,24 @@
             assert.strictEqual(e.instance.properties.foo, "bar");
             assert.strictEqual(e.instance.properties.flag, true);
             assert.strictEqual(e.instance.properties.x, 42);
+            assert.strictEqual(e.instance.properties.y, 37);
             assert.deepEqual(e.instance.properties.array, [1, 2, 3, 4]);
             assert.ok(e.instance.properties.random >= 1 &&
               e.instance.properties.random <= 10);
             assert.strictEqual(e.instance.properties.multiline, 42);
+            done();
+          }, 0);
+        }
+      });
+    });
+
+    it("the properties are initialized with given values for instances of the component", function (done) {
+      var use = context.appendChild(context.$("use", { href: "#c" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === component) {
+          setTimeout(function () {
+            assert.strictEqual(e.instance.properties.x, 42);
+            assert.strictEqual(e.instance.properties.y, 37);
             done();
           }, 0);
         }

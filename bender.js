@@ -182,7 +182,7 @@
     });
     context.documentElement.appendChild(component);
     var use = component.$("use");
-    use._find_component = function () { return component; };
+    use._component = component;
     context.documentElement.appendChild(use);
     use._render(target);
 
@@ -315,7 +315,7 @@
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
-          if (property._type === "string") {
+          if (typeof v === "string") {
             v = property._get_value(v, this);
           }
           if (v !== value) {
@@ -1282,6 +1282,9 @@
       // attribute, checked in that order.) Return the component node or its URI
       // if it needs loading.
       _find_component: function () {
+        if (this._component) {
+          return this._component;
+        }
         var component;
         var parent_component = component_of(this);
         if (this._href) {
