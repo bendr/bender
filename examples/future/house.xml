@@ -10,14 +10,14 @@
   <!-- A grid of houses -->
   <view>
     <svg:svg viewBox="0 0 {{ {size} * {columns} }} {{ {size} * {rows} }}">
-      <repeat count="{rows}" counter="y">
-        <repeat count="{columns}" counter="x">
-          <svg:g transform="translate({{{size} * ({x} + 0.5)}},
-            {{{size} * ({y} + 0.5)}})">
-            <use ref="house"/>
-          </svg:g>
-        </repeat>
-      </repeat>
+      <use ref="house">
+        <replicate count="{rows}" counter="x">
+          <attribute name="x" value="{{ {x} * {size} }}"/>
+          <replicate count="{columns}" counter="y">
+            <attribute name="y" value="{{ {y} * {size} }}"/>
+          </replicate>
+        </replicate>
+      </svg:g>
     </svg:svg>
   </view>
 

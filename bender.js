@@ -69,7 +69,7 @@
   }
 
   function parent_of(n) {
-    return (n.__instance && n) || parent_of(n.parentNode);
+    return n && (n.__instance || parent_of(n.parentNode));
   }
 
   // Create a placeholder node to mark the right location in the render tree for
