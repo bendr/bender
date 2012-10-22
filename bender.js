@@ -68,8 +68,9 @@
     }
   }
 
-  function parent_of(n) {
-    return n && (n.__instance || parent_of(n.parentNode));
+  // Find the instance that the parent component of node `n` is in (if any)
+  function instance_of(n) { 
+    return n && (n.__instance || instance_of(n.parentNode));
   }
 
   // Create a placeholder node to mark the right location in the render tree for
@@ -360,11 +361,13 @@
       if (flexo.root(this.use) !== this.use.ownerDocument) {
         return;
       }
+      this.component.__instance = this;
       if (this.use.__placeholder) {
         this.target = this.use.__placeholder.parentNode;
       }
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
+        this.views.$target = this.target;
         this.pending = 0;
         // Render the <use> elements outside of the view
         this.component._uses.forEach(function (u) {
@@ -386,6 +389,7 @@
             }, this);
             delete this.__init_properties;
           }
+          delete this.component.__instance;
         }
       }
     },
@@ -417,8 +421,7 @@
               // <content> renders either the contents of the <use> node or its
               // own by default.
               if (this.use.childNodes.length > 0) {
-                r = parent_of(node).__instance
-                  .render_children(this.use, dest, ref);
+                r = instance_of(node).render_children(this.use, dest, ref);
               } else {
                 r = this.render_children(ch, dest, ref);
               }

@@ -142,6 +142,7 @@
       });
     });
 
+    /*
     it("the properties are initialized with given values for instances of the component", function (done) {
       var use = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
@@ -154,6 +155,7 @@
         }
       });
     });
+    */
 
   });
 
@@ -235,6 +237,30 @@
       for (var i = 0, j = 0, n = 3; i < n; ++i) {
         make_component();
       }
+    });
+
+    it("Simple content", function (done) {
+      var div = window.document.createElement("div");
+      var context = bender.create_context(div);
+      var component = context.appendChild(
+        context.$("component", { id: "c" },
+          context.$("view",
+            context.$("html:p", { id: "p" },
+              context.$("content", "Some default content")))));
+      var u = context.appendChild(context.$("use", { href: "#c" }, "Hello, world!"));
+      var v = context.appendChild(context.$("use", { href: "#c" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        console.log("Refreshed", e.instance);
+        if (e.instance.use === u) {
+          setTimeout(function () {
+            assert.strictEqual(u._instance.views.p.textContent,
+              "Hello, world!");
+            assert.strictEqual(v._instance.views.p.textContent,
+              "Some default content");
+            done();
+          }, 0);
+        }
+      });
     });
 
     it("Use property values in attributes", function (done) {

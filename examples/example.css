@@ -35,3 +35,8 @@ a {
   background-color: #8f0;
   color: #333;
 }
+
+.testing.error {
+  background-color: #ff4040;
+  color: #fef9f0;
+}
