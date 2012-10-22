@@ -40,3 +40,7 @@ a {
   background-color: #ff4040;
   color: #fef9f0;
 }
+
+code {
+  font-family: Inconsolata, Menlo, monospace;
+}

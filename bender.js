@@ -154,6 +154,7 @@
       }
       timeout = null;
       flushing = false;
+      render_queue = [];
     };
 
     // Unqueue an instance that was just refreshed and send a notification from
