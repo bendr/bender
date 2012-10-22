@@ -376,6 +376,7 @@
         }, this);
         // Render the <view> element
         if (this.component._view) {
+          this.views.$root = null;
           this.render_children(this.component._view, this.target,
               this.use.__placeholder || last);
         }
@@ -430,6 +431,9 @@
             }
           } else {
             r = this.render_foreign(ch, dest, ref);
+            if (r && this.views.$root === null) {
+              this.views.$root = r;
+            }
           }
         } else if (ch.nodeType === Node.TEXT_NODE ||
             ch.nodeType === Node.CDATA_SECTION_NODE) {
@@ -544,10 +548,10 @@
       var instance = use._render(dest, this);
       if (instance === true) {
         this.__pending = true;
-        this.pending += 1;
+        ++this.pending;
         flexo.listen(use, "@loaded", function () {
           this.rendered_use(use);
-          this.pending -= 1;
+          --this.pending;
           if (this.pending === 0) {
             this.render_watches();
           }

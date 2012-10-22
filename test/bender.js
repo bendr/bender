@@ -245,7 +245,7 @@
       var component = context.appendChild(
         context.$("component", { id: "c" },
           context.$("view",
-            context.$("html:p", { id: "p" },
+            context.$("html:p",
               context.$("content", "Some default content")))));
       var u = context.appendChild(context.$("use", { href: "#c" }, "Hello, world!"));
       var v = context.appendChild(context.$("use", { href: "#c" }));
@@ -253,9 +253,9 @@
         console.log("Refreshed", e.instance);
         if (e.instance.use === u) {
           setTimeout(function () {
-            assert.strictEqual(u._instance.views.p.textContent,
+            assert.strictEqual(u._instance.views.$root.textContent,
               "Hello, world!");
-            assert.strictEqual(v._instance.views.p.textContent,
+            assert.strictEqual(v._instance.views.$root.textContent,
               "Some default content");
             done();
           }, 0);
