@@ -1,0 +1,19 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
+  <property name="color" value="#40ff40"/>
+
+  <view>
+    <svg:svg>
+      <use href="#box" color="#ff4040"/>
+      <use href="#box" color="{color}" x="110"/>
+      <use href="#box" color="#4040ff" x="220" transform="rotate(90 270 100)"/>
+    </svg:svg>
+  </view>
+
+  <component id="box">
+    <property name="color"/>
+    <view>
+      <svg:rect width="100" height="200" fill="{color}"/>
+    </view>
+  </component>
+
+</app>

@@ -290,14 +290,17 @@
         enumerable: true,
         get: function () { return self; }
       });
+      // Setup prototype properties
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k) ||
           !(use._properties[k] instanceof Node)) {
           this.init_property(this.component._properties[k]);
         }
       }, this);
+      // Setup instance properties
       Object.keys(use._properties).forEach(function (k) {
-        if (!this.component._properties.hasOwnProperty(k)) {
+        if (!this.component._properties.hasOwnProperty(k) &&
+          this.component._properties[k] instanceof window.Element) {
           this.init_property(use._properties[k]);
         }
       }, this);
@@ -376,9 +379,18 @@
         }, this);
         // Render the <view> element
         if (this.component._view) {
+          // $root will be the first foreign to be rendered, if any
           this.views.$root = null;
           this.render_children(this.component._view, this.target,
               this.use.__placeholder || last);
+          if (this.views.$root) {
+            Object.keys(this.use._properties).forEach(function (k) {
+              if (!this.component._properties.hasOwnProperty(k) &&
+                !(this.component._properties[k] instanceof window.Element)) {
+                this.views.$root.setAttribute(k, this.use._properties[k].value);
+              }
+            }, this);
+          }
         }
         flexo.safe_remove(this.use.__placeholder);
         delete this.use.__placeholder;
