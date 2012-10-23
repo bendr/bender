@@ -216,7 +216,7 @@
         if (!loaded[locator]) {
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-            if (!req.response) {
+            if (!req.response || req.status < 200 || req.status >= 300) {
               flexo.notify(context, "@error", { uri: locator, req: req });
             } else {
               loaded[locator] =
