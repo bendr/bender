@@ -216,6 +216,7 @@
             context.$("html:p", "Hello, world!"))));
       var u = context.appendChild(context.$("use", { href: "#c" }));
       var v = context.appendChild(context.$("use", { href: "#c" }));
+      var both = false;
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === context) {
           setTimeout(function () {
@@ -223,8 +224,10 @@
           }, 0);
         } else if (e.instance.component === component) {
           setTimeout(function () {
-            if (u._instance.views.$root.textContent === "Hello again" &&
+            if (!both &&
+              u._instance.views.$root.textContent === "Hello again" &&
               v._instance.views.$root.textContent === "Hello again") {
+              both = true;
               done();
             }
           }, 0);
