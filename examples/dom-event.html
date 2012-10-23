@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | DOM event</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="example.css">
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+    <style>
+      p {
+        cursor: pointer;
+        background-color: #ccc;
+        padding: 0.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="example.js"></script>
+    <script>
+(function () {
+  "use strict";
+
+  var context = bender.create_context();
+  var component = context.appendChild(
+    context.$("component", { id: "c" },
+      context.$("view",
+        context.$("html:p", "Click me")),
+      context.$("watch",
+        context.$("get", { view: "$root", event: "click" }))));
+  context.appendChild(context.$("use", { href: "#c" }));
+  flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+    console.log("Refreshed", e.instance);
+    if (e.instance.component === component) {
+      example.ok();
+    }
+  });
+
+}());
+    </script>
+  </body>
+</html>

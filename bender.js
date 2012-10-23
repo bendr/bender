@@ -108,7 +108,7 @@
   //
   //   <bender xmlns="http://bender.igel.co.jp">
   //     <context/>
-  //     <use q="context"/>
+  //     <use/>
   //   </bender>
   //
   // The <context> element is returned; this is a Bender component that acts as
@@ -137,22 +137,20 @@
     // rendering requests are ignored while the queue is being flushed.)
     var render_queue = [];
     var timeout = null;
-    var flushing = false;
 
     // Flush the queue: actually do the rendering for the instances in the queue
     // TODO use a generator here?
     var flush_queue = function () {
-      flushing = true;
       for (var i = 0; i < render_queue.length; ++i) {
         render_queue[i].refresh_instance();
       }
       timeout = null;
-      flushing = false;
       render_queue = [];
     };
 
-    // Unqueue an instance that was just refreshed and send a notification from
-    // the context
+    // Send a notification from the context that this instance was just
+    // refreshed
+    // TODO defer notifications? They may come too early
     context._refreshed_instance = function (instance) {
       flexo.notify(this, "@refreshed", { instance: instance });
     };
@@ -171,7 +169,7 @@
       }
     };
 
-    // Create a root context element and initiate rendering
+    // Create a root context element and initiate rendering with a use element
     var component = context.createElement("context");
     Object.defineProperty(component, "target", { enumerable: true,
       get: function () { return target; }
@@ -637,8 +635,8 @@
     // rendered node (if any) so that re-rendering will happen at the right
     // place.
     unrender: function () {
-      var ref;
       flexo.notify(this, "@unrender");
+      var ref;
       this.rendered.forEach(function (r) {
         if (r instanceof Node) {
           ref = r;
@@ -1373,6 +1371,9 @@
       }
     },
 
+    // The <watch> element has <get> and <set> children, as well as sub-watches
+    // (active when the parent watch is). When the component is instanced, the
+    // watch edges will be created
     watch: {
       _init: function () {
         this._gets = [];
@@ -1392,6 +1393,8 @@
           }
         }
       }
+
+      // TODO removeChild?!
     }
   };
 

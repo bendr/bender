@@ -206,6 +206,33 @@
 
   });
 
+
+  describe("Tree modifications", function () {
+    it("Update instances of a component when its view changes", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var component = context.appendChild(
+        context.$("component", { id: "c" },
+          context.$("view",
+            context.$("html:p", "Hello, world!"))));
+      var u = context.appendChild(context.$("use", { href: "#c" }));
+      var v = context.appendChild(context.$("use", { href: "#c" }));
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === context) {
+          setTimeout(function () {
+            component.querySelector("p")._textContent("Hello again");
+          }, 0);
+        } else if (e.instance.component === component) {
+          setTimeout(function () {
+            if (u._instance.views.$root.textContent === "Hello again" &&
+              v._instance.views.$root.textContent === "Hello again") {
+              done();
+            }
+          }, 0);
+        }
+      });
+    });
+  });
+
   describe("Test applications", function () {
 
     it("Hello, world! (create a component with only a view programmatically)", function (done) {
@@ -289,7 +316,6 @@
       var u = context.appendChild(context.$("use", { href: "#c" }, "Hello, world!"));
       var v = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        console.log("Refreshed", e.instance);
         if (e.instance.use === u) {
           setTimeout(function () {
             assert.strictEqual(u._instance.views.$root.textContent,
