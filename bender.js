@@ -150,7 +150,7 @@
     var flush_queue = function () {
       flushing = true;
       for (var i = 0; i < render_queue.length; ++i) {
-        render_queue[i].refresh_component_instance();
+        render_queue[i].refresh_instance();
       }
       timeout = null;
       flushing = false;
@@ -279,7 +279,7 @@
 
   // Prototype for a component instance. Prototypes may be extended through the
   // <script> element.
-  var component_instance = {
+  var instance = {
 
     // Initialize the instance from a <use> element given a <component>
     // description node.
@@ -369,7 +369,7 @@
     },
 
     // Unrender, then render the view when the target is an Element.
-    refresh_component_instance: function () {
+    refresh_instance: function () {
       this.component.ownerDocument._refreshed_instance(this);
       var last = this.unrender();
       if (flexo.root(this.use) !== this.use.ownerDocument) {
@@ -635,8 +635,8 @@
       }
       delete this.__pending_watches;
       this.component._watches.forEach(function (watch) {
-        var instance = Object.create(watch_instance).init(watch, this);
-        instance.render_watch_instance();
+        var instance = Object.create(watch_node).init(watch, this);
+        instance.render_watch_node();
         this.rendered.push(instance);
         instances.push(instance);
       }, this);
@@ -674,12 +674,12 @@
     }
   };
 
-  var watch_instance = {
+  var watch_node = {
 
-    init: function (watch, component_instance) {
+    init: function (watch, instance) {
       this.watch = watch;
-      this.component_instance = component_instance;
-      this.component = this.component_instance.component;
+      this.instance = instance;
+      this.component = this.instance.component;
       this.enabled = this.watch.parentNode &&
         this.watch.parentNode._is_component;
       this.ungets = [];
@@ -689,25 +689,25 @@
     got: function (value) {
       this.watch._sets.forEach(function (set) {
         var target, _view, _use, _property, val = set._action ?
-            set._action.call(this.component_instance, value) : value;
-        _property = this.component_instance.unparam(set._property);
+            set._action.call(this.instance, value) : value;
+        _property = this.instance.unparam(set._property);
         if (set._view) {
-          _view = this.component_instance.unparam(set._view);
-          target = this.component_instance.views[_view];
+          _view = this.instance.unparam(set._view);
+          target = this.instance.views[_view];
           if (!target) {
             console.warn("No view for \"{0}\" in".fmt(_view), set);
           } else {
             if (set._attr) {
-              target.setAttribute(this.component_instance.unparam(set._attr),
+              target.setAttribute(this.instance.unparam(set._attr),
                 val);
             } else {
               target[_property || "textContent"] = val;
             }
           }
         } else if (_property) {
-          _use = this.component_instance.unparam(set._use);
-          target = _use ? this.component_instance.uses[_use] :
-              this.component_instance
+          _use = this.instance.unparam(set._use);
+          target = _use ? this.instance.uses[_use] :
+              this.instance
                 .find_instance_with_property(_property);
           if (!target) {
             console.warn("(got) No use for \"{0}\" in".fmt(_property), set);
@@ -726,18 +726,18 @@
         if (that.enabled && !active && enabled) {
           active = true;
           enabled = !get._once;
-          watch = that.component_instance.watch;
-          that.component_instance.watch = that;
+          watch = that.instance.watch;
+          that.instance.watch = that;
           prev_get = that.get;
           that.get = get;
           prev_target = that.target;
           that.target = target;
-          that.got((get._action || flexo.id).call(that.component_instance,
+          that.got((get._action || flexo.id).call(that.instance,
               value, prev));
           if (watch) {
-            that.component_instance.watch = watch;
+            that.instance.watch = watch;
           } else {
-            delete that.component_instance.watch;
+            delete that.instance.watch;
           }
           if (prev_get) {
             that.get = prev_get;
@@ -754,18 +754,18 @@
       };
     },
 
-    render_watch_instance: function () {
+    render_watch_node: function () {
       this.gets = [];
       this.watch._gets.forEach(function (get) {
         var _event, _view, listener, target, _use, _property, h;
         if (get._event) {
-          _event = this.component_instance.unparam(get._event);
+          _event = this.instance.unparam(get._event);
           if (get._view) {
             // DOM event
-            _view = this.component_instance.unparam(get._view);
-            target = this.component_instance.views[_view];
+            _view = this.instance.unparam(get._view);
+            target = this.instance.views[_view];
             if (!target) {
-              console.warn("render_watch_instance: No view for \"{0}\" in"
+              console.warn("render_watch_node: No view for \"{0}\" in"
                 .fmt(get._view), get);
             } else {
               listener = this.make_listener(get, target);
@@ -775,9 +775,9 @@
               });
             }
           } else if (get._use) {
-            _use = this.component_instance.unparam(get._use);
+            _use = this.instance.unparam(get._use);
             // Custom event
-            target = this.component_instance.uses[_use];
+            target = this.instance.uses[_use];
             if (!target) {
               console.warn("(render get/use) No use for \"{0}\" in".fmt(_use),
                   get);
@@ -790,11 +790,11 @@
             }
           }
         } else if (get._property) {
-          _use = this.component_instance.unparam(get._use);
-          _property = this.component_instance.unparam(get._property);
+          _use = this.instance.unparam(get._use);
+          _property = this.instance.unparam(get._property);
           // Property change
-          target = _use ? this.component_instance.uses[_use] :
-              this.component_instance.find_instance_with_property(_property);
+          target = _use ? this.instance.uses[_use] :
+              this.instance.find_instance_with_property(_property);
           if (!target) {
             console.warn("(render get/property) No use for \"{0}\""
                 .fmt(_property));
@@ -1204,7 +1204,7 @@
           return;
         }
         if (!this.parentNode._prototype) {
-          this.parentNode._prototype = Object.create(component_instance);
+          this.parentNode._prototype = Object.create(instance);
         }
         new Function(this.textContent).call(this.parentNode);
         this._ran = true;
@@ -1349,13 +1349,13 @@
       _render_component: function (component, target, parent) {
         this._component = component;
         this._instance =
-          Object.create(component._prototype || component_instance)
+          Object.create(component._prototype || instance)
             .init(this, parent, target);
         if (this._instance.instantiated) {
           this._instance.instantiated();
         }
         flexo.notify(this, "@instance", { instance: this._instance });
-        this._instance.refresh_component_instance();
+        this._instance.refresh_instance();
         return this._instance;
       },
 
