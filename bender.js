@@ -120,25 +120,19 @@
     var doc = target.ownerDocument || target;
     var context = doc.implementation.createDocument(bender.NS, "bender", null);
 
-    var hashes = 0;
-    context._hash = function (obj) {
-      obj._hash = "h-" + hashes++;
-      return obj;
-    };
-
     // Wrap all new elements created in this context
     context.createElement = function (name) {
-      return this._hash(wrap_element(Object.getPrototypeOf(this).createElementNS
-            .call(this, bender.NS, name)));
+      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
+            bender.NS, name));
     };
     context.createElementNS = function (ns, qname) {
-      return this._hash(wrap_element(Object.getPrototypeOf(this).createElementNS
-            .call(this, ns, qname)));
+      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
+            ns, qname));
     };
 
     // Manage the render queue specific to this context. The purpose of the
     // render queue is to gather refresh requests from different instances
-    // (including multiple requests frome the same instance) before doing the
+    // (including multiple requests from the same instance) before doing the
     // actual rendering in order to avoid multiple refreshes and cycles (as
     // rendering requests are ignored while the queue is being flushed.)
     var render_queue = [];
@@ -240,36 +234,13 @@
       }
     };
 
-    // Edges of the watch graph, indexed by their source node
-    var edges = {};
-
-    context._add_watch = function (watch) {
-      watch.gets.forEach(function (get) {
-        var source = "{0}.{1}".fmt(get.source.use._hash, get.property);
-        if (!edges.hasOwnProperty(source)) {
-          edges[source] = [];
-        }
-        edges[source].push(get);
-      });
-      if (!edges.hasOwnProperty(watch._hash)) {
-        edges[watch._hash] = [];
-      }
-      watch.sets.forEach(function (set) {
-        edges[watch._hash].push(set);
-      });
-    };
-
     context.handleEvent = function (e) {
       if (e.type === "@property-change") {
-        var key = "{0}.{1}".fmt(e.source.use._hash, e.property);
-        var e = edges[key];
-        if (e) {
-          e.forEach(function (edge) {
-            edge.watch.sets.forEach(function (s) {
-              s.set();
-            });
+        e.source.edges.forEach(function (get) {
+          get.watch.edges.forEach(function (set) {
+            set.action();
           });
-        }
+        });
       }
     };
 
@@ -290,9 +261,8 @@
       this.views = {};       // rendered views by id
       this.uses = {};        // rendered uses by id
       this.rendered = [];    // root DOM nodes and use instances
-      this.watchers = [];    // instances that have watches on this instance
       this.properties = {};  // properties defined by <property> elements
-      this.watched = {};     // watched properties
+      this.edges = [];       // edges out to watches
       this.__init_properties = [];
       // Setup a readonly $self property (pointing to this)
       var self = this;
@@ -483,45 +453,56 @@
       return Object.keys(props);
     },
 
-    unprop_node: function (node, pattern, set, from) {
+    unprop_node: function (pattern, set_edge) {
       var props = this.extract_props(pattern);
       if (props.length > 0) {
-        var watch = this.use.ownerDocument._hash({});
-        watch.gets = props.map(function (p) {
-          return { source: this, property: p, watch: watch };
+        var watch = { edges: [set_edge] };
+        props.forEach(function (p) {
+          this.edges.push({ property: p, watch: watch });
         }, this);
-        watch.sets = [{ set: set, watch: watch }];
-        this.use.ownerDocument._add_watch(watch);
         return true;
       }
     },
 
     unprop_attr: function (node, attr) {
       var pattern = attr.value;
-      return this.unprop_node(node, pattern,
-        attr.namespaceURI && attr.namespaceURI !== node.namespaceURI ?
+      return this.unprop_node(pattern, {
+        set: node,
+        attr: attr,
+        // TODO pass arguments to the action function
+        action: attr.namespaceURI && attr.namespaceURI !== node.namespaceURI ?
           function () {
             node.setAttributeNS(attr.namespaceURI, attr.localName,
                 pattern.format(this.properties));
           }.bind(this) :
           function () {
-            node.setAttribute(attr.localName,
-                pattern.format(this.properties));
-          }.bind(this));
+            node.setAttribute(attr.localName, pattern.format(this.properties));
+          }.bind(this)
+      });
     },
 
     unprop_text: function (node) {
       var pattern = node.textContent;
-      return this.unprop_node(node, pattern, function () {
-        node.textContent = pattern.format(this.properties);
-      }.bind(this));
+      return this.unprop_node(pattern, {
+        set: node,
+        text: pattern,
+        // TODO pass arguments here too
+        action: function () {
+          node.textContent = pattern.format(this.properties);
+        }.bind(this)
+      });
     },
 
     unprop_value: function (property) {
       var pattern = property._value;
-      return this.unprop_node(property, pattern, function () {
-        this.properties[property._name] = pattern.format(this.properties);
-      }.bind(this));
+      return this.unprop_node(pattern, {
+        set: this,
+        property: property,
+        // TODO arguments again
+        action: function () {
+          this.properties[property._name] = pattern.format(this.properties);
+        }.bind(this)
+      });
     },
 
     // Render foreign nodes within a view; arguments and return value are the
