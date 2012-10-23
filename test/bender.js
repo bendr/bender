@@ -376,12 +376,16 @@
           context.$("property", { name: "x", type: "number", value: 1 }),
           context.$("property", { name: "y", type: "number",
             value: "{{{x} + 1}}" }),
-          context.$("view", "x = {x}, y = x + 1 = {y}")));
+          context.$("property", { name: "z", type: "dynamic",
+            value: "{x} + {y}" }),
+          context.$("property", { name: "t", type: "dynamic",
+            value: "{z} * 2" }),
+          context.$("view", "{x} {y} {z} {t}")));
       var u = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {
           setTimeout(function () {
-            assert.strictEqual(p.textContent, "x = 1, y = x + 1 = 2");
+            assert.strictEqual(p.textContent, "1 2 3 6");
             done();
           }, 0);
         }

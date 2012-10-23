@@ -301,13 +301,20 @@
         get: function () { return value; },
         set: function (v) {
           instance._set[property._name](v);
-          instance.edges.forEach(function (get) {
-            if (get.property === property._name) {
-              get.watch.edges.forEach(function (set) {
-                set.action();
-              });
-            }
+          var edges = instance.edges.filter(function (e) {
+            return e.property === property._name;
           });
+          for (var i = 0; i < edges.length; ++i) {
+            edges[i].watch.edges.forEach(function (edge) {
+              edge.action();
+              if (edge.hasOwnProperty("property")) {
+                A.push.apply(edges, edge.set.edges.filter(function (e) {
+                  return e.property === edge.property._name &&
+                    edges.indexOf(e) < 0;
+                }));
+              }
+            });
+          }
         }
       });
       this.unprop_value(property);
