@@ -31,9 +31,7 @@ if (args.href) {
   var context = bender.create_context();
   flexo.listen(context.ownerDocument, "@error", function (e) {
     document.body.appendChild(flexo.$("p.runtime-error",
-      "Error loading ",
-      flexo.$code(e.uri),
-      " (status: {0})".fmt(e.req.status)));
+      "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
   });
   context.appendChild(context.$("use", args));
 } else {

@@ -216,13 +216,23 @@
         if (!loaded[locator]) {
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-            if (!req.response || req.status < 200 || req.status >= 300) {
-              flexo.notify(context, "@error", { uri: locator, req: req });
+            if (req.status < 200 || req.status >= 300) {
+              flexo.notify(context, "@error", { uri: locator, req: req,
+                message: "HTTP error {0}".fmt(req.status) });
+            } else if (!req.response) {
+              flexo.notify(context, "@error", { uri: locator, req: req,
+                message: "could not parse document as XML" });
             } else {
-              loaded[locator] =
-                import_node(component, req.response.documentElement, locator);
-              flexo.notify(context, "@loaded",
-                { component: loaded[locator], uri: locator });
+              var c = import_node(component, req.response.documentElement,
+                locator);
+              if (c._is_component) {
+                loaded[locator] = c;
+                flexo.notify(context, "@loaded", { component: c,
+                  uri: locator });
+              } else {
+                flexo.notify(context, "@error", { uri: locator, req: req,
+                  message: "not a Bender component" });
+              }
             }
           });
         }

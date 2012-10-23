@@ -159,6 +159,53 @@
 
   });
 
+  describe("Error handling", function () {
+
+    it("Error loading component (HTTP 404 error)", function (done) {
+      var context = bender.create_context();
+      var use = context.appendChild(context.$("use", { href: "errorzzz.xml" }));
+      flexo.listen(context.ownerDocument, "@error", function (e) {
+        assert.ok(e.message);
+        assert.ok(/HTTP error/i.test(e.message));
+        done();
+      });
+    });
+
+    it("Error loading component (not an XML document)", function (done) {
+      var context = bender.create_context();
+      var use = context.appendChild(context.$("use", { href: "bender.js" }));
+      flexo.listen(context.ownerDocument, "@error", function (e) {
+        assert.ok(e.message);
+        assert.ok(/could not parse document as XML/i.test(e.message));
+        done();
+      });
+    });
+
+    it("Error loading component (not a Bender component)", function (done) {
+      var context = bender.create_context();
+      var use = context.appendChild(context.$("use", { href: "flexo.html" }));
+      flexo.listen(context.ownerDocument, "@error", function (e) {
+        assert.ok(e.message);
+        assert.ok(/not a Bender component/i.test(e.message));
+        done();
+      });
+    });
+
+    // Pending: this involves recursive component instances
+    it("Error loading component (trying to load the target document)");
+
+    /*
+    it("Error loading component (trying to load the target document)", function (done) {
+      var context = bender.create_context();
+      var use = context.appendChild(context.$("use", { href: "bender.html" }));
+      flexo.listen(context.ownerDocument, "@error", function (e) {
+        done();
+      });
+    });
+    */
+
+  });
+
   describe("Test applications", function () {
 
     it("Hello, world! (create a component with only a view programmatically)", function (done) {
@@ -193,14 +240,6 @@
             }
           }, 0);
         }
-      });
-    });
-
-    it("Error loading (fail to load a component)", function (done) {
-      var context = bender.create_context();
-      var use = context.appendChild(context.$("use", { href: "errorzzz.xml" }));
-      flexo.listen(context.ownerDocument, "@error", function (e) {
-        done();
       });
     });
 
