@@ -234,16 +234,6 @@
       }
     };
 
-    context.handleEvent = function (e) {
-      if (e.type === "@property-change") {
-        e.source.edges.forEach(function (get) {
-          get.watch.edges.forEach(function (set) {
-            set.action();
-          });
-        });
-      }
-    };
-
     return component;
   };
 
@@ -262,6 +252,7 @@
       this.uses = {};        // rendered uses by id
       this.rendered = [];    // root DOM nodes and use instances
       this.properties = {};  // properties defined by <property> elements
+      this._set = {};        // set property functions
       this.edges = [];       // edges out to watches
       this.__init_properties = [];
       // Setup a readonly $self property (pointing to this)
@@ -297,21 +288,28 @@
     // TODO proper initialization
     init_property: function (property, value) {
       var instance = this;
+      this._set[property._name] = function (v) {
+        if (typeof v === "string") {
+          v = property._get_value(v, this.properties);
+        }
+        if (v !== value) {
+          var prev = value;
+          value = v;
+        }
+      }.bind(this);
       Object.defineProperty(this.properties, property._name, { enumerable: true,
         get: function () { return value; },
         set: function (v) {
-          if (typeof v === "string") {
-            v = property._get_value(v, this);
-          }
-          if (v !== value) {
-            var prev = value;
-            value = v;
-            flexo.notify(instance, "@property-change",
-              { property: property._name, prev: prev });
-          }
+          instance._set[property._name](v);
+          instance.edges.forEach(function (get) {
+            if (get.property === property._name) {
+              get.watch.edges.forEach(function (set) {
+                set.action();
+              });
+            }
+          });
         }
       });
-      flexo.listen(this, "@property-change", this.use.ownerDocument);
       this.unprop_value(property);
       var init_val;
       if (this.use._properties.hasOwnProperty(property._name)) {
@@ -500,7 +498,7 @@
         property: property,
         // TODO arguments again
         action: function () {
-          this.properties[property._name] = pattern.format(this.properties);
+          this._set[property._name](pattern.format(this.properties));
         }.bind(this)
       });
     },

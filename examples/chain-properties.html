@@ -22,12 +22,13 @@ var component = context.appendChild(
     context.$("property", { name: "y", type: "number",
       value: "{{ {x} + 1 }}" }),
     context.$("property", { name: "z", type: "dynamic", value: "{x} + {y}" }),
-    context.$("view", "x = {x}, y = x + 1 = {y}, z = x + y = {z}")));
+    context.$("property", { name: "t", type: "dynamic", value: "{z} * 2" }),
+    context.$("view", "x = {x}, y = x + 1 = {y}, z = x + y = {z}, t = z * 2 = {t}")));
 var u = context.appendChild(context.$("use", { href: "#c" }));
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === component) {
     setTimeout(function () {
-      if (p.textContent === "x = 1, y = x + 1 = 2, z = x + y = 3") {
+      if (p.textContent === "x = 1, y = x + 1 = 2, z = x + y = 3, t = z * 2 = 6") {
         example.ok();
       }
     }, 0);
