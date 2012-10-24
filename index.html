@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Development version</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="examples/example.css">
+  </head>
+  <body>
+
+    <h1>Bender</h1>
+
+    <section id="tests">
+      <h2>Automated tests</h2>
+      <ul>
+        <li><a href="test/flexo.html">Flexo</a> (all tests should pass)</li>
+        <li><a href="test/bender.html">Bender</a> (all tests should pass)</li>
+      </ul>
+    </section>
+
+    <section id="examples">
+      <h2>Examples</h2>
+
+      <section id="examples.rendering">
+        <h3>Component rendering</h3>
+        <ul>
+          <li><a href="examples/create-context.html">Create a context tree</a>,
+          and that's it (no output.)</li>
+          <li><a href="examples/hello-world.html">Hello, world!</a> &mdash;
+          build a minimal Bender tree that displays a message.</li>
+          <li><a href="examples/text-only.html">Hello, world!/text
+          only</a> &mdash; build a minimal Bender component that displays a
+          text-only message.</li>
+          <li><a href="examples/hello-use.html">Hello, world!/use</a> &mdash;
+          load a minimal Bender component that displays a message.</li>
+          <li><a href="examples/multiple-contexts.html">Multiple
+          contexts</a> &mdash; create multiple Bender contexts, each with their
+          own component, in the same host document.</li>
+          <li><a href="examples/simple-content.html">Simple content</a> &mdash;
+          simple test of content and default content.</li>
+        </ul>
+      </section>
+
+      <section id="example.tree">
+        <h3>Tree modification</h3>
+        <ul>
+          <li><a href="examples/tree-modifications/update-instances.html">Update
+            instances</a> of a component after its view content has
+          changed.</li>
+        </ul>
+      </section>
+
+      <section id="example.properties">
+        <h3>Properties</h3>
+        <ul>
+          <li><a href="examples/attribute-property.html">Property in
+          attribute</a> &mdash; the square attributes (position, size, color)
+          are set using properties.</li>
+          <li><a href="examples/show-property.html">Show property</a> &mdash;
+          show the value of a property in a text node; try setting
+          <code>u._instance.properties.foo</code> in the console and see the
+          live updates.</li>
+          <li><a href="examples/show-computed-value.html">Show computed property
+          value</a> &mdash; show a computed property in a text node</li>
+          <li><a href="examples/chain-properties.html">Chain
+          properties</a> &mdash; <code>y</code> depends on <code>x</code>;
+          <code>z</code> depends on both <code>x</code> and <code>y</code>;
+          <code>y</code> depends on <code>z</code>.</li>
+        </ul>
+      </section>
+
+      <section id="examples.error">
+        <h3>Error handling</h3>
+        <ul>
+          <li><a href="examples/error-use.html">Error loading</a> an unavailable
+          component.</li>
+        </ul>
+      </section>
+
+      <section id="examples.todo">
+        <h3>TODO</h3>
+        <ul>
+          <li><a href="examples/dom-event.html">DOM event</a> &mdash; simply
+          watch a DOM mouse click event</li>
+          <li><a href="lib/run.html?href=../examples/village.xml">SVG Village</a>
+          (fixed: loading components from components; showing four houses with
+          initialized property values)</a></li>
+        </ul>
+      </section>
+
+  </body>
+</html>
+
