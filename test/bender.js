@@ -48,6 +48,131 @@
 
   });
 
+  describe("Component rendering", function () {
+
+    it("Set view.$root to the first rendered element in the view", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var component = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p#root", "Root ", context.$("html:em", "element")),
+            context.$("html:p", "Not the root element"))));
+      var use = context.appendChild(context.$("use"));
+      use._component = component;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === context) {
+          setTimeout(function () {
+            assert.strictEqual(use._instance.views.$root,
+              use._instance.views.root);
+            done();
+          }, 0);
+        }
+      });
+    });
+
+    it("Load several components in the same component", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var a = context.$("use", { href: "../examples/rendering/a.xml" });
+      var b = context.$("use", { href: "../examples/rendering/b.xml",
+        transform: "translate(100)" });
+      var c = context.$("use", { href: "../examples/rendering/c.xml",
+        transform: "translate(0, 100)" });
+      var d = context.$("use", { href: "../examples/rendering/d.xml",
+        transform: "translate(100, 100)" });
+      var main = context.appendChild(
+          context.$("component",
+            context.$("view",
+              context.$("svg:svg", { viewBox: "0 0 200 200" }, a, b, c, d))));
+      var use = context.appendChild(context.$("use"));
+      use._component = main;
+      var refreshes = 0;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.use === a || e.instance.use === b ||
+          e.instance.use == c || e.instance.use === d) {
+          if (++refreshes === 4) {
+            done();
+          }
+        }
+      });
+    });
+
+    it("Preserve ids for target/once", function (done) {
+      var div = document.body.appendChild(flexo.$div());
+      var context = bender.create_context(div);
+      var main = context.appendChild(
+          context.$("component",
+            context.$("component", { id: "box-gradient" },
+              context.$("view",
+                context.$("target", { q: "defs", once: "true" },
+                  context.$("svg:linearGradient#gradient", { y2: "100%",
+                    x2: "0%" },
+                    context.$("svg:stop", { offset: "0%", "stop-color":
+                      "#00e390" }),
+                    context.$("svg:stop", { offset: "100%",
+                      "stop-color": "#f79767" }))),
+                context.$("svg:rect", { x: 10, y: 10, width: 80, height: 80,
+                  fill: "url(#gradient)" }))),
+            context.$("view",
+              context.$("svg:svg", { viewBox: "0 0 200 200" },
+                context.$("svg:defs", { id: "defs" }),
+                context.$("use", { href: "#box-gradient" }),
+                context.$("use", { href: "#box-gradient",
+                  transform: "translate(100)" }),
+                context.$("use", { href: "#box-gradient",
+                  transform: "translate(0, 100)" }),
+                context.$("use", { href: "#box-gradient",
+                  transform: "translate(100, 100)" })))));
+      var use = context.appendChild(context.$("use"));
+      use._component = main;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.use === use) {
+          setTimeout(function () {
+            var defs = document.querySelector("defs");
+            assert.strictEqual(defs.childNodes.length, 1);
+            assert.strictEqual(defs.childNodes[0].id, "gradient");
+            assert.ok(!defs.id);
+            flexo.safe_remove(div);
+            done();
+          }, 0);
+        }
+      });
+    });
+
+  });
+
+
+  describe("Tree modifications", function () {
+
+    it("Update instances of a component when its view changes", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var component = context.appendChild(
+        context.$("component", { id: "c" },
+          context.$("view",
+            context.$("html:p", "Hello, world!"))));
+      var u = context.appendChild(context.$("use", { href: "#c" }));
+      var v = context.appendChild(context.$("use", { href: "#c" }));
+      var both = false;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === context) {
+          setTimeout(function () {
+            component.querySelector("p")._textContent("Hello again");
+          }, 0);
+        } else if (e.instance.component === component) {
+          setTimeout(function () {
+            if (!both &&
+              u._instance.views.$root.textContent === "Hello again" &&
+              v._instance.views.$root.textContent === "Hello again") {
+              both = true;
+              done();
+            }
+          }, 0);
+        }
+      });
+    });
+
+  });
+
+
   describe("Properties", function () {
 
     var context = bender.create_context();
@@ -159,86 +284,6 @@
 
   });
 
-  describe("Component rendering", function () {
-
-    it("Set view.$root to the first rendered element in the view", function (done) {
-      var context = bender.create_context(flexo.$div());
-      var component = context.appendChild(
-        context.$("component",
-          context.$("view",
-            context.$("html:p#root", "Root ", context.$("html:em", "element")),
-            context.$("html:p", "Not the root element"))));
-      var use = context.appendChild(context.$("use"));
-      use._component = component;
-      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        if (e.instance.component === context) {
-          setTimeout(function () {
-            assert.strictEqual(use._instance.views.$root,
-              use._instance.views.root);
-            done();
-          }, 0);
-        }
-      });
-    });
-
-    it("Load several components in the same component", function (done) {
-      var context = bender.create_context(flexo.$div());
-      var a = context.$("use", { href: "../examples/rendering/a.xml" });
-      var b = context.$("use", { href: "../examples/rendering/b.xml",
-        transform: "translate(100)" });
-      var c = context.$("use", { href: "../examples/rendering/c.xml",
-        transform: "translate(0, 100)" });
-      var d = context.$("use", { href: "../examples/rendering/d.xml",
-        transform: "translate(100, 100)" });
-      var main = context.appendChild(
-          context.$("component",
-            context.$("view",
-              context.$("svg:svg", { viewBox: "0 0 200 200" }, a, b, c, d))));
-      var use = context.appendChild(context.$("use"));
-      use._component = main;
-      var refreshes = 0;
-      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        if (e.instance.use === a || e.instance.use === b ||
-          e.instance.use == c || e.instance.use === d) {
-          if (++refreshes === 4) {
-            done();
-          }
-        }
-      });
-    });
-
-  });
-
-  describe("Tree modifications", function () {
-
-    it("Update instances of a component when its view changes", function (done) {
-      var context = bender.create_context(flexo.$div());
-      var component = context.appendChild(
-        context.$("component", { id: "c" },
-          context.$("view",
-            context.$("html:p", "Hello, world!"))));
-      var u = context.appendChild(context.$("use", { href: "#c" }));
-      var v = context.appendChild(context.$("use", { href: "#c" }));
-      var both = false;
-      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        if (e.instance.component === context) {
-          setTimeout(function () {
-            component.querySelector("p")._textContent("Hello again");
-          }, 0);
-        } else if (e.instance.component === component) {
-          setTimeout(function () {
-            if (!both &&
-              u._instance.views.$root.textContent === "Hello again" &&
-              v._instance.views.$root.textContent === "Hello again") {
-              both = true;
-              done();
-            }
-          }, 0);
-        }
-      });
-    });
-
-  });
 
   describe("Error handling", function () {
 

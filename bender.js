@@ -397,7 +397,7 @@
     // removed afterwards; this is so that loading and rendering can be done
     // asynchronously.) Return the last rendered element (text nodes are not
     // returned.)
-    render_children: function (node, dest, ref) {
+    render_children: function (node, dest, ref, unique) {
       var ch, d, r;
       for (ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === Node.ELEMENT_NODE) {
@@ -408,7 +408,8 @@
               // `target` ignores ref
               if (ch._once) {
                 if (!ch._rendered) {
-                  r = this.render_children(ch, ch._find_target(dest));
+                  r = this.render_children(ch, ch._find_target(dest), undefined,
+                      true);
                   ch._rendered = true;
                 }
               } else {
@@ -418,18 +419,22 @@
               // <content> renders either the contents of the <use> node or its
               // own by default.
               if (this.use.childNodes.length > 0) {
-                r = instance_of(node).render_children(this.use, dest, ref);
+                r = instance_of(node).render_children(this.use, dest, ref,
+                    unique);
               } else {
-                r = this.render_children(ch, dest, ref);
+                r = this.render_children(ch, dest, ref, unique);
               }
               this.render_use_params(r, ch);
+            } else {
+              console.warn("Unexpected Bender element in view: {0}"
+                  .fmt(ch.localName));
             }
           } else {
-            r = this.render_foreign(ch, dest, ref);
+            r = this.render_foreign(ch, dest, ref, unique);
           }
         } else if (ch.nodeType === Node.TEXT_NODE ||
             ch.nodeType === Node.CDATA_SECTION_NODE) {
-          this.render_text(ch, dest, ref);
+          this.render_text(ch, dest, ref, unique);
         }
       }
       return r;
@@ -507,7 +512,7 @@
 
     // Render foreign nodes within a view; arguments and return value are the
     // same as render_children() above.
-    render_foreign: function (node, dest, ref) {
+    render_foreign: function (node, dest, ref, unique) {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
       if (this.views.$root === null) {
@@ -518,6 +523,9 @@
         if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
             attr.localName === "id") {
           this.views[val.trim()] = d;
+          if (unique) {
+            d.setAttribute("id", val);
+          }
         } else if (attr.namespaceURI &&
             attr.namespaceURI !== node.namespaceURI) {
           if (!this.unprop_attr(d, attr)) {
@@ -533,7 +541,7 @@
       if (dest === this.target) {
         this.rendered.push(d);
       }
-      this.render_children(node, d);
+      this.render_children(node, d, undefined, unique);
       return d;
     },
 
