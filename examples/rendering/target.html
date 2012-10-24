@@ -18,7 +18,7 @@ var main = context.appendChild(
     context.$("component",
       context.$("component", { id: "box-gradient" },
         context.$("view",
-          context.$("target", { q: "defs", once: "true" },
+          context.$("target", { q: "defs", unique: "true" },
             context.$("svg:linearGradient#gradient", { y2: "100%", x2: "0%" },
               context.$("svg:stop", { offset: "0%", "stop-color": "#00e390" }),
               context.$("svg:stop", { offset: "100%",

@@ -406,7 +406,7 @@
               r = this.render_use(ch, dest, ref);
             } else if (ch.localName === "target") {
               // `target` ignores ref
-              if (ch._once) {
+              if (ch._unique) {
                 if (!ch._rendered) {
                   r = this.render_children(ch, ch._find_target(dest), undefined,
                       true);
@@ -717,7 +717,7 @@
         var watch, prev_get, prev_target;
         if (that.enabled && !active && enabled) {
           active = true;
-          enabled = !get._once;
+          enabled = !get._unique;
           watch = that.instance.watch;
           that.instance.watch = that;
           prev_get = that.get;
@@ -1087,8 +1087,8 @@
         if (name === "event" || name === "property" ||
             name === "use" || name === "view") {
           this["_" + name] = value.trim();
-        } else if (name === "once") {
-          this._once = flexo.is_true(value);
+        } else if (name === "unique") {
+          this._unique = flexo.is_true(value);
         }
       },
 
@@ -1239,8 +1239,8 @@
         if (name === "q" || name === "ref") {
           this["_" + name] = value.trim();
           this._refresh();
-        } else if (name === "once") {
-          this._once = value.trim().toLowerCase() === "true";
+        } else if (name === "unique") {
+          this._unique = flexo.is_true(value);
           this._refresh();
         }
       },

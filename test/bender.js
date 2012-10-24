@@ -96,14 +96,14 @@
       });
     });
 
-    it("Preserve ids for target/once", function (done) {
+    it("Preserve ids for target/unique", function (done) {
       var div = document.body.appendChild(flexo.$div());
       var context = bender.create_context(div);
       var main = context.appendChild(
           context.$("component",
             context.$("component", { id: "box-gradient" },
               context.$("view",
-                context.$("target", { q: "defs", once: "true" },
+                context.$("target", { q: "defs", unique: "true" },
                   context.$("svg:linearGradient#gradient", { y2: "100%",
                     x2: "0%" },
                     context.$("svg:stop", { offset: "0%", "stop-color":
