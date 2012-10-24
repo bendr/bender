@@ -17,14 +17,25 @@
 "use strict";
 
 var context = bender.create_context();
+var a = context.$("use", { href: "a.xml" });
+var b = context.$("use", { href: "b.xml", transform: "translate(100)" });
+var c = context.$("use", { href: "c.xml", transform: "translate(0, 100)" });
+var d = context.$("use", { href: "d.xml", transform: "translate(100, 100)" });
 var main = context.appendChild(
     context.$("component",
       context.$("view",
-        context.$("svg:svg", { viewBox: "0 0 200 100" },
-          // context.$("use", { href: "a.xml" }),
-          context.$("use", { href: "b.xml", transform: "translate(100)" })))));
+        context.$("svg:svg", { viewBox: "0 0 200 200" }, a, b, c, d))));
 var use = context.appendChild(context.$("use"));
 use._component = main;
+var refreshes = 0;
+flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+  if (e.instance.use === a || e.instance.use === b || e.instance.use == c ||
+    e.instance.use === d) {
+    if (++refreshes === 4) {
+      example.ok();
+    }
+  }
+});
 
     </script>
   </body>

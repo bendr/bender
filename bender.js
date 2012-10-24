@@ -1313,12 +1313,14 @@
       _render: function (target, parent) {
         var component = this._find_component();
         if (typeof component === "string") {
-          flexo.listen_once(this.ownerDocument, "@loaded", function (e) {
+          var loaded = function (e) {
             if (e.uri === component) {
-              flexo.notify(this, "@loaded", { instance: this
-                ._render_component(e.component, target, parent) });
+              flexo.notify(this, "@loaded", { instance:
+                this._render_component(e.component, target, parent) });
+              flexo.unlisten(this.ownerDocument, "@loaded", loaded);
             }
-          }.bind(this));
+          }.bind(this);
+          flexo.listen(this.ownerDocument, "@loaded", loaded);
           return true;
         }
         if (component) {

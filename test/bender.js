@@ -181,6 +181,32 @@
       });
     });
 
+    it("Load several components in the same component", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var a = context.$("use", { href: "../examples/rendering/a.xml" });
+      var b = context.$("use", { href: "../examples/rendering/b.xml",
+        transform: "translate(100)" });
+      var c = context.$("use", { href: "../examples/rendering/c.xml",
+        transform: "translate(0, 100)" });
+      var d = context.$("use", { href: "../examples/rendering/d.xml",
+        transform: "translate(100, 100)" });
+      var main = context.appendChild(
+          context.$("component",
+            context.$("view",
+              context.$("svg:svg", { viewBox: "0 0 200 200" }, a, b, c, d))));
+      var use = context.appendChild(context.$("use"));
+      use._component = main;
+      var refreshes = 0;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.use === a || e.instance.use === b ||
+          e.instance.use == c || e.instance.use === d) {
+          if (++refreshes === 4) {
+            done();
+          }
+        }
+      });
+    });
+
   });
 
   describe("Tree modifications", function () {
