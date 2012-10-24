@@ -893,8 +893,11 @@
         this._refresh();
       },
 
+      // Stub for init since it is always called
       _init: function () {},
 
+      // Shorthand for element creation in the current context (be careful
+      // because flexo.$ creates element in the host document!)
       $: function () {
         return flexo.create_element.apply(this.ownerDocument, arguments);
       },
@@ -919,8 +922,10 @@
       }
     },
 
+    // The <component> element (also <app> and <context> then) is the
+    // description of a component. May contain subcomponents, metadata (title,
+    // desc), properties, watches, and a view
     component: {
-
       _init: function () {
         this._components = {};       // child components
         this._watches = [];          // child watches
@@ -933,6 +938,7 @@
         });
       },
 
+      // Keep track of the various child nodes
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === bender.NS) {
@@ -972,6 +978,7 @@
         return ch;
       },
 
+      // Still keeping track of contents
       removeChild: function (ch) {
         Object.getPrototypeOf(this).removeChild.call(this, ch);
         if (ch._id && this._components[ch._id]) {
@@ -995,6 +1002,7 @@
         return ch;
       },
 
+      // Track changes in id as this is how the component is referred to
       setAttribute: function (name, value) {
         if (name === "id") {
           this._id = value.trim();
@@ -1012,20 +1020,7 @@
           this._components[component._id] = component;
           this.ownerDocument._add_component(component);
         }
-      },
-
-      _find_by_id: function (id) {
-        var q = A.slice.call(this.childNodes);
-        while (q.length) {
-          var elem = q.shift();
-          if (elem.nodeType === Node.ELEMENT_NODE &&
-              (elem.getAttribute("id") === id ||
-               elem.getAttributeNS(flexo.ns.xml, "id") === id)) {
-            return elem;
-          }
-          A.push.apply(q, elem.childNodes);
-        }
-      },
+      }
     },
 
     // The content element is a placeholder for contents to be added at
@@ -1055,6 +1050,8 @@
       }
     },
 
+    // <get> element, as a child of a <watch> element: create an edge from the
+    // target node (DOM node or instance) to the parent watch
     get: {
       _init: function () {
         Object.defineProperty(this, "_content", { enumerable: true,
