@@ -21,7 +21,7 @@ var main = context.appendChild(
     context.$("component",
       context.$("view",
         context.$("svg:svg", { viewBox: "0 0 200 100" },
-          context.$("use", { href: "a.xml" }),
+          // context.$("use", { href: "a.xml" }),
           context.$("use", { href: "b.xml", transform: "translate(100)" })))));
 var use = context.appendChild(context.$("use"));
 use._component = main;

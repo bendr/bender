@@ -159,6 +159,61 @@
 
   });
 
+  describe("Component rendering", function () {
+
+    it("Set view.$root to the first rendered element in the view", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var component = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p#root", "Root ", context.$("html:em", "element")),
+            context.$("html:p", "Not the root element"))));
+      var use = context.appendChild(context.$("use"));
+      use._component = component;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === context) {
+          setTimeout(function () {
+            assert.strictEqual(use._instance.views.$root,
+              use._instance.views.root);
+            done();
+          }, 0);
+        }
+      });
+    });
+
+  });
+
+  describe("Tree modifications", function () {
+
+    it("Update instances of a component when its view changes", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var component = context.appendChild(
+        context.$("component", { id: "c" },
+          context.$("view",
+            context.$("html:p", "Hello, world!"))));
+      var u = context.appendChild(context.$("use", { href: "#c" }));
+      var v = context.appendChild(context.$("use", { href: "#c" }));
+      var both = false;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === context) {
+          setTimeout(function () {
+            component.querySelector("p")._textContent("Hello again");
+          }, 0);
+        } else if (e.instance.component === component) {
+          setTimeout(function () {
+            if (!both &&
+              u._instance.views.$root.textContent === "Hello again" &&
+              v._instance.views.$root.textContent === "Hello again") {
+              both = true;
+              done();
+            }
+          }, 0);
+        }
+      });
+    });
+
+  });
+
   describe("Error handling", function () {
 
     it("Error loading component (HTTP 404 error)", function (done) {
@@ -206,35 +261,6 @@
 
   });
 
-
-  describe("Tree modifications", function () {
-    it("Update instances of a component when its view changes", function (done) {
-      var context = bender.create_context(flexo.$div());
-      var component = context.appendChild(
-        context.$("component", { id: "c" },
-          context.$("view",
-            context.$("html:p", "Hello, world!"))));
-      var u = context.appendChild(context.$("use", { href: "#c" }));
-      var v = context.appendChild(context.$("use", { href: "#c" }));
-      var both = false;
-      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        if (e.instance.component === context) {
-          setTimeout(function () {
-            component.querySelector("p")._textContent("Hello again");
-          }, 0);
-        } else if (e.instance.component === component) {
-          setTimeout(function () {
-            if (!both &&
-              u._instance.views.$root.textContent === "Hello again" &&
-              v._instance.views.$root.textContent === "Hello again") {
-              both = true;
-              done();
-            }
-          }, 0);
-        }
-      });
-    });
-  });
 
   describe("Test applications", function () {
 

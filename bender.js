@@ -426,9 +426,6 @@
             }
           } else {
             r = this.render_foreign(ch, dest, ref);
-            if (r && this.views.$root === null) {
-              this.views.$root = r;
-            }
           }
         } else if (ch.nodeType === Node.TEXT_NODE ||
             ch.nodeType === Node.CDATA_SECTION_NODE) {
@@ -513,6 +510,9 @@
     render_foreign: function (node, dest, ref) {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
+      if (this.views.$root === null) {
+        this.views.$root = d;
+      }
       A.forEach.call(node.attributes, function (attr) {
         var val = attr.value;
         if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
