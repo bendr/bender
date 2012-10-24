@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Bender | Example | DOM event</title>
+    <title>Bender | Example | Watch | DOM event</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
-    <link rel="stylesheet" href="example.css">
-    <script src="../flexo.js"></script>
-    <script src="../bender.js"></script>
+    <link rel="stylesheet" href="../example.css">
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
     <style>
-      p {
+      .button {
+        display: inline-block;
         cursor: pointer;
-        background-color: #ccc;
+        background-color: #ddd;
         padding: 0.5em;
+        border-radius: 0.2em;
       }
     </style>
   </head>
   <body>
-    <script src="example.js"></script>
+    <script src="../example.js"></script>
     <script>
 (function () {
   "use strict";
@@ -25,7 +27,7 @@
   var component = context.appendChild(
     context.$("component", { id: "c" },
       context.$("view",
-        context.$("html:p", "Click me")),
+        context.$("html:div.button", "Click me")),
       context.$("watch",
         context.$("get", { view: "$root", event: "click" }))));
   context.appendChild(context.$("use", { href: "#c" }));

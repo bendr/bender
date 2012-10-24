@@ -30,11 +30,11 @@ var main = context.appendChild(
           context.$("svg:defs", { id: "defs" }),
           context.$("use", { href: "#box-gradient" }),
           context.$("use", { href: "#box-gradient",
-            transform: "translate(100)" }),
+            transform: "translate(100) rotate(90, 50, 50)" }),
           context.$("use", { href: "#box-gradient",
-            transform: "translate(0, 100)" }),
+            transform: "translate(0, 100) rotate(270, 50, 50)" }),
           context.$("use", { href: "#box-gradient",
-            transform: "translate(100, 100)" })))));
+            transform: "translate(100, 100) rotate(180, 50, 50)" })))));
 var use = context.appendChild(context.$("use"));
 use._component = main;
 
