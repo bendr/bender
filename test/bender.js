@@ -173,6 +173,35 @@
   });
 
 
+  describe("Watches", function () {
+
+    it("Simply watch a DOM event (with an associated action)", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var main = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:div", "Click me")),
+          context.$("watch",
+            context.$("get", { view: "$root", "dom-event": "click" },
+              "flexo.notify(this.ownerDocument, '@done')"))));
+      var use = context.appendChild(context.$("use"));
+      use._component = main;
+      flexo.listen(context.ownerDocument, "@done", function () { done(); });
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === main) {
+          setTimeout(function () {
+            var ev = document.createEvent("MouseEvent");
+            ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0,
+              false, false, false, false, 0, null);
+            use._instance.views.$root.dispatchEvent(ev);
+          }, 0);
+        }
+      });
+    });
+
+  });
+
+
   describe("Properties", function () {
 
     var context = bender.create_context();

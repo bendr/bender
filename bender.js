@@ -88,7 +88,7 @@
     console.log(">>> traverse graph >>>");
     for (var i = 0; i < edges.length; ++i) {
       console.log("  get:", edges[i]);
-      // TODO get action
+      edges[i].action();
       edges[i].watch.edges.forEach(function (edge) {
         console.log("  set:", edge);
         edge.action();
@@ -473,7 +473,7 @@
       if (props.length > 0) {
         var watch = { edges: [set_edge] };
         props.forEach(function (p) {
-          this.edges.push({ property: p, watch: watch });
+          this.edges.push({ property: p, watch: watch, action: flexo.id });
         }, this);
         return true;
       }
@@ -606,12 +606,13 @@
           this.uses[use._id] = use._instance;
         }
       } else {
-        console.warn("rendered_use: no instance for", use);
+        console.error("rendered_use: no instance for", use);
       }
     },
 
     render_watches: function () {
-      var instances = [], pending = function (instance) {
+      var instances = [];
+      var pending = function (instance) {
         // TODO improve this
         // The point is that we should not render watches before any of the
         // instances down the tree are done rendering themselves
@@ -636,15 +637,11 @@
       }
       delete this.__pending_watches;
       this.component._watches.forEach(function (watch) {
-        /*var instance = Object.create(watch_node).init(watch, this);
-        instance.render_watch_node();
-        this.rendered.push(instance);
-        instances.push(instance);*/
         // Create a watch node for this watch element
         var w = { edges: [] };
         watch._gets.forEach(function (get) {
-          var edge = { view: get._view, "dom-event": get._dom_event,
-            watch: w };
+          var edge = { view: get._view, dom_event: get._dom_event,
+            action: get._action, watch: w };
           this.edges.push(edge);
           this.views[get._view].addEventListener(get._dom_event, function (e) {
             traverse_graph([edge]);
@@ -685,152 +682,6 @@
     }
   };
 
-  var watch_node = {
-
-    init: function (watch, instance) {
-      this.watch = watch;
-      this.instance = instance;
-      this.component = this.instance.component;
-      this.enabled = this.watch.parentNode &&
-        this.watch.parentNode._is_component;
-      this.ungets = [];
-      return this;
-    },
-
-    got: function (value) {
-      this.watch._sets.forEach(function (set) {
-        var target, _view, _use, _property, val = set._action ?
-            set._action.call(this.instance, value) : value;
-        _property = this.instance.unparam(set._property);
-        if (set._view) {
-          _view = this.instance.unparam(set._view);
-          target = this.instance.views[_view];
-          if (!target) {
-            console.warn("No view for \"{0}\" in".fmt(_view), set);
-          } else {
-            if (set._attr) {
-              target.setAttribute(this.instance.unparam(set._attr),
-                val);
-            } else {
-              target[_property || "textContent"] = val;
-            }
-          }
-        } else if (_property) {
-          _use = this.instance.unparam(set._use);
-          target = _use ? this.instance.uses[_use] :
-              this.instance
-                .find_instance_with_property(_property);
-          if (!target) {
-            console.warn("(got) No use for \"{0}\" in".fmt(_property), set);
-          } else if (val !== undefined) {
-            target.properties[_property] = val;
-          }
-        }
-      }, this);
-    },
-
-    // Utility function to create listener functions for get elements
-    make_listener: function (get, target) {
-      var enabled = true, active = false, that = this;
-      return function (value, prev) {
-        var watch, prev_get, prev_target;
-        if (that.enabled && !active && enabled) {
-          active = true;
-          enabled = !get._unique;
-          watch = that.instance.watch;
-          that.instance.watch = that;
-          prev_get = that.get;
-          that.get = get;
-          prev_target = that.target;
-          that.target = target;
-          that.got((get._action || flexo.id).call(that.instance,
-              value, prev));
-          if (watch) {
-            that.instance.watch = watch;
-          } else {
-            delete that.instance.watch;
-          }
-          if (prev_get) {
-            that.get = prev_get;
-          } else {
-            delete that.get;
-          }
-          if (prev_target) {
-            that.target = prev_target;
-          } else {
-            delete that.target;
-          }
-          active = false;
-        }
-      };
-    },
-
-    render_watch_node: function () {
-      this.gets = [];
-      this.watch._gets.forEach(function (get) {
-        var _event, _view, listener, target, _use, _property, h;
-        if (get._event) {
-          _event = get._event;
-          if (get._view) {
-            // DOM event
-            _view = this.instance.unparam(get._view);
-            target = this.instance.views[_view];
-            if (!target) {
-              console.warn("render_watch_node: No view for \"{0}\" in"
-                .fmt(get._view), get);
-            } else {
-              listener = this.make_listener(get, target);
-              target.addEventListener(_event, listener, false);
-              this.ungets.push(function () {
-                target.removeEventListener(_event, listener, false);
-              });
-            }
-          } else if (get._use) {
-            _use = this.instance.unparam(get._use);
-            // Custom event
-            target = this.instance.uses[_use];
-            if (!target) {
-              console.warn("(render get/use) No use for \"{0}\" in".fmt(_use),
-                  get);
-            } else {
-              listener = this.make_listener(get, target);
-              flexo.listen(target, get._event, listener);
-              this.ungets.push(function () {
-                flexo.unlisten(target, get._event, listener);
-              });
-            }
-          }
-        } else if (get._property) {
-          _use = this.instance.unparam(get._use);
-          _property = this.instance.unparam(get._property);
-          // Property change
-          target = _use ? this.instance.uses[_use] :
-              this.instance.find_instance_with_property(_property);
-          if (!target) {
-            console.warn("(render get/property) No use for \"{0}\""
-                .fmt(_property));
-          } else {
-            h = this.make_listener(get, target);
-            h._watch = this;
-            target.watch_property(_property, h);
-            this.gets.push(function () { h(target.property(_property)); });
-            this.ungets.push(function () {
-              target.unwatch_property(_property, h);
-            });
-          }
-        }
-      }, this);
-    },
-
-    pull_gets: function () {
-      this.gets.forEach(function (get) { get(); });
-    },
-
-    unrender: function () {
-      this.ungets.forEach(function (unget) { unget(); });
-    }
-  };
-
   // Property type map with the corresponding parsing function
   var PROPERTY_TYPES = {
     "boolean": flexo.is_true,
@@ -841,7 +692,7 @@
         }
         return new Function(value).call(this);
       } catch (e) {
-        console.warn("Error evaluating dynamic property \"{0}\": {1}"
+        console.error("Error evaluating dynamic property \"{0}\": {1}"
             .fmt(value, e.message));
       }
     },
@@ -850,7 +701,7 @@
       try {
         return JSON.parse(value);
       } catch (e) {
-        console.warn("Could not parse \"{0}\" as JSON: {1}"
+        console.error("Could not parse \"{0}\" as JSON: {1}"
           .fmt(value, e.message));
       }
     },
@@ -1081,14 +932,7 @@
     // target node (DOM node or instance) to the parent watch
     get: {
       _init: function () {
-        Object.defineProperty(this, "_content", { enumerable: true,
-          get: function () { return this._action; },
-          set: function (f) {
-            if (typeof f === "function") {
-              this._action = f;
-            }
-          }
-        });
+        this._action = flexo.id;
         return this;
       },
 
@@ -1118,12 +962,20 @@
         this._update_action();
       },
 
+      // Update the action: make a new function from the text content of the
+      // element. If it has no content or there were compilation errors, default
+      // to the id function
       _update_action: function () {
         if (/\S/.test(this.textContent)) {
-          // TODO handle errors
-          this._action = new Function("value", this.textContent);
+          try {
+            this._action = new Function("value", this.textContent).bind(this);
+          } catch (e) {
+            console.error("Could not compile action \"{0}\": {1}"
+                .fmt(this.textContent, e.message));
+            this._action = flexo.id;
+          }
         } else {
-          delete this._action;
+          this._action = flexo.id;
         }
       }
     },
@@ -1360,7 +1212,7 @@
         if (component) {
           return this._render_component(component, target, parent);
         }
-        console.warn("use._render: No component for", this);
+        console.error("use._render: No component for", this);
       },
 
       _render_component: function (component, target, parent) {
