@@ -30,7 +30,7 @@ var main = context.appendChild(
     context.$("watch",
       context.$("get", { view: "$root", "dom-event": "click" },
         "example.ok()"))));
-var u = context.appendChild(context.$("use", { href: "#c" }));
+var u = context.appendChild(context.$("use"));
 u._component = main;
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.component === main) {

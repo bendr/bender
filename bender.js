@@ -640,7 +640,8 @@
         // Create a watch node for this watch element
         var w = { edges: [] };
         watch._gets.forEach(function (get) {
-          var edge = { view: get._view, dom_event: get._dom_event,
+          // TODO handle error when there is no view
+          var edge = { view: this.views[get._view], dom_event: get._dom_event,
             action: get._action, watch: w };
           this.edges.push(edge);
           this.views[get._view].addEventListener(get._dom_event, function (e) {
@@ -648,7 +649,6 @@
           }, false);
         }, this);
       }, this);
-      instances.forEach(function (instance) { instance.pull_gets(); });
       flexo.notify(this, "@rendered");
       if (this.uses.$parent && this.uses.$parent.__pending_watches) {
         this.uses.$parent.render_watches();
