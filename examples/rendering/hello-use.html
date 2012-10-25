@@ -4,21 +4,17 @@
     <title>Bender | Example | Hello, world!/use</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
-    <link rel="stylesheet" href="example.css">
-    <script src="../flexo.js"></script>
-    <script src="../bender.js"></script>
+    <link rel="stylesheet" href="../example.css">
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
   </head>
   <body>
-    <script src="example.js"></script>
+    <script src="../example.js"></script>
     <script>
 "use strict";
 
 var context = bender.create_context();
 var use = context.appendChild(context.$("use", { href: "hello-world.xml" }));
-flexo.listen(context.ownerDocument, "@loaded", function (e) {
-  console.log("Loaded component at URI {0}:".fmt(e.uri),
-    e.component._serialize());
-});
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
   if (e.instance.use === use) {
     example.ok();

@@ -1,0 +1,27 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
+
+  <view>
+    <svg:svg viewBox="0 0 200 200">
+      <svg:defs/>
+      <use href="#box-gradient"/>
+      <use href="#box-gradient" transform="translate(100) rotate(90, 50, 50)"/>
+      <use href="#box-gradient"
+        transform="translate(100, 100) rotate(180, 50, 50)"/>
+      <use href="#box-gradient"
+        transform="translate(0, 100) rotate(270, 50, 50)"/>
+    </svg:svg>
+  </view>
+
+  <component id="box-gradient">
+    <view>
+      <target q="defs" unique="true">
+        <svg:linearGradient id="gradient" y2="100%" x2="0%">
+          <svg:stop offset="0%" stop-color="#00e390"/>
+          <svg:stop offset="100%" stop-color="#f79767"/>
+        </svg:linearGradient>
+      </target>
+      <svg:rect x="10" y="10" width="80" height="80" fill="url(#gradient)"/>
+    </view>
+  </component>
+
+</app>

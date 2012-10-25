@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | Multiple contexts</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="../example.css">
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
+    <style>
+      .context {
+        background-color: yellow;
+        padding: 0.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <p>First context: <span class="context"></span></p>
+    <p>Second context: <span class="context"></span></p>
+    <p>Another context: <span class="context"></span></p>
+    <p>Last context: <span class="context"></span></p>
+    <script src="../example.js"></script>
+    <script>
+"use strict";
+
+var spans = Array.prototype.slice.call(document.querySelectorAll(".context"));
+var components = 0;
+
+spans.forEach(function (span, i) {
+  var context = bender.create_context(span);
+  var main = context.appendChild(
+    context.$("component",
+      context.$("view",
+        "Component " + (String.fromCharCode(i + "A".charCodeAt(0))))));
+  var use = context.appendChild(context.$("use"));
+  use._component = main;
+  flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+    if (e.instance.component === main) {
+      if (++components === spans.length) {
+        example.ok();
+      }
+    }
+  });
+});
+
+    </script>
+  </body>
+</html>
