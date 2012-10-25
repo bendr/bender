@@ -29,7 +29,7 @@
       context.$("view",
         context.$("html:div.button", "Click me")),
       context.$("watch",
-        context.$("get", { view: "$root", event: "click" }))));
+        context.$("get", { view: "$root", "dom-event": "click" }))));
   context.appendChild(context.$("use", { href: "#c" }));
   flexo.listen(context.ownerDocument, "@refreshed", function (e) {
     console.log("Refreshed", e.instance);

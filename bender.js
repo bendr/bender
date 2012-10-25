@@ -82,6 +82,27 @@
     return dest.insertBefore(p, ref);
   }
 
+  // Traverse the graph of watches starting with an initial set of edges
+  // TODO depth-first traversal of the graph?
+  function traverse_graph(edges) {
+    console.log(">>> traverse graph >>>");
+    for (var i = 0; i < edges.length; ++i) {
+      console.log("  get:", edges[i]);
+      // TODO get action
+      edges[i].watch.edges.forEach(function (edge) {
+        console.log("  set:", edge);
+        edge.action();
+        if (edge.hasOwnProperty("property")) {
+          A.push.apply(edges, edge.set.edges.filter(function (e) {
+            return e.property === edge.property._name &&
+              edges.indexOf(e) < 0;
+          }));
+        }
+      });
+    }
+    console.log("<<< done: traverse graph <<<");
+  }
+
   // Extend an element with Bender methods, calls its _init() method, and return
   // the wrapped element.
   function wrap_element(e) {
@@ -299,20 +320,9 @@
         get: function () { return value; },
         set: function (v) {
           instance._set[property._name](v);
-          var edges = instance.edges.filter(function (e) {
+          traverse_graph(instance.edges.filter(function (e) {
             return e.property === property._name;
-          });
-          for (var i = 0; i < edges.length; ++i) {
-            edges[i].watch.edges.forEach(function (edge) {
-              edge.action();
-              if (edge.hasOwnProperty("property")) {
-                A.push.apply(edges, edge.set.edges.filter(function (e) {
-                  return e.property === edge.property._name &&
-                    edges.indexOf(e) < 0;
-                }));
-              }
-            });
-          }
+          }));
         }
       });
       this.unprop_value(property);
@@ -626,10 +636,20 @@
       }
       delete this.__pending_watches;
       this.component._watches.forEach(function (watch) {
-        var instance = Object.create(watch_node).init(watch, this);
+        /*var instance = Object.create(watch_node).init(watch, this);
         instance.render_watch_node();
         this.rendered.push(instance);
-        instances.push(instance);
+        instances.push(instance);*/
+        // Create a watch node for this watch element
+        var w = { edges: [] };
+        watch._gets.forEach(function (get) {
+          var edge = { view: get._view, "dom-event": get._dom_event,
+            watch: w };
+          this.edges.push(edge);
+          this.views[get._view].addEventListener(get._dom_event, function (e) {
+            traverse_graph([edge]);
+          }, false);
+        }, this);
       }, this);
       instances.forEach(function (instance) { instance.pull_gets(); });
       flexo.notify(this, "@rendered");
@@ -750,7 +770,7 @@
       this.watch._gets.forEach(function (get) {
         var _event, _view, listener, target, _use, _property, h;
         if (get._event) {
-          _event = this.instance.unparam(get._event);
+          _event = get._event;
           if (get._view) {
             // DOM event
             _view = this.instance.unparam(get._view);
@@ -1086,7 +1106,9 @@
         if (name === "event" || name === "property" ||
             name === "use" || name === "view") {
           this["_" + name] = value.trim();
-        } else if (name === "unique") {
+        } else if (name === "dom-event") {
+          this._dom_event = value.trim();
+        } else if (name === "once") {
           this._unique = flexo.is_true(value);
         }
       },
@@ -1199,6 +1221,7 @@
       }
     },
 
+    // <set> element (child of a <watch>)
     set: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
@@ -1232,6 +1255,10 @@
       }
     },
 
+    // <target> appears in <view> and allows to redirect rendering to a
+    // particular host element, using a query selector or a reference (to an
+    // id.) It also has a unique attribute, which when true, limits the
+    // rendering of the contents to a 
     target: {
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
@@ -1357,11 +1384,13 @@
       }
     },
 
+    // The <view> element must be unique. Its contents are foreign elements, and
+    // Bender <use> and <target> elements.
     view: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "use") {
+          if (ch.localName === "target" || ch.localName === "use") {
             this._refresh();
           }
         } else {
@@ -1398,6 +1427,7 @@
             this._watches.push(ch);
           }
         }
+        // TODO update the graph
       }
 
       // TODO removeChild?!
