@@ -2,8 +2,8 @@
   xmlns:svg="http://www.w3.org/2000/svg">
   <view>
     <svg:g>
-      <svg:polygon fill="#40ff40" points="10,10 10,90 90,90"/>
-      <svg:polygon fill="black" points="90,10 10,10 90,90"/>
+      <svg:polygon fill="#dec72e" points="10,10 10,90 90,90"/>
+      <svg:polygon fill="#243645" points="90,10 10,10 90,90"/>
     </svg:g>
   </view>
 </component>

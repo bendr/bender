@@ -33,11 +33,20 @@ body > div > * {
 }
 body > div > *:first-child {
   border: none;
+  margin: 0;
+  padding: 0;
+}
+body > div > *:first-child pre {
+  padding: 0 1em;
 }
 pre, code {
   font-family: Inconsolata, Menlo, monospace;
 }
-pre {
+.bender--uri {
+  background-color: #888;
+  color: white;
+  padding: 0.2em;
+  font-style: italic;
   font-size: 80%;
 }
 .bender--runtime-message {
@@ -53,7 +62,7 @@ pre {
   </head>
   <body>
     <div>
-      <pre id="bender.debugger.source-view"></pre>
+      <div id="bender.debugger.source-view"></div>
       <div id="bender.debugger.render-view"></div>
     </div>
     <script>
@@ -65,8 +74,10 @@ if (args.href) {
   var render_view = document.getElementById("bender.debugger.render-view");
   var context = bender.create_context(render_view);
   flexo.listen(context.ownerDocument, "@loaded", function (e) {
+    var sec = source_view
+      .appendChild(flexo.$section(flexo.$("div.bender--uri", e.uri)));
     flexo.ez_xhr(e.uri, { responseType: "text" }, function (req) {
-      source_view.textContent = req.response;
+      sec.appendChild(flexo.$pre(req.response));
     });
   });
   flexo.listen(context.ownerDocument, "@error", function (e) {

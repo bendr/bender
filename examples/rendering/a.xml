@@ -2,8 +2,8 @@
   xmlns:svg="http://www.w3.org/2000/svg">
   <view>
     <svg:g>
-      <svg:rect fill="#ff4040" x="10" y="10" width="80" height="80"/>
-      <svg:rect fill="black" x="30" y="30" width="40" height="40"/>
+      <svg:rect fill="#333" x="10" y="10" width="80" height="80"/>
+      <svg:rect fill="white" x="30" y="30" width="40" height="40"/>
     </svg:g>
   </view>
 </component>
