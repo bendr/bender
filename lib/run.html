@@ -11,11 +11,11 @@ body {
 code {
   font-family: Inconsolata, Menlo, monospace;
 }
-.runtime-message {
+.bender--runtime-message {
   color: #888;
   font-style: italic;
 }
-.runtime-error {
+.bender--runtime-error {
   color: #ff4040;
 }
     </style>
@@ -30,12 +30,12 @@ var args = flexo.get_args();
 if (args.href) {
   var context = bender.create_context();
   flexo.listen(context.ownerDocument, "@error", function (e) {
-    document.body.appendChild(flexo.$("p.runtime-error",
+    document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
   });
   context.appendChild(context.$("use", args));
 } else {
-  document.body.appendChild(flexo.$("p.runtime-message",
+  document.body.appendChild(flexo.$("p.bender--runtime-message",
     "Nothing to run. Please specify a Bender component to load with the ", 
     flexo.$code("href"), " URL parameter."));
 }

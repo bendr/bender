@@ -1,0 +1,12 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
+  <title>Set property in attribute</title>
+  <property name="x" type="number" value="100"/>
+  <property name="y" type="number" value="50"/>
+  <property name="sz" type="number" value="200"/>
+  <property name="color" value="#ff4040"/>
+  <view>
+    <svg:svg>
+      <svg:rect x="{x}" y="{y}" width="{sz}" height="{sz}" fill="{color}"/>
+    </svg:svg>
+  </view>
+</app>
