@@ -199,6 +199,30 @@
       });
     });
 
+    it("Watch a DOM event and send a notification as a result", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var main = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:div.button", "Click me")),
+          context.$("watch",
+            context.$("get", { view: "$root", "dom-event": "click" }),
+            context.$("set", { use: "$context", event: "@done" }))));
+      var u = context.appendChild(context.$("use"));
+      u._component = main;
+      flexo.listen(context.ownerDocument, "@done", function (e) { done(); });
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === main) {
+          setTimeout(function () {
+            var ev = document.createEvent("MouseEvent");
+            ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
+              false, false, false, 0, null);
+            u._instance.views.$root.dispatchEvent(ev);
+          }, 0);
+        }
+      });
+    });
+
   });
 
 
