@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | Watch | Set: notify</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="../example.css">
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
+    <style>
+      .button {
+        display: inline-block;
+        cursor: pointer;
+        background-color: #ddd;
+        padding: 0.5em;
+        border-radius: 0.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="../example.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var main = context.appendChild(
+  context.$("component",
+    context.$("view",
+      context.$("html:div.button", "Click me")),
+    context.$("watch",
+      context.$("get", { view: "$root", "dom-event": "click" }),
+      context.$("set", { use: "$context", event: "@clicked" }))));
+var u = context.appendChild(context.$("use"));
+u._component = main;
+flexo.listen(context.ownerDocument, "@clicked", function (e) { example.ok(); });
+flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+  if (e.instance.component === main) {
+    setTimeout(function () {
+      var ev = document.createEvent("MouseEvent");
+      ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
+        false, false, false, 0, null);
+      u._instance.views.$root.dispatchEvent(ev);
+    }, 0);
+  }
+});
+
+    </script>
+  </body>
+</html>

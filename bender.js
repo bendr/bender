@@ -97,6 +97,9 @@
             return e.property === edge.property._name &&
               edges.indexOf(e) < 0;
           }));
+        } else if (edge.hasOwnProperty("event")) {
+          // TODO use different event handler
+          flexo.notify(edge.use, edge.event);
         }
       });
     }
@@ -640,13 +643,17 @@
         // Create a watch node for this watch element
         var w = { edges: [] };
         watch._gets.forEach(function (get) {
-          // TODO handle error when there is no view
           var edge = { view: this.views[get._view], dom_event: get._dom_event,
             action: get._action, watch: w };
           this.edges.push(edge);
           this.views[get._view].addEventListener(get._dom_event, function (e) {
             traverse_graph([edge]);
           }, false);
+        }, this);
+        watch._sets.forEach(function (set) {
+          var edge = { use: this.uses[set._use], event: set._event,
+            action: set._action };
+          w.edges.push(edge);
         }, this);
       }, this);
       flexo.notify(this, "@rendered");
@@ -1075,6 +1082,11 @@
 
     // <set> element (child of a <watch>)
     set: {
+      _init: function () {
+        this._action = flexo.id;
+        return this;
+      },
+
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.nodeType === Node.TEXT_NODE ||
@@ -1086,7 +1098,7 @@
 
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "attr" || name === "property" ||
+        if (name === "attr" || name === "event" || name === "property" ||
             name === "use" || name === "view") {
           this["_" + name] = value.trim();
         }
@@ -1097,12 +1109,20 @@
         this._update_action();
       },
 
+      // Update the action: make a new function from the text content of the
+      // element. If it has no content or there were compilation errors, default
+      // to the id function
       _update_action: function () {
         if (/\S/.test(this.textContent)) {
-          // TODO handle errors
-          this._action = new Function("value", this.textContent);
+          try {
+            this._action = new Function("value", this.textContent).bind(this);
+          } catch (e) {
+            console.error("Could not compile action \"{0}\": {1}"
+                .fmt(this.textContent, e.message));
+            this._action = flexo.id;
+          }
         } else {
-          delete this._action;
+          this._action = flexo.id;
         }
       }
     },
