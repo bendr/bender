@@ -93,10 +93,16 @@
         console.log("  set:", edge);
         edge.action();
         if (edge.hasOwnProperty("property")) {
-          A.push.apply(edges, edge.set.edges.filter(function (e) {
-            return e.property === edge.property._name &&
-              edges.indexOf(e) < 0;
-          }));
+          if (edge.hasOwnProperty("value") && edge.use) {
+            edge.use.properties[edge.property] =
+              edge.value.format(edge.use.properties);
+          }
+          if (edge.hasOwnProperty("set")) {
+            A.push.apply(edges, edge.set.edges.filter(function (e) {
+              return e.property === edge.property._name &&
+                edges.indexOf(e) < 0;
+            }));
+          }
         } else if (edge.hasOwnProperty("event")) {
           // TODO use different event handler
           flexo.notify(edge.use, edge.event);
@@ -651,8 +657,15 @@
           }, false);
         }, this);
         watch._sets.forEach(function (set) {
-          var edge = { use: this.uses[set._use], event: set._event,
-            action: set._action };
+          var edge = { action: set._action };
+          if (set.hasOwnProperty("_use")) {
+            edge.use = this.uses[set._use];
+          }
+          ["event", "property", "value"].forEach(function (p) {
+            if (set.hasOwnProperty("_" + p)) {
+              edge[p] = set["_" + p];
+            }
+          });
           w.edges.push(edge);
         }, this);
       }, this);
@@ -1099,7 +1112,7 @@
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
         if (name === "attr" || name === "event" || name === "property" ||
-            name === "use" || name === "view") {
+            name === "use" || name === "value" || name === "view") {
           this["_" + name] = value.trim();
         }
       },

@@ -223,6 +223,34 @@
       });
     });
 
+    it("Watch a DOM event and update a property as a result", function (done) {
+      var context = bender.create_context(flexo.$div());
+      var main = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p.button", "Click me"),
+            context.$("html:p", "Clicks: {clicks}")),
+          context.$("property", { name: "clicks", type: "number", value: "0" }),
+          context.$("watch",
+            context.$("get", { view: "$root", "dom-event": "click" }),
+            context.$("set", { use: "$self", property: "clicks",
+              value: "{{ {clicks} + 1 }}" }))));
+      var u = context.appendChild(context.$("use"));
+      u._component = main;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        if (e.instance.component === main) {
+          setTimeout(function () {
+            var ev = document.createEvent("MouseEvent");
+            ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0,
+              false, false, false, false, 0, null);
+            u._instance.views.$root.dispatchEvent(ev);
+            assert.ok(u._instance.properties.clicks === 1);
+            done();
+          }, 0);
+        }
+      });
+    });
+
   });
 
 
