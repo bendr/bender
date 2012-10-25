@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Bender debugger</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+html {
+  height: 100%;
+}
+body {
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+  margin: 0;
+  height: 100%;
+}
+body > div {
+  display: -webkit-box;
+  height: 100%;
+}
+body > div > * {
+  -webkit-box-flex: 1;
+  padding: 10px;
+  background-color: white;
+  border-left: dashed thin #333;
+  overflow: auto;
+}
+body > div > *:first-child {
+  border: none;
+}
+pre, code {
+  font-family: Inconsolata, Menlo, monospace;
+}
+pre {
+  font-size: 80%;
+}
+.bender--runtime-message {
+  color: #888;
+  font-style: italic;
+}
+.bender--runtime-error {
+  color: #ff4040;
+}
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+  </head>
+  <body>
+    <div>
+      <pre id="bender.debugger.source-view"></pre>
+      <div id="bender.debugger.render-view"></div>
+    </div>
+    <script>
+"use strict";
+
+var args = flexo.get_args();
+if (args.href) {
+  var source_view = document.getElementById("bender.debugger.source-view");
+  var render_view = document.getElementById("bender.debugger.render-view");
+  var context = bender.create_context(render_view);
+  flexo.listen(context.ownerDocument, "@loaded", function (e) {
+    flexo.ez_xhr(e.uri, { responseType: "text" }, function (req) {
+      source_view.textContent = req.response;
+    });
+  });
+  flexo.listen(context.ownerDocument, "@error", function (e) {
+    document.body.appendChild(flexo.$("p.bender--runtime-error",
+      "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
+  });
+  context.appendChild(context.$("use", args));
+} else {
+  document.body.appendChild(flexo.$("p.bender--runtime-message",
+    "Nothing to run. Please specify a Bender component to load with the ", 
+    flexo.$code("href"), " URL parameter."));
+}
+
+    </script>
+  </body>
+</html>
