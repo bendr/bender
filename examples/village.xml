@@ -2,8 +2,8 @@
   <title>A village in SVG</title>
   <view>
     <svg:svg viewBox="0 0 200 200">
-      <use href="house.xml"/>
-      <use href="house.xml" x="120"/>
+      <use href="house.xml" roof-color="#444"/>
+      <use href="house.xml" x="120" height="120"/>
       <use href="house.xml" y="190"/>
       <use href="house.xml" x="120" y="190"/>
     </svg:svg>
