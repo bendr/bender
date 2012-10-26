@@ -87,28 +87,41 @@
   function traverse_graph(edges) {
     console.log(">>> traverse graph >>>");
     for (var i = 0; i < edges.length; ++i) {
-      console.log("  get:", edges[i]);
-      edges[i].action();
-      edges[i].watch.edges.forEach(function (edge) {
-        console.log("  set:", edge);
-        edge.action();
-        if (edge.hasOwnProperty("property")) {
-          if (edge.hasOwnProperty("value") && edge.use) {
-            edge.use.properties[edge.property] =
-              edge.value.format(edge.use.properties);
+      if (!edges[i].__active) {
+        edges[i].__active = true;
+        console.log("  get:", edges[i]);
+        edges[i].action();
+        edges[i].watch.edges.forEach(function (edge) {
+          console.log("  set:", edge);
+          edge.action();
+          if (edge.hasOwnProperty("value")) {
+            var val = edge.value.format(edge.use && edge.use.properties || {});
+            if (edge.use && edge.property) {
+              edge.use._set[edge.property](val);
+              A.push.apply(edges, edge.use.edges.filter(function (e) {
+                return e.property === edge.property && edges.indexOf(e) < 0;
+              }));
+            } else if (edge.view) {
+              if (edge.attr) {
+                if (edge.ns) {
+                  edge.view.setAttributeNS(ns, attr, val);
+                } else {
+                  edge.view.setAttribute(attr, val);
+                }
+              } else {
+                edge.view.textContent = val;
+              }
+            }
+          /*} else if (edge.hasOwnProperty("event")) {
+            // TODO use different event handler
+            flexo.notify(edge.use, edge.event);*/
           }
-          if (edge.hasOwnProperty("set")) {
-            A.push.apply(edges, edge.set.edges.filter(function (e) {
-              return e.property === edge.property._name &&
-                edges.indexOf(e) < 0;
-            }));
-          }
-        } else if (edge.hasOwnProperty("event")) {
-          // TODO use different event handler
-          flexo.notify(edge.use, edge.event);
-        }
-      });
+        });
+      }
     }
+    edges.forEach(function (edge) {
+      delete edge.__active;
+    });
     console.log("<<< done: traverse graph <<<");
   }
 
@@ -490,42 +503,34 @@
 
     unprop_attr: function (node, attr) {
       var pattern = attr.value;
-      return this.unprop_node(pattern, {
-        set: node,
-        attr: attr,
-        // TODO pass arguments to the action function
-        action: attr.namespaceURI && attr.namespaceURI !== node.namespaceURI ?
-          function () {
-            node.setAttributeNS(attr.namespaceURI, attr.localName,
-                pattern.format(this.properties));
-          }.bind(this) :
-          function () {
-            node.setAttribute(attr.localName, pattern.format(this.properties));
-          }.bind(this)
-      });
+      var edge = {
+        view: node,
+        attr: attr.localName,
+        value: pattern,
+        action: flexo.id
+      };
+      if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
+        edge.ns = attr.namespaceURI;
+      }
+      return this.unprop_node(pattern, edge);
     },
 
     unprop_text: function (node) {
       var pattern = node.textContent;
       return this.unprop_node(pattern, {
-        set: node,
-        text: pattern,
-        // TODO pass arguments here too
-        action: function () {
-          node.textContent = pattern.format(this.properties);
-        }.bind(this)
+        view: node,
+        value: pattern,
+        action: flexo.id
       });
     },
 
     unprop_value: function (property) {
       var pattern = property._value;
       return this.unprop_node(pattern, {
-        set: this,
-        property: property,
-        // TODO arguments again
-        action: function () {
-          this._set[property._name](pattern.format(this.properties));
-        }.bind(this)
+        use: this,
+        property: property._name,
+        value: pattern,
+        action: flexo.id
       });
     },
 
@@ -649,30 +654,61 @@
         // Create a watch node for this watch element
         var w = { edges: [] };
         watch._gets.forEach(function (get) {
-          var edge = { view: this.views[get._view], dom_event: get._dom_event,
-            action: get._action, watch: w };
-          this.edges.push(edge);
-          this.views[get._view].addEventListener(get._dom_event, function (e) {
-            traverse_graph([edge]);
-          }, false);
+          var edge = this.make_edge(get);
+          if (edge) {
+            edge.watch = w;
+            this.edges.push(edge);
+            console.log("+++ get edge", edge);
+            var h = function () {
+              if (!edge.__active) {
+                traverse_graph([edge]);
+              }
+            };
+            if (edge.dom_event) {
+              edge.view.addEventListener(edge.dom_event, h, false);
+            } else if (edge.event) {
+              flexo.listen(edge.view || edge.use, edge.event, h);
+            }
+          }
         }, this);
         watch._sets.forEach(function (set) {
-          var edge = { action: set._action };
-          if (set.hasOwnProperty("_use")) {
-            edge.use = this.uses[set._use];
+          var edge = this.make_edge(set);
+          if (edge) {
+            w.edges.push(edge);
+            console.log("+++ set edge", edge);
           }
-          ["event", "property", "value"].forEach(function (p) {
-            if (set.hasOwnProperty("_" + p)) {
-              edge[p] = set["_" + p];
-            }
-          });
-          w.edges.push(edge);
         }, this);
       }, this);
       flexo.notify(this, "@rendered");
       if (this.uses.$parent && this.uses.$parent.__pending_watches) {
         this.uses.$parent.render_watches();
       }
+    },
+
+    // Make an edge for a get or set element
+    make_edge: function (elem) {
+      var edge = { action: elem._action };
+      if (elem._view) {
+        edge.view = this.views[elem._view];
+        if (!edge.view) {
+          console.error("No view \"{0}\" for {1}"
+              .fmt(elem._view, elem.localName));
+          return;
+        }
+      } else if (elem._use) {
+        edge.use = this.uses[elem._use];
+        if (!edge.use) {
+          console.error("No instance \"{0}\" for {1}"
+              .fmt(elem._use, elem.localName));
+          return;
+        }
+      }
+      ["event", "dom_event", "property", "value"].forEach(function (p) {
+        if (elem.hasOwnProperty("_" + p)) {
+          edge[p] = elem["_" + p];
+        }
+      });
+      return edge;
     },
 
     // Unrender this instance, returning the next sibling of the last of the
