@@ -82,40 +82,67 @@
     return dest.insertBefore(p, ref);
   }
 
+  // Get the value for an edge
+  // TODO use type like properties
+  function edge_value(edge, instance) {
+    var val = undefined;
+    if (edge.hasOwnProperty("__value")) {
+      val = edge.__value;
+      delete edge.__value;
+    } else if (edge.hasOwnProperty("value")) {
+      val = edge.value;
+    } else if (edge.property) {
+      val = instance.properties[edge.property];
+    }
+    if (typeof val === "string") {
+      val = val.format(instance.properties);
+    }
+    return val;
+  }
+
+  function traverse_set_edge(get, set, edges, get_value) {
+    console.log("    set:", set);
+    var set_value = edge_value(set, get.instance) || get_value;
+    if (set.action) {
+      set_value = set.action.call(get.instance, get_value, set, set_value);
+    }
+    if (set.hasOwnProperty("value")) {
+      if (set.use && set.property) {
+        set.use._set[set.property](set_value);
+        A.push.apply(edges, set.use.edges.filter(function (e) {
+          return e.property === set.property && edges.indexOf(e) < 0;
+        }));
+      } else if (set.view) {
+        if (set.attr) {
+          if (set.ns) {
+            set.view.setAttributeNS(set.ns, set.attr, set_value);
+          } else {
+            set.view.setAttribute(set.attr, set_value);
+          }
+        } else {
+          set.view.textContent = set_value;
+        }
+      }
+    } else if (set.hasOwnProperty("event")) {
+      flexo.notify(set.use || set.view, set.event);
+    }
+  }
+
   // Traverse the graph of watches starting with an initial set of edges
   // TODO depth-first traversal of the graph?
   function traverse_graph(edges) {
     console.log(">>> traverse graph >>>");
     for (var i = 0; i < edges.length; ++i) {
-      if (!edges[i].__active) {
-        edges[i].__active = true;
-        console.log("  get:", edges[i]);
-        edges[i].action();
-        edges[i].watch.edges.forEach(function (edge) {
-          console.log("  set:", edge);
-          edge.action();
-          if (edge.hasOwnProperty("value")) {
-            var val = edge.value.format(edge.use && edge.use.properties || {});
-            if (edge.use && edge.property) {
-              edge.use._set[edge.property](val);
-              A.push.apply(edges, edge.use.edges.filter(function (e) {
-                return e.property === edge.property && edges.indexOf(e) < 0;
-              }));
-            } else if (edge.view) {
-              if (edge.attr) {
-                if (edge.ns) {
-                  edge.view.setAttributeNS(ns, attr, val);
-                } else {
-                  edge.view.setAttribute(attr, val);
-                }
-              } else {
-                edge.view.textContent = val;
-              }
-            }
-          /*} else if (edge.hasOwnProperty("event")) {
-            // TODO use different event handler
-            flexo.notify(edge.use, edge.event);*/
-          }
+      var get = edges[i];
+      if (!get.__active) {
+        get.__active = true;
+        console.log("  get:", get);
+        var get_value = edge_value(get, get.instance);
+        if (get.action) {
+          get_value = get.action.call(get.instance, get_value, get);
+        }
+        get.watch.edges.forEach(function (set) {
+          traverse_set_edge(get, set, edges, get_value);
         });
       }
     }
@@ -495,7 +522,7 @@
       if (props.length > 0) {
         var watch = { edges: [set_edge] };
         props.forEach(function (p) {
-          this.edges.push({ property: p, watch: watch, action: flexo.id });
+          this.edges.push({ property: p, watch: watch, instance: this });
         }, this);
         return true;
       }
@@ -503,12 +530,7 @@
 
     unprop_attr: function (node, attr) {
       var pattern = attr.value;
-      var edge = {
-        view: node,
-        attr: attr.localName,
-        value: pattern,
-        action: flexo.id
-      };
+      var edge = { view: node, attr: attr.localName, value: pattern };
       if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
         edge.ns = attr.namespaceURI;
       }
@@ -517,11 +539,7 @@
 
     unprop_text: function (node) {
       var pattern = node.textContent;
-      return this.unprop_node(pattern, {
-        view: node,
-        value: pattern,
-        action: flexo.id
-      });
+      return this.unprop_node(pattern, { view: node, value: pattern });
     },
 
     unprop_value: function (property) {
@@ -529,8 +547,7 @@
       return this.unprop_node(pattern, {
         use: this,
         property: property._name,
-        value: pattern,
-        action: flexo.id
+        value: pattern
       });
     },
 
@@ -657,10 +674,12 @@
           var edge = this.make_edge(get);
           if (edge) {
             edge.watch = w;
+            edge.instance = this;
             this.edges.push(edge);
             console.log("+++ get edge", edge);
-            var h = function () {
+            var h = function (e) {
               if (!edge.__active) {
+                edge.__value = e;
                 traverse_graph([edge]);
               }
             };
@@ -687,7 +706,7 @@
 
     // Make an edge for a get or set element
     make_edge: function (elem) {
-      var edge = { action: elem._action };
+      var edge = {};
       if (elem._view) {
         edge.view = this.views[elem._view];
         if (!edge.view) {
@@ -703,11 +722,12 @@
           return;
         }
       }
-      ["event", "dom_event", "property", "value"].forEach(function (p) {
-        if (elem.hasOwnProperty("_" + p)) {
-          edge[p] = elem["_" + p];
-        }
-      });
+      ["action", "event", "dom_event", "property", "value"]
+        .forEach(function (p) {
+          if (elem.hasOwnProperty("_" + p)) {
+            edge[p] = elem["_" + p];
+          }
+        });
       return edge;
     },
 
@@ -987,11 +1007,6 @@
     // <get> element, as a child of a <watch> element: create an edge from the
     // target node (DOM node or instance) to the parent watch
     get: {
-      _init: function () {
-        this._action = flexo.id;
-        return this;
-      },
-
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.nodeType === Node.TEXT_NODE ||
@@ -1028,10 +1043,10 @@
           } catch (e) {
             console.error("Could not compile action \"{0}\": {1}"
                 .fmt(this.textContent, e.message));
-            this._action = flexo.id;
+            delete this._action;
           }
         } else {
-          this._action = flexo.id;
+          delete this._action;
         }
       }
     },
@@ -1131,11 +1146,6 @@
 
     // <set> element (child of a <watch>)
     set: {
-      _init: function () {
-        this._action = flexo.id;
-        return this;
-      },
-
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
         if (ch.nodeType === Node.TEXT_NODE ||
@@ -1168,10 +1178,10 @@
           } catch (e) {
             console.error("Could not compile action \"{0}\": {1}"
                 .fmt(this.textContent, e.message));
-            this._action = flexo.id;
+            delete this._action;
           }
         } else {
-          this._action = flexo.id;
+          delete this._action;
         }
       }
     },
