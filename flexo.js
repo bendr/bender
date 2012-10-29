@@ -588,4 +588,35 @@
   };
 
 
+  // SVG
+
+  // Get an SVG point for the event in the context of an SVG element (or the
+  // closest svg element by default)
+  flexo.event_svg_point = function(e, svg) {
+    if (!svg) {
+      svg = flexo.find_svg(e.target);
+    }
+    if (!svg) {
+      return;
+    }
+    var p = svg.createSVGPoint();
+    p.x = e.targetTouches ? e.targetTouches[0].clientX : e.clientX;
+    p.y = e.targetTouches ? e.targetTouches[0].clientY : e.clientY;
+    try {
+      return p.matrixTransform(svg.getScreenCTM().inverse());
+    } catch(e) {}
+  };
+
+  // Find the closest <svg> ancestor for a given element
+  flexo.find_svg = function(elem) {
+    if (!elem) {
+      return;
+    }
+    if (elem.correspondingElement) {
+      elem = elem.correspondingElement;
+    }
+    return elem.namespaceURI === flexo.ns.svg &&
+      elem.localName === "svg" ? elem : flexo.find_svg(elem.parentNode);
+  };
+
 }(typeof exports === "object" ? exports : window.flexo = {}));

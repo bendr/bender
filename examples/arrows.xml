@@ -1,0 +1,47 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+
+  <view>
+    <svg:svg viewBox="0 0 200 200">
+      <svg:g>
+        <use href="#arrow" x="0" y="0" size="100"/>
+        <use href="#arrow" x="100" y="0" size="100"/>
+        <use href="#arrow" x="0" y="100" size="100"/>
+        <use href="#arrow" x="100" y="100" size="100"/>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+  <component id="arrow">
+    <property name="x" type="number"/>
+    <property name="y" type="number"/>
+    <property name="a" type="dynamic" value="flexo.random_int(360)"/>
+    <property name="size" type="number"/>
+    <property name="color" type="dynamic"
+      value="flexo.hsv_to_hex({a} * Math.PI / 180, 1, 1)"/>
+    <property name="m" type="dynamic" value="{size} * 0.1"/>
+    <property name="c" type="dynamic" value="{size} * 0.5"/>
+    <property name="l" type="dynamic" value="{size} * 0.7"/>
+    <property name="w" type="dynamic" value="{size} * 0.65"/>
+    <property name="h" type="dynamic" value="{size} * 0.125"/>
+    <view>
+      <svg:g svg:id="arrow" transform="translate({x}, {y}) rotate({a}, {c}, {c})">
+        <svg:line x1="{m}" y1="{c}" x2="{l}" y2="{c}" stroke="{color}"
+          stroke-width="{{{size} / 20}}" stroke-linecap="round"/>
+        <svg:path d="M{{{size}-{m}}},{c} L{w},{{{c}-{h}}} L{w},{{{c}+{h}}} Z"
+          fill="{color}"/>
+      </svg:g>
+    </view>
+    <watch>
+      <get view="$document" dom-event="mousemove"/>
+      <set use="$self" property="a">
+        var p = flexo.event_svg_point(value);
+        if (p) {
+          return Math.atan2(p.y - this.properties.y - this.properties.size / 2,
+            p.x - this.properties.x - this.properties.size / 2) * 180 / Math.PI;
+        }
+      </set>
+    </watch>
+  </component>
+
+</app>

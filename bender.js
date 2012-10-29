@@ -102,11 +102,11 @@
 
   function traverse_set_edge(get, set, edges, get_value) {
     console.log("    set:", set);
-    var set_value = edge_value(set, get.instance) || get_value;
-    if (set.action) {
-      set_value = set.action.call(get.instance, get_value, set, set_value);
-    }
-    if (set.hasOwnProperty("value")) {
+    var set_value = typeof set.action === "function" ?
+      set.action.call(get.instance, get_value, get, set) :
+      edge_value(set, get.instance) || get_value;
+    console.log("    ... value =", set_value);
+    if (set_value !== undefined) {
       if (set.use && set.property) {
         set.use._set[set.property](set_value);
         A.push.apply(edges, set.use.edges.filter(function (e) {
@@ -1042,7 +1042,7 @@
       _update_action: function () {
         if (/\S/.test(this.textContent)) {
           try {
-            this._action = new Function("value", this.textContent).bind(this);
+            this._action = new Function("value", "get", this.textContent);
           } catch (e) {
             console.error("Could not compile action \"{0}\": {1}"
                 .fmt(this.textContent, e.message));
@@ -1177,7 +1177,7 @@
       _update_action: function () {
         if (/\S/.test(this.textContent)) {
           try {
-            this._action = new Function("value", this.textContent).bind(this);
+            this._action = new Function("value", "get", "set", this.textContent);
           } catch (e) {
             console.error("Could not compile action \"{0}\": {1}"
                 .fmt(this.textContent, e.message));
