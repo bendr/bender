@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | Hello, world!</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="../example.css">
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
+  </head>
+  <body>
+    <script src="../example.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var main = context.appendChild(context.$("component",
+  context.$("property", { name: "input" }),
+  context.$("view",
+    context.$("html:p",
+      context.$("html:input", { type: "text", id: "input" }),
+      " = \"{input}\"")),
+  context.$("watch",
+    context.$("get", { view: "input", "dom-event": "change" },
+      "return get.view.value"),
+    context.$("set", { use: "$self", property: "input" }))));
+var use = context.appendChild(context.$("use"));
+use._component = main;
+
+    </script>
+  </body>
+</html>
