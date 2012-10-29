@@ -1,0 +1,8 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <view>
+    <html:p>
+      Replicate me!
+      <replicate from="1" to="4"/>
+    </html:p>
+  </view>
+</app>

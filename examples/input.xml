@@ -1,0 +1,19 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <property name="input" value="initial value"/>
+  <view>
+    <html:p>
+      Input: <html:input placeholder="{input}" type="text" id="input"/>
+    </html:p>
+    <html:p>
+      Output: <html:span style="background-color:#08f;color:white" id="output"/>
+      ({input})
+    </html:p>
+  </view>
+  <watch>
+    <get view="input" dom-event="change">
+      return get.view.value;
+    </get>
+    <set view="output"/>
+    <set use="$self" property="input"/>
+  </watch>
+</app>

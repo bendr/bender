@@ -460,8 +460,8 @@
     // asynchronously.) Return the last rendered element (text nodes are not
     // returned.)
     render_children: function (node, dest, ref, unique) {
-      var ch, d, r;
-      for (ch = node.firstChild; ch; ch = ch.nextSibling) {
+      var r;
+      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === Node.ELEMENT_NODE) {
           if (ch.namespaceURI === bender.NS) {
             if (ch.localName === "use") {
@@ -487,6 +487,8 @@
                 r = this.render_children(ch, dest, ref, unique);
               }
               this.render_use_params(r, ch);
+            } else if (ch.localName === "replicate") {
+              // <replicate> will replicate the current element
             } else {
               console.warn("Unexpected Bender element in view: {0}"
                   .fmt(ch.localName));
@@ -1114,6 +1116,25 @@
         type = type.trim().toLowerCase();
         if (type in PROPERTY_TYPES) {
           this._type = type;
+        }
+      }
+    },
+
+    replicate: {
+      _init: function () {
+        this._from = 0;
+        this._to = 0;
+        this._by = 1;
+        return this;
+      },
+
+      setAttribute: function (name, value) {
+        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+        if (name === "from" || name === "to" || name === "by") {
+          var v = parseFloat(value);
+          if (!isNaN(v)) {
+            this["_" + name] = v;
+          }
         }
       }
     },

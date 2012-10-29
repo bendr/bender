@@ -1,5 +1,9 @@
-<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg"
-  xmlns:xlink="http://www.w3.org/1999/xlink">
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
+
+  <!-- TODO -->
+  <!-- size is a parameter of the app, yet it is visible (throug lexical scope)
+       in the arrow component: therefore all arrows have the same size. -->
+  <!-- replicate the arrows in 2 dimensions -->
 
   <view>
     <svg:svg viewBox="0 0 200 200">
@@ -12,6 +16,7 @@
     </svg:svg>
   </view>
 
+  <!-- An individual arrow that follows the mouse pointer -->
   <component id="arrow">
     <property name="x" type="number"/>
     <property name="y" type="number"/>
@@ -20,8 +25,8 @@
     <property name="color" type="dynamic"
       value="flexo.hsv_to_hex({a} * Math.PI / 180, 1, 1)"/>
     <view>
-      <svg:g svg:id="arrow"
-        transform="translate({x}, {y}) scale({{{size} / 20}}) rotate({a}, 10, 10)">
+      <svg:g transform="translate({x}, {y}) scale({{{size} / 20}})
+        rotate({a}, 10, 10)">
         <svg:line x1="2" y1="10" x2="14" y2="10" stroke="{color}"
           stroke-linecap="round"/>
         <svg:path d="M 18 10 L 13 7.5 L 13 12.5 z" fill="{color}"/>
