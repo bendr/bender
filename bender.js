@@ -92,10 +92,10 @@
     } else if (edge.hasOwnProperty("value")) {
       val = edge.value;
     } else if (edge.property) {
-      val = instance.properties[edge.property];
+      val = instance.get_property(edge.property);
     }
     if (typeof val === "string") {
-      val = val.format(instance.properties);
+      val = instance.format(val);
     }
     return val;
   }
@@ -393,14 +393,25 @@
       });
     },
 
-    // Find the nearest instance in the ancestor list that has the given
-    // property, if any
-    find_instance_with_property: function (name) {
+    format: function (string) {
+      return string.replace(/\{([^{}]+)\}/g, function (_, p) {
+        var v = this.get_property(p);
+        return v == null ? "" : v;
+      }.bind(this)).replace(/\{\{([^{}]*)\}\}/g, function (_, p) {
+        try {
+          var v = new Function("return " + p).call(this);
+          return v == null ? "" : v;
+        } catch (e) {
+          return "";
+        }
+      }.bind(this));
+    },
+
+    get_property: function (name) {
       if (this.properties.hasOwnProperty(name)) {
-        return this;
-      }
-      if (this.uses.$parent) {
-        return this.uses.$parent.find_instance_with_property(name);
+        return this.properties[name];
+      } else if (this.uses.$parent) {
+        return this.uses.$parent.get_property(name);
       }
     },
 
@@ -514,9 +525,7 @@
         if (matches) {
           matches.forEach(function (m) {
             m = m.substr(1, m.length - 2);
-            if (!props.hasOwnProperty(m) && this.properties.hasOwnProperty(m)) {
-              props[m] = true;
-            }
+            props[m] = true;
           }, this);
         }
       }

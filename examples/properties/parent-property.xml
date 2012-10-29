@@ -1,0 +1,19 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <property name="parent-property" value="A"/>
+
+  <view>
+    <use href="#child" own-property="1"/>
+    <use href="#child" own-property="2"/>
+  </view>
+
+  <component id="child">
+    <property name="own-property"/>
+    <view>
+      <html:p>
+        Parent property: "{parent-property}", own property: "{own-property}"
+      </html:p>
+    </view>
+  </component>
+
+</app>

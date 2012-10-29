@@ -1,17 +1,17 @@
 <app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg">
 
   <!-- TODO -->
-  <!-- size is a parameter of the app, yet it is visible (throug lexical scope)
-       in the arrow component: therefore all arrows have the same size. -->
   <!-- replicate the arrows in 2 dimensions -->
+
+  <property name="size" type="number" value="100"/>
 
   <view>
     <svg:svg viewBox="0 0 200 200">
       <svg:g>
-        <use href="#arrow" x="0" y="0" size="100"/>
-        <use href="#arrow" x="100" y="0" size="100"/>
-        <use href="#arrow" x="0" y="100" size="100"/>
-        <use href="#arrow" x="100" y="100" size="100"/>
+        <use href="#arrow" x="0" y="0"/>
+        <use href="#arrow" x="100" y="0"/>
+        <use href="#arrow" x="0" y="100"/>
+        <use href="#arrow" x="100" y="100"/>
       </svg:g>
     </svg:svg>
   </view>
@@ -33,13 +33,12 @@
       </svg:g>
     </view>
     <watch>
-      <get view="$document" dom-event="mousemove"/>
+      <get view="$document" dom-event="mousemove">
+        return flexo.event_svg_point(value);
+      </get>
       <set use="$self" property="a">
-        var p = flexo.event_svg_point(value);
-        if (p) {
-          return Math.atan2(p.y - this.properties.y - this.properties.size / 2,
-            p.x - this.properties.x - this.properties.size / 2) * 180 / Math.PI;
-        }
+        return Math.atan2(value.y - this.properties.y - this.properties.size / 2,
+          value.x - this.properties.x - this.properties.size / 2) * 180 / Math.PI;
       </set>
     </watch>
   </component>
