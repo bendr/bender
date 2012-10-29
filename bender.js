@@ -124,7 +124,10 @@
         }
       }
     } else if (set.hasOwnProperty("event")) {
-      flexo.notify(set.use || set.view, set.event);
+      if (get_value instanceof window.Event) {
+        get_value = { dom_event: get_value };
+      }
+      flexo.notify(set.use || set.view, set.event, get_value);
     }
   }
 
