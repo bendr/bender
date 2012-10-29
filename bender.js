@@ -123,7 +123,8 @@
           set.view.textContent = set_value;
         }
       }
-    } else if (set.hasOwnProperty("event")) {
+    }
+    if (set.hasOwnProperty("event")) {
       if (get_value instanceof window.Event) {
         get_value = { dom_event: get_value };
       }

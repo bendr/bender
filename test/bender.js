@@ -183,7 +183,7 @@
             context.$("html:div", "Click me")),
           context.$("watch",
             context.$("get", { view: "$root", "dom-event": "click" },
-              "flexo.notify(this.ownerDocument, '@done')"))));
+              "flexo.notify(this.use.ownerDocument, '@done')"))));
       var use = context.appendChild(context.$("use"));
       use._component = main;
       flexo.listen(context.ownerDocument, "@done", function () { done(); });
