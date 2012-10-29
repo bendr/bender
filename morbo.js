@@ -509,7 +509,8 @@
     seq.add(function () {
       var server = exports.run(args.ip, args.port);
       server.on("error", function (e) {
-        console.error("HTTP Server error: {0}".fmt(e.message));
+        console.error("http://{0}:{1} error: {2}".fmt(args.ip || "localhost",
+            args.port, e.message));
         process.exit(1);
       });
     });
