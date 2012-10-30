@@ -480,14 +480,18 @@
               r = this.render_use(ch, dest, ref);
             } else if (ch.localName === "target") {
               // `target` ignores ref
+              var target = ch._find_target(dest);
+              if (!target) {
+                console.error("No target for", ch);
+                return;
+              }
               if (ch._unique) {
                 if (!ch._rendered) {
-                  r = this.render_children(ch, ch._find_target(dest), undefined,
-                      true);
+                  r = this.render_children(ch, target, undefined, true);
                   ch._rendered = true;
                 }
               } else {
-                r = this.render_children(ch, ch._find_target(dest));
+                r = this.render_children(ch, target);
               }
             } else if (ch.localName === "content") {
               // <content> renders either the contents of the <use> node or its
