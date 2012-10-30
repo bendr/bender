@@ -515,8 +515,8 @@
                 r = this.render_children(ch, dest, ref, unique);
               }
               this.render_use_params(r, ch);
-            } else if (ch.localName === "replicate") {
-              // <replicate> will replicate the current element
+            } else if (ch.localName === "attribute") {
+              this.render_attribute(ch, dest);
             } else {
               console.warn("Unexpected Bender element in view: {0}"
                   .fmt(ch.localName));
@@ -630,6 +630,17 @@
       if (dest === this.target) {
         this.rendered.push(d);
       }
+    },
+
+    // Render an attribute element (as an attribute, of course)
+    render_attribute: function (node, dest) {
+      var name = node.getAttribute("name");
+      if (!name) {
+        return;
+      }
+      var value = node.getAttribute("value") || "";
+      // unprop_attr
+      dest.setAttribute(name.trim(), this.format(value));
     },
 
     // Render a use node, return either the instance or the promise of a future
