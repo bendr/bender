@@ -36,6 +36,7 @@
           assert.strictEqual("quux = ", "quux = {quux}".format(x));
         });
       it("evaluates code in {{ ... }} with `obj` as `this`, automatically adding a return statement", function () {
+        assert.strictEqual("foo = {{ 'bar' }}".format(), "foo = bar");
         assert.strictEqual("x * y = {{{x} * {y}}}".format({ x: 6, y: 7 }),
           "x * y = 42");
         assert.strictEqual("x * y = {{this.mul({x}, {y})}}"

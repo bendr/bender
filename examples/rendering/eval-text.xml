@@ -1,0 +1,5 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <view>
+    <html:p>{{ "Hello, world!" }}</html:p>
+  </view>
+</app>

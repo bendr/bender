@@ -1,0 +1,10 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>SVG runtime test</title>
+  <view>
+    <svg:rect x="100" y="200" width="300" height="400"/>
+    <target q="head">
+      <html:link rel="stylesheet" href="{{ this.absolute_uri('style.css') }}"/>
+    </target>
+  </view>
+</app>

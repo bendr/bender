@@ -70,6 +70,26 @@
       });
     });
 
+    it("Evaluate {{ }} expressions in text node", function (done) {
+      var context = bender.create_context();
+      var main = context.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p", "{{ 'Hello, world!' }}"))));
+      var use = context.appendChild(context.$("use"));
+      use._component = main;
+      flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+        console.log("Refreshed", e.instance);
+        if (e.instance.component === main) {
+          setTimeout(function () {
+            assert.strictEqual(e.instance.views.$root.textContent,
+              "Hello, world!");
+            done();
+          }, 0);
+        }
+      });
+    });
+
     it("Load several components in the same component", function (done) {
       var context = bender.create_context(flexo.$div());
       var a = context.$("use", { href: "../examples/rendering/a.xml" });

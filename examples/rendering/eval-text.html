@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender | Example | Rendering | Evaluate text</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="../example.css">
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
+  </head>
+  <body>
+    <script src="../example.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var main = context.appendChild(
+  context.$("component",
+    context.$("view",
+      context.$("html:p", "{{ 'Hello, world!' }}"))));
+var use = context.appendChild(context.$("use"));
+use._component = main;
+flexo.listen(context.ownerDocument, "@refreshed", function (e) {
+  console.log("Refreshed", e.instance);
+  if (e.instance.component === main) {
+    setTimeout(function () {
+      example.ok(e.instance.views.$root.textContent === "Hello, world!");
+    }, 0);
+  }
+});
+
+    </script>
+  </body>
+</html>

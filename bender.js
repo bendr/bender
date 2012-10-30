@@ -393,10 +393,22 @@
       });
     },
 
+    // Return an absolute URI with this instance's component as the base for the
+    // given URI
+    absolute_uri: function (uri) {
+      return flexo.absolute_uri(this.component._uri, uri);
+    },
+
+    // Same as flexo's format with the ability to get ancestor properties and
+    // not just local properties. Also, code is executed with this instance as
+    // `this`
     format: function (string) {
-      return string.replace(/\{([^{}]+)\}/g, function (_, p) {
+      return string.replace(/(.?)\{([^{}]+)\}(.?)/g, function (m, o, p, c) {
+        if (o === "{" && c === "}") {
+          return m;
+        }
         var v = this.get_property(p);
-        return v == null ? "" : v;
+        return o + (v == null ? "" : v) + c;
       }.bind(this)).replace(/\{\{([^{}]*)\}\}/g, function (_, p) {
         try {
           var v = new Function("return " + p).call(this);
@@ -525,11 +537,13 @@
     extract_props: function (pattern) {
       var props = {};
       if (typeof pattern === "string") {
-        var matches = pattern.match(/\{[^{}]+\}/g);
+        var matches = pattern.match(/.?\{[^{}]+\}.?/g);
         if (matches) {
           matches.forEach(function (m) {
-            m = m.substr(1, m.length - 2);
-            props[m] = true;
+            if (/^\{\{.+\}\}$/.test(m)) {
+              return;
+            }
+            props[m.replace(/^.?\{/, "").replace(/\}.?$/, "")] = true;
           }, this);
         }
       }
@@ -589,11 +603,12 @@
         } else if (attr.namespaceURI &&
             attr.namespaceURI !== node.namespaceURI) {
           if (!this.unprop_attr(d, attr)) {
-            d.setAttributeNS(attr.namespaceURI, attr.localName, val);
+            d.setAttributeNS(attr.namespaceURI, attr.localName,
+              this.format(val));
           }
         } else {
           if (!this.unprop_attr(d, attr)) {
-            d.setAttribute(attr.localName, val);
+            d.setAttribute(attr.localName, this.format(val));
           }
         }
       }, this);
@@ -608,7 +623,9 @@
     // Render a text node (or CDATA node)
     render_text: function (node, dest, ref) {
       var d = dest.ownerDocument.createTextNode(node.textContent);
-      this.unprop_text(d);
+      if (!this.unprop_text(d)) {
+        d.textContent = this.format(node.textContent);
+      }
       dest.insertBefore(d, ref);
       if (dest === this.target) {
         this.rendered.push(d);
@@ -1231,8 +1248,8 @@
     target: {
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "q" || name === "ref") {
-          this["_" + name] = value.trim();
+        if (name === "q") {
+          this._q = value.trim();
           this._refresh();
         } else if (name === "unique") {
           this._unique = flexo.is_true(value);
@@ -1243,9 +1260,6 @@
       _find_target: function (dest) {
         if (this._q) {
           return dest.ownerDocument.querySelector(this._q);
-        }
-        if (this._ref) {
-          return dest.ownerDocument.getElementById(this._ref);
         }
         return dest;
       }
