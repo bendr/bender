@@ -82,36 +82,47 @@
     return dest.insertBefore(p, ref);
   }
 
-  // Get the value for an edge
+  // Get the value for an edge given an instance and a default value (may be
+  // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
+  // edge, which ignores the `property` property. Set the __value placeholder on
+  // the edge to provide a value (it is then deleted); otherwise try the `value`
+  // property, then the `property` property. String values are interpolated from
+  // the instance properties.
   // TODO use type like properties
-  function edge_value(edge, instance) {
-    var val = undefined;
+  function edge_value(edge, instance, set, val) {
     if (edge.hasOwnProperty("__value")) {
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
       val = edge.value;
-    } else if (edge.property) {
+    } else if (!set && edge.property) {
       val = instance.get_property(edge.property);
     }
+    console.log("    ... value =", val);
     if (typeof val === "string") {
       val = instance.format(val);
+      console.log("    ... after interpolation =", val);
+    }
+    if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
+      val = edge.action.call(instance, val, edge);
+      console.log("    ... after action =", val);
     }
     return val;
   }
 
-  function traverse_set_edge(get, set, edges, get_value) {
-    console.log("    set:", set);
-    var set_value = typeof set.action === "function" ?
-      set.action.call(get.instance, get_value, get, set) :
-      edge_value(set, get.instance) || get_value;
-    console.log("    ... value =", set_value);
+  // Follow a set edge from a get edge, and push all corresponding get edges for
+  // the rest of the traversal
+  function follow_set_edge(get, set, edges, get_value) {
+    console.log("  set:", set);
+    var set_value = edge_value(set, get.instance, true, get_value);
     if (set_value !== undefined) {
-      if (set.use && set.property) {
-        set.use._set[set.property](set_value);
-        A.push.apply(edges, set.use.edges.filter(function (e) {
-          return e.property === set.property && edges.indexOf(e) < 0;
-        }));
+      if (set.use) {
+        if (set.property) {
+          set.use._set[set.property](set_value);
+          A.push.apply(edges, set.use.edges.filter(function (e) {
+            return e.property === set.property && edges.indexOf(e) < 0;
+          }));
+        }
       } else if (set.view) {
         if (set.attr) {
           if (set.ns) {
@@ -119,6 +130,8 @@
           } else {
             set.view.setAttribute(set.attr, set_value);
           }
+        } else if (set.property) {
+          set.view[set.property] = set_value;
         } else {
           set.view.textContent = set_value;
         }
@@ -142,11 +155,8 @@
         get.__active = true;
         console.log("  get:", get);
         var get_value = edge_value(get, get.instance);
-        if (get.action) {
-          get_value = get.action.call(get.instance, get_value, get);
-        }
         get.watch.edges.forEach(function (set) {
-          traverse_set_edge(get, set, edges, get_value);
+          follow_set_edge(get, set, edges, get_value);
         });
       }
     }

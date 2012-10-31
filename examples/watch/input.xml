@@ -2,7 +2,7 @@
   <property name="input"/>
   <view>
     <html:p>
-      <html:input type="text" id="input"/> = {input}
+      <html:input type="text" id="input"/> = <html:span id="output"/>
     </html:p>
   </view>
   <watch>
@@ -10,5 +10,9 @@
       return get.view.value;
     </get>
     <set use="$self" property="input"/>
+  </watch>
+  <watch>
+    <get use="$self" property="input"/>
+    <set view="output"/>
   </watch>
 </app>
