@@ -729,22 +729,34 @@
         var w = { edges: [] };
         watch._gets.forEach(function (get) {
           var edge = this.make_edge(get);
-          if (edge) {
-            edge.watch = w;
-            edge.instance = this;
-            this.edges.push(edge);
-            console.log("+++ get edge", edge);
-            var h = function (e) {
-              if (!edge.__active) {
-                edge.__value = e;
-                traverse_graph([edge]);
-              }
-            };
-            if (edge.dom_event) {
-              edge.view.addEventListener(edge.dom_event, h, false);
-            } else if (edge.event) {
-              flexo.listen(edge.view || edge.use, edge.event, h);
+          if (!edge) {
+            return;
+          }
+          if (edge.view && edge.property) {
+            console.error("Get edge cannot watch the property of a view for",
+              get);
+            return;
+          }
+          if (edge.dom_event && !edge.view) {
+            console.error("Get edge has no view for DOM event", get);
+            return;
+          }
+          edge.watch = w;
+          edge.instance = this;
+          (edge.use || this).edges.push(edge);
+          console.log("+++ get edge", edge);
+          // Set the event listeners to start graph traversal. We don't need to
+          // worry about properties because they initiate traversal on their own
+          var h = function (e) {
+            if (!edge.__active) {
+              edge.__value = e;
+              traverse_graph([edge]);
             }
+          };
+          if (edge.dom_event) {
+            edge.view.addEventListener(edge.dom_event, h, false);
+          } else if (edge.event) {
+            flexo.listen(edge.view || edge.use, edge.event, h);
           }
         }, this);
         watch._sets.forEach(function (set) {
@@ -771,7 +783,8 @@
               .fmt(elem._view, elem.localName));
           return;
         }
-      } else if (elem._use) {
+      }
+      if (elem._use) {
         edge.use = this.uses[elem._use];
         if (!edge.use) {
           console.error("No instance \"{0}\" for {1}"
