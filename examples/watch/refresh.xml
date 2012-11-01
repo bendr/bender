@@ -1,0 +1,10 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <p xmlns="http://www.w3.org/1999/xhtml">Hello, world!</p>
+  </view>
+  <watch>
+    <get use="$self" event="@refreshed">
+      console.log(this.views.$root.textContent);
+    </get>
+  </watch>
+</component>

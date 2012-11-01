@@ -1,0 +1,56 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Slate</title>
+
+  <property name="bgcolor" value="#333"/>
+  <property name="stroke" value="#fef9f0"/>
+  <property name="width" value="320"/>
+  <property name="height" value="480"/>
+  <property name="down" type="boolean" value="false"/>
+
+  <view>
+    <html:canvas width="{width}" height="{height}"/>
+  </view>
+
+  <watch>
+    <get use="$self" event="@refreshed">
+      this._context = this.views.$root.getContext("2d");
+      this._context.fillStyle = this.properties.bgcolor;
+      this._context.fillRect(0, 0, this.views.$root.width,
+        this.views.$root.height);
+      this._context.strokeStyle = this.properties.stroke;
+      this._context.beginPath();
+    </get>
+  </watch>
+
+  <watch>
+    <get view="$root" dom-event="mousedown"/>
+    <get view="$root" dom-event="touchstart"/>
+    <set>
+      value.preventDefault();
+      var p = flexo.event_offset_pos(value, get.view);
+      this._context.moveTo(p.x, p.y);
+    </set>
+    <set use="$self" property="down" value="true"/>
+  </watch>
+
+  <watch>
+    <get view="$document" dom-event="mousemove"/>
+    <get view="$document" dom-event="touchmove"/>
+    <set>
+      if (this.properties.down) {
+        var p = flexo.event_offset_pos(value, this.views.$root);
+        this._context.fillRect(0, 0, this.views.$root.width,
+          this.views.$root.height);
+        this._context.lineTo(p.x, p.y);
+        this._context.stroke();
+      }
+    </set>
+  </watch>
+
+  <watch>
+    <get view="$document" dom-event="mouseup"/>
+    <get view="$document" dom-event="touchend"/>
+    <set use="$self" property="down" value="false"/>
+  </watch>
+
+</app>

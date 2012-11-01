@@ -61,21 +61,19 @@
       use._component = component;
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === context) {
-          setTimeout(function () {
-            assert.strictEqual(use._instance.views.$root,
-              use._instance.views.root);
-            done();
-          }, 0);
+          assert.strictEqual(use._instance.views.$root,
+            use._instance.views.root);
+          done();
         }
       });
     });
 
-    it("Evaluate {{ }} expressions in text node", function (done) {
+    it("Evaluate expressions in text node", function (done) {
       var context = bender.create_context();
       var main = context.appendChild(
         context.$("component",
           context.$("view",
-            context.$("html:p", "{{ 'Hello, world!' }}"))));
+            context.$("html:p", "{ 'Hello, world!' }"))));
       var use = context.appendChild(context.$("use"));
       use._component = main;
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {

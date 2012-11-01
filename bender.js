@@ -237,6 +237,7 @@
     // TODO defer notifications? They may come too early
     context._refreshed_instance = function (instance) {
       flexo.notify(this, "@refreshed", { instance: instance });
+      flexo.notify(instance, "@refreshed");
     };
 
     // Method called by instances to request a refresh
@@ -413,20 +414,21 @@
     // not just local properties. Also, code is executed with this instance as
     // `this`
     format: function (string) {
-      return string.replace(/(.?)\{([^{}]+)\}(.?)/g, function (m, o, p, c) {
-        if (o === "{" && c === "}") {
-          return m;
-        }
-        var v = this.get_property(p);
-        return o + (v == null ? "" : v) + c;
-      }.bind(this)).replace(/\{\{([^{}]*)\}\}/g, function (_, p) {
-        try {
-          var v = new Function("return " + p).call(this);
-          return v == null ? "" : v;
-        } catch (e) {
-          return "";
-        }
-      }.bind(this));
+      while (/\{([^{}])+\}/.test(string)) {
+        string = string.replace(/\{([^{}]+)\}/g, function (_, p) {
+          if (this.properties.hasOwnProperty(p)) {
+            return this.properties[p] == null ? "" : this.properties[p];
+          } else {
+            try {
+              var v = new Function("return " + p).call(this);
+              return v == null ? "" : v;
+            } catch (e) {
+              return "";
+            }
+          }
+        }.bind(this));
+      }
+      return string;
     },
 
     get_property: function (name) {
@@ -439,7 +441,6 @@
 
     // Unrender, then render the view when the target is an Element.
     refresh_instance: function () {
-      this.component.ownerDocument._refreshed_instance(this);
       var last = this.unrender();
       if (flexo.root(this.use) !== this.use.ownerDocument) {
         return;
@@ -483,6 +484,7 @@
             delete this.__init_properties;
           }
           delete this.component.__instance;
+          this.component.ownerDocument._refreshed_instance(this);
         }
       }
     },
