@@ -35,13 +35,26 @@
           assert.strictEqual("baz = ", "baz = {baz}".format(x));
           assert.strictEqual("quux = ", "quux = {quux}".format(x));
         });
-      it("evaluates code in {{ ... }} with `obj` as `this`, automatically adding a return statement", function () {
-        assert.strictEqual("foo = {{ 'bar' }}".format(), "foo = bar");
-        assert.strictEqual("x * y = {{{x} * {y}}}".format({ x: 6, y: 7 }),
-          "x * y = 42");
-        assert.strictEqual("x * y = {{this.mul({x}, {y})}}"
-          .format({ x: 6, y: 7, mul: function (a, b) { return a * b; } }),
-          "x * y = 42");
+    });
+
+    describe("flexo.interpolate(string, object)", function () {
+      var x = { foo: 1, bar: 2, fum: undefined, baz: null };
+      it("replaces occurrences of {<property>} in `string` with object.<property>", function () {
+        assert.strictEqual("foo = 1, bar = 2",
+          flexo.interpolate("foo = {foo}, bar = {bar}", x));
+      });
+      it("outputs an empty string for null, undefined or missing values", function () {
+        assert.strictEqual("fum = ", flexo.interpolate("fum = {fum}", x));
+        assert.strictEqual("baz = ", flexo.interpolate("baz = {baz}", x));
+        assert.strictEqual("quux = ", flexo.interpolate("quux = {quux}", x));
+      });
+      it("evaluates code in {{ ... }} with `object` as `this`, automatically adding a return statement", function () {
+        assert.strictEqual("foo = bar", flexo.interpolate("foo = {{ 'bar' }}"));
+        assert.strictEqual("x * y = 42",
+          flexo.interpolate("x * y = {{{x} * {y}}}", { x: 6, y: 7 }));
+        assert.strictEqual("x * y = 42",
+          "x * y = {{this.mul({x}, {y})}}".format({ x: 6, y: 7,
+            mul: function (a, b) { return a * b; } }));
       });
     });
 
