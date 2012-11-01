@@ -52,15 +52,15 @@
 
     it("Set view.$root to the first rendered element in the view", function (done) {
       var context = bender.create_context(flexo.$div());
-      var component = context.appendChild(
+      var main = context.appendChild(
         context.$("component",
           context.$("view",
             context.$("html:p#root", "Root ", context.$("html:em", "element")),
             context.$("html:p", "Not the root element"))));
       var use = context.appendChild(context.$("use"));
-      use._component = component;
+      use._component = main;
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        if (e.instance.component === context) {
+        if (e.instance.component === main) {
           assert.strictEqual(use._instance.views.$root,
             use._instance.views.root);
           done();
@@ -69,7 +69,7 @@
     });
 
     it("Evaluate expressions in text node", function (done) {
-      var context = bender.create_context();
+      var context = bender.create_context(flexo.$div());
       var main = context.appendChild(
         context.$("component",
           context.$("view",
@@ -77,13 +77,10 @@
       var use = context.appendChild(context.$("use"));
       use._component = main;
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
-        console.log("Refreshed", e.instance);
         if (e.instance.component === main) {
-          setTimeout(function () {
-            assert.strictEqual(e.instance.views.$root.textContent,
-              "Hello, world!");
-            done();
-          }, 0);
+          assert.strictEqual(e.instance.views.$root.textContent,
+            "Hello, world!");
+          done();
         }
       });
     });
@@ -581,7 +578,7 @@
       var component = context.appendChild(
         context.$("component", { id: "c" },
           context.$("property", { name: "n", type: "number", value: "2012" }),
-          context.$("view", "n = {{flexo.to_roman({n})}} ({n})")));
+          context.$("view", "n = { flexo.to_roman({n}) } ({n})")));
       var u = context.appendChild(context.$("use", { href: "#c" }));
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === component) {

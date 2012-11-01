@@ -38,7 +38,7 @@
       it("allows escaping of \\, { and } with \\", function () {
         assert.strictEqual("{foo} = 1", "\\{foo} = {foo}".format(x));
         assert.strictEqual("{foo} = \\1", "\\{foo} = \\\\{foo}".format(x));
-        assert.strictEqual("{foo} = 1", "{foo\\} = {foo}".format(x));
+        assert.strictEqual("...{{{foo} = 1", "...{{{foo\\} = {foo}".format(x));
       });
       it("evaluates the contents of { ... } as a Javascript expression if it does not match a property in args", function () {
         assert.strictEqual("6 * 7 = 42", "6 * 7 = { 6 * 7 }".format());

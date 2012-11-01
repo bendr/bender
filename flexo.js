@@ -21,28 +21,54 @@
   // Another format function for messages and templates; this time, the only
   // argument is an object and string parameters are keys.
   String.prototype.format = function (args) {
-    var formatted = this;
-    while (/\\([{}\\])|\{((?:[^{}\\]|\\[{}\\])+)\}/.test(formatted)) {
-       formatted = formatted.replace(/\\([{}\\])|\{((?:[^{}\\]|\\[{}\\])+)\}/g,
-        function (_, e, p) {
-          if (e) {
-            return e;
+    var stack = [""];
+    var current = stack;
+    this.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
+      if (token === "{") {
+        var chunk = [""];
+        chunk.__parent = current;
+        current.push(chunk);
+        current = chunk;
+      } else if (token === "}") {
+        var parent = current.__parent;
+        if (parent) {
+          var p = parent.pop();
+          if (args && args.hasOwnProperty(p)) {
+            if (args[p] != null) {
+              parent[0] += args[p];
+            }
           } else {
-            p = p.replace(/\\([{}\\])/g, "$1");
-            if (args && args.hasOwnProperty(p)) {
-              return args[p] == null ? "" : args[p];
-            } else {
-              try {
-                var v = new Function("return " + p).call(args);
-                return v == null ? "" : v;
-              } catch (e) {
-                return "";
+            try {
+              var v = new Function("return " + p).call(args);
+              if (v != null) {
+                parent[0] += v;
               }
+            } catch (e) {
             }
           }
-        });
+          current = parent;
+        } else {
+          if (typeof current[current.length - 1] !== "string") {
+            current.push(token);
+          } else {
+            current[current.length - 1] += token;
+          }
+        }
+      } else {
+        token = token.replace(/^\\([{}\\])/, "$1");
+        if (typeof current[current.length - 1] !== "string") {
+          current.push(token);
+        } else {
+          current[current.length - 1] += token;
+        }
+      }
+      console.log(stack);
+    });
+    while (current.__parent) {
+      current = current.__parent;
+      current[0] += "{" + current.pop();
     }
-    return formatted;
+    return stack.join();
   };
 
   // Chop the last character of a string iff it's a newline

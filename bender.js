@@ -233,8 +233,8 @@
     };
 
     // Send a notification from the context that this instance was just
-    // refreshed
-    // TODO defer notifications? They may come too early
+    // refreshed; also send it from the instance itself (so that it can easily
+    // listen to its own refresh events)
     context._refreshed_instance = function (instance) {
       flexo.notify(this, "@refreshed", { instance: instance });
       flexo.notify(instance, "@refreshed");
@@ -549,12 +549,9 @@
     extract_props: function (pattern) {
       var props = {};
       if (typeof pattern === "string") {
-        var matches = pattern.match(/.?\{[^{}]+\}.?/g);
+        var matches = pattern.match(/\{[^{}\\]}/g);
         if (matches) {
           matches.forEach(function (m) {
-            if (/^\{\{.+\}\}$/.test(m)) {
-              return;
-            }
             props[m.replace(/^.?\{/, "").replace(/\}.?$/, "")] = true;
           }, this);
         }
