@@ -21,38 +21,28 @@
   // Another format function for messages and templates; this time, the only
   // argument is an object and string parameters are keys.
   String.prototype.format = function (args) {
-    return this.replace(/\{([^{}]+)\}/g, function (_, p) {
-      return args[p] == null ? "" : args[p];
-    });
-  };
-
-  // Advanced interpolation function with {{ }} for code interpolation
-  flexo.interpolate = function (string, args) {
-    var i = string.indexOf("{{");
-    if (i > 0) {
-      var interpolated = "";
-      var j = 0;
-      interpolated += string.substr(j, i - 1).format(args);
-      for (var j = i + 1, open = 2; j < string.length && open > 0; ++j) {
-        if (string[j] === "{") {
-          ++open;
-        } else if (string[j] === "}") {
-          --open;
-        }
-      }
-      if (j < string.length) {
-        var expr = string.substr(i + 1, j - 2);
-        try {
-          var v = new Function("return " + expr).call(args);
-        } catch (e) {
-        }
-      } else {
-        interpolated += string.substr(i + 1).format(args);
-      }
-    } else {
-      return string.format(args);
+    var formatted = this;
+    while (/\\([{}\\])|\{((?:[^{}\\]|\\[{}\\])+)\}/.test(formatted)) {
+       formatted = formatted.replace(/\\([{}\\])|\{((?:[^{}\\]|\\[{}\\])+)\}/g,
+        function (_, e, p) {
+          if (e) {
+            return e;
+          } else {
+            p = p.replace(/\\([{}\\])/g, "$1");
+            if (args && args.hasOwnProperty(p)) {
+              return args[p] == null ? "" : args[p];
+            } else {
+              try {
+                var v = new Function("return " + p).call(args);
+                return v == null ? "" : v;
+              } catch (e) {
+                return "";
+              }
+            }
+          }
+        });
     }
-    return interpolated;
+    return formatted;
   };
 
   // Chop the last character of a string iff it's a newline
@@ -536,6 +526,16 @@
   flexo.event_client_pos = function (e) {
     return { x: e.targetTouches ? e.targetTouches[0].clientX : e.clientX,
       y: e.targetTouches ? e.targetTouches[0].clientY : e.clientY };
+  };
+
+  // Get the offset position of the mouse event e relative to the element `elem`
+  // (defaults to e.target)
+  flexo.event_offset_pos = function (e, elem) {
+    var p = flexo.event_client_pos(e);
+    var bbox = (elem || e.target).getBoundingClientRect();
+    p.x -= bbox.left;
+    p.y -= bbox.top;
+    return p;
   };
 
   // Remove all children of an element
