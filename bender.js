@@ -549,10 +549,13 @@
     extract_props: function (pattern) {
       var props = {};
       if (typeof pattern === "string") {
-        var matches = pattern.match(/\{[^{}\\]}/g);
+        var matches = pattern.match(/\{[^{}\\]+\}/g);
         if (matches) {
           matches.forEach(function (m) {
-            props[m.replace(/^.?\{/, "").replace(/\}.?$/, "")] = true;
+            m = m.substr(1, m.length - 2);
+            if (this.properties.hasOwnProperty(m)) {
+              props[m] = true;
+            }
           }, this);
         }
       }
