@@ -228,12 +228,10 @@
       flexo.listen(context.ownerDocument, "@done", function (e) { done(); });
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === main) {
-          setTimeout(function () {
-            var ev = document.createEvent("MouseEvent");
-            ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
-              false, false, false, 0, null);
-            u._instance.views.$root.dispatchEvent(ev);
-          }, 0);
+          var ev = document.createEvent("MouseEvent");
+          ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
+            false, false, false, 0, null);
+          u._instance.views.$root.dispatchEvent(ev);
         }
       });
     });
@@ -249,19 +247,17 @@
           context.$("watch",
             context.$("get", { view: "$root", "dom-event": "click" }),
             context.$("set", { use: "$self", property: "clicks",
-              value: "{{ {clicks} + 1 }}" }))));
+              value: "{ {clicks} + 1 }" }))));
       var u = context.appendChild(context.$("use"));
       u._component = main;
       flexo.listen(context.ownerDocument, "@refreshed", function (e) {
         if (e.instance.component === main) {
-          setTimeout(function () {
             var ev = document.createEvent("MouseEvent");
             ev.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0,
               false, false, false, false, 0, null);
             u._instance.views.$root.dispatchEvent(ev);
             assert.ok(u._instance.properties.clicks === 1);
             done();
-          }, 0);
         }
       });
     });

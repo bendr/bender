@@ -21,9 +21,15 @@
   // Another format function for messages and templates; this time, the only
   // argument is an object and string parameters are keys.
   String.prototype.format = function (args) {
+    return flexo.format.call(args, this, args);
+  };
+
+  // Can be called as flexo.format as well, giving the string and the arguments
+  // object as parameters.
+  flexo.format = function (string, args) {
     var stack = [""];
     var current = stack;
-    this.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
+    string.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
       if (token === "{") {
         var chunk = [""];
         chunk.__parent = current;
@@ -39,7 +45,7 @@
             }
           } else {
             try {
-              var v = new Function("return " + p).call(args);
+              var v = new Function("return " + p).call(this);
               if (v != null) {
                 parent[0] += v;
               }
@@ -62,14 +68,13 @@
           current[current.length - 1] += token;
         }
       }
-      console.log(stack);
-    });
+    }, this);
     while (current.__parent) {
       current = current.__parent;
       current[0] += "{" + current.pop();
     }
     return stack.join();
-  };
+  }
 
   // Chop the last character of a string iff it's a newline
   flexo.chomp = function(string) {

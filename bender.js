@@ -100,7 +100,7 @@
     }
     console.log("    ... value =", val);
     if (typeof val === "string") {
-      val = instance.format(val);
+      val = flexo.format.call(instance, val, instance.properties);
       console.log("    ... after interpolation =", val);
     }
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
@@ -410,27 +410,6 @@
       return flexo.absolute_uri(this.component._uri, uri);
     },
 
-    // Same as flexo's format with the ability to get ancestor properties and
-    // not just local properties. Also, code is executed with this instance as
-    // `this`
-    format: function (string) {
-      while (/\{([^{}])+\}/.test(string)) {
-        string = string.replace(/\{([^{}]+)\}/g, function (_, p) {
-          if (this.properties.hasOwnProperty(p)) {
-            return this.properties[p] == null ? "" : this.properties[p];
-          } else {
-            try {
-              var v = new Function("return " + p).call(this);
-              return v == null ? "" : v;
-            } catch (e) {
-              return "";
-            }
-          }
-        }.bind(this));
-      }
-      return string;
-    },
-
     get_property: function (name) {
       if (this.properties.hasOwnProperty(name)) {
         return this.properties[name];
@@ -616,11 +595,12 @@
             attr.namespaceURI !== node.namespaceURI) {
           if (!this.unprop_attr(d, attr)) {
             d.setAttributeNS(attr.namespaceURI, attr.localName,
-              this.format(val));
+              flexo.format.call(this, val, this.properties));
           }
         } else {
           if (!this.unprop_attr(d, attr)) {
-            d.setAttribute(attr.localName, this.format(val));
+            d.setAttribute(attr.localName,
+              flexo.format.call(this, val, this.properties));
           }
         }
       }, this);
@@ -636,7 +616,8 @@
     render_text: function (node, dest, ref) {
       var d = dest.ownerDocument.createTextNode(node.textContent);
       if (!this.unprop_text(d)) {
-        d.textContent = this.format(node.textContent);
+        d.textContent = flexo.format.call(this, node.textContent,
+            this.properties);
       }
       dest.insertBefore(d, ref);
       if (dest === this.target) {
@@ -652,7 +633,9 @@
       }
       var value = node.getAttribute("value") || "";
       // unprop_attr
-      dest.setAttribute(name.trim(), this.format(value));
+      dest.setAttribute(name.trim(), flexo.format.call(this, value,
+            this.properties));
+
     },
 
     // Render a use node, return either the instance or the promise of a future
