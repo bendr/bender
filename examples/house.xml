@@ -30,9 +30,9 @@
         fill="{door-color}"/>
         -->
       <svg:rect x="{x_mid}" y="{y_mid}" width="{w}"
-        height="{{ {y_off} - {y_mid} }}" fill="{wall-color}"/>
-      <svg:polygon points="{x_m},{h} {{ {x_m} + {w} }},{h}
-        {{ {x_mid} + {w} }},{y_mid} {x_mid},{y_mid}" fill="{roof-color}"/>
+        height="{ {y_off} - {y_mid} }" fill="{wall-color}"/>
+      <svg:polygon points="{x_m},{h} { {x_m} + {w} },{h}
+        { {x_mid} + {w} },{y_mid} {x_mid},{y_mid}" fill="{roof-color}"/>
     </svg:g>
   </view>
 </component>

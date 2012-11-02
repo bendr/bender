@@ -17,7 +17,7 @@ var context = bender.create_context();
 var main = context.appendChild(
   context.$("component",
     context.$("view",
-      context.$("html:p", "{{ 'Hello, world!' }}"))));
+      context.$("html:p", "{ 'Hello, world!' }"))));
 var use = context.appendChild(context.$("use"));
 use._component = main;
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {

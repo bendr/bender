@@ -32,7 +32,7 @@ var main = context.appendChild(
     context.$("watch",
       context.$("get", { view: "$root", "dom-event": "click" }),
       context.$("set", { use: "$self", property: "clicks",
-        value: "{{ {clicks} + 1 }}" }))));
+        value: "{ {clicks} + 1 }" }))));
 var u = context.appendChild(context.$("use"));
 u._component = main;
 flexo.listen(context.ownerDocument, "@refreshed", function (e) {
