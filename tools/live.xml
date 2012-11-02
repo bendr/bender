@@ -1,0 +1,17 @@
+<app xmlns="http://bender.igel.co.jp" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Bender Live Editor</title>
+  <property name="component-path" value="dummy.xml"/>
+  <view>
+    <target q="head">
+      <html:link rel="stylesheet" href="{ this.absolute_uri('live.css') }"/>
+    </target>
+    <html:div class="bender-live-top">
+      <html:div class="bender-live-tree">
+        <use href="tree.xml" id="tree"/>
+      </html:div>
+      <html:div class="bender-live-app">
+        <use href="{component-path}" id="app"/>
+      </html:div>
+    </html:div>
+  </view>
+</app>
