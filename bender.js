@@ -17,24 +17,6 @@
       null;
   }
 
-  // TODO document this
-  function find_elem(x) {
-    if (x instanceof Element) {
-      return x;
-    }
-    if (x && x.rendered) {
-      var elem;
-      for (var i = x.rendered.length - 1; i >= 0 && !elem; --i) {
-        if (x.rendered[i] instanceof Element) {
-          elem = x.rendered[i];
-        } else if (x.rendered[i].rendered) {
-          elem = find_elem(x.rendered[i]);
-        }
-      }
-      return elem;
-    }
-  }
-
   // Import a node and its children from a foreign document and add it as a
   // child of the parent element
   function import_node(parent, node, uri) {
@@ -505,7 +487,7 @@
               } else {
                 r = this.render_children(ch, dest, ref, unique);
               }
-              this.render_use_params(r, ch);
+              // this.render_use_params(r, ch);
             } else if (ch.localName === "attribute") {
               this.render_attribute(ch, dest);
             } else {
@@ -657,18 +639,6 @@
         this.rendered_use(use);
       }
       return instance;
-    },
-
-    // Set the parameters of a <use> node on its root rendered node r (if any);
-    // set content_id as well.
-    render_use_params: function (r, content) {
-      var elem = find_elem(r);
-      if (elem) {
-        if (content._contentId) {
-          this.views[this.unparam(content._contentId).trim()] = elem;
-        }
-        // TODO add attributes from <use> or <content>
-      }
     },
 
     // After a <use> was rendered, keep track of its instance.
