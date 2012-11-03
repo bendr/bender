@@ -589,7 +589,7 @@
         context.$("component", { id: "c" },
           context.$("property", { name: "x", type: "number", value: 1 }),
           context.$("property", { name: "y", type: "number",
-            value: "{{{x} + 1}}" }),
+            value: "{ {x} + 1 }" }),
           context.$("property", { name: "z", type: "dynamic",
             value: "{x} + {y}" }),
           context.$("property", { name: "t", type: "dynamic",

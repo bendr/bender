@@ -1,6 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <title>Dummy component</title>
-  <view>
-    <p xmlns="http://www.w3.org/1999/xhtml">Well, it's a start...</p>
-  </view>
-</component>

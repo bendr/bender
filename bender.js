@@ -20,7 +20,7 @@
   // Import a node and its children from a foreign document and add it as a
   // child of the parent element
   function import_node(parent, node, uri) {
-    if (node.nodeType === Node.ELEMENT_NODE) {
+    if (node.nodeType === window.Node.ELEMENT_NODE) {
       var n = parent.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
       if (n._is_component) {
@@ -42,10 +42,9 @@
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         import_node(n, ch, uri);
       }
-      parent.appendChild(n);
-      return n;
-    } else if (node.nodeType === Node.TEXT_NODE ||
-        node.nodeType === Node.CDATA_SECTION_NODE) {
+      return parent.appendChild(n);
+    } else if (node.nodeType === window.Node.TEXT_NODE ||
+        node.nodeType === window.Node.CDATA_SECTION_NODE) {
       return parent.appendChild(parent.ownerDocument.importNode(node, false));
     }
   }
@@ -329,7 +328,7 @@
       // Setup prototype properties
       Object.keys(this.component._properties).forEach(function (k) {
         if (!use._properties.hasOwnProperty(k) ||
-          !(use._properties[k] instanceof Node)) {
+          !(use._properties[k] instanceof window.Node)) {
           this.init_property(this.component._properties[k]);
         }
       }, this);
@@ -459,7 +458,7 @@
     render_children: function (node, dest, ref, unique) {
       var r;
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-        if (ch.nodeType === Node.ELEMENT_NODE) {
+        if (ch.nodeType === window.Node.ELEMENT_NODE) {
           if (ch.namespaceURI === bender.NS) {
             if (ch.localName === "use") {
               r = this.render_use(ch, dest, ref);
@@ -497,8 +496,8 @@
           } else {
             r = this.render_foreign(ch, dest, ref, unique);
           }
-        } else if (ch.nodeType === Node.TEXT_NODE ||
-            ch.nodeType === Node.CDATA_SECTION_NODE) {
+        } else if (ch.nodeType === window.Node.TEXT_NODE ||
+            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
           this.render_text(ch, dest, ref, unique);
         }
       }
@@ -510,15 +509,27 @@
     extract_props: function (pattern) {
       var props = {};
       if (typeof pattern === "string") {
-        var matches = pattern.match(/\{[^{}\\]+\}/g);
-        if (matches) {
-          matches.forEach(function (m) {
-            m = m.substr(1, m.length - 2);
-            if (this.properties.hasOwnProperty(m)) {
-              props[m] = true;
+        var open = false;
+        var prop;
+        pattern.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
+          if (token === "{") {
+            prop = "";
+            open = true;
+          } else if (token === "}") {
+            if (open) {
+              if (this.properties.hasOwnProperty(prop)) {
+                props[prop] = true;
+              }
+              open = false;
             }
-          }, this);
-        }
+          } else if (open) {
+            prop += token.replace(/^\\([{}\\])/, "$1");
+          }
+        }, this);
+      }
+      if (Object.keys(props).length > 0) {
+        console.log("*** extract_props[{0}]: {1}"
+            .fmt(pattern, Object.keys(props).join(", ")));
       }
       return Object.keys(props);
     },
@@ -763,7 +774,7 @@
       flexo.notify(this, "@unrender");
       var ref;
       this.rendered.forEach(function (r) {
-        if (r instanceof Node) {
+        if (r instanceof window.Node) {
           ref = r;
           r.parentNode.removeChild(r);
         } else {
@@ -1034,8 +1045,8 @@
     get: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === Node.TEXT_NODE ||
-            ch.nodeType === Node.CDATA_SECTION_NODE) {
+        if (ch.nodeType === window.Node.TEXT_NODE ||
+            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
           this._update_action();
         }
         return ch;
@@ -1090,8 +1101,8 @@
 
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === Node.TEXT_NODE ||
-            ch.nodeType === Node.CDATA_SECTION_NODE) {
+        if (ch.nodeType === window.Node.TEXT_NODE ||
+            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
           this._value = this.textContent;
         }
       },
@@ -1162,8 +1173,8 @@
     script: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === Node.TEXT_NODE ||
-            ch.nodeType === Node.CDATA_SECTION_NODE) {
+        if (ch.nodeType === window.Node.TEXT_NODE ||
+            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
           this._run();
         }
         return ch;
@@ -1192,8 +1203,8 @@
     set: {
       insertBefore: function (ch, ref) {
         Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === Node.TEXT_NODE ||
-            ch.nodeType === Node.CDATA_SECTION_NODE) {
+        if (ch.nodeType === window.Node.TEXT_NODE ||
+            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
           this._update_action();
         }
         return ch;
