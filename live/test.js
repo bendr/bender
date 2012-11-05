@@ -43,14 +43,23 @@
 
 
   describe("Rendering", function () {
+
+    var div = flexo.$div();
+    var context = bender.create_context(div);
+    var text = "Hello, world!";
+    var hello = context._add_instance(
+      context.$("component",
+        context.$("view",
+          context.$("html:p", text)))._create_instance());
+
     it("Hello world!", function () {
-      var context = bender.create_context(flexo.$div());
-      var text = "Hello, world!";
-      var hello = context._add_instance(
-        context.$("component",
-          context.$("view",
-            context.$("html:p", text)))._create_instance());
       assert(context.querySelector("instance")._target.textContent === text);
+      assert(div.textContent === text);
+    });
+
+    it("Remove an instance", function () {
+      flexo.safe_remove(hello);
+      assert(div.textContent === "");
     });
   });
 

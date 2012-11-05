@@ -5,7 +5,7 @@
 
   // The Bender namespace, also adding the "bender" namespace prefix for
   // flexo.create_element
-  bender.ns = flexo.ns.bender = "http://bender.igel.co.jp/live";
+  bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
   // Create a rendering contest given a target element in a host document (using
   // the document element as a default.)
@@ -97,6 +97,10 @@
 
   // Component methods
 
+  prototypes.component._init = function () {
+    this._properties = [];
+  };
+
   prototypes.component.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.namespaceURI === bender.ns) {
@@ -105,6 +109,8 @@
           console.error("Multiple views for component", this);
         }
         this._view = ch;
+      } else if (ch.localName === "property") {
+        this._properties.push(ch);
       }
     }
     return ch;
@@ -157,17 +163,24 @@
   };
 
   prototypes.instance.setAttribute = function (name, value) {
-    Object.getPrototypeOf(this).setAttribute(name, value);
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
-      this._component = this.ownerDocument.load_component(value);
+      this._component = load_component(this.ownerDocument, value);
     }
   };
+
+  function load_component(context, uri) {
+  }
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
 
   // Instantiate the component that the `instance` object points to
   // Copy properties, view and watches
   function instantiate_component(instance) {
+    instance._properties = [];
+    instance._component._properties.forEach(function (p) {
+      instance.appendChild(p.cloneNode(true));
+    });
     if (instance._component._view) {
       instance.appendChild(instance._component._view.cloneNode(true));
     }
@@ -177,6 +190,7 @@
     if (instance._view && instance._target) {
       instance._view._roots = render_children(instance._view, instance._target)
         .filter(function (ch) { ch != null });
+      console.log("Roots:", instance._view._roots);
     }
   }
 
@@ -220,6 +234,11 @@
       return ch;
     }
     return wrap_element(ch, prototypes.view);
+  };
+
+  prototypes.view.removeChild = function (ch) {
+    Object.getPrototypeOf(this).removeChild.call(this, ch);
+    return ch;
   };
 
 }(window.bender = {}))

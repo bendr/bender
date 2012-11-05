@@ -1,0 +1,41 @@
+html {
+  height: 100%;
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+  display: -webkit-box;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+
+pre, code, .tree-view li.elem-node {
+  font-family: Inconsolata, Consolas, Menlo, monospace;
+}
+
+li.text-node {
+  font-style: italic;
+  color: #08f;
+}
+
+.tree-view {
+  border-right: dashed thin #888;
+  height: 100%;
+  padding: 0.5em 2em 0.5em 0.5em;
+}
+
+.tree-view ul {
+  list-style-type: none;
+  padding-left: 1em;
+}
+
+.live-view {
+  -webkit-box-flex: 1;
+  padding: 0.5em;
+}
