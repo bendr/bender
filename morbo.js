@@ -13,6 +13,7 @@
   // These can (and sometime should) be overridden
   exports.DOCUMENTS = process.cwd();  // default document root
   exports.SERVER_NAME = "MORBO!";     // default server name
+  exports.LIST = false;               // disallow directory listing by default
 
   // Patterns for dispatch: applications will add their own patterns
   // A pattern is of the form: [/path regex/, { GET: ..., PUT: ... }]
@@ -61,6 +62,29 @@
     root = path.normalize(root);
     var abs = path.normalize(p);
     return abs.substr(0, root.length) === root;
+  }
+
+  // List contents of directory given its path
+  function list_directory(transaction, path) {
+    fs.readdir(path, function (err, files) {
+      if (err) {
+        return transaction.serve_error(500,
+          "list_directory: {0}".fmt(err.message));
+      }
+      var p = path.substr(exports.DOCUMENTS.length);
+      if (p !== "/") {
+        files.unshift("..");
+      }
+      var head = "";
+      var body =
+        exports.$h1(p) +
+        exports.$ul(
+          files.map(function (file) {
+            return exports.$li(exports.$a({ href: p + file }, file));
+          }).join("")
+        );
+      transaction.serve_html(exports.html_page({ title: p }, head, body));
+    });
   }
 
   // Write the correct headers (plus the ones already given, if any)
@@ -156,24 +180,26 @@
   }
 
   // Simply serve the requested file if found, otherwise return a 404/500 error
-  // or a 403 error if it's not a file. The index parameter is set to true when
-  // we're looking for the index page of a directory. No directory listing at
-  // the moment.
-  // TODO optionally allow directory listing
+  // or a 403 error if it's not a file. The dir parameter is set to the original
+  // directory path when we're looking for the implied index page; if not found,
+  // default to directory listing.
+  // TODO optionally disallow directory listing
   // TODO alternatives for index page
-  function serve_file_or_index(transaction, uri, index) {
+  function serve_file_or_index(transaction, uri, dir) {
     var p = path.join(exports.DOCUMENTS, uri);
     if (!check_path(p, exports.DOCUMENTS)) {
       transaction.serve_error(403, "Path \"{0}\" is out of bounds".fmt(p));
     }
     fs.exists(p, function (exists) {
       if (!exists) {
-        if (index) {
-          return transaction.serve_error(403,
-            "serve_file_or_index: Index page \"{0}\" not found".fmt(p));
+        if (dir) {
+          return exports.LIST ? list_directory(transaction, dir) :
+            transaction.serve_error(403,
+              "serve_file_or_index: Directory listing is disallowed");
+        } else {
+          return transaction.serve_error(404,
+            "serve_file_or_index: File \"{0}\" not found".fmt(p));
         }
-        return transaction.serve_error(404,
-          "serve_file_or_index: File \"{0}\" not found".fmt(p));
       }
       fs.stat(p, function (error, stats) {
         if (error) {
@@ -181,10 +207,9 @@
             "serve_file_or_index: " + error);
         }
         if (stats.isFile()) {
-          serve_file(transaction, p, stats, index ? uri : undefined);
+          serve_file(transaction, p, stats, dir && uri);
         } else if (stats.isDirectory() && /\/$/.test(p)) {
-          serve_file_or_index(transaction, path.join(uri, "index.html"),
-              true);
+          serve_file_or_index(transaction, path.join(uri, "index.html"), p);
         } else {
           transaction.serve_error(403,
             "serve_file_or_directory: no access to \"{0}\"".fmt(p));
@@ -375,7 +400,7 @@
     return out;
   }
 
-  // Shortcut for HTML and SVG elements: the element name prefixed by a $ sign
+  // Shorthand for HTML and SVG elements: the element name prefixed by a $ sign
   // See http://dev.w3.org/html5/spec/Overview.html#elements-1 (HTML)
   // and http://www.w3.org/TR/SVG/eltindex.html (SVG, excluding names using -)
   ["a", "abbr", "address", "altGlyph", "altGlyphDef", "altGlyphItem", "animate",
@@ -404,9 +429,9 @@
     "use", "var", "video", "view", "vkern", "wbr"
   ].forEach(function (tag) {
     this["$" + tag] = html_tag.bind(this, tag);
-  }.bind(this));
+  }, this);
 
-  // Some more shortcuts
+  // Some more shorthand forms
   (function () {
 
     this.$$script = function (src) {
@@ -437,12 +462,12 @@
         params.charset = "UTF-8";
       }
       return params.DOCTYPE  + "\n" +
-        $html({ lang: params.lang },
-          $head(
-            $title(params.title),
-            $meta({ charset: params.charset }, true),
+        this.$html({ lang: params.lang },
+          this.$head(
+            this.$title(params.title),
+            this.$meta({ charset: params.charset }, true),
             head),
-          $body(true), true);
+          this.$body(true), true);
     };
 
     this.html_footer = function () {
@@ -450,7 +475,7 @@
     };
 
     this.html_page = function (params, head, body) {
-      return html_header(params, head) + body + html_footer();
+      return this.html_header(params, head) + body + this.html_footer();
     };
 
   }.call(this));
@@ -470,6 +495,8 @@
         exports.DOCUMENTS = m[1];
       } else if (m = arg.match(/^-?-?app=(\S+)/i)) {
         args.apps.push(m[1]);
+      } else if (m = arg.match(/^-?-?l(ist)?/i)) {
+        exports.LIST = true;
       }
     });
     return args;
@@ -482,6 +509,7 @@
     console.log("  documents=<dir>:    path to the documents directory");
     console.log("  help:               show this help message");
     console.log("  ip=<ip address>:    IP address to listen to");
+    console.log("  list:               allow directory listing");
     console.log("  port=<port number>: port number for the server");
     console.log("");
     process.exit(0);
