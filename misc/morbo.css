@@ -11,6 +11,28 @@ a {
   list-style-type: none;
 }
 
+.directories li {
+
+}
+
 .path {
   font-family: Inconsolata, Consolas, Menlo, monospace;
+}
+
+svg.icon {
+  width: 1.5em;
+  height: 1.5em;
+  margin-right: 1em;
+  margin-top: 0.5em;
+  margin-bottom: -0.3em;
+}
+
+svg.icon.file path {
+  fill: #888;
+  stroke: none;
+}
+
+svg.icon.folder path {
+  fill: #c4b885;
+  stroke: none;
 }
