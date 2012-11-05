@@ -13,7 +13,8 @@
   bender.create_context = function (target) {
     target = target || document.documentElement;
     var host_doc = target.ownerDocument;
-    var context = host_doc.implementation.createDocument(bender.ns, "context");
+    var context = host_doc.implementation.createDocument(bender.ns, "context",
+      null);
 
     // Wrap all new elements created in this context
     context.createElement = function (name) {
@@ -25,10 +26,27 @@
             ns, qname));
     };
 
+    context.$ = flexo.create_element.bind(context);
+
     var root = wrap_element(context.documentElement);
     root._target = target;
-    context._instance = root.appendChild(root.$("instance"));
-    context._instance._component = root.$("component", root.$("view"));
+    var instance = root.appendChild(root.$("instance"));
+    instance._component = root.$("component", root.$("view"));
+
+    // Add a child instance to the view of the context instance
+    context._add_instance = function (ch) {
+      instance._view.appendChild(ch);
+      return ch;
+    };
+
+    // Create a new child instance for the given component and add it to the
+    // context instance
+    context._add_instance_of = function (component) {
+      var ch = this.$("instance");
+      ch._component = component;
+      return this._add_instance(ch);
+    };
+
     return context;
   };
 
