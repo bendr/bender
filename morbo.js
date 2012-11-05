@@ -13,7 +13,6 @@
   // These can (and sometime should) be overridden
   exports.DOCUMENTS = process.cwd();  // default document root
   exports.SERVER_NAME = "MORBO!";     // default server name
-  exports.LIST = false;               // disallow directory listing by default
 
   // Patterns for dispatch: applications will add their own patterns
   // A pattern is of the form: [/path regex/, { GET: ..., PUT: ... }]
@@ -62,33 +61,6 @@
     root = path.normalize(root);
     var abs = path.normalize(p);
     return abs.substr(0, root.length) === root;
-  }
-
-  // List contents of directory given its path
-  function list_directory(transaction, dir_path) {
-    fs.readdir(dir_path, function (err, files) {
-      if (err) {
-        return transaction.serve_error(500,
-          "list_directory: {0}".fmt(err.message));
-      }
-      var p = dir_path.substr(exports.DOCUMENTS.length);
-      if (p !== "/") {
-        files.unshift("..");
-      }
-      var head = "";
-      var body =
-        exports.$h1(p) +
-        exports.$ul(
-          files.map(function (file) {
-            var stats = fs.statSync(path.join(dir_path, file));
-            if (stats.isDirectory()) {
-              file += "/";
-            }
-            return exports.$li(exports.$a({ href: path.join(p, file) }, file));
-          }).join("")
-        );
-      transaction.serve_html(exports.html_page({ title: p }, head, body));
-    });
   }
 
   // Write the correct headers (plus the ones already given, if any)
@@ -187,7 +159,6 @@
   // or a 403 error if it's not a file. The dir parameter is set to the original
   // directory path when we're looking for the implied index page; if not found,
   // default to directory listing.
-  // TODO optionally disallow directory listing
   // TODO alternatives for index page
   function serve_file_or_index(transaction, uri, dir) {
     var p = path.join(exports.DOCUMENTS, uri);
@@ -197,9 +168,7 @@
     fs.exists(p, function (exists) {
       if (!exists) {
         if (dir) {
-          return exports.LIST ? list_directory(transaction, dir) :
-            transaction.serve_error(403,
-              "serve_file_or_index: Directory listing is disallowed");
+          return exports.list_directory(transaction, dir);
         } else {
           return transaction.serve_error(404,
             "serve_file_or_index: File \"{0}\" not found".fmt(p));
@@ -319,6 +288,13 @@
     serve_svg: function (svg) {
       this.serve_data(200, exports.TYPES.svg, svg);
     }
+  };
+
+  // Stub for directory listing. By default, this is disabled. Override this
+  // function in a module to enable directory listing.
+  exports.list_directory = function (transaction, dir) {
+    transaction.serve_error(403,
+        "serve_file_or_index: Directory listing is disallowed");
   };
 
 
@@ -499,8 +475,6 @@
         exports.DOCUMENTS = m[1];
       } else if (m = arg.match(/^-?-?app=(\S+)/i)) {
         args.apps.push(m[1]);
-      } else if (m = arg.match(/^-?-?l(ist)?/i)) {
-        exports.LIST = true;
       }
     });
     return args;
@@ -513,7 +487,6 @@
     console.log("  documents=<dir>:    path to the documents directory");
     console.log("  help:               show this help message");
     console.log("  ip=<ip address>:    IP address to listen to");
-    console.log("  list:               allow directory listing");
     console.log("  port=<port number>: port number for the server");
     console.log("");
     process.exit(0);
