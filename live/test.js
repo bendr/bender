@@ -45,6 +45,15 @@
 
 
   describe("Rendering", function () {
+    it("Hello world!", function () {
+      var context = bender.create_context(flexo.$div());
+      var text = "Hello, world!";
+      var hello = context._add_instance_of(
+        context.$("component",
+          context.$("view",
+            context.$("html:p", text))));
+      assert(context.querySelector("instance")._target.textContent === text);
+    });
   });
 
 }(window.chai.assert, window.flexo, window.bender));

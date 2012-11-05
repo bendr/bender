@@ -185,17 +185,13 @@
   // Instantiate the component that the `instance` object points to
   // Copy properties, view and watches
   function instantiate_component(instance) {
-    console.log("Instantiate", instance._component);
     if (instance._component._view) {
-      console.log("  copy view", instance._component._view);
       instance.appendChild(instance._component._view.cloneNode(true));
-      console.log("  view =", instance._view);
     }
   }
 
   function render_instance(instance) {
     if (instance._view && instance._target) {
-      console.log("Render", instance);
       instance._view._roots = render_children(instance._view, instance._target)
         .filter(function (ch) { ch != null });
     }
