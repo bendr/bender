@@ -4,6 +4,13 @@ var fs = require("fs");
 var path = require("path");
 var morbo = require("morbo");
 
+exports.PATTERNS = [
+  [/^\/morbo.css/, { GET: function(tr) {
+    tr.serve_file_from_path(path.join(path.dirname(module.filename),
+          "morbo.css"));
+  } }]
+];
+
 // List contents of directory given its path
 morbo.list_directory = function (transaction, dir_path) {
   fs.readdir(dir_path, function (err, files) {
@@ -17,16 +24,19 @@ morbo.list_directory = function (transaction, dir_path) {
     }
     var head = "";
     var body =
-      morbo.$h1(p) +
-      morbo.$ul(
+      morbo.$h1({ "class": "path" }, p) +
+      morbo.$ul({ "class": "directories" },
         files.map(function (file) {
           var stats = fs.statSync(path.join(dir_path, file));
           if (stats.isDirectory()) {
             file += "/";
           }
-          return morbo.$li(morbo.$a({ href: path.join(p, file) }, file));
+          return morbo.$li(
+            morbo.$a({ href: path.join(p, file), "class": "path" },
+              file));
         }).join("")
       );
-    transaction.serve_html(morbo.html_page({ title: p }, head, body));
+    transaction.serve_html(morbo.html_page({ title: p },
+          morbo.$$stylesheet("/morbo.css") + head, body));
   });
 };

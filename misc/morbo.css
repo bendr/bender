@@ -1,0 +1,16 @@
+body {
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+a {
+  color: #ff4040;
+  text-decoration: none;
+}
+
+.directories {
+  list-style-type: none;
+}
+
+.path {
+  font-family: Inconsolata, Consolas, Menlo, monospace;
+}
