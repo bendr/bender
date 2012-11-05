@@ -9,9 +9,10 @@
     });
   });
 
+
   describe("Bender context", function () {
 
-    var context = bender.create_context();
+    var context = bender.create_context(flexo.$div());
 
     it("bender.create_context() creates a new Bender context, which is a document that will contain instances", function () {
       assert.ok(context instanceof window.Document);
@@ -40,6 +41,10 @@
 
     it("_add_instance_of(uri) creates a new instance of the component loaded from the given URI and add it to the view of the main instance in the context");
 
+  });
+
+
+  describe("Rendering", function () {
   });
 
 }(window.chai.assert, window.flexo, window.bender));

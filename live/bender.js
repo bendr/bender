@@ -1,6 +1,8 @@
 (function (bender) {
   "use strict";
 
+  var A = Array.prototype;
+
   // The Bender namespace, also adding the "bender" namespace prefix for
   // flexo.create_element
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp/live";
@@ -30,8 +32,8 @@
 
     var root = wrap_element(context.documentElement);
     root._target = target;
-    var instance = root.appendChild(root.$("instance"));
-    instance._component = root.$("component", root.$("view"));
+    var instance = root.appendChild(context.$("instance"));
+    instance._component = context.$("component", context.$("view"));
 
     // Add a child instance to the view of the context instance
     context._add_instance = function (ch) {
@@ -53,6 +55,10 @@
   // Extend an element with Bender methods, calls its _init() method, and return
   // the wrapped element.
   function wrap_element(e, proto) {
+    if (e.__wrapped) {
+      return;
+    }
+    e.__wrapped = true;
     if (typeof proto !== "object") {
       proto = prototypes[e.localName];
     }
@@ -68,32 +74,46 @@
         e[p] = prototypes[""][p];
       }
     }
-    e._init();
+    if (typeof e._init === "function") {
+      e._init();
+    }
     return e;
   }
 
   var prototypes = {
     // Default overloaded DOM methods for Bender elements
     "": {
-      _init: function () {
-        return this;
-      },
-
-      // Shorthand for element creation in the current context (be careful
-      // because flexo.$ creates element in the host document!)
-      $: function () {
-        return flexo.create_element.apply(this.ownerDocument, arguments);
-      },
-
+      // Make sure that an overloaded insertBefore() is called for appendChild()
       appendChild: function (ch) {
         return this.insertBefore(ch, null);
+      },
+
+      cloneNode: function (deep) {
+        var clone = wrap_element(
+            Object.getPrototypeOf(this).cloneNode.call(this, false));
+        if (deep) {
+          // TODO keep track of URI for component
+          A.forEach.call(this.childNodes, function (ch) {
+            clone.appendChild(ch.cloneNode(true));
+          });
+        }
+        return clone;
       }
     }
   };
 
-  ["component", "context", "instance", "view"].forEach(function (p) {
+  ["(foreign)", "component", "context", "instance", "view"
+  ].forEach(function (p) {
     prototypes[p] = {};
   });
+
+
+  // Foreign node methods
+  prototypes["(foreign)"].insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.namespaceURI === bender.ns) {
+    }
+  };
 
 
   // Component methods
@@ -176,10 +196,34 @@
   function render_instance(instance) {
     if (instance._view && instance._target) {
       console.log("Render", instance);
-      instance._target.appendChild(
-          instance._target.ownerDocument.importNode(
-            instance._view.cloneNode(true)));
+      instance._view._roots = render_children(instance._view, instance._target)
+        .filter(function (ch) { ch != null });
     }
+  }
+
+  function render_children(view, target) {
+    return A.map.call(view.childNodes, function (ch) {
+      if (ch.nodeType === window.Node.ELEMENT_NODE) {
+        if (ch.namespaceURI === bender.ns) {
+          if (ch.localName === "instance") {
+            instance._target = target;
+          } else {
+            console.warn("Unexpected Bender element {0} in view; skipped."
+              .fmt(ch.localName));
+          }
+        } else {
+          var t = target.appendChild(
+            target.ownerDocument.createElementNS(ch.namespaceURI,
+              ch.localName));
+          render_children(ch, t);
+          return t;
+        }
+      } else if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+        return target.appendChild(
+          target.ownerDocument.createTextNode(ch.textContent));
+      }
+    });
   }
 
 
@@ -187,6 +231,11 @@
 
   prototypes.view.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "instance") {
+        ch._target = this.parentNode._target;
+      }
+    }
     return wrap_element(ch, prototypes.view);
   };
 
