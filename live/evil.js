@@ -1,5 +1,7 @@
 "use strict";
 
+var A = Array.prototype;
+
 var context = bender.create_context(document.querySelector(".live-view"));
 var instance = context._add_instance(
   context.$("component",
@@ -22,10 +24,16 @@ function show_tree(tree) {
         });
         name = (prefix || node.namespaceURI) + ":" + name;
       }
-      var li = ul.appendChild(flexo.$("li.elem-node", name));
+      var li = ul.appendChild(flexo.$("li.elem-node",
+            flexo.$("span.elem-name", name)));
+      A.forEach.call(node.attributes, function (attr) {
+        li.appendChild(flexo.$("span.attr",
+            flexo.$("span.name", attr.name), "=",
+            flexo.$("span.value", attr.value)));
+      });
       if (node.childNodes.length > 0) {
         var ul = li.appendChild(flexo.$ul());
-        Array.prototype.forEach.call(node.childNodes, function (ch) {
+        A.forEach.call(node.childNodes, function (ch) {
           show(ch, ul);
         });
       }
@@ -34,5 +42,7 @@ function show_tree(tree) {
       ul.appendChild(flexo.$("li.text-node", node.textContent));
     }
   };
-  show(tree, document.querySelector(".tree-view").appendChild(flexo.$ul()));
+  var dest = document.querySelector(".tree-view");
+  flexo.remove_children(dest);
+  show(tree, dest.appendChild(flexo.$ul()));
 }

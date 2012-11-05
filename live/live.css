@@ -8,6 +8,7 @@ body {
   margin: 0;
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
   display: -webkit-box;
+  display: -moz-box;
 }
 
 a {
@@ -35,7 +36,21 @@ li.text-node {
   padding-left: 1em;
 }
 
+.elem-name {
+  font-weight: bold;
+}
+
+.attr {
+  margin-left: 0.5em;
+}
+
+.attr .value {
+  color: #f80;
+  font-style: italic;
+}
+
 .live-view {
   -webkit-box-flex: 1;
+  -moz-box-flex: 1;
   padding: 0.5em;
 }

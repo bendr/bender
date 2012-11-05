@@ -238,6 +238,7 @@
 
   prototypes.view.removeChild = function (ch) {
     Object.getPrototypeOf(this).removeChild.call(this, ch);
+    console.log("--- remove", ch);
     return ch;
   };
 
