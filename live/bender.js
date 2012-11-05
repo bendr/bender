@@ -37,16 +37,7 @@
 
     // Add a child instance to the view of the context instance
     context._add_instance = function (ch) {
-      instance._view.appendChild(ch);
-      return ch;
-    };
-
-    // Create a new child instance for the given component and add it to the
-    // context instance
-    context._add_instance_of = function (component) {
-      var ch = this.$("instance");
-      ch._component = component;
-      return this._add_instance(ch);
+      return instance._view.appendChild(ch);
     };
 
     return context;
@@ -55,10 +46,6 @@
   // Extend an element with Bender methods, calls its _init() method, and return
   // the wrapped element.
   function wrap_element(e, proto) {
-    if (e.__wrapped) {
-      return;
-    }
-    e.__wrapped = true;
     if (typeof proto !== "object") {
       proto = prototypes[e.localName];
     }
@@ -108,14 +95,6 @@
   });
 
 
-  // Foreign node methods
-  prototypes["(foreign)"].insertBefore = function (ch, ref) {
-    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (ch.namespaceURI === bender.ns) {
-    }
-  };
-
-
   // Component methods
 
   prototypes.component.insertBefore = function (ch, ref) {
@@ -129,6 +108,12 @@
       }
     }
     return ch;
+  };
+
+  prototypes.component._create_instance = function () {
+    var instance = this.ownerDocument.$("instance");
+    instance._component = this;
+    return instance;
   };
 
 
@@ -178,9 +163,7 @@
     }
   };
 
-  prototypes.instance.insertBefore = function (ch, ref) {
-    prototypes.component.insertBefore.call(this, ch, ref);
-  };
+  prototypes.instance.insertBefore = prototypes.component.insertBefore;
 
   // Instantiate the component that the `instance` object points to
   // Copy properties, view and watches
@@ -202,7 +185,7 @@
       if (ch.nodeType === window.Node.ELEMENT_NODE) {
         if (ch.namespaceURI === bender.ns) {
           if (ch.localName === "instance") {
-            instance._target = target;
+            ch._target = target;
           } else {
             console.warn("Unexpected Bender element {0} in view; skipped."
               .fmt(ch.localName));
@@ -211,6 +194,9 @@
           var t = target.appendChild(
             target.ownerDocument.createElementNS(ch.namespaceURI,
               ch.localName));
+          A.forEach.call(ch.attributes, function (attr) {
+            t.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
+          });
           render_children(ch, t);
           return t;
         }
@@ -228,9 +214,10 @@
   prototypes.view.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.namespaceURI === bender.ns) {
-      if (ch.localName === "instance") {
+      if (ch.localName === "instance" && this.parentNode) {
         ch._target = this.parentNode._target;
       }
+      return ch;
     }
     return wrap_element(ch, prototypes.view);
   };
