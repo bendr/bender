@@ -65,13 +65,13 @@
   }
 
   // List contents of directory given its path
-  function list_directory(transaction, path) {
-    fs.readdir(path, function (err, files) {
+  function list_directory(transaction, dir_path) {
+    fs.readdir(dir_path, function (err, files) {
       if (err) {
         return transaction.serve_error(500,
           "list_directory: {0}".fmt(err.message));
       }
-      var p = path.substr(exports.DOCUMENTS.length);
+      var p = dir_path.substr(exports.DOCUMENTS.length);
       if (p !== "/") {
         files.unshift("..");
       }
@@ -80,7 +80,11 @@
         exports.$h1(p) +
         exports.$ul(
           files.map(function (file) {
-            return exports.$li(exports.$a({ href: p + file }, file));
+            var stats = fs.statSync(path.join(dir_path, file));
+            if (stats.isDirectory()) {
+              file += "/";
+            }
+            return exports.$li(exports.$a({ href: path.join(p, file) }, file));
           }).join("")
         );
       transaction.serve_html(exports.html_page({ title: p }, head, body));
