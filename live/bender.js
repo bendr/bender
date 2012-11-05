@@ -141,7 +141,7 @@
   };
 
   prototypes.instance.insertBefore = function (ch, ref) {
-    prototypes.context.insertBefore.call(this, ch, ref);
+    prototypes.component.insertBefore.call(this, ch, ref);
   };
 
   // Instantiate the component that the `instance` object points to
@@ -151,13 +151,25 @@
     if (instance._component._view) {
       console.log("  copy view", instance._component._view);
       instance.appendChild(instance._component._view.cloneNode(true));
+      console.log("  view =", instance._view);
     }
   }
 
   function render_instance(instance) {
-    if (instance._component && instance._target) {
+    if (instance._view && instance._target) {
       console.log("Render", instance);
+      instance._target.appendChild(
+          instance._target.ownerDocument.importNode(
+            instance._view.cloneNode(true)));
     }
   }
+
+
+  // View methods
+
+  prototypes.view.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    return wrap_element(ch, prototypes.view);
+  };
 
 }(window.bender = {}))

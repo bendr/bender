@@ -19,8 +19,10 @@ var context = bender.create_context(document.body);
 var component = context._instance.$("component",
   context._instance.$("view",
     context._instance.$("p", "Hello, world!")));
+var instance = context._instance.$("instance");
+instance._component = component;
+context._instance._view.appendChild(instance);
 
     </script>
   </body>
 </html>
-
