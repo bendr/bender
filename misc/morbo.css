@@ -11,10 +11,6 @@ a {
   list-style-type: none;
 }
 
-.directories li {
-
-}
-
 .path {
   font-family: Inconsolata, Consolas, Menlo, monospace;
 }
@@ -29,10 +25,13 @@ svg.icon {
 
 svg.icon.file path {
   fill: #888;
-  stroke: none;
 }
 
 svg.icon.folder path {
   fill: #c4b885;
-  stroke: none;
+}
+
+.error-message {
+  text-align: center;
+  font-size: 200%;
 }

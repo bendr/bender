@@ -243,11 +243,7 @@
     // Return an error as text with a code and an optional debug message
     // TODO provide a function to customize error pages
     serve_error: function (code, log) {
-      var msg = exports.STATUS_CODES[code] || "(unknown error code)";
-      if (log) {
-        this.log_error = "{0}: {1} ({2})".fmt(code, msg, log);
-      }
-      this.serve_data(code, "text/plain", "{0} {1}\n".fmt(code, msg));
+      exports.serve_error_page(this, code, log);
     },
 
     // Serve file from a known pathname
@@ -295,6 +291,15 @@
   exports.list_directory = function (transaction, dir) {
     transaction.serve_error(403,
         "serve_file_or_index: Directory listing is disallowed");
+  };
+
+  // Override this function in a module for fancier error pages.
+  exports.serve_error_page = function (transaction, code, log) {
+    var msg = exports.STATUS_CODES[code] || "(unknown error code)";
+    if (log) {
+      transaction.log_error = "{0}: {1} ({2})".fmt(code, msg, log);
+    }
+    transaction.serve_data(code, "text/plain", "{0} {1}\n".fmt(code, msg));
   };
 
 
