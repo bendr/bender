@@ -9,9 +9,6 @@
 
   // Create a rendering contest given a target element in a host document (using
   // the document element as a default.)
-  // The context maintains a map of loaded components indexed by their absolute
-  // URI (generating one if necessary.) The components themselves are not added
-  // to the tree; only instances are.
   bender.create_context = function (target) {
     target = target || document.documentElement;
     var host_doc = target.ownerDocument;
@@ -29,36 +26,14 @@
     };
 
     context.$ = flexo.create_element.bind(context);
-
     var view = wrap_element(context.documentElement);
     view._target = target;
-
     return context;
   };
 
-  // Extend an element with Bender methods, calls its _init() method, and return
-  // the wrapped element.
-  function wrap_element(e, proto) {
-    if (typeof proto !== "object") {
-      proto = prototypes[e.localName];
-    }
-    if (proto) {
-      for (var p in proto) {
-        if (proto.hasOwnProperty(p)) {
-          e[p] = proto[p];
-        }
-      }
-    }
-    for (p in prototypes[""]) {
-      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
-        e[p] = prototypes[""][p];
-      }
-    }
-    if (typeof e._init === "function") {
-      e._init();
-    }
-    return e;
-  }
+
+  // Bender elements overload some DOM methods in order to track changes to the
+  // tree.
 
   var prototypes = {
     // Default overloaded DOM methods for Bender elements
@@ -92,6 +67,14 @@
 
   prototypes.component._init = function () {
     this._properties = [];
+    this._instances = [];
+  };
+
+  // Convenience method to create a new instance of that component
+  prototypes.component._create_instance = function () {
+    var instance = this.ownerDocument.$("instance");
+    instance._component = this;
+    return instance;
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
@@ -100,8 +83,9 @@
       if (ch.localName === "view") {
         if (this._view) {
           console.error("Multiple views for component", this);
+        } else {
+          this._view = ch;
         }
-        this._view = ch;
       } else if (ch.localName === "property") {
         this._properties.push(ch);
       }
@@ -109,10 +93,18 @@
     return ch;
   };
 
-  prototypes.component._create_instance = function () {
-    var instance = this.ownerDocument.$("instance");
-    instance._component = this;
-    return instance;
+  prototypes.component.removeChild = function (ch) {
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "view") {
+        if (this._view === ch) {
+          delete this._view;
+        }
+      } else if (ch.localName === "property") {
+        flexo.remove_from_array(this._properties, ch);
+      }
+    }
+    Object.getPrototypeOf(this).removeChild.call(this, ch);
+    return ch;
   };
 
 
@@ -121,11 +113,17 @@
   // Add instances to the context and render them in the target
   prototypes.context.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (ch.namespaceURI === bender.ns) {
-      if (ch.localName === "instance") {
-        ch._target = this._target;
-      }
+    if (is_bender_element(ch, "instance")) {
+      ch._target = this._target;
     }
+    return ch;
+  };
+
+  prototypes.context.removeChild = function (ch) {
+    if (is_bender_element(ch, "instance")) {
+      ch._target = null;
+    }
+    Object.getPrototypeOf(this).removeChild.call(this, ch);
     return ch;
   };
 
@@ -168,31 +166,34 @@
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
 
   // Instantiate the component that the `instance` object points to
-  // Copy properties, view and watches
+  // Copy properties, view and watches; the copy will really just be a pointer
+  // until the instance itself changes it.
   function instantiate_component(instance) {
-    instance._properties = [];
-    instance._component._properties.forEach(function (p) {
-      instance.appendChild(p.cloneNode(true));
-    });
-    if (instance._component._view) {
-      instance.appendChild(instance._component._view.cloneNode(true));
-    }
+    instance._properties = instance._component._properties.slice();
+    instance._view = instance._component._view;
+    instance._component._instances.push(instance);
+    instance._roots = [];
   }
 
+  // Render instance to its current target; if the target is null, unrender it.
   function render_instance(instance) {
     if (instance._view && instance._target) {
-      instance._view._roots = render_children(instance._view, instance._target)
-        .filter(function (ch) { ch != null });
-      console.log("Roots:", instance._view._roots);
+      A.push.apply(instance._roots,
+          render_children(instance._view, instance._target));
+    } else if (instance._target == null) {
+      instance._roots.forEach(flexo.safe_remove);
+      instance._roots = [];
     }
   }
 
   function render_children(view, target) {
-    return A.map.call(view.childNodes, function (ch) {
+    var roots = [];
+    A.forEach.call(view.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE) {
         if (ch.namespaceURI === bender.ns) {
           if (ch.localName === "instance") {
             ch._target = target;
+            A.push.apply(roots, ch._target.roots);
           } else {
             console.warn("Unexpected Bender element {0} in view; skipped."
               .fmt(ch.localName));
@@ -205,14 +206,16 @@
             t.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
           });
           render_children(ch, t);
-          return t;
+          roots.push(t);
         }
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-        return target.appendChild(
+        var t = target.appendChild(
           target.ownerDocument.createTextNode(ch.textContent));
+        roots.push(t);
       }
     });
+    return roots;
   }
 
 
@@ -233,5 +236,41 @@
     Object.getPrototypeOf(this).removeChild.call(this, ch);
     return ch;
   };
+
+
+  // Utility functions
+
+  // Test whether the given node is an element in the Bender namespace with the
+  // given name
+  function is_bender_element(node, name) {
+    return node instanceof window.Node &&
+      node.nodeType === window.Node.ELEMENT_NODE &&
+      node.namespaceURI === bender.ns &&
+      node.localName === name;
+  }
+
+  // Extend an element with Bender methods, calls its _init() method, and return
+  // the wrapped element.
+  function wrap_element(e, proto) {
+    if (typeof proto !== "object") {
+      proto = prototypes[e.localName];
+    }
+    if (proto) {
+      for (var p in proto) {
+        if (proto.hasOwnProperty(p)) {
+          e[p] = proto[p];
+        }
+      }
+    }
+    for (p in prototypes[""]) {
+      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
+        e[p] = prototypes[""][p];
+      }
+    }
+    if (typeof e._init === "function") {
+      e._init();
+    }
+    return e;
+  }
 
 }(window.bender = {}))

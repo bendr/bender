@@ -11,14 +11,34 @@
   <view> (?) -- rendering of that component
   <property> (*) -- component properties
 
+  ._create_instance(): return a fresh <instance> element for this component.
+
+  ._view: pointer to the <view> child of the component; deleted if the view is
+  removed; unchanged 
+
+  [ ] update instances when view changes
+
+  ._properties: array of property child nodes of the component.
+
 
 <context>
 
   Virtual view for a runtime context.
 
-  [x] Just add instances to context.documentElement and you're in business
+  <instance> (*) -- instances rendered to the target of the context (in most
+  case, the context will have an application instance as its only child.)
+
+  bender.create_context(target) creates a new context document for the given
+  target (default is window.document.documentElement.) New instances can be
+  added to the document element of the context for rendering in the target.
 
 
 <instance>
 
-  Instances of components
+  Component instance. Instances added to the tree get rendered and are active
+  (they respond to events and property changes.)
+
+  Instances have a pointer to the component's view, properties and watches. They
+  can be customized by setting their own.
+
+  ._roots: array of DOM nodes that have been rendered for the instance view

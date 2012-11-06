@@ -12,7 +12,7 @@ var instance = context.documentElement.appendChild(
   )._create_instance());
 
 
-show_tree(instance);
+show_tree(instance._component);
 
 function show_tree(tree) {
   var show = function (node, ul) {
