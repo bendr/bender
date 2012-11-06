@@ -18,7 +18,7 @@ exports.init = function (morbo, args, k) {
     transaction.serve_html(morbo.html_page({ title: "Error {0}".fmt(code) },
         morbo.$$stylesheet("/morbo.css"),
         morbo.$p({ "class": "error-message" },
-          error_icon() + "Error {0}: {1}".fmt(code, msg))));
+          error_icon() + "Error {0}: {1}".fmt(code, msg))), code);
   };
 
   k();

@@ -263,9 +263,9 @@
       }.bind(this));
     },
 
-    // Serve a string as an HTML document
-    serve_html: function (html) {
-      this.serve_data(200, exports.TYPES.html, html);
+    // Serve a string as an HTML document with an optional error code
+    serve_html: function (html, code) {
+      this.serve_data(code || 200, exports.TYPES.html, html);
     },
 
     // Return a js value encoded as JSON.
