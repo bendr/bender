@@ -3,7 +3,7 @@
 var A = Array.prototype;
 
 var context = bender.create_context(document.querySelector(".live-view"));
-var instance = context._add_instance(
+var instance = context.documentElement.appendChild(
   context.$("component",
     context.$("property", { name: "x" }),
     context.$("view",

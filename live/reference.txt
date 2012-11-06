@@ -1,0 +1,24 @@
+<component>
+
+  Not stored in the tree but kept in memory. Loaded components can probably be
+  kept as their own document and need not be imported in the context?
+
+  [ ] Keep track of their URI for relative URIs
+  [ ] Default paths for component loading
+
+  @id (?) -- can be referred to by href
+
+  <view> (?) -- rendering of that component
+  <property> (*) -- component properties
+
+
+<context>
+
+  Virtual view for a runtime context.
+
+  [x] Just add instances to context.documentElement and you're in business
+
+
+<instance>
+
+  Instances of components

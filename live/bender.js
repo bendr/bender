@@ -30,15 +30,8 @@
 
     context.$ = flexo.create_element.bind(context);
 
-    var root = wrap_element(context.documentElement);
-    root._target = target;
-    var instance = root.appendChild(context.$("instance"));
-    instance._component = context.$("component", context.$("view"));
-
-    // Add a child instance to the view of the context instance
-    context._add_instance = function (ch) {
-      return instance._view.appendChild(ch);
-    };
+    var view = wrap_element(context.documentElement);
+    view._target = target;
 
     return context;
   };
@@ -238,7 +231,6 @@
 
   prototypes.view.removeChild = function (ch) {
     Object.getPrototypeOf(this).removeChild.call(this, ch);
-    console.log("--- remove", ch);
     return ch;
   };
 

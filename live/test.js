@@ -28,26 +28,23 @@
       assert.strictEqual(component.localName, "component");
     });
 
-    it("_add_instance(instance) adds an instance to the view of the main instance in the context", function () {
-      var instance = context._add_instance(component._create_instance());
+    it("Add an instance to the document element of the context to render it", function () {
+      var instance = component._create_instance();
+      context.documentElement.appendChild(instance);
       assert.strictEqual(instance.namespaceURI, bender.ns);
       assert.strictEqual(instance.localName, "instance");
       assert.strictEqual(instance._component, component);
-      assert.strictEqual(instance,
-        context.querySelector("view").querySelector("instance"));
+      assert.strictEqual(instance, context.querySelector("instance"));
     });
 
-    it("_add_instance_of(uri) creates a new instance of the component loaded from the given URI and add it to the view of the main instance in the context");
-
   });
-
 
   describe("Rendering", function () {
 
     var div = flexo.$div();
     var context = bender.create_context(div);
     var text = "Hello, world!";
-    var hello = context._add_instance(
+    var hello = context.documentElement.appendChild(
       context.$("component",
         context.$("view",
           context.$("html:p", text)))._create_instance());
