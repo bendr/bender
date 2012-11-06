@@ -75,15 +75,11 @@
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
-      val = edge.value;
+      val = flexo.format.call(instance, edge.value, instance.properties);
     } else if (!set && edge.property) {
       val = instance.get_property(edge.property);
     }
     console.log("    ... value =", val);
-    if (typeof val === "string") {
-      val = flexo.format.call(instance, val, instance.properties);
-      console.log("    ... after interpolation =", val);
-    }
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
       val = edge.action.call(instance, val, edge);
       console.log("    ... after action =", val);
@@ -94,35 +90,57 @@
   // Follow a set edge from a get edge, and push all corresponding get edges for
   // the rest of the traversal
   function follow_set_edge(get, set, edges, get_value) {
-    console.log("  set:", set);
-    var set_value = edge_value(set, get.instance, true, get_value);
-    if (set_value !== undefined) {
-      if (set.use) {
-        if (set.property) {
-          set.use._set[set.property](set_value);
-          A.push.apply(edges, set.use.edges.filter(function (e) {
-            return e.property === set.property && edges.indexOf(e) < 0;
-          }));
-        }
-      } else if (set.view) {
-        if (set.attr) {
-          if (set.ns) {
-            set.view.setAttributeNS(set.ns, set.attr, set_value);
-          } else {
-            set.view.setAttribute(set.attr, set_value);
+    // console.log("  set:", set);
+    var delay = set.hasOwnProperty("delay") &&
+      parseFloat(flexo.format.call(get.instance, set.delay,
+            get.instance.properties));
+    var follow = function () {
+      var set_value = edge_value(set, get.instance, true, get_value);
+      if (set_value !== undefined) {
+        if (set.use) {
+          if (set.property) {
+            if (typeof delay === "number" && delay >= 0) {
+              console.log("!!! delayed set (by {0}ms)".fmt(delay));
+              set.use.properties[set.property] = set_value;
+            } else {
+              set.use._set[set.property](set_value);
+              A.push.apply(edges, set.use.edges.filter(function (e) {
+                return e.property === set.property && edges.indexOf(e) < 0;
+              }));
+            }
           }
-        } else if (set.property) {
-          set.view[set.property] = set_value;
-        } else {
-          set.view.textContent = set_value;
+        } else if (set.view) {
+          if (set.attr) {
+            if (set.ns) {
+              set.view.setAttributeNS(set.ns, set.attr, set_value);
+            } else {
+              set.view.setAttribute(set.attr, set_value);
+            }
+          } else if (set.property) {
+            set.view[set.property] = set_value;
+          } else {
+            set.view.textContent = set_value;
+          }
         }
       }
-    }
-    if (set.hasOwnProperty("event")) {
-      if (get_value instanceof window.Event) {
-        get_value = { dom_event: get_value };
+      if (set.hasOwnProperty("event")) {
+        if (get_value instanceof window.Event) {
+          get_value = { dom_event: get_value };
+        }
+        flexo.notify(set.use || set.view, set.event, get_value);
       }
-      flexo.notify(set.use || set.view, set.event, get_value);
+    };
+    if (typeof delay === "number" && delay >= 0) {
+      if (get.instance.__timeout) {
+        console.log("!!! clear timeout", get.instance.__timeout);
+        clearTimeout(get.instance.__timeout);
+      }
+      get.instance.__timeout = setTimeout(function () {
+        follow();
+        delete get.instance.__timeout;
+      }, delay);
+    } else {
+      follow();
     }
   }
 
@@ -772,8 +790,9 @@
           return;
         }
       }
-      ["action", "event", "dom_event", "property", "value", "when"]
-        .forEach(function (p) {
+      ["action", "attr", "delay", "dom_event", "event", "property", "value",
+        "when"
+      ].forEach(function (p) {
           if (elem.hasOwnProperty("_" + p)) {
             edge[p] = elem["_" + p];
           }
@@ -1232,8 +1251,9 @@
 
       setAttribute: function (name, value) {
         Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "attr" || name === "event" || name === "property" ||
-            name === "use" || name === "value" || name === "view") {
+        if (name === "attr" || name === "delay" || name === "event" ||
+            name === "property" || name === "use" || name === "value" ||
+            name === "view") {
           this["_" + name] = value.trim();
         }
       },
