@@ -135,10 +135,24 @@
       if (!get.__active) {
         get.__active = true;
         console.log("  get:", get);
-        var get_value = edge_value(get, get.instance);
-        get.watch.edges.forEach(function (set) {
-          follow_set_edge(get, set, edges, get_value);
-        });
+        var carry_on = typeof get.when !== "function" ||
+          get.when.call(get.instance);
+        if (carry_on) {
+          get.cancel = function () {
+            carry_on = false;
+          };
+          var get_value = edge_value(get, get.instance);
+          if (carry_on) {
+            get.watch.edges.forEach(function (set) {
+              follow_set_edge(get, set, edges, get_value);
+            });
+          } else {
+            console.log("! Canceled get (get.cancel() called)");
+          }
+          delete get.cancel;
+        } else {
+          console.log("! Canceled get (when clause)")
+        }
       }
     }
     edges.forEach(function (edge) {
@@ -758,7 +772,7 @@
           return;
         }
       }
-      ["action", "event", "dom_event", "property", "value"]
+      ["action", "event", "dom_event", "property", "value", "when"]
         .forEach(function (p) {
           if (elem.hasOwnProperty("_" + p)) {
             edge[p] = elem["_" + p];
@@ -1061,6 +1075,12 @@
           this._dom_event = value.trim();
         } else if (name === "once") {
           this._unique = flexo.is_true(value);
+        } else if (name === "when") {
+          try {
+            this._when = new Function("return " + value);
+          } catch(e) {
+            console.error("Could not compile when predicate for", this);
+          }
         }
       },
 
