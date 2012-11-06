@@ -25,6 +25,31 @@
             ns, qname));
     };
 
+    // Load the component at the given URI for the instance
+    context._load_component = function (uri, instance) {
+      var locator = uri;
+      flexo.ez_xhr(uri, { responseType: "document" }, function (req) {
+        var ev = { uri: uri, req: req };
+        if (req.status < 200 || req.status >= 300) {
+          flexo.notify(context, "@error", { uri: locator, req: req,
+            message: "HTTP error {0}".fmt(req.status) });
+        } else if (!req.response) {
+          flexo.notify(context, "@error", { uri: locator, req: req,
+            message: "could not parse response as XML" });
+        } else {
+          var c = wrap_element(req.response.documentElement);
+          if (is_bender_element(c, "component")) {
+            flexo.notify(context, "@loaded", { uri: locator, req: req,
+              instance: instance, component: c });
+            instance._component = c;
+          } else {
+            flexo.notify(context, "@error", { uri: locator, req: req,
+              message: "not a Bender component" });
+          }
+        }
+      });
+    };
+
     context.$ = flexo.create_element.bind(context);
     var view = wrap_element(context.documentElement);
     view._target = target;
@@ -85,6 +110,9 @@
           console.error("Multiple views for component", this);
         } else {
           this._view = ch;
+          this._instances.forEach(function (instance) {
+            instance._view = ch;
+          });
         }
       } else if (ch.localName === "property") {
         this._properties.push(ch);
@@ -98,6 +126,9 @@
       if (ch.localName === "view") {
         if (this._view === ch) {
           delete this._view;
+          this._instances.forEach(function (instance) {
+            delete instance._view;
+          });
         }
       } else if (ch.localName === "property") {
         flexo.remove_from_array(this._properties, ch);
@@ -156,12 +187,9 @@
   prototypes.instance.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
-      this._component = load_component(this.ownerDocument, value);
+      this.ownerDocument._load_component(value, this);
     }
   };
-
-  function load_component(context, uri) {
-  }
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
 

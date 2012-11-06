@@ -41,4 +41,7 @@
   Instances have a pointer to the component's view, properties and watches. They
   can be customized by setting their own.
 
+  @href (*) URI of the component to instantiate; will automatically load the
+  component if necessary
+
   ._roots: array of DOM nodes that have been rendered for the instance view
