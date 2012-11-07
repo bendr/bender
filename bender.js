@@ -100,7 +100,8 @@
         if (set.use) {
           if (set.property) {
             if (typeof delay === "number" && delay >= 0) {
-              console.log("!!! delayed set (by {0}ms)".fmt(delay));
+              console.log("%%% delayed set (by {0}ms [{1}])"
+                  .fmt(delay, get.instance.__timeout));
               set.use.properties[set.property] = set_value;
             } else {
               set.use._set[set.property](set_value);
@@ -132,13 +133,14 @@
     };
     if (typeof delay === "number" && delay >= 0) {
       if (get.instance.__timeout) {
-        console.log("!!! clear timeout", get.instance.__timeout);
+        console.log("... clear timeout", get.instance.__timeout);
         clearTimeout(get.instance.__timeout);
       }
       get.instance.__timeout = setTimeout(function () {
         follow();
         delete get.instance.__timeout;
       }, delay);
+      console.log("... set timeout", get.instance.__timeout);
     } else {
       follow();
     }
@@ -150,7 +152,7 @@
     console.log(">>> traverse graph >>>");
     for (var i = 0; i < edges.length; ++i) {
       var get = edges[i];
-      if (!get.__active) {
+      if (get.watch.enabled && !get.__active) {
         get.__active = true;
         console.log("  get:", get);
         var carry_on = typeof get.when !== "function" ||
@@ -513,7 +515,7 @@
               // <content> renders either the contents of the <use> node or its
               // own by default.
               if (this.use.childNodes.length > 0) {
-                r = instance_of(node).render_children(this.use, dest, ref,
+                r = instance_of(this.use).render_children(this.use, dest, ref,
                     unique);
               } else {
                 r = this.render_children(ch, dest, ref, unique);
@@ -552,6 +554,7 @@
               if (this.properties.hasOwnProperty(prop)) {
                 props[prop] = true;
               }
+              console.log("??? {0} is not a property of".fmt(prop), this);
               open = false;
             }
           } else if (open) {
@@ -569,7 +572,7 @@
     unprop_node: function (pattern, set_edge) {
       var props = this.extract_props(pattern);
       if (props.length > 0) {
-        var watch = { edges: [set_edge] };
+        var watch = { enabled: true, edges: [set_edge] };
         props.forEach(function (p) {
           this.edges.push({ property: p, watch: watch, instance: this });
         }, this);
@@ -724,7 +727,7 @@
       delete this.__pending_watches;
       this.component._watches.forEach(function (watch) {
         // Create a watch node for this watch element
-        var w = { edges: [] };
+        var w = { enabled: true, edges: [] };
         watch._gets.forEach(function (get) {
           var edge = this.make_edge(get);
           if (!edge) {
