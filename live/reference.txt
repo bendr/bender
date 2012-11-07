@@ -1,7 +1,9 @@
 <component>
 
   Not stored in the tree but kept in memory. Loaded components can probably be
-  kept as their own document and need not be imported in the context?
+  kept as their own document and need not be imported in the context? -- well
+  right now we import them since we have to wrap the whole thing anyway. Maybe
+  as an optimization later.
 
   [ ] Keep track of their URI for relative URIs
   [ ] Default paths for component loading

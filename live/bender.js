@@ -29,7 +29,6 @@
     context._load_component = function (uri, instance) {
       var locator = uri;
       flexo.ez_xhr(uri, { responseType: "document" }, function (req) {
-        var ev = { uri: uri, req: req };
         if (req.status < 200 || req.status >= 300) {
           flexo.notify(context, "@error", { uri: locator, req: req,
             message: "HTTP error {0}".fmt(req.status) });
@@ -37,17 +36,38 @@
           flexo.notify(context, "@error", { uri: locator, req: req,
             message: "could not parse response as XML" });
         } else {
-          var c = wrap_element(req.response.documentElement);
+          var c = context._import_node(req.response.documentElement);
           if (is_bender_element(c, "component")) {
+            instance._component = c;
             flexo.notify(context, "@loaded", { uri: locator, req: req,
               instance: instance, component: c });
-            instance._component = c;
           } else {
             flexo.notify(context, "@error", { uri: locator, req: req,
               message: "not a Bender component" });
           }
         }
       });
+    };
+
+    // Import a node in the context (for loaded components)
+    context._import_node = function (node) {
+      if (node.nodeType === window.Node.ELEMENT_NODE) {
+        var n = this.createElementNS(node.namespaceURI, node.localName);
+        A.forEach.call(node.attributes, function (attr) {
+          n.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
+        });
+        A.forEach.call(node.childNodes, function (ch) {
+          var ch_ = this._import_node(ch);
+          if (ch_) {
+            n.appendChild(ch_);
+          }
+        }, this);
+        return n;
+      }
+      if (node.nodeType === window.Node.TEXT_NODE ||
+          node.nodeType === window.Node.CDATA_SECTION_NODE) {
+        return this.createTextNode(node.textContent)
+      }
     };
 
     context.$ = flexo.create_element.bind(context);

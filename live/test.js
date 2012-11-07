@@ -3,9 +3,9 @@
 
   describe("Bender namespace ({0})".fmt(bender.ns), function () {
     it("extends flexo to create elements in the Bender namespace with the \"bender\" prefix", function () {
-      var app = flexo.$("bender:app");
+      var app = flexo.$("bender:component");
       assert.strictEqual(app.namespaceURI, bender.ns);
-      assert.strictEqual(app.localName, "app");
+      assert.strictEqual(app.localName, "component");
     });
   });
 
@@ -35,7 +35,7 @@
 
   });
 
-  describe("Component", function () {
+  describe("Components and instances", function () {
 
     it("Create a new instance of a component with component._create_instance()", function () {
       assert.strictEqual(instance.namespaceURI, bender.ns);
@@ -66,6 +66,25 @@
     });
 
     it("Instance of the component are updated when the view changes");
+
+    it("Instances can refer to components through their URI; the files are loaded if necessary", function (done) {
+      var hello = context.$("instance",
+        { href: "/examples/rendering/hello-world.xml" });
+      var handler = function (e) {
+        if (e.instance === hello) {
+          assert.strictEqual(e.type, "@loaded", "component was loaded");
+          assert.strictEqual(e.component, hello._component,
+            "component was set for instance");
+          assert.instanceOf(hello._component, window.Element,
+            "loaded component is a DOM element");
+          assert.instanceOf(hello._component._view, window.Element,
+            "loaded component has a view");
+          done();
+        }
+      };
+      flexo.listen(context, "@loaded", handler);
+      flexo.listen(context, "@error", handler);
+    });
 
   });
 
