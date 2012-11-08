@@ -17,6 +17,27 @@
       null;
   }
 
+  // Get a placeholder element to render an instance into. A placeholder may be
+  // inserted before a component has finished loading, to mark the right spot
+  // for rendering, or when a component is refreshed, which may mean moving the
+  // original placeholder (if refreshed before loading is finished) and
+  // returning it instead of creating a new one.
+  function get_placeholder(use, dest, ref) {
+    if (use.__placeholder) {
+      if (ref) {
+        ref.parentNode.insertBefore(use.__placeholder, ref);
+      }
+    } else {
+      use.__placeholder = dest.ownerDocument.createElementNS(bender.NS,
+          "placeholder");
+      A.forEach.call(use.attributes, function (attr) {
+        use.__placeholder.setAttribute(attr.name, attr.value);
+      });
+      dest.insertBefore(use.__placeholder, ref);
+    }
+    return use.__placeholder;
+  }
+
   // Import a node and its children from a foreign document and add it as a
   // child of the parent element
   function import_node(parent, node, uri) {
@@ -54,22 +75,6 @@
     return n && (n.__instance || instance_of(n.parentNode));
   }
 
-  // Create a placeholder node to mark the right location in the render tree for
-  // a component. This placeholder can be replaced by the component's tree when
-  // it becomes available.
-  function placeholder(dest, ref, use) {
-    if (use.__placeholder) {
-      p.setAttribute("reused", "true");
-      return use.__placeholder;
-    }
-    var p = dest.ownerDocument.createElementNS(bender.NS, "placeholder");
-    p.setAttribute("href", use._href);
-    if (use._id) {
-      p.setAttribute("id", use._id);
-    }
-    return dest.insertBefore(p, ref);
-  }
-
   // Get the value for an edge given an instance and a default value (may be
   // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
   // edge, which ignores the `property` property. Set the __value placeholder on
@@ -86,10 +91,8 @@
     } else if (!set && edge.property) {
       val = instance.get_property(edge.property);
     }
-    console.log("    ... value =", val);
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
       val = edge.action.call(instance, val, edge);
-      console.log("    ... after action =", val);
     }
     return val;
   }
@@ -97,7 +100,6 @@
   // Follow a set edge from a get edge, and push all corresponding get edges for
   // the rest of the traversal
   function follow_set_edge(get, set, edges, get_value) {
-    // console.log("  set:", set);
     var delay = set.hasOwnProperty("delay") &&
       parseFloat(flexo.format.call(get.instance, set.delay,
             get.instance.properties));
@@ -107,8 +109,6 @@
         if (set.use) {
           if (set.property) {
             if (typeof delay === "number" && delay >= 0) {
-              console.log("%%% delayed set (by {0}ms [{1}])"
-                  .fmt(delay, get.instance.__timeout));
               set.use.properties[set.property] = set_value;
             } else {
               set.use._set[set.property](set_value);
@@ -140,14 +140,12 @@
     };
     if (typeof delay === "number" && delay >= 0) {
       if (get.instance.__timeout) {
-        console.log("... clear timeout", get.instance.__timeout);
         clearTimeout(get.instance.__timeout);
       }
       get.instance.__timeout = setTimeout(function () {
         follow();
         delete get.instance.__timeout;
       }, delay);
-      console.log("... set timeout", get.instance.__timeout);
     } else {
       follow();
     }
@@ -156,12 +154,10 @@
   // Traverse the graph of watches starting with an initial set of edges
   // TODO depth-first traversal of the graph?
   function traverse_graph(edges) {
-    console.log(">>> traverse graph >>>");
     for (var i = 0; i < edges.length; ++i) {
       var get = edges[i];
       if (get.watch.enabled && !get.__active) {
         get.__active = true;
-        console.log("  get:", get);
         var carry_on = typeof get.when !== "function" ||
           get.when.call(get.instance);
         if (carry_on) {
@@ -173,19 +169,14 @@
             get.watch.edges.forEach(function (set) {
               follow_set_edge(get, set, edges, get_value);
             });
-          } else {
-            console.log("! Canceled get (get.cancel() called)");
           }
           delete get.cancel;
-        } else {
-          console.log("! Canceled get (when clause)")
         }
       }
     }
     edges.forEach(function (edge) {
       delete edge.__active;
     });
-    console.log("<<< done: traverse graph <<<");
   }
 
   // Extend an element with Bender methods, calls its _init() method, and return
@@ -315,7 +306,7 @@
         if (!loaded[locator]) {
           loaded[locator] = true;
           flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-            if (req.status < 200 || req.status >= 300) {
+            if (req.status !== 0 && req.status !== 200) {
               flexo.notify(context, "@error", { uri: locator, req: req,
                 message: "HTTP error {0}".fmt(req.status) });
             } else if (!req.response) {
@@ -361,10 +352,9 @@
       this.edges = [];       // edges out to watches
       this.__init_properties = [];
       // Setup a readonly $self property (pointing to this)
-      var self = this;
       Object.defineProperty(this.properties, "$self", {
         enumerable: true,
-        get: function () { return self; }
+        get: function () { return this; }
       });
       // Setup prototype properties
       Object.keys(this.component._properties).forEach(function (k) {
@@ -440,31 +430,37 @@
       }
     },
 
+
     // Unrender, then render the view when the target is an Element.
     refresh_instance: function () {
-      var last = this.unrender();
+      var ref = this.unrender();
+      // Only render rooted elements
       if (flexo.root(this.use) !== this.use.ownerDocument) {
         return;
       }
-      this.component.__instance = this;
-      if (this.use.__placeholder) {
-        this.target = this.use.__placeholder;
-        last = null;
+      if (ref && ref.parentNode !== this.target) {
+        ref = null;
       }
+      // TODO how to improve this? It is necessary for rendering <content>
+      this.component.__instance = this;
       if (this.target instanceof Element) {
-        this.views.$document = this.target.ownerDocument;
-        this.views.$target = this.target;
+        var placeholder = get_placeholder(this.use, this.target, ref);
         this.pending = 0;
         // Render the <use> elements outside of the view
         this.component._uses.forEach(function (u) {
-          this.render_use(u, this.target, last);
+          this.render_use(u, placeholder);
         }, this);
         // Render the <view> element
+        this.views.$document = this.target.ownerDocument;
+        this.views.$target = this.target;
         if (this.component._view) {
-          // $root will be the first foreign to be rendered, if any
-          this.views.$root = null;
-          this.render_children(this.component._view, this.target, last);
+          this.render_children(this.component._view, placeholder);
+          this.views.$root = flexo.find_first(this.rendered, function (n) {
+            return n instanceof window.Node &&
+              n.nodeType === window.Node.ELEMENT_NODE;
+          });
           if (this.views.$root) {
+            // TODO what's this again?
             Object.keys(this.use._properties).forEach(function (k) {
               if (!this.component._properties.hasOwnProperty(k) &&
                 !(this.component._properties[k] instanceof window.Element)) {
@@ -473,8 +469,8 @@
             }, this);
           }
         }
+        // TODO move content up from placeholder
         // flexo.safe_remove(this.use.__placeholder);
-        delete this.use.__placeholder;
         this.update_title();
         if (this.pending === 0) {
           this.render_watches();
@@ -491,20 +487,14 @@
     },
 
     // Render the child nodes of `node` (in the Bender tree) as children of
-    // `dest` (in the target tree) using `ref` as the reference child before
-    // which to add the nodes (`ref` points to a placeholder node that will be
-    // removed afterwards; this is so that loading and rendering can be done
-    // asynchronously.) Return the last rendered element (text nodes are not
-    // returned.)
-    render_children: function (node, dest, ref, unique) {
-      var r;
+    // `dest` (in the target tree.) 
+    render_children: function (node, dest, unique) {
       for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === window.Node.ELEMENT_NODE) {
           if (ch.namespaceURI === bender.NS) {
             if (ch.localName === "use") {
-              r = this.render_use(ch, dest, ref);
+              this.render_use(ch, dest);
             } else if (ch.localName === "target") {
-              // `target` ignores ref
               var target = ch._find_target(dest);
               if (!target) {
                 console.error("No target for", ch);
@@ -512,21 +502,21 @@
               }
               if (ch._unique) {
                 if (!ch._rendered) {
-                  r = this.render_children(ch, target, undefined, true);
+                  this.render_children(ch, target, true);
                   ch._rendered = true;
                 }
               } else {
-                r = this.render_children(ch, target);
+                this.render_children(ch, target);
               }
             } else if (ch.localName === "content") {
               // <content> renders either the contents of the <use> node or its
               // own by default.
               if (this.use.childNodes.length > 0) {
-                r = instance_of(this.use).render_children(this.use, dest, ref,
-                    unique);
+                instance_of(this.use).render_children(this.use, dest, unique);
               } else {
-                r = this.render_children(ch, dest, ref, unique);
+                this.render_children(ch, dest, unique);
               }
+              // TODO 
               // this.render_use_params(r, ch);
             } else if (ch.localName === "attribute") {
               this.render_attribute(ch, dest);
@@ -535,14 +525,13 @@
                   .fmt(ch.localName));
             }
           } else {
-            r = this.render_foreign(ch, dest, ref, unique);
+            this.render_foreign(ch, dest, unique);
           }
         } else if (ch.nodeType === window.Node.TEXT_NODE ||
             ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-          this.render_text(ch, dest, ref, unique);
+          this.render_text(ch, dest, unique);
         }
       }
-      return r;
     },
 
     // Extract a list of properties for a pattern. Only properties that are
@@ -561,17 +550,12 @@
               if (this.properties.hasOwnProperty(prop)) {
                 props[prop] = true;
               }
-              console.log("??? {0} is not a property of".fmt(prop), this);
               open = false;
             }
           } else if (open) {
             prop += token.replace(/^\\([{}\\])/, "$1");
           }
         }, this);
-      }
-      if (Object.keys(props).length > 0) {
-        console.log("*** extract_props[{0}]: {1}"
-            .fmt(pattern, Object.keys(props).join(", ")));
       }
       return Object.keys(props);
     },
@@ -612,12 +596,9 @@
 
     // Render foreign nodes within a view; arguments and return value are the
     // same as render_children() above.
-    render_foreign: function (node, dest, ref, unique) {
+    render_foreign: function (node, dest, unique) {
       var d = dest.ownerDocument.createElementNS(node.namespaceURI,
           node.localName);
-      if (this.views.$root === null) {
-        this.views.$root = d;
-      }
       A.forEach.call(node.attributes, function (attr) {
         var val = attr.value;
         if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
@@ -639,23 +620,22 @@
           }
         }
       }, this);
-      dest.insertBefore(d, ref);
-      if (dest === this.target) {
+      dest.appendChild(d);
+      if (dest.parentNode === this.target) {
         this.rendered.push(d);
       }
-      this.render_children(node, d, undefined, unique);
-      return d;
+      this.render_children(node, d, unique);
     },
 
     // Render a text node (or CDATA node)
-    render_text: function (node, dest, ref) {
+    render_text: function (node, dest) {
       var d = dest.ownerDocument.createTextNode(node.textContent);
       if (!this.unprop_text(d)) {
         d.textContent = flexo.format.call(this, node.textContent,
             this.properties);
       }
-      dest.insertBefore(d, ref);
-      if (dest === this.target) {
+      dest.appendChild(d);
+      if (dest.parentNode === this.target) {
         this.rendered.push(d);
       }
     },
@@ -675,8 +655,8 @@
 
     // Render a use node, return either the instance or the promise of a future
     // instance.
-    render_use: function (use, dest, ref) {
-      use.__placeholder = placeholder(dest, ref, use);
+    render_use: function (use, dest) {
+      get_placeholder(use, dest);
       var instance = use._render(dest, this);
       if (instance === true) {
         this.__pending = true;
@@ -752,7 +732,6 @@
           edge.watch = w;
           edge.instance = this;
           (edge.use || this).edges.push(edge);
-          console.log("+++ get edge", edge);
           // Set the event listeners to start graph traversal. We don't need to
           // worry about properties because they initiate traversal on their own
           var h = function (e) {
@@ -771,7 +750,6 @@
           var edge = this.make_edge(set);
           if (edge) {
             w.edges.push(edge);
-            console.log("+++ set edge", edge);
           }
         }, this);
       }, this);
@@ -810,23 +788,24 @@
       return edge;
     },
 
-    // Unrender this instance, returning the next sibling of the last of the
-    // rendered node (if any) so that re-rendering will happen at the right
-    // place.
+    // Unrender this instance, and return the next sibling for re-rendering in
+    // the same spot
     unrender: function () {
       flexo.notify(this, "@unrender");
-      var ref;
+      var first = flexo.find_first(this.rendered, function (n) {
+        return n instanceof window.Node;
+      });
+      var prev = first && first.previousSibling;
       this.rendered.forEach(function (r) {
         if (r instanceof window.Node) {
-          ref = r;
-          r.parentNode.removeChild(r);
+          flexo.safe_remove(r);
         } else {
           flexo.remove_from_array(r.component._instances, r);
-          ref = r.unrender();
+          r.unrender();
         }
       });
       this.rendered = [];
-      return ref && ref.nextSibling;
+      return prev && prev.nextSibling;
     },
 
     update_title: function () {
@@ -1376,7 +1355,7 @@
 
       // Render the node in the given target and parent instance; return the new
       // instance or true to mark a promise that this component will be
-      // rendered. TODO: dummy instance?
+      // rendered.
       _render: function (target, parent) {
         var component = this._find_component();
         if (typeof component === "string") {
