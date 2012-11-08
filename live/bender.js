@@ -1,6 +1,8 @@
 (function (bender) {
   "use strict";
 
+  var K = 0;
+
   var A = Array.prototype;
 
   // The Bender namespace, also adding the "bender" namespace prefix for
@@ -26,6 +28,15 @@
             ns, qname));
     };
 
+    // Read-only target property
+    Object.defineProperty(context, "_target", {
+      enumerable: true,
+      get: function () {
+        return target;
+      }
+    });
+
+    // Add an instance to the context
     context._add_instance = function (instance) {
       this.documentElement.appendChild(instance);
     };
@@ -39,10 +50,16 @@
       var split = uri.split("#");
       var locator = flexo.normalize_uri(instance._uri, split[0]);
       var id = split[1];
-      if (loaded[locator]) {
-        flexo.notify(context, "@loaded", { uri: locator,
+      if (loaded[locator] instanceof window.Node) {
+        console.log("=== {0} already loaded".fmt(locator));
+        flexo.notify(instance, "@loaded", { uri: locator,
           component: loaded[locator] });
+      } else if (Array.isArray(loaded[locator])) {
+        console.log("... {0} being loaded".fmt(locator));
+        loaded[locator].push(instance);
       } else {
+        console.log("+++ {0} loading".fmt(locator));
+        loaded[locator] = [instance];
         flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
           var ev = { uri: locator, req: req };
           if (req.status !== 0 && req.status !== 200) {
@@ -54,9 +71,12 @@
           } else {
             var c = context._import_node(req.response.documentElement, locator);
             if (is_bender_element(c, "component")) {
-              loaded[locator] = c;
+              console.log("!!! {0} loaded".fmt(locator));
               ev.component = c;
-              flexo.notify(instance, "@loaded", ev);
+              loaded[locator].forEach(function (i) {
+                flexo.notify(i, "@loaded", ev);
+              });
+              loaded[locator] = c;
             } else {
               ev.message = "not a Bender component";
               flexo.notify(instance, "@error", ev);
@@ -220,6 +240,12 @@
   //   ._target: has a target to render into
 
   prototypes.instance._init = function (component, target) {
+
+    this._placeholder = this.ownerDocument._target.ownerDocument
+      .createElementNS(bender.ns, "placeholder");
+    this._placeholder.setAttribute("no", K++);
+    this._placeholder._instance = this;
+
     // Set the component: instantiate and render it (it is already loaded)
     Object.defineProperty(this, "_component", { enumerable: true,
       get: function () { return component; },
@@ -274,21 +300,23 @@
   function instantiate_component(instance) {
     instance._properties = instance._component._properties.slice();
     instance._view = instance._component._view;
+    if (instance._view) {
+      console.log("render_children #{0}:"
+          .fmt(instance._placeholder.getAttribute("no")), instance);
+      render_children(instance._view, instance._placeholder);
+    }
     instance._component._instances.push(instance);
   }
 
   // Render instance to its current target; if the target is null, unrender it.
   // TODO remove placeholder when done
   function render_instance(instance) {
-    if (instance._view && instance._target) {
-      instance._placeholder = instance._target.ownerDocument
-        .createElementNS(bender.ns, "placeholder");
-      instance._placeholder._instance = instance;
-      instance._target.appendChild(instance._placeholder);
-      render_children(instance._view, instance._placeholder);
+    if (instance._target) {
+      if (instance._placeholder.parentNode !== instance._target) {
+        instance._target.appendChild(instance._placeholder);
+      }
     } else if (instance._target == null) {
       flexo.safe_remove(instance._placeholder);
-      delete instance._placeholder;
     }
   }
 
@@ -331,21 +359,9 @@
 
   prototypes.view.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (is_bender_element(ch, "instance")) {
-      /*var instance = instance_of(this);
-      if (instance && instance._uri) {
-        ch._uri = instance._uri;
-        ch._load_component();
-      }*/
-      return ch;
-    } else if (!is_bender_element(ch)) {
+    if (!is_bender_element(ch)) {
       return wrap_element(ch, prototypes.view);
     }
-  };
-
-  prototypes.view.removeChild = function (ch) {
-    Object.getPrototypeOf(this).removeChild.call(this, ch);
-    return ch;
   };
 
   prototypes.view._set_uri_for_instances = function (uri) {
