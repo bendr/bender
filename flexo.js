@@ -168,6 +168,12 @@
 
   // Arrays
 
+  // Find the first item x in a such that p(x) is true
+  flexo.find_first = function (a, p) {
+    for (var i = 0, n = a.length; i < n && !p(a[i], i, a); ++i) {}
+    return a[i];
+  };
+
   // Return a random element from an array
   flexo.random_element = function (a) {
     return a[flexo.random_int(a.length - 1)];

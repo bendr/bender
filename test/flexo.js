@@ -197,6 +197,21 @@
 
   describe("Arrays", function () {
 
+    describe("flexo.find_first(array, p)", function () {
+      it("finds the first item x in array such that p(x) is true", function () {
+        var a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        assert.strictEqual(flexo.find_first(a, function (x) {
+          return x > 3;
+        }), 4, "First x > 3");
+      });
+      it("predicate takes three parameters: the item, the index of the item in array, and the array itself", function () {
+        var a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        assert.strictEqual(flexo.find_first(a, function (x, i, a) {
+          return x > 4 && (a.length - i) < 4;
+        }), 8, "First x > 4 less than 4 items from the end");
+      });
+    });
+
     describe("flexo.random_element(array)", function () {
       it("returns a random element from an array", function () {
         var a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
