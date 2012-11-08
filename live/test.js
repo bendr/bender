@@ -99,15 +99,14 @@
           context.$("html:p", text)))._create_instance());
 
     it("Hello world!", function () {
-      assert(context.querySelector("instance")._target.textContent === text);
-      assert(div.textContent === text);
-      assert(hello._roots.length === 1);
+      assert.strictEqual(context.querySelector("instance")._target.textContent,
+        text, "Text rendered correctly");
+      assert.strictEqual(div.textContent, text, "Text rendered correctly");
     });
 
     it("Remove an instance", function () {
       flexo.safe_remove(hello);
-      assert(div.textContent === "");
-      assert(hello._roots.length === 0);
+      assert.strictEqual(div.textContent, "", "Text removed correctly");
     });
   });
 
