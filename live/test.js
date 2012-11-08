@@ -68,22 +68,22 @@
     it("Instance of the component are updated when the view changes");
 
     it("Instances can refer to components through their URI; the files are loaded if necessary", function (done) {
-      var hello = context.$("instance",
-        { href: "/examples/rendering/hello-world.xml" });
+      var hello = context.$("instance", { href: "../examples/rendering/hello-world.xml" });
       var handler = function (e) {
-        if (e.instance === hello) {
-          assert.strictEqual(e.type, "@loaded", "component was loaded");
+        setTimeout(function () {
+          assert.strictEqual(e.type, "@loaded", "component loaded without error");
           assert.strictEqual(e.component, hello._component,
-            "component was set for instance");
+            "component set for instance");
           assert.instanceOf(hello._component, window.Element,
             "loaded component is a DOM element");
           assert.instanceOf(hello._component._view, window.Element,
             "loaded component has a view");
           done();
-        }
+        }, 0);
       };
-      flexo.listen(context, "@loaded", handler);
-      flexo.listen(context, "@error", handler);
+      flexo.listen(hello, "@loaded", handler);
+      flexo.listen(hello, "@error", handler);
+      context.documentElement.appendChild(hello);
     });
 
   });

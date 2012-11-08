@@ -14,6 +14,7 @@
     var host_doc = target.ownerDocument;
     var context = host_doc.implementation.createDocument(bender.ns, "context",
       null);
+    context._uri = host_doc.baseURI;
 
     // Wrap all new elements created in this context
     context.createElement = function (name) {
@@ -25,39 +26,64 @@
             ns, qname));
     };
 
+    // Loaded URI's
+    var loaded = {};
+    loaded[flexo.normalize_uri(context._uri, "")] = context.documentElement;
+
     // Load the component at the given URI for the instance
     context._load_component = function (uri, instance) {
-      var locator = uri;
-      flexo.ez_xhr(uri, { responseType: "document" }, function (req) {
-        if (req.status < 200 || req.status >= 300) {
-          flexo.notify(context, "@error", { uri: locator, req: req,
-            message: "HTTP error {0}".fmt(req.status) });
-        } else if (!req.response) {
-          flexo.notify(context, "@error", { uri: locator, req: req,
-            message: "could not parse response as XML" });
-        } else {
-          var c = context._import_node(req.response.documentElement);
-          if (is_bender_element(c, "component")) {
-            instance._component = c;
-            flexo.notify(context, "@loaded", { uri: locator, req: req,
-              instance: instance, component: c });
+      var split = uri.split("#");
+      var locator = flexo.normalize_uri(instance._uri, split[0]);
+      var id = split[1];
+      if (loaded[locator]) {
+        flexo.notify(context, "@loaded", { uri: locator,
+          component: loaded[locator] });
+      } else {
+        flexo.ez_xhr(uri, { responseType: "document" }, function (req) {
+          var ev = { uri: locator, req: req };
+          if (req.status !== 0 && req.status !== 200) {
+            ev.message = "HTTP error {0}".fmt(req.status);
+            flexo.notify(instance, "@error", ev);
+          } else if (!req.response) {
+            ev.message = "could not parse response as XML";
+            flexo.notify(instance, "@error", ev);
           } else {
-            flexo.notify(context, "@error", { uri: locator, req: req,
-              message: "not a Bender component" });
+            var c = context._import_node(req.response.documentElement, locator);
+            if (is_bender_element(c, "component")) {
+              loaded[locator] = c;
+              ev.component = c;
+              flexo.notify(instance, "@loaded", ev);
+            } else {
+              ev.message = "not a Bender component";
+              flexo.notify(instance, "@error", ev);
+            }
           }
-        }
-      });
+        });
+      }
     };
 
     // Import a node in the context (for loaded components)
-    context._import_node = function (node) {
+    context._import_node = function (node, uri) {
       if (node.nodeType === window.Node.ELEMENT_NODE) {
         var n = this.createElementNS(node.namespaceURI, node.localName);
+        if (is_bender_element(n, "component")) {
+          n._uri = uri;
+        }
         A.forEach.call(node.attributes, function (attr) {
-          n.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
+          if (attr.namespaceURI) {
+            if (attr.namespaceURI === flexo.ns.xmlns &&
+                attr.localName !== "xmlns") {
+              n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
+            } else {
+              n.setAttributeNS(attr.namespaceURI, attr.localName,
+                attr.nodeValue);
+            }
+          } else {
+            n.setAttribute(attr.localName, attr.nodeValue);
+          }
         });
         A.forEach.call(node.childNodes, function (ch) {
-          var ch_ = this._import_node(ch);
+          var ch_ = this._import_node(ch, uri);
           if (ch_) {
             n.appendChild(ch_);
           }
@@ -113,6 +139,7 @@
   prototypes.component._init = function () {
     this._properties = [];
     this._instances = [];
+    this._url = "";
   };
 
   // Convenience method to create a new instance of that component
@@ -165,6 +192,7 @@
   prototypes.context.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (is_bender_element(ch, "instance")) {
+      ch._uri = this.ownerDocument._uri;
       ch._target = this._target;
     }
     return ch;
@@ -207,11 +235,25 @@
   prototypes.instance.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
-      this.ownerDocument._load_component(value, this);
+      this._href = value;
+      this._load_component();
     }
   };
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
+
+  prototypes.instance._load_component = function () {
+    if (this._uri && this._href && !this._component) {
+      flexo.listen_once(this, "@loaded", function (e) {
+        this._component = e.component;
+      }.bind(this));
+      flexo.listen_once(this.ownerDocument, "@error", function (e) {
+        console.error("Error loading component at {0}: {1}"
+          .fmt(e.uri, e.message));
+      });
+      this._component = this.ownerDocument._load_component(this._href, this);
+    }
+  };
 
   // Instantiate the component that the `instance` object points to
   // Copy properties, view and watches; the copy will really just be a pointer
@@ -225,6 +267,7 @@
 
   // Render instance to its current target; if the target is null, unrender it.
   function render_instance(instance) {
+    instance._load_component();
     if (instance._view && instance._target) {
       A.push.apply(instance._roots,
           render_children(instance._view, instance._target));
