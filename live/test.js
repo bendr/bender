@@ -28,8 +28,8 @@
       assert.strictEqual(component.localName, "component");
     });
 
-    it("Add an instance to the document element of the context to render it", function () {
-      context.documentElement.appendChild(instance);
+    it("_add_instance() adds an instance to the document element of the context to render it", function () {
+      context._add_instance(instance);
       assert.strictEqual(instance, context.querySelector("instance"));
     });
 

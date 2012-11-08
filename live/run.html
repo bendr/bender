@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender Live Runtime</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+body {
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+}
+code {
+  font-family: Inconsolata, Menlo, monospace;
+}
+.bender--runtime-message {
+  color: #888;
+  font-style: italic;
+}
+.bender--runtime-error {
+  color: #ff4040;
+}
+    </style>
+    <script src="../flexo.js"></script>
+    <script src="bender.js"></script>
+  </head>
+  <body>
+    <script>
+"use strict";
+
+var args = flexo.get_args();
+if (args.href) {
+  var context = bender.create_context(document.body);
+  var instance = context.$("instance", args);
+  flexo.listen(instance, "@error", function (e) {
+    document.body.appendChild(flexo.$("p.bender--runtime-error",
+      "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
+  });
+  context._add_instance(instance);
+} else {
+  document.body.appendChild(flexo.$("p.bender--runtime-message",
+    "Nothing to run. Please specify a Bender component to load with the ", 
+    flexo.$code("href"), " URL parameter."));
+}
+
+    </script>
+  </body>
+</html>

@@ -26,6 +26,10 @@
             ns, qname));
     };
 
+    context._add_instance = function (instance) {
+      this.documentElement.appendChild(instance);
+    };
+
     // Loaded URI's
     var loaded = {};
     loaded[flexo.normalize_uri(context._uri, "")] = context.documentElement;
