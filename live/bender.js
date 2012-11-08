@@ -300,8 +300,11 @@
             ch._target = target;
           } else if (ch.localName === "content") {
             var instance = instance_of(target);
-            render_children(instance, target);
-            // render_children(ch, target);
+            if (instance && instance.childNodes.length > 0) {
+              render_children(instance, target);
+            } else {
+              render_children(ch, target);
+            }
           } else {
             console.warn("Unexpected Bender element {0} in view; skipped."
               .fmt(ch.localName));
