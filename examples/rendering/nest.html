@@ -9,6 +9,7 @@
     <script src="../../bender.js"></script>
     <style>
       .q { font-style: italic; }
+      .r { font-weight: bold; }
     </style>
   </head>
   <body>
@@ -22,6 +23,7 @@ var main = context.appendChild(
     context.$("view",
       context.$("use", { href: "p.xml" }, "Paragraph 1*"),
       context.$("use", { href: "q.xml", text: "Paragraph 2**" }),
+      context.$("use", { href: "r.xml" }),
       context.$("use", { href: "p.xml" }, "Paragraph 3*"),
       context.$("html:p", "Paragraph 4"),
       context.$("use", { href: "q.xml", text: "Paragraph 5**", "class": "q" })

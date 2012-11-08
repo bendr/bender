@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <use href="p.xml">Paragraph 1*</use>
+    <use href="q.xml" text="Paragraph 2**"/>
+    <use href="r.xml"/>
+    <use href="p.xml">Paragraph 3*</use>
+    <html:p>Paragraph 4</html:p>
+    <use href="q.xml" text="Paragraph 5**" class="q"/>
+    <target q="head" unique="true">
+      <html:style>
+        .q \{ font-style: italic; \}
+        .r \{ font-weight: bold; \}
+      </html:style>
+    </target>
+  </view>
+</component>

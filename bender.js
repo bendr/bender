@@ -58,8 +58,15 @@
   // a component. This placeholder can be replaced by the component's tree when
   // it becomes available.
   function placeholder(dest, ref, use) {
-    var p = dest.ownerDocument.createComment(" placeholder ");
-    flexo.safe_remove(use.__placeholder);
+    if (use.__placeholder) {
+      p.setAttribute("reused", "true");
+      return use.__placeholder;
+    }
+    var p = dest.ownerDocument.createElementNS(bender.NS, "placeholder");
+    p.setAttribute("href", use._href);
+    if (use._id) {
+      p.setAttribute("id", use._id);
+    }
     return dest.insertBefore(p, ref);
   }
 
@@ -441,7 +448,8 @@
       }
       this.component.__instance = this;
       if (this.use.__placeholder) {
-        this.target = this.use.__placeholder.parentNode;
+        this.target = this.use.__placeholder;
+        last = null;
       }
       if (this.target instanceof Element) {
         this.views.$document = this.target.ownerDocument;
@@ -449,14 +457,13 @@
         this.pending = 0;
         // Render the <use> elements outside of the view
         this.component._uses.forEach(function (u) {
-          this.render_use(u, this.target, this.use.__placeholder || last);
+          this.render_use(u, this.target, last);
         }, this);
         // Render the <view> element
         if (this.component._view) {
           // $root will be the first foreign to be rendered, if any
           this.views.$root = null;
-          this.render_children(this.component._view, this.target,
-              this.use.__placeholder || last);
+          this.render_children(this.component._view, this.target, last);
           if (this.views.$root) {
             Object.keys(this.use._properties).forEach(function (k) {
               if (!this.component._properties.hasOwnProperty(k) &&
@@ -466,7 +473,7 @@
             }, this);
           }
         }
-        flexo.safe_remove(this.use.__placeholder);
+        // flexo.safe_remove(this.use.__placeholder);
         delete this.use.__placeholder;
         this.update_title();
         if (this.pending === 0) {
