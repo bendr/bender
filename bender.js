@@ -17,11 +17,7 @@
       null;
   }
 
-  // Get a placeholder element to render an instance into. A placeholder may be
-  // inserted before a component has finished loading, to mark the right spot
-  // for rendering, or when a component is refreshed, which may mean moving the
-  // original placeholder (if refreshed before loading is finished) and
-  // returning it instead of creating a new one.
+  // Get a placeholder element to render into and store it into the <use>.
   function get_placeholder(use, dest, ref) {
     if (use.__placeholder) {
       if (ref) {
@@ -34,8 +30,8 @@
         use.__placeholder.setAttribute(attr.name, attr.value);
       });
       dest.insertBefore(use.__placeholder, ref);
+      use.__placeholder._use = use;
     }
-    return use.__placeholder;
   }
 
   // Import a node and its children from a foreign document and add it as a
@@ -384,6 +380,7 @@
     init_property: function (property, value) {
       var instance = this;
       this._set[property._name] = function (v) {
+        console.log("Set {0}=\"{1}\" on".fmt(property._name, v), this);
         if (typeof v === "string") {
           v = property._get_value(v, this.properties);
         }
@@ -430,10 +427,36 @@
       }
     },
 
+    // Remove the placeholder from a child instance from the pending array; if
+    // the array is empty, then we can render the watches and notify the parent
+    remove_pending: function (placeholder) {
+      var removed = flexo.remove_from_array(this.__pending, placeholder);
+      if (removed) {
+        console.log("<<< Removed pending", placeholder);
+      }
+      if (this.__pending.length === 0) {
+        console.log("!!! No more pending instances, can render watches");
+        this.render_watches();
+        if (this.__init_properties) {
+          this.__init_properties.forEach(function (init) {
+            init.call(this);
+          }, this);
+          delete this.__init_properties;
+        }
+        delete this.__pending;
+        delete this.component.__instance;
+        this.component.ownerDocument._refreshed_instance(this);
+        if (this.uses.$parent) {
+          this.uses.$parent.remove_pending(instance);
+        }
+      }
+    },
 
     // Unrender, then render the view when the target is an Element.
     refresh_instance: function () {
       var ref = this.unrender();
+      console.log("+++ Storing pending placeholders for", this.use);
+      this.__pending = [];
       // Only render rooted elements
       if (flexo.root(this.use) !== this.use.ownerDocument) {
         return;
@@ -444,17 +467,16 @@
       // TODO how to improve this? It is necessary for rendering <content>
       this.component.__instance = this;
       if (this.target instanceof Element) {
-        var placeholder = get_placeholder(this.use, this.target, ref);
-        this.pending = 0;
+        get_placeholder(this.use, this.target, ref);
         // Render the <use> elements outside of the view
         this.component._uses.forEach(function (u) {
-          this.render_use(u, placeholder);
+          this.render_use(u, this.use.__placeholder);
         }, this);
         // Render the <view> element
         this.views.$document = this.target.ownerDocument;
         this.views.$target = this.target;
         if (this.component._view) {
-          this.render_children(this.component._view, placeholder);
+          this.render_children(this.component._view, this.use.__placeholder);
           this.views.$root = flexo.find_first(this.rendered, function (n) {
             return n instanceof window.Node &&
               n.nodeType === window.Node.ELEMENT_NODE;
@@ -472,17 +494,6 @@
         // TODO move content up from placeholder
         // flexo.safe_remove(this.use.__placeholder);
         this.update_title();
-        if (this.pending === 0) {
-          this.render_watches();
-          if (this.__init_properties) {
-            this.__init_properties.forEach(function (init) {
-              init.call(this);
-            }, this);
-            delete this.__init_properties;
-          }
-          delete this.component.__instance;
-          this.component.ownerDocument._refreshed_instance(this);
-        }
       }
     },
 
@@ -657,16 +668,12 @@
     // instance.
     render_use: function (use, dest) {
       get_placeholder(use, dest);
+      console.log(">>> pending", use.__placeholder);
+      this.__pending.push(use.__placeholder);
       var instance = use._render(dest, this);
       if (instance === true) {
-        this.__pending = true;
-        ++this.pending;
         flexo.listen(use, "@loaded", function () {
           this.rendered_use(use);
-          --this.pending;
-          if (this.pending === 0) {
-            this.render_watches();
-          }
         }.bind(this));
       } else if (instance) {
         this.rendered_use(use);
@@ -674,12 +681,16 @@
       return instance;
     },
 
-    // After a <use> was rendered, keep track of its instance.
+    // After a <use> was rendered, keep track of its instance and remove it from
+    // the list of pending instances
     rendered_use: function (use) {
       if (use._instance) {
         this.rendered.push(use._instance);
         if (use._id) {
           this.uses[use._id] = use._instance;
+        }
+        if (this.uses.$parent) {
+          this.uses.$parent.remove_pending(use.__placeholder);
         }
       } else {
         console.error("rendered_use: no instance for", use);
@@ -687,31 +698,6 @@
     },
 
     render_watches: function () {
-      var instances = [];
-      var pending = function (instance) {
-        // TODO improve this
-        // The point is that we should not render watches before any of the
-        // instances down the tree are done rendering themselves
-        if (!instance.rendered) {
-          return false;
-        }
-        for (var i = 0, n = instance.rendered.length; i < n; ++i) {
-          if (instance.rendered[i].pending > 0) {
-            return true;
-          }
-        }
-        for (i = 0; i < n; ++i) {
-          if (pending(instance.rendered[i])) {
-            return true;
-          }
-        }
-        return false;
-      };
-      this.__pending_watches = pending(this);
-      if (this.__pending_watches) {
-        return;
-      }
-      delete this.__pending_watches;
       this.component._watches.forEach(function (watch) {
         // Create a watch node for this watch element
         var w = { enabled: true, edges: [] };

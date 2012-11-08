@@ -181,7 +181,7 @@
 
   // Remove an item from an array
   flexo.remove_from_array = function (array, item) {
-    if (array) {
+    if (array && item != null) {
       var index = array.indexOf(item);
       if (index >= 0) {
         return array.splice(index, 1)[0];
