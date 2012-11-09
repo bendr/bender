@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <instance href="q.xml" text="Paragraph A"/>
+    <instance href="q.xml" text="Paragraph B" class="r"/>
+  </view>
+</component>
