@@ -138,7 +138,8 @@
     }
   };
 
-  ["component", "context", "get", "instance", "target", "view", "watch"
+  ["component", "context", "get", "instance", "property", "target", "view",
+    "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
@@ -252,11 +253,13 @@
     this._placeholder._instance = this;
     this._views = {};
     this._instances = { $self: this };
+    this._properties = {};
+    flexo.notify(this, "@rendering");
     // Keep track of pending instances (see _finished_rendering below),
     // including self
     this.__pending = [this];
-    flexo.notify(this, "@rendering");
     var render = function () {
+      this._init_properties();
       if (this._component._view) {
         this._render_children(this._component._view, this._placeholder);
       }
@@ -268,6 +271,49 @@
       this._load_component(render);
     }
     return this._placeholder;
+  };
+
+  // Initialize properties defined by their <property> element
+  // TODO <property> as children of the instance as well
+  prototypes.instance._init_properties = function () {
+    this._component._properties.forEach(function (property) {
+
+      /*
+      var instance = this;
+      this._set[property._name] = function (v) {
+        console.log("Set {0}=\"{1}\" on".fmt(property._name, v), this);
+        if (typeof v === "string") {
+          v = property._get_value(v, this.properties);
+        }
+        if (v !== value) {
+          var prev = value;
+          value = v;
+        }
+      }.bind(this);
+      Object.defineProperty(this.properties, property._name, { enumerable: true,
+        get: function () { return value; },
+        set: function (v) {
+          instance._set[property._name](v);
+          traverse_graph(instance.edges.filter(function (e) {
+            return e.property === property._name;
+          }));
+        }
+      });
+      this.unprop_value(property);
+      var init_val;
+      if (this.use._properties.hasOwnProperty(property._name)) {
+        init_val = this.use._properties[property._name].value;
+      }
+      this.__init_properties.push(function () {
+        if (this.properties[property._name] === undefined) {
+          this.properties[property._name] =
+            typeof property._get_value === "function" ?
+              property._get_value(init_val, this.properties) :
+              init_val;
+        }
+      });
+    */
+    });
   };
 
   prototypes.instance._render_children = function (view, dest, unique) {
@@ -353,6 +399,56 @@
     }
   };
 
+  // Get the value for an edge given an instance and a default value (may be
+  // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
+  // edge, which ignores the `property` property. Set the __value placeholder on
+  // the edge to provide a value (it is then deleted); otherwise try the `value`
+  // property, then the `property` property. String values are interpolated from
+  // the instance properties.
+  // TODO use type like properties
+  function edge_value(edge, instance, set, val) {
+    if (edge.hasOwnProperty("__value")) {
+      val = edge.__value;
+      delete edge.__value;
+    } else if (edge.hasOwnProperty("value")) {
+      val = flexo.format.call(instance, edge.value, instance.properties);
+    } else if (!set && edge.property) {
+      val = instance.get_property(edge.property);
+    }
+    if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
+      val = edge.action.call(instance, val, edge);
+    }
+    return val;
+  }
+
+  // Traverse the graph of watches starting with an initial set of edges
+  // TODO depth-first traversal of the graph?
+  function traverse_graph(edges) {
+    for (var i = 0; i < edges.length; ++i) {
+      var get = edges[i];
+      if (get.watch.enabled && !get.__active) {
+        get.__active = true;
+        var active = typeof get.when !== "function" ||
+          get.when.call(get.instance);
+        if (active) {
+          get.cancel = function () {
+            active = false;
+          };
+          var get_value = edge_value(get, get.instance);
+          if (active) {
+            get.watch.edges.forEach(function (set) {
+              follow_set_edge(get, set, edges, get_value);
+            });
+          }
+          delete get.cancel;
+        }
+      }
+    }
+    edges.forEach(function (edge) {
+      delete edge.__active;
+    });
+  }
+
   // When the instance has finished rendering, we render its edges
   prototypes.instance._render_edges = function (instance) {
     this._edges = [];
@@ -403,7 +499,7 @@
       }
     }
     if (elem._instance) {
-      edge.instance = this._instances[elem._use];
+      edge.instance = this._instances[elem._instance];
       if (!edge.instance) {
         console.error("No instance \"{0}\" for".fmt(elem._instance), elem);
         return;
@@ -462,58 +558,80 @@
   // given URI
   prototypes.instance.absolute_uri = function (uri) {
     return flexo.absolute_uri(this._uri, uri);
-  },
+  };
 
 
-  // Traverse the graph of watches starting with an initial set of edges
-  // TODO depth-first traversal of the graph?
-  function traverse_graph(edges) {
-    for (var i = 0; i < edges.length; ++i) {
-      var get = edges[i];
-      if (get.watch.enabled && !get.__active) {
-        get.__active = true;
-        var active = typeof get.when !== "function" ||
-          get.when.call(get.instance);
-        if (active) {
-          get.cancel = function () {
-            active = false;
-          };
-          var get_value = edge_value(get, get.instance);
-          if (active) {
-            get.watch.edges.forEach(function (set) {
-              follow_set_edge(get, set, edges, get_value);
-            });
-          }
-          delete get.cancel;
+  // Properties
+
+  // Property type map with the corresponding evaluation function
+  var property_types = {
+    "boolean": flexo.is_true,
+    "dynamic": function (value) {
+      try {
+        if (!/\n/.test(value)) {
+          value = "return " + value;
         }
+        return new Function(value).call(this);
+      } catch (e) {
+        console.error("Error evaluating dynamic property \"{0}\": {1}"
+            .fmt(value, e.message));
       }
+    },
+    "number": parseFloat,
+    "object": function (value) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        console.error("Could not parse \"{0}\" as JSON: {1}"
+          .fmt(value, e.message));
+      }
+    },
+    "string": flexo.id
+  };
+
+
+  prototypes.property._init = function () {
+    this._value = "";
+    this._type = "string";
+  };
+
+  prototypes.property._insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+      this._value = this.textContent;
     }
-    edges.forEach(function (edge) {
-      delete edge.__active;
-    });
+  };
+
+  prototypes.property._setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "name") {
+      this._name = value.trim();
+    } else if (name === "type") {
+      this._set_type(value);
+    } else if (name === "value") {
+      this._value = value;
+    }
+  };
+
+  prototypes.property._textContent = function (t) {
+    this.textContent = t;
+    this._value = t;
+  };
+
+  // Get the parsed value for the property
+  prototypes.property._get_value = function (v, properties) {
+    return property_types[this._type]
+      .call(properties, v === undefined ? this._value : v);
+  };
+
+  prototypes.property._set_type = function (type) {
+    type = type.trim().toLowerCase();
+    if (type in property_types) {
+      this._type = type;
+    }
   }
 
-  // Get the value for an edge given an instance and a default value (may be
-  // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
-  // edge, which ignores the `property` property. Set the __value placeholder on
-  // the edge to provide a value (it is then deleted); otherwise try the `value`
-  // property, then the `property` property. String values are interpolated from
-  // the instance properties.
-  // TODO use type like properties
-  function edge_value(edge, instance, set, val) {
-    if (edge.hasOwnProperty("__value")) {
-      val = edge.__value;
-      delete edge.__value;
-    } else if (edge.hasOwnProperty("value")) {
-      val = flexo.format.call(instance, edge.value, instance.properties);
-    } else if (!set && edge.property) {
-      val = instance.get_property(edge.property);
-    }
-    if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
-      val = edge.action.call(instance, val, edge);
-    }
-    return val;
-  }
 
   // Target methods
 
