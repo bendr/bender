@@ -226,7 +226,6 @@
   //   ._uri: base URI; if not set, then it is not in the tree
   //   ._href: has a reference to a component
   //   ._component: if set, then loaded; otherwise, not ready
-  //   ._target: has a target to render into
 
   prototypes.instance._init = function (component) {
     this._children = [];
@@ -246,8 +245,8 @@
   // placeholder can be inserted in its place immediately. Send a notification
   // that rendering has started (@rendering); a notification that rendering has
   // ended will be sent as well (@rendered)
-  prototypes.instance._render = function (target) {
-    this._placeholder = target.ownerDocument.createElementNS(bender.ns,
+  prototypes.instance._render = function (dest) {
+    this._placeholder = dest.ownerDocument.createElementNS(bender.ns,
         "placeholder");
     this._placeholder.setAttribute("no", K++);
     this._placeholder._instance = this;
@@ -257,7 +256,7 @@
     flexo.notify(this, "@rendering");
     var render = function () {
       if (this._component._view) {
-        render_children(this._component._view, this._placeholder);
+        this._render_children(this._component._view, this._placeholder);
       }
       this._finished_rendering(this);
     };
@@ -269,6 +268,70 @@
     return this._placeholder;
   };
 
+  prototypes.instance._render_children = function (view, dest, unique) {
+    A.forEach.call(view.childNodes, function (ch) {
+      if (ch.nodeType === window.Node.ELEMENT_NODE) {
+        if (ch.namespaceURI === bender.ns) {
+          if (ch.localName === "instance") {
+            var child_instance = this._add_child_instance(ch);
+            this.__pending.push(child_instance);
+            dest.appendChild(child_instance._render(dest));
+          } else if (ch.localName === "content") {
+            var instance = this;
+            if (instance._template) {
+              instance = instance._template;
+            }
+            if (instance.childNodes.length > 0) {
+              this._render_children(instance, dest, unique);
+            } else {
+              this._render_children(ch, dest, unique);
+            }
+          } else if (ch.localName === "target") {
+            var target = ch._find_target(dest);
+            if (!target) {
+              console.error("No target for", ch);
+              return;
+            }
+            if (ch._unique) {
+              if (!ch._rendered) {
+                this._render_children(ch, target, true);
+                ch._rendered = true;
+              }
+            } else {
+              this._render_children(ch, target);
+            }
+          } else {
+            console.warn("Unexpected Bender element {0} in view; skipped."
+              .fmt(ch.localName));
+          }
+        } else {
+          this._render_foreign(ch, dest, unique);
+        }
+      } else if (ch.nodeType === window.Node.TEXT_NODE ||
+          ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+        this._render_text(ch.textContent, dest);
+      }
+    }, this);
+  };
+
+  // Render foreign content, keeping track of id
+  prototypes.instance._render_foreign = function (elem, dest, unique) {
+    var d = dest.appendChild(
+        dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
+    A.forEach.call(elem.attributes, function (attr) {
+      d.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
+    });
+    this._render_children(elem, d, unique);
+  };
+
+  // Render text content into a new text node
+  prototypes.instance._render_text = function (text, dest) {
+    // if (!this.unprop_text(text)) {
+      text = flexo.format.call(this, text, this._properties);
+    // }
+    dest.appendChild(dest.ownerDocument.createTextNode(text));
+  };
+
   // instance has finished rendering, so it can be removed from the current list
   // of pending instances. When the list is empty, the instance is completely
   // rendered so we can send the @rendered event, and tell the parent instance,
@@ -277,11 +340,16 @@
     var removed = flexo.remove_from_array(this.__pending, instance);
     if (this.__pending.length === 0) {
       delete this.__pending;
+      this._render_edges();
       flexo.notify(this, "@rendered");
       if (this._parent) {
         this._parent._finished_rendering(this);
       }
     }
+  };
+
+  // When the instance has finished rendering, we render its edges
+  prototypes.instance._render_edges = function (instance) {
   };
 
   prototypes.instance._load_component = function (k) {
@@ -317,61 +385,6 @@
   };
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
-
-  function render_children(view, target, unique) {
-    A.forEach.call(view.childNodes, function (ch) {
-      if (ch.nodeType === window.Node.ELEMENT_NODE) {
-        if (ch.namespaceURI === bender.ns) {
-          if (ch.localName === "instance") {
-            var instance = instance_of(target);
-            var child_instance = instance._add_child_instance(ch);
-            instance.__pending.push(child_instance);
-            target.appendChild(child_instance._render(target));
-          } else if (ch.localName === "content") {
-            var instance = instance_of(target);
-            if (instance._template) {
-              instance = instance._template;
-            }
-            if (instance.childNodes.length > 0) {
-              render_children(instance, target, unique);
-            } else {
-              render_children(ch, target, unique);
-            }
-          } else if (ch.localName === "target") {
-            // TODO mixing target and content
-            var t = ch._find_target(target);
-            if (!t) {
-              console.error("No target for", ch);
-              return;
-            }
-            if (ch._unique) {
-              if (!ch._rendered) {
-                render_children(ch, t, true);
-                ch._rendered = true;
-              }
-            } else {
-              render_children(ch, t, unique);
-            }
-          } else {
-            console.warn("Unexpected Bender element {0} in view; skipped."
-              .fmt(ch.localName));
-          }
-        } else {
-          var t = target.appendChild(
-            target.ownerDocument.createElementNS(ch.namespaceURI,
-              ch.localName));
-          A.forEach.call(ch.attributes, function (attr) {
-            t.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
-          });
-          render_children(ch, t, unique);
-        }
-      } else if (ch.nodeType === window.Node.TEXT_NODE ||
-        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-        var t = target.appendChild(
-          target.ownerDocument.createTextNode(ch.textContent));
-      }
-    });
-  }
 
 
   // Target methods

@@ -3,7 +3,7 @@
   <property name="class"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <instance href="p.xml">
-      <html:span class="{class}">{text}</html:span>
+      <html:span class="{class}">text="{text}"</html:span>
     </instance>
   </view>
 </component>
