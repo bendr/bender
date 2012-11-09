@@ -21,7 +21,7 @@
     // Wrap all new elements created in this context
     context.createElement = function (name) {
       return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            bender.NS, name));
+            bender.ns, name));
     };
     context.createElementNS = function (ns, qname) {
       return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
@@ -138,7 +138,8 @@
     }
   };
 
-  ["component", "context", "instance", "target", "view"].forEach(function (p) {
+  ["component", "context", "get", "instance", "target", "view", "watch"
+  ].forEach(function (p) {
     prototypes[p] = {};
   });
 
@@ -342,6 +343,7 @@
     if (this.__pending.length === 0) {
       delete this.__pending;
       this._views.$root = find_root(this._placeholder);
+      this._views.$document = this._placeholder.ownerDocument;
       this._render_edges();
       flexo.notify(this, "@rendered");
       if (this._parent) {
@@ -352,6 +354,73 @@
 
   // When the instance has finished rendering, we render its edges
   prototypes.instance._render_edges = function (instance) {
+    this._edges = [];
+    this._component._watches.forEach(function (watch) {
+      // Create a watch node for this watch element
+      var w = { enabled: true, edges: [] };
+      watch._gets.forEach(function (get) {
+        var edge = this._make_edge(get);
+        if (!edge) {
+          return;
+        }
+        edge.watch = w;
+        if (!edge.instance) {
+          edge.instance = this;
+        }
+        (edge.instance || this)._edges.push(edge);
+        // Set the event listeners to start graph traversal. We don't need to
+        // worry about properties because they initiate traversal on their own
+        var h = function (e) {
+          if (!edge.__active) {
+            edge.__value = e;
+            traverse_graph([edge]);
+          }
+        };
+        if (edge.dom_event) {
+          edge.view.addEventListener(edge.dom_event, h, false);
+        } else if (edge.event) {
+          flexo.listen(edge.view || edge.instance, edge.event, h);
+        }
+      }, this);
+      watch._sets.forEach(function (set) {
+        var edge = this.make_edge(set);
+        if (edge) {
+          w.edges.push(edge);
+        }
+      }, this);
+    }, this);
+  };
+
+  // Make an edge for a get or set element
+  prototypes.instance._make_edge = function (elem) {
+    var edge = {};
+    if (elem._view) {
+      edge.view = this._views[elem._view];
+      if (!edge.view) {
+        console.error("No view \"{0}\" for".fmt(elem._view), elem);
+        return;
+      }
+    }
+    if (elem._instance) {
+      edge.instance = this._instances[elem._use];
+      if (!edge.instance) {
+        console.error("No instance \"{0}\" for".fmt(elem._instance), elem);
+        return;
+      }
+    } else {
+      edge.instance = this;
+    }
+    ["action", "attr", "delay", "dom_event", "event", "property", "value",
+      "when"
+    ].forEach(function (p) {
+      if (elem.hasOwnProperty("_" + p)) {
+        edge[p] = elem["_" + p];
+      }
+    });
+    if (edge.dom_event && !edge.view) {
+      edge.view = this.$document;
+    }
+    return edge;
   };
 
   prototypes.instance._load_component = function (k) {
@@ -388,6 +457,56 @@
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
 
+
+  // Traverse the graph of watches starting with an initial set of edges
+  // TODO depth-first traversal of the graph?
+  function traverse_graph(edges) {
+    for (var i = 0; i < edges.length; ++i) {
+      var get = edges[i];
+      if (get.watch.enabled && !get.__active) {
+        get.__active = true;
+        var active = typeof get.when !== "function" ||
+          get.when.call(get.instance);
+        if (active) {
+          get.cancel = function () {
+            active = false;
+          };
+          var get_value = edge_value(get, get.instance);
+          if (active) {
+            get.watch.edges.forEach(function (set) {
+              follow_set_edge(get, set, edges, get_value);
+            });
+          }
+          delete get.cancel;
+        }
+      }
+    }
+    edges.forEach(function (edge) {
+      delete edge.__active;
+    });
+  }
+
+  // Get the value for an edge given an instance and a default value (may be
+  // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
+  // edge, which ignores the `property` property. Set the __value placeholder on
+  // the edge to provide a value (it is then deleted); otherwise try the `value`
+  // property, then the `property` property. String values are interpolated from
+  // the instance properties.
+  // TODO use type like properties
+  function edge_value(edge, instance, set, val) {
+    if (edge.hasOwnProperty("__value")) {
+      val = edge.__value;
+      delete edge.__value;
+    } else if (edge.hasOwnProperty("value")) {
+      val = flexo.format.call(instance, edge.value, instance.properties);
+    } else if (!set && edge.property) {
+      val = instance.get_property(edge.property);
+    }
+    if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
+      val = edge.action.call(instance, val, edge);
+    }
+    return val;
+  }
 
   // Target methods
 
@@ -429,6 +548,79 @@
       }
     });
   };
+
+
+  // Watch, get and set elements
+
+  prototypes.watch._init = function () {
+    this._gets = [];
+    this._sets = [];
+    this._watches = [];
+  };
+
+  prototypes.watch.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "get") {
+        this._gets.push(ch);
+      } else if (ch.localName === "set") {
+        this._sets.push(ch);
+      } else if (ch.localName === "watch") {
+        this._watches.push(ch);
+      }
+    }
+  };
+
+
+  prototypes.get.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+      this._update_action();
+    }
+    return ch;
+  };
+
+  prototypes.get.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "event" || name === "instance" || name === "property" ||
+        name === "view") {
+      this["_" + name] = value.trim();
+    } else if (name === "dom-event") {
+      this._dom_event = value.trim();
+    } else if (name === "once") {
+      this._once = flexo.is_true(value);
+    } else if (name === "when") {
+      try {
+        this._when = new Function("return " + value);
+      } catch(e) {
+        console.error("Could not compile when predicate for", this);
+      }
+    }
+  };
+
+  prototypes.get._textContent = function (t) {
+    this.textContent = t;
+    this._update_action();
+  };
+
+  // Update the action: make a new function from the text content of the
+  // element. If it has no content or there were compilation errors, default
+  // to the id function
+  prototypes.get._update_action = function () {
+    if (/\S/.test(this.textContent)) {
+      try {
+        this._action = new Function("value", "get", this.textContent);
+      } catch (e) {
+        console.error("Could not compile action \"{0}\": {1}"
+            .fmt(this.textContent, e.message));
+        delete this._action;
+      }
+    } else {
+      delete this._action;
+    }
+  };
+
 
 
   // Utility functions
