@@ -34,6 +34,12 @@ if (args.href) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
   });
+  flexo.listen(instance, "@rendering", function (e) {
+    console.log("[run] rendering", e.source);
+  });
+  flexo.listen(instance, "@rendering", function (e) {
+    console.log("[run] rendered", e.source);
+  });
   context._add_instance(instance);
 } else {
   document.body.appendChild(flexo.$("p.bender--runtime-message",

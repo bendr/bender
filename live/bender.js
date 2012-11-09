@@ -241,16 +241,25 @@
     });
   };
 
+  // Render this instance in a fresh placeholder, and return the placeholder.
+  // Actual rendering may be delayed if the component is not loaded yet but the
+  // placeholder can be inserted in its place immediately. Send a notification
+  // that rendering has started (@rendering); a notification that rendering has
+  // ended will be sent as well (@rendered)
   prototypes.instance._render = function (target) {
-    console.log("instance._render(): placeholder #{0}".fmt(K));
     this._placeholder = target.ownerDocument.createElementNS(bender.ns,
         "placeholder");
     this._placeholder.setAttribute("no", K++);
     this._placeholder._instance = this;
+    // Keep track of pending instances (see _finished_rendering below),
+    // including self
+    this.__pending = [this];
+    flexo.notify(this, "@rendering");
     var render = function () {
       if (this._component._view) {
         render_children(this._component._view, this._placeholder);
       }
+      this._finished_rendering(this);
     };
     if (this._component) {
       render.call(this);
@@ -258,6 +267,21 @@
       this._load_component(render);
     }
     return this._placeholder;
+  };
+
+  // instance has finished rendering, so it can be removed from the current list
+  // of pending instances. When the list is empty, the instance is completely
+  // rendered so we can send the @rendered event, and tell the parent instance,
+  // if any, to take it of its pending list.
+  prototypes.instance._finished_rendering = function(instance) {
+    var removed = flexo.remove_from_array(this.__pending, instance);
+    if (this.__pending.length === 0) {
+      delete this.__pending;
+      flexo.notify(this, "@rendered");
+      if (this._parent) {
+        this._parent._finished_rendering(this);
+      }
+    }
   };
 
   prototypes.instance._load_component = function (k) {
@@ -301,6 +325,7 @@
           if (ch.localName === "instance") {
             var instance = instance_of(target);
             var child_instance = instance._add_child_instance(ch);
+            instance.__pending.push(child_instance);
             target.appendChild(child_instance._render(target));
           } else if (ch.localName === "content") {
             var instance = instance_of(target);
