@@ -136,6 +136,8 @@
         });
         flexo.listen(hello, "@rendered", function () {
           assert.isTrue(rendering, "Notified rendering");
+          assert.strictEqual(hello._views.$root.nodeType,
+            window.Node.ELEMENT_NODE, "Root view is an element")
           done();
         });
         // The @rendering notification will be sent ASAP!

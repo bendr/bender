@@ -250,6 +250,7 @@
         "placeholder");
     this._placeholder.setAttribute("no", K++);
     this._placeholder._instance = this;
+    this._views = {};
     // Keep track of pending instances (see _finished_rendering below),
     // including self
     this.__pending = [this];
@@ -340,6 +341,7 @@
     var removed = flexo.remove_from_array(this.__pending, instance);
     if (this.__pending.length === 0) {
       delete this.__pending;
+      this._views.$root = find_root(this._placeholder);
       this._render_edges();
       flexo.notify(this, "@rendered");
       if (this._parent) {
@@ -430,6 +432,18 @@
 
 
   // Utility functions
+
+  function find_root(elem) {
+    var queue = [elem];
+    while (queue.length > 0) {
+      var e = queue.shift();
+      if (e.nodeType === window.Node.ELEMENT_NODE &&
+          e.namespaceURI !== bender.ns) {
+        return e;
+      }
+      A.unshift.apply(queue, e.childNodes);
+    }
+  }
 
   // Find the nearest instance ancestor for this element (may be undefined, for
   // instance if the element is not rooted)
