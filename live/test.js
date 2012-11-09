@@ -79,7 +79,7 @@
     it("Instance of the component are updated when the view changes");
 
     it("Instances can refer to components through their URI; the files are loaded if necessary", function (done) {
-      var hello = context.$("instance", { href: "../examples/rendering/hello-world.xml" });
+      var hello = context.$("instance", { href: "t/dummy.xml" });
       var handler = function (e) {
         setTimeout(function () {
           assert.strictEqual(e.type, "@loaded", "component loaded without error");
@@ -101,25 +101,57 @@
 
   describe("Rendering", function () {
 
-    var div = flexo.$div();
-    var context = bender.create_context(div);
-    var text = "Hello, world!";
-    var hello = context.documentElement.appendChild(
-      context.$("component",
-        context.$("view",
-          context.$("html:p", text)))._create_instance());
+    describe("Simple rendering from an in-memory component", function() {
 
-    it("Hello world!", function () {
-      assert.strictEqual(
-        context.querySelector("instance")._placeholder.textContent,
-        text, "Text rendered correctly");
-      assert.strictEqual(div.textContent, text, "Text rendered correctly");
+      var div = flexo.$div();
+      var context = bender.create_context(div);
+      var text = "Hello, world!";
+      var hello = context.documentElement.appendChild(
+        context.$("component",
+          context.$("view",
+            context.$("html:p", text)))._create_instance());
+
+      it("Hello world!", function () {
+        assert.strictEqual(
+          context.querySelector("instance")._placeholder.textContent,
+          text, "Text rendered correctly");
+        assert.strictEqual(div.textContent, text, "Text rendered correctly");
+      });
+
+      it.skip("Remove an instance", function () {
+        flexo.safe_remove(hello);
+        assert.strictEqual(div.textContent, "", "Text removed correctly");
+      });
     });
 
-    it.skip("Remove an instance", function () {
-      flexo.safe_remove(hello);
-      assert.strictEqual(div.textContent, "", "Text removed correctly");
+    describe("Rendering components from XML", function () {
+
+      var context = bender.create_context(flexo.$div());
+
+      it("A single component with no child instances", function (done) {
+        var hello = context.$("instance", { href: "t/hello.xml" });
+        var rendering = false;
+        flexo.listen(hello, "@rendering", function () {
+          rendering = true;
+        });
+        flexo.listen(hello, "@rendered", function () {
+          assert.isTrue(rendering, "Notified rendering");
+          done();
+        });
+        // The @rendering notification will be sent ASAP!
+        context.documentElement.appendChild(hello);
+      });
+
+      it("A component with children instances", function (done) {
+        var nest = context.documentElement.appendChild(
+          context.$("instance", { href: "t/nest.xml" }));
+        flexo.listen(nest, "@rendered", function () {
+          done();
+        });
+      });
+
     });
+
   });
 
 }(window.chai.assert, window.flexo, window.bender));
