@@ -1,7 +1,7 @@
 (function (bender) {
   "use strict";
 
-  var K = 0;
+  var K = 0;  // counter for placeholders (debug)
 
   var A = Array.prototype;
 
@@ -36,12 +36,14 @@
       }
     });
 
-    // Add an instance to the context
+    // Add an instance to the context; it now becomes live. Return the added
+    // instance.
     context._add_instance = function (instance) {
-      this.documentElement.appendChild(instance);
+      return this.documentElement.appendChild(instance);
     };
 
-    // Loaded URI's
+    // Loaded files by URI. When a file is being loaded, store all instances
+    // that are requesting it; once it's loaded, store the loaded component
     var loaded = {};
     loaded[flexo.normalize_uri(context._uri, "")] = context.documentElement;
 
@@ -49,16 +51,13 @@
     context._load_component = function (uri, instance) {
       var split = uri.split("#");
       var locator = flexo.normalize_uri(instance._uri, split[0]);
-      var id = split[1];
+      // var id = split[1];
       if (loaded[locator] instanceof window.Node) {
-        console.log("=== {0} already loaded".fmt(locator));
         flexo.notify(instance, "@loaded", { uri: locator,
           component: loaded[locator] });
       } else if (Array.isArray(loaded[locator])) {
-        console.log("... {0} being loaded".fmt(locator));
         loaded[locator].push(instance);
       } else {
-        console.log("+++ {0} loading".fmt(locator));
         loaded[locator] = [instance];
         flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
           var ev = { uri: locator, req: req };
@@ -71,7 +70,6 @@
           } else {
             var c = context._import_node(req.response.documentElement, locator);
             if (is_bender_element(c, "component")) {
-              console.log("!!! {0} loaded".fmt(locator));
               ev.component = c;
               loaded[locator].forEach(function (i) {
                 flexo.notify(i, "@loaded", ev);
@@ -137,23 +135,10 @@
       appendChild: function (ch) {
         return this.insertBefore(ch, null);
       },
-
-      cloneNode: function (deep) {
-        var clone = wrap_element(
-            Object.getPrototypeOf(this).cloneNode.call(this, false));
-        if (deep) {
-          // TODO keep track of URI for component
-          A.forEach.call(this.childNodes, function (ch) {
-            clone.appendChild(ch.cloneNode(true));
-          });
-        }
-        return clone;
-      }
     }
   };
 
-  ["(foreign)", "component", "context", "instance", "view"
-  ].forEach(function (p) {
+  ["component", "context", "instance", "view"].forEach(function (p) {
     prototypes[p] = {};
   });
 
@@ -161,8 +146,9 @@
   // Component methods
 
   prototypes.component._init = function () {
-    this._properties = [];
-    this._instances = [];
+    this._properties = [];  // all the property elements for this component
+    this._watches = [];     // all the watch elements fro this component
+    this._instances = [];   // live instances of this componet
   };
 
   // Convenience method to create a new instance of that component
@@ -181,12 +167,11 @@
         } else {
           this._view = ch;
           this._view._set_uri_for_instances(this._uri);
-          this._instances.forEach(function (instance) {
-            instance._view = ch;
-          });
         }
       } else if (ch.localName === "property") {
         this._properties.push(ch);
+      } else if (ch.localName === "watch") {
+        this._watches.push(ch);
       }
     }
     return ch;
@@ -198,11 +183,13 @@
         if (this._view === ch) {
           delete this._view;
           this._instances.forEach(function (instance) {
-            delete instance._view;
+            // TODO unrender?
           });
         }
       } else if (ch.localName === "property") {
         flexo.remove_from_array(this._properties, ch);
+      } else if (ch.localName === "watch") {
+        flexo.remove_from_array(this._watches, ch);
       }
     }
     Object.getPrototypeOf(this).removeChild.call(this, ch);
@@ -212,20 +199,22 @@
 
   // Context methods
 
-  // Add instances to the context and render them in the target
+  // Add instances to the context and render them in the context target
   prototypes.context.insertBefore = function (ch, ref) {
-    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (is_bender_element(ch, "instance")) {
+      Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
       ch._uri = this.ownerDocument._uri;
-      ch._load_component();
-      ch._target = this._target;
+      var placeholder = ch._render(this._target);
+      this._target.insertBefore(placeholder, ref && ref._placeholder);
+      return ch;
+    } else {
+      console.warn("Unexpected element in context:", ch);
     }
-    return ch;
   };
 
   prototypes.context.removeChild = function (ch) {
     if (is_bender_element(ch, "instance")) {
-      ch._target = null;
+      // TODO unrender
     }
     Object.getPrototypeOf(this).removeChild.call(this, ch);
     return ch;
@@ -239,96 +228,86 @@
   //   ._component: if set, then loaded; otherwise, not ready
   //   ._target: has a target to render into
 
-  prototypes.instance._init = function (component, target) {
-
-    this._placeholder = this.ownerDocument._target.ownerDocument
-      .createElementNS(bender.ns, "placeholder");
-    this._placeholder.setAttribute("no", K++);
-    this._placeholder._instance = this;
-
+  prototypes.instance._init = function (component) {
+    this._children = [];
     // Set the component: instantiate and render it (it is already loaded)
     Object.defineProperty(this, "_component", { enumerable: true,
       get: function () { return component; },
       set: function (c) {
         if (component !== c) {
           component = c;
-          instantiate_component(this);
-          render_instance(this);
         }
       }
     });
+  };
 
-    // Set the target to render into; if not ready, just set a placeholder
-    Object.defineProperty(this, "_target", { enumerable: true,
-      get: function () { return target; },
-      set: function (t) {
-        if (target !== t) {
-          target = t;
-          render_instance(this);
-        }
+  prototypes.instance._render = function (target) {
+    console.log("instance._render(): placeholder #{0}".fmt(K));
+    this._placeholder = target.ownerDocument.createElementNS(bender.ns,
+        "placeholder");
+    this._placeholder.setAttribute("no", K++);
+    this._placeholder._instance = this;
+    var render = function () {
+      if (this._component._view) {
+        render_children(this._component._view, this._placeholder);
       }
-    });
-    return this;
+    };
+    if (this._component) {
+      render.call(this);
+    } else {
+      this._load_component(render);
+    }
+    return this._placeholder;
+  };
+
+  prototypes.instance._load_component = function (k) {
+    if (this._uri && this._href && !this._component) {
+      flexo.listen_once(this, "@loaded", function (e) {
+        e.source._component = e.component;
+        k.call(e.source);
+      });
+      flexo.listen_once(this.ownerDocument, "@error", function (e) {
+        console.error("Error loading component at {0}: {1}"
+          .fmt(e.uri, e.message), e.source);
+      });
+      this.ownerDocument._load_component(this._href, this);
+    }
+  };
+
+  prototypes.instance._add_child_instance = function(template) {
+    var instance = this.ownerDocument.$("instance");
+    instance._template = template;
+    instance._parent = this;
+    this._children.push(instance);
+    instance._uri = template._uri;
+    instance._href = template._href;
+    instance._component = template._component;
+    return instance;
   };
 
   prototypes.instance.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
       this._href = value;
-      this._load_component();
     }
   };
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
-
-  prototypes.instance._load_component = function () {
-    if (this._uri && this._href && !this._component) {
-      flexo.listen_once(this, "@loaded", function (e) {
-        this._component = e.component;
-      }.bind(this));
-      flexo.listen_once(this.ownerDocument, "@error", function (e) {
-        console.error("Error loading component at {0}: {1}"
-          .fmt(e.uri, e.message));
-      });
-      this.ownerDocument._load_component(this._href, this);
-    }
-  };
-
-  // Instantiate the component that the `instance` object points to
-  // Copy properties, view and watches; the copy will really just be a pointer
-  // until the instance itself changes it.
-  function instantiate_component(instance) {
-    instance._properties = instance._component._properties.slice();
-    instance._view = instance._component._view;
-    if (instance._view) {
-      console.log("render_children #{0}:"
-          .fmt(instance._placeholder.getAttribute("no")), instance);
-      render_children(instance._view, instance._placeholder);
-    }
-    instance._component._instances.push(instance);
-  }
-
-  // Render instance to its current target; if the target is null, unrender it.
-  // TODO remove placeholder when done
-  function render_instance(instance) {
-    if (instance._target) {
-      if (instance._placeholder.parentNode !== instance._target) {
-        instance._target.appendChild(instance._placeholder);
-      }
-    } else if (instance._target == null) {
-      flexo.safe_remove(instance._placeholder);
-    }
-  }
 
   function render_children(view, target) {
     A.forEach.call(view.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE) {
         if (ch.namespaceURI === bender.ns) {
           if (ch.localName === "instance") {
-            ch._target = target;
+            var instance = instance_of(target);
+            var child_instance = instance._add_child_instance(ch);
+            target.appendChild(child_instance._render(target));
           } else if (ch.localName === "content") {
             var instance = instance_of(target);
-            if (instance && instance.childNodes.length > 0) {
+            if (instance._template) {
+              instance = instance._template;
+            }
+            if (instance.childNodes.length > 0) {
               render_children(instance, target);
             } else {
               render_children(ch, target);
@@ -368,7 +347,6 @@
     A.forEach.call(this.childNodes, function (ch) {
       if (is_bender_element(ch, "instance")) {
         ch._uri = uri;
-        ch._load_component();
       } else if (typeof ch._set_uri_for_instances === "function") {
         ch._set_uri_for_instances(uri);
       }
