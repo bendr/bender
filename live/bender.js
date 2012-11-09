@@ -167,7 +167,6 @@
           console.error("Multiple views for component", this);
         } else {
           this._view = ch;
-          this._view._set_uri_for_instances(this._uri);
         }
       } else if (ch.localName === "property") {
         this._properties.push(ch);
@@ -224,7 +223,7 @@
 
   // Instance methods
   // Status of an instance:
-  //   ._uri: base URI; if not set, then it is not in the tree
+  //   ._uri: base URI
   //   ._href: has a reference to a component
   //   ._component: if set, then loaded; otherwise, not ready
 
@@ -252,6 +251,7 @@
     this._placeholder.setAttribute("no", K++);
     this._placeholder._instance = this;
     this._views = {};
+    this._instances = { $self: this };
     // Keep track of pending instances (see _finished_rendering below),
     // including self
     this.__pending = [this];
@@ -321,8 +321,9 @@
     var d = dest.appendChild(
         dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
     A.forEach.call(elem.attributes, function (attr) {
-      d.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
-    });
+      var value = flexo.format.call(this, attr.value, this._properties);
+      d.setAttributeNS(attr.namespaceURI, attr.localName, value);
+    }, this);
     this._render_children(elem, d, unique);
   };
 
@@ -383,7 +384,7 @@
         }
       }, this);
       watch._sets.forEach(function (set) {
-        var edge = this.make_edge(set);
+        var edge = this._make_edge(set);
         if (edge) {
           w.edges.push(edge);
         }
@@ -424,7 +425,7 @@
   };
 
   prototypes.instance._load_component = function (k) {
-    if (this._uri && this._href && !this._component) {
+    if (this._href && !this._component) {
       flexo.listen_once(this, "@loaded", function (e) {
         e.source._component = e.component;
         k.call(e.source);
@@ -442,7 +443,7 @@
     instance._template = template;
     instance._parent = this;
     this._children.push(instance);
-    instance._uri = template._uri;
+    instance._uri = component_of(template)._uri;
     instance._href = template._href;
     instance._component = template._component;
     return instance;
@@ -456,6 +457,12 @@
   };
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
+
+  // Return an absolute URI with this instance's component as the base for the
+  // given URI
+  prototypes.instance.absolute_uri = function (uri) {
+    return flexo.absolute_uri(this._uri, uri);
+  },
 
 
   // Traverse the graph of watches starting with an initial set of edges
@@ -527,26 +534,6 @@
       return dest.ownerDocument.querySelector(this._q);
     }
     return dest;
-  };
-
-
-  // View methods
-
-  prototypes.view.insertBefore = function (ch, ref) {
-    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (!is_bender_element(ch)) {
-      return wrap_element(ch, prototypes.view);
-    }
-  };
-
-  prototypes.view._set_uri_for_instances = function (uri) {
-    A.forEach.call(this.childNodes, function (ch) {
-      if (is_bender_element(ch, "instance")) {
-        ch._uri = uri;
-      } else if (typeof ch._set_uri_for_instances === "function") {
-        ch._set_uri_for_instances(uri);
-      }
-    });
   };
 
 
@@ -637,15 +624,12 @@
     }
   }
 
-  // Find the nearest instance ancestor for this element (may be undefined, for
-  // instance if the element is not rooted)
-  function instance_of(elem) {
-    if (is_bender_element(elem, "instance")) {
+  function component_of(elem) {
+    if (is_bender_element(elem, "component")) {
       return elem;
-    } else if (is_bender_element(elem, "placeholder")) {
-      return elem._instance;
-    } else if (elem) {
-      return instance_of(elem.parentNode);
+    }
+    if (elem.parentNode) {
+      return component_of(elem.parentNode);
     }
   }
 
