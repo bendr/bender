@@ -138,7 +138,7 @@
     }
   };
 
-  ["component", "context", "instance", "view"].forEach(function (p) {
+  ["component", "context", "instance", "target", "view"].forEach(function (p) {
     prototypes[p] = {};
   });
 
@@ -318,7 +318,7 @@
 
   prototypes.instance.insertBefore = prototypes.component.insertBefore;
 
-  function render_children(view, target) {
+  function render_children(view, target, unique) {
     A.forEach.call(view.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE) {
         if (ch.namespaceURI === bender.ns) {
@@ -333,9 +333,24 @@
               instance = instance._template;
             }
             if (instance.childNodes.length > 0) {
-              render_children(instance, target);
+              render_children(instance, target, unique);
             } else {
-              render_children(ch, target);
+              render_children(ch, target, unique);
+            }
+          } else if (ch.localName === "target") {
+            // TODO mixing target and content
+            var t = ch._find_target(target);
+            if (!t) {
+              console.error("No target for", ch);
+              return;
+            }
+            if (ch._unique) {
+              if (!ch._rendered) {
+                render_children(ch, t, true);
+                ch._rendered = true;
+              }
+            } else {
+              render_children(ch, t, unique);
             }
           } else {
             console.warn("Unexpected Bender element {0} in view; skipped."
@@ -348,7 +363,7 @@
           A.forEach.call(ch.attributes, function (attr) {
             t.setAttributeNS(attr.namespaceURI, attr.localName, attr.value);
           });
-          render_children(ch, t);
+          render_children(ch, t, unique);
         }
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
@@ -357,6 +372,28 @@
       }
     });
   }
+
+
+  // Target methods
+
+  prototypes.target.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "q") {
+      this._q = value.trim();
+    } else if (name === "unique") {
+      this._unique = flexo.is_true(value);
+    }
+  };
+
+  // Find the target element given the `q` attribute using querySelector on the
+  // destination element. If no `q` is set, just return the dest. Be careful
+  // that the target may not be found
+  prototypes.target._find_target = function (dest) {
+    if (this._q) {
+      return dest.ownerDocument.querySelector(this._q);
+    }
+    return dest;
+  };
 
 
   // View methods
