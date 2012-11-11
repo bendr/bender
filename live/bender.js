@@ -316,6 +316,12 @@
     }, this);
   };
 
+  // Extract properties from a text node
+  prototypes.instance._unprop_text = function (node) {
+    var pattern = node.textContent;
+    return this._unprop(pattern, { view: node, value: pattern });
+  };
+
   // Extract properties from the value of a property
   prototypes.instance._unprop_value = function (property) {
     var pattern = property._value;
@@ -336,6 +342,7 @@
       props.forEach(function (p) {
         this._edges.push({ property: p, watch: watch, instance: this });
       }, this);
+      console.log("[unprop] added watch", watch);
       return true;
     }
   };
@@ -407,7 +414,7 @@
         }
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
           ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-        this._render_text(ch.textContent, dest);
+        this._render_text(ch, dest);
       }
     }, this);
   };
@@ -424,11 +431,13 @@
   };
 
   // Render text content into a new text node
-  prototypes.instance._render_text = function (text, dest) {
-    // if (!this.unprop_text(text)) {
-      text = flexo.format.call(this, text, this._properties);
-    // }
-    dest.appendChild(dest.ownerDocument.createTextNode(text));
+  prototypes.instance._render_text = function (node, dest) {
+    var d = dest
+      .appendChild(dest.ownerDocument.createTextNode(node.textContent));
+    if (!this._unprop_text(d)) {
+      d.textContent =
+        flexo.format.call(this, node.textContent, this._properties);
+    }
   };
 
   // instance has finished rendering, so it can be removed from the current list

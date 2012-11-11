@@ -1,5 +1,7 @@
 <component xmlns="http://bender.igel.co.jp">
   <property name="x" type="number"/>
   <property name="y" type="dynamic" value="{x} + 1"/>
-  <view/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>x = {x}, y = {y}</html:p>
+  </view>
 </component>
