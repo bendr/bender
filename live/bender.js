@@ -51,6 +51,7 @@
     context._load_component = function (uri, instance) {
       var split = uri.split("#");
       var locator = flexo.normalize_uri(instance._uri, split[0]);
+      // TODO keep track of id's to load components inside components
       // var id = split[1];
       if (loaded[locator] instanceof window.Node) {
         flexo.notify(instance, "@loaded", { uri: locator,
@@ -260,10 +261,11 @@
     // including self
     this.__pending = [this];
     var render = function () {
-      this._init_properties();
+      this._setup_properties();
       if (this._component._view) {
         this._render_children(this._component._view, this._placeholder);
       }
+      this._init_properties();
       this._finished_rendering(this);
     };
     if (this._component) {
@@ -276,7 +278,7 @@
 
   // Initialize properties defined by their <property> element
   // TODO <property> as children of the instance as well
-  prototypes.instance._init_properties = function () {
+  prototypes.instance._setup_properties = function () {
     this._set = {};
     this._component._properties.forEach(function (property) {
       var value;
@@ -301,19 +303,17 @@
         }
       });
       this._unprop_value(property);
-      /*var init_val;
-      if (this.use._properties.hasOwnProperty(property._name)) {
-        init_val = this.use._properties[property._name].value;
-      }
-      this.__init_properties.push(function () {
-        if (this.properties[property._name] === undefined) {
-          this.properties[property._name] =
-            typeof property._get_value === "function" ?
-              property._get_value(init_val, this.properties) :
-              init_val;
-        }
-      });*/
     }, this);
+  };
+
+  // Extract properties from an attribute
+  prototypes.instance._unprop_attr = function (node, attr) {
+    var pattern = attr.value;
+    var edge = { view: node, attr: attr.localName, value: pattern };
+    if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
+      edge.ns = attr.namespaceURI;
+    }
+    return this._unprop(pattern, edge);
   };
 
   // Extract properties from a text node
@@ -419,13 +419,42 @@
     }, this);
   };
 
+  // Initialize all non-dynamic properties
+  // TODO sort edges to do initializations in the correct order
+  prototypes.instance._init_properties = function () {
+    this._component._properties.forEach(function (property) {
+      if (this.hasAttribute(property._name)) {
+        this._properties[property._name] = this.getAttribute(property._name);
+      } else if (property._type !== "dynamic" && property._value !== undefined) {
+        this._properties[property._name] = property._value;
+      }
+    }, this);
+  };
+
   // Render foreign content, keeping track of id
   prototypes.instance._render_foreign = function (elem, dest, unique) {
     var d = dest.appendChild(
         dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
     A.forEach.call(elem.attributes, function (attr) {
-      var value = flexo.format.call(this, attr.value, this._properties);
-      d.setAttributeNS(attr.namespaceURI, attr.localName, value);
+      var val = attr.value;
+      if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
+        attr.localName === "id") {
+        this.views[val.trim()] = d;
+        if (unique) {
+          d.setAttribute("id", val);
+        }
+      } else if (attr.namespaceURI &&
+        attr.namespaceURI !== node.namespaceURI) {
+        if (!this._unprop_attr(d, attr)) {
+          d.setAttributeNS(attr.namespaceURI, attr.localName,
+            flexo.format.call(this, val, this._properties));
+        }
+      } else {
+        if (!this._unprop_attr(d, attr)) {
+          d.setAttribute(attr.localName,
+            flexo.format.call(this, val, this._properties));
+        }
+      }
     }, this);
     this._render_children(elem, d, unique);
   };
