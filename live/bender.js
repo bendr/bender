@@ -253,6 +253,7 @@
     this._placeholder._instance = this;
     this._views = {};
     this._instances = { $self: this };
+    this._edges = [];
     this._properties = {};
     flexo.notify(this, "@rendering");
     // Keep track of pending instances (see _finished_rendering below),
@@ -276,31 +277,31 @@
   // Initialize properties defined by their <property> element
   // TODO <property> as children of the instance as well
   prototypes.instance._init_properties = function () {
+    this._set = {};
     this._component._properties.forEach(function (property) {
-
-      /*
-      var instance = this;
+      var value;
       this._set[property._name] = function (v) {
-        console.log("Set {0}=\"{1}\" on".fmt(property._name, v), this);
         if (typeof v === "string") {
-          v = property._get_value(v, this.properties);
+          v = property._get_value(v, this._properties);
         }
         if (v !== value) {
           var prev = value;
           value = v;
         }
-      }.bind(this);
-      Object.defineProperty(this.properties, property._name, { enumerable: true,
+      };
+      var instance = this;
+      Object.defineProperty(this._properties, property._name, {
+        enumerable: true,
         get: function () { return value; },
         set: function (v) {
-          instance._set[property._name](v);
-          traverse_graph(instance.edges.filter(function (e) {
+          instance._set[property._name].call(instance, v);
+          traverse_graph(instance._edges.filter(function (e) {
             return e.property === property._name;
           }));
         }
       });
-      this.unprop_value(property);
-      var init_val;
+      this._unprop_value(property);
+      /*var init_val;
       if (this.use._properties.hasOwnProperty(property._name)) {
         init_val = this.use._properties[property._name].value;
       }
@@ -311,9 +312,58 @@
               property._get_value(init_val, this.properties) :
               init_val;
         }
-      });
-    */
+      });*/
+    }, this);
+  };
+
+  // Extract properties from the value of a property
+  prototypes.instance._unprop_value = function (property) {
+    var pattern = property._value;
+    return this._unprop(pattern, {
+      instance: this,
+      property: property._name,
+      value: pattern
     });
+  };
+
+  // Extract properties from a text node or an attribute given a pattern and the
+  // corresponding set action. If properties are found in the pattern, then add
+  // a new watch
+  prototypes.instance._unprop = function (pattern, set_edge) {
+    var props = this._extract_props(pattern);
+    if (props.length > 0) {
+      var watch = { enabled: true, edges: [set_edge] };
+      props.forEach(function (p) {
+        this._edges.push({ property: p, watch: watch, instance: this });
+      }, this);
+      return true;
+    }
+  };
+
+  // Extract a list of properties for a pattern. Only properties that are
+  // actually defined are extracted.
+  prototypes.instance._extract_props = function (pattern) {
+    var props = {};
+    if (typeof pattern === "string") {
+      var open = false;
+      var prop;
+      pattern.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
+        if (token === "{") {
+          prop = "";
+          open = true;
+        } else if (token === "}") {
+          if (open) {
+            if (this._properties.hasOwnProperty(prop)) {
+              props[prop] = true;
+            }
+            open = false;
+          }
+        } else if (open) {
+          prop += token.replace(/^\\([{}\\])/, "$1");
+        }
+      }, this);
+    }
+    return Object.keys(props);
   };
 
   prototypes.instance._render_children = function (view, dest, unique) {
@@ -411,14 +461,68 @@
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
-      val = flexo.format.call(instance, edge.value, instance.properties);
+      val = flexo.format.call(instance, edge.value, instance._properties);
     } else if (!set && edge.property) {
-      val = instance.get_property(edge.property);
+      val = instance._properties[edge.property];
     }
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
       val = edge.action.call(instance, val, edge);
     }
     return val;
+  }
+
+  // Follow a set edge from a get edge, and push all corresponding get edges for
+  // the rest of the traversal
+  function follow_set_edge(get, set, edges, get_value) {
+    var delay = set.hasOwnProperty("delay") &&
+      parseFloat(flexo.format.call(get.instance, set.delay,
+            get.instance._properties));
+    var follow = function () {
+      var set_value = edge_value(set, get.instance, true, get_value);
+      if (set_value !== undefined) {
+        if (set.instance) {
+          if (set.property) {
+            if (typeof delay === "number" && delay >= 0) {
+              set.instance._properties[set.property] = set_value;
+            } else {
+              set.instance._set[set.property](set_value);
+              A.push.apply(edges, set.instance._edges.filter(function (e) {
+                return e.property === set.property && edges.indexOf(e) < 0;
+              }));
+            }
+          }
+        } else if (set.view) {
+          if (set.attr) {
+            if (set.ns) {
+              set.view.setAttributeNS(set.ns, set.attr, set_value);
+            } else {
+              set.view.setAttribute(set.attr, set_value);
+            }
+          } else if (set.property) {
+            set.view[set.property] = set_value;
+          } else {
+            set.view.textContent = set_value;
+          }
+        }
+      }
+      if (set.hasOwnProperty("event")) {
+        if (get_value instanceof window.Event) {
+          get_value = { dom_event: get_value };
+        }
+        flexo.notify(set.instance || set.view, set.event, get_value);
+      }
+    };
+    if (typeof delay === "number" && delay >= 0) {
+      if (get.instance.__timeout) {
+        clearTimeout(get.instance.__timeout);
+      }
+      get.instance.__timeout = setTimeout(function () {
+        follow();
+        delete get.instance.__timeout;
+      }, delay);
+    } else {
+      follow();
+    }
   }
 
   // Traverse the graph of watches starting with an initial set of edges
@@ -451,7 +555,6 @@
 
   // When the instance has finished rendering, we render its edges
   prototypes.instance._render_edges = function (instance) {
-    this._edges = [];
     this._component._watches.forEach(function (watch) {
       // Create a watch node for this watch element
       var w = { enabled: true, edges: [] };
@@ -595,7 +698,7 @@
     this._type = "string";
   };
 
-  prototypes.property._insertBefore = function (ch, ref) {
+  prototypes.property.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
@@ -603,7 +706,7 @@
     }
   };
 
-  prototypes.property._setAttribute = function (name, value) {
+  prototypes.property.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "name") {
       this._name = value.trim();

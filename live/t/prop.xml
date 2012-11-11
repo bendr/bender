@@ -1,0 +1,5 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" type="number"/>
+  <property name="y" type="dynamic" value="{x} + 1"/>
+  <view/>
+</component>
