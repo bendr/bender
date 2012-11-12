@@ -380,9 +380,7 @@
       if (ch.nodeType === window.Node.ELEMENT_NODE) {
         if (ch.namespaceURI === bender.ns) {
           if (ch.localName === "instance") {
-            var child_instance = this._add_child_instance(ch);
-            this.__pending.push(child_instance);
-            dest.appendChild(child_instance._render(dest));
+            this._render_child_instance(ch, dest);
           } else if (ch.localName === "content") {
             var instance = this;
             if (instance._template) {
@@ -419,6 +417,17 @@
         this._render_text(ch, dest);
       }
     }, this);
+  };
+
+  // Render child instances
+  // TODO handle attributes beside href and id
+  prototypes.instance._render_child_instance = function (template, dest) {
+    var child_instance = this._add_child_instance(template);
+    this.__pending.push(child_instance);
+    dest.appendChild(child_instance._render(dest));
+    if (template.hasAttribute("id")) {
+      this._instances[template.getAttribute("id")] = child_instance;
+    }
   };
 
   // Initialize all non-dynamic properties
