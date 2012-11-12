@@ -140,8 +140,8 @@
     }
   };
 
-  ["component", "context", "get", "instance", "property", "target", "view",
-    "watch"
+  ["component", "context", "get", "instance", "property", "set", "target",
+    "view", "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
@@ -702,7 +702,7 @@
 
   // Return an absolute URI with this instance's component as the base for the
   // given URI
-  prototypes.instance.absolute_uri = function (uri) {
+  prototypes.instance._absolute_uri = function (uri) {
     return flexo.absolute_uri(this._uri, uri);
   };
 
@@ -823,6 +823,8 @@
   };
 
 
+  // Get and set
+
   prototypes.get.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.nodeType === window.Node.TEXT_NODE ||
@@ -869,6 +871,26 @@
       }
     } else {
       delete this._action;
+    }
+  };
+
+  prototypes.set.insertBefore = prototypes.get.insertBefore;
+  prototypes.set._textContent = prototypes.get._textContent;
+  prototypes.set._update_action = prototypes.get._update_action;
+
+  prototypes.set.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "event" || name === "instance" || name === "property" ||
+        name === "view" || name === "value") {
+      this["_" + name] = value.trim();
+    } else if (name === "dom-event") {
+      this._dom_event = value.trim();
+    } else if (name === "when") {
+      try {
+        this._when = new Function("return " + value);
+      } catch(e) {
+        console.error("Could not compile when predicate for", this);
+      }
     }
   };
 
