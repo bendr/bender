@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="text" value="Default value"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <target q="head">
+      <html:link rel="stylesheet" href="{ this._absolute_uri('ui/ui.css') }"/>
+    </target>
+    <instance id="text-box" href="../ui/text-box.xml" value="{text}"/>
+    <html:p>
+      Text = {text}
+    </html:p>
+  </view>
+  <watch>
+    <get instance="text-box" property="value"/>
+    <set instance="$self" value="text"/>
+  </watch>
+</component>

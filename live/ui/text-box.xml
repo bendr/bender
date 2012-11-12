@@ -1,0 +1,18 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <property name="class" value="ui-text-box"/>
+  <property name="value" type="string"/>
+  <property name="enabled" type="boolean" value="true"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:input aria-role="textbox" class="{class}" value="{value}"/>
+  </view>
+
+  <watch>
+    <get view="$root" dom-event="change">
+      return get.view.value;
+    </get>
+    <set use="$self" property="value"/>
+  </watch>
+
+</component>
