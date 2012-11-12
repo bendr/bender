@@ -38,6 +38,7 @@
 
     // Add an instance to the context; it now becomes live. Return the added
     // instance.
+    context._instances = [];
     context._add_instance = function (instance) {
       return this.documentElement.appendChild(instance);
     };
@@ -199,7 +200,8 @@
   };
 
 
-  // Context methods
+  // Context element methods (the view at the top of the tree, not to be
+  // confused with the context document)
 
   // Add instances to the context and render them in the context target
   prototypes.context.insertBefore = function (ch, ref) {
@@ -208,6 +210,7 @@
       ch._uri = this.ownerDocument._uri;
       var placeholder = ch._render(this._target);
       this._target.insertBefore(placeholder, ref && ref._placeholder);
+      this.ownerDocument._instances.push(ch);
       return ch;
     } else {
       console.warn("Unexpected element in context:", ch);
@@ -265,7 +268,6 @@
       if (this._component._view) {
         this._render_children(this._component._view, this._placeholder);
       }
-      this._init_properties();
       this._finished_rendering(this);
     };
     if (this._component) {
@@ -387,7 +389,7 @@
               instance = instance._template;
             }
             if (instance.childNodes.length > 0) {
-              this._render_children(instance, dest, unique);
+              this._parent._render_children(instance, dest, unique);
             } else {
               this._render_children(ch, dest, unique);
             }
@@ -480,6 +482,7 @@
       this._views.$root = find_root(this._placeholder);
       this._views.$document = this._placeholder.ownerDocument;
       this._render_edges();
+      this._init_properties();
       flexo.notify(this, "@rendered");
       if (this._parent) {
         this._parent._finished_rendering(this);
