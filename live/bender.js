@@ -424,11 +424,13 @@
   // Initialize all non-dynamic properties
   // TODO sort edges to do initializations in the correct order
   prototypes.instance._init_properties = function () {
+    var instance = this._template || this;
     this._component._properties.forEach(function (property) {
-      if (this.hasAttribute(property._name)) {
-        this._properties[property._name] = this.getAttribute(property._name);
+      if (instance.hasAttribute(property._name)) {
+        this._properties[property._name] = instance.getAttribute(property._name);
       } else if (property._type !== "dynamic" && property._value !== undefined) {
-        this._properties[property._name] = property._value;
+        this._properties[property._name] =
+          flexo.format.call(this, property._value, this._properties);
       }
     }, this);
   };
