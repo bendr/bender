@@ -1,0 +1,34 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="clicks" type="number" value="0"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <target q="head" unique="true">
+      <html:style>
+        .button \{
+          display: inline-block;
+          cursor: default;
+          background-color: #ddd;
+          padding: 0.5em;
+          border-radius: 0.2em;
+        \}
+        .q \{
+          font-style: italic;
+        \}
+      </html:style>
+    </target>
+    <html:p>
+      <html:div class="button" aria-role="button">
+        Click me
+      </html:div>
+    </html:p>
+    <html:p>
+      Number of clicks: {clicks}
+    </html:p>
+    <instance href="q.xml" class="q" text="*Number of clicks: {clicks}"/>
+  </view>
+  <watch>
+    <get view="$root" dom-event="mousedown">
+      value.preventDefault();
+    </get>
+    <set instance="$self" property="clicks" value="{ {clicks} + 1 }"/>
+  </watch>
+</component>

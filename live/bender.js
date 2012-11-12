@@ -443,7 +443,7 @@
       var val = attr.value;
       if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
         attr.localName === "id") {
-        this.views[val.trim()] = d;
+        this._views[val.trim()] = d;
         if (unique) {
           d.setAttribute("id", val);
         }
@@ -880,8 +880,8 @@
 
   prototypes.set.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-    if (name === "event" || name === "instance" || name === "property" ||
-        name === "view" || name === "value") {
+    if (name === "delay" || name === "event" || name === "instance" ||
+        name === "property" || name === "view" || name === "value") {
       this["_" + name] = value.trim();
     } else if (name === "dom-event") {
       this._dom_event = value.trim();
