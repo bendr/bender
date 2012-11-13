@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
   <property name="clicks" type="number" value="0"/>
+  <property name="roman" type="dynamic" value="flexo.to_roman({clicks})"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <target q="head" unique="true">
       <html:style>
@@ -13,6 +14,9 @@
         .q \{
           font-style: italic;
         \}
+        .roman \{
+          font-variant: small-caps;
+        \}
       </html:style>
     </target>
     <html:p>
@@ -21,9 +25,9 @@
       </html:div>
     </html:p>
     <html:p>
-      Number of clicks: {clicks}
+      Number of clicks: {clicks} <html:span class="roman">{roman}</html:span>
     </html:p>
-    <instance href="q.xml" class="q" text="*Number of clicks: {clicks}"/>
+    <instance href="q.xml" class="q" text="Number of clicks: {clicks}"/>
   </view>
   <watch>
     <get view="$root" dom-event="mousedown">

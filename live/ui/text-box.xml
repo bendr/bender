@@ -10,6 +10,7 @@
 
   <watch>
     <get view="$root" dom-event="change">
+      console.log("Change: \"{0}\"".fmt(get.view.value));
       return get.view.value;
     </get>
     <set use="$self" property="value"/>

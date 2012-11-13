@@ -324,6 +324,16 @@
     return this._unprop(pattern, edge);
   };
 
+  // Extract properties from a property value on an instance element
+  prototypes.instance._unprop_prop = function (instance, property, value) {
+    return this._unprop(value, {
+      parent_instance: this,
+      instance: instance,
+      property: property,
+      value: value
+    });
+  }
+
   // Extract properties from a text node
   prototypes.instance._unprop_text = function (node) {
     var pattern = node.textContent;
@@ -435,6 +445,9 @@
     if (template._id) {
       this._instances[template._id] = child_instance;
     }
+    Object.keys(template._values).forEach(function (p) {
+      this._unprop_prop(child_instance, p, template._values[p]);
+    }, this);
   };
 
   // Initialize all non-dynamic properties
@@ -443,9 +456,16 @@
     var instance = this._template || this;
     this._component._properties.forEach(function (property) {
       if (instance._values.hasOwnProperty(property._name)) {
-        this._properties[property._name] = instance._values[property._name];
-      } else if (property._type !== "dynamic" && property._value !== undefined) {
-        // TODO eval dynamic properties if they have no dependency
+        this._properties[property._name] =
+          flexo.format.call(this, instance._values[property._name],
+            this._properties);
+      } else if (property._value !== undefined) {
+        if (property._type === "dynamic") {
+          var props = this._extract_props(property._value);
+          if (props.length > 0) {
+            return;
+          }
+        }
         this._properties[property._name] =
           flexo.format.call(this, property._value, this._properties);
       }
@@ -758,8 +778,6 @@
     },
     "string": flexo.id
   };
-
-  property_types.eval = property_types.dynamic;
 
 
   prototypes.property._init = function () {
