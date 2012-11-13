@@ -8,10 +8,10 @@
   <property name="down-class"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div aria-role="button"
+    <html:span aria-role="button"
       class="{class} {down-class} { {enabled} ? '' : 'disabled' }">
       <content/>
-    </html:div>
+    </html:span>
   </view>
 
   <watch>

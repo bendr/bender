@@ -1,7 +1,8 @@
 "use strict;"
 
-function make_button(content) {
-  var elem = flexo.$("div.ui-button", { "aria-role": "button" }, content);
+function make_button(elem) {
+  elem.setAttribute("aria-role", "button");
+  elem.classList.add("ui-button");
 
   var down = false;
   var timeout;

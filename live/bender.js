@@ -234,6 +234,7 @@
 
   prototypes.instance._init = function (component) {
     this._children = [];
+    this._values = {};
     // Set the component: instantiate and render it (it is already loaded)
     Object.defineProperty(this, "_component", { enumerable: true,
       get: function () { return component; },
@@ -431,8 +432,8 @@
     var child_instance = this._add_child_instance(template);
     this.__pending.push(child_instance);
     dest.appendChild(child_instance._render(dest));
-    if (template.hasAttribute("id")) {
-      this._instances[template.getAttribute("id")] = child_instance;
+    if (template._id) {
+      this._instances[template._id] = child_instance;
     }
   };
 
@@ -441,9 +442,10 @@
   prototypes.instance._init_properties = function () {
     var instance = this._template || this;
     this._component._properties.forEach(function (property) {
-      if (instance.hasAttribute(property._name)) {
-        this._properties[property._name] = instance.getAttribute(property._name);
+      if (instance._values.hasOwnProperty(property._name)) {
+        this._properties[property._name] = instance._values[property._name];
       } else if (property._type !== "dynamic" && property._value !== undefined) {
+        // TODO eval dynamic properties if they have no dependency
         this._properties[property._name] =
           flexo.format.call(this, property._value, this._properties);
       }
@@ -707,10 +709,16 @@
     return instance;
   };
 
+  // Keep track of href and id; anything else is considered as a value for a
+  // property
   prototypes.instance.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
-      this._href = value;
+      this._href = value.trim();
+    } else if (name === "id") {
+      this._id = value.trim();
+    } else {
+      this._values[name] = value;
     }
   };
 
