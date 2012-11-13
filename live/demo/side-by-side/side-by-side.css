@@ -5,7 +5,7 @@ html {
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
   margin: 0;
-  height: 100%;
+  min-height: 100%;
 }
 
 body > div {
@@ -26,12 +26,12 @@ body > div > * {
   background-color: white;
   border-left: dashed thin #333;
   overflow: auto;
+  margin: 0;
+  padding: 0;
 }
 
 body > div > *:first-child {
   border: none;
-  margin: 0;
-  padding: 0;
 }
 
 pre {

@@ -311,7 +311,12 @@
   // Extract properties from an attribute
   prototypes.instance._unprop_attr = function (node, attr) {
     var pattern = attr.value;
-    var edge = { view: node, attr: attr.localName, value: pattern };
+    var edge = {
+      parent_instance: this,
+      view: node,
+      attr: attr.localName,
+      value: pattern
+    };
     if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
       edge.ns = attr.namespaceURI;
     }
@@ -321,13 +326,15 @@
   // Extract properties from a text node
   prototypes.instance._unprop_text = function (node) {
     var pattern = node.textContent;
-    return this._unprop(pattern, { view: node, value: pattern });
+    return this._unprop(pattern,
+        { parent_instance: this, view: node, value: pattern });
   };
 
   // Extract properties from the value of a property
   prototypes.instance._unprop_value = function (property) {
     var pattern = property._value;
     return this._unprop(pattern, {
+      parent_instance: this,
       instance: this,
       property: property._name,
       value: pattern
@@ -344,7 +351,6 @@
       props.forEach(function (p) {
         this._edges.push({ property: p, watch: watch, instance: this });
       }, this);
-      console.log("[unprop] added watch", watch);
       return true;
     }
   };
@@ -508,17 +514,18 @@
   // property, then the `property` property. String values are interpolated from
   // the instance properties.
   // TODO use type like properties
-  function edge_value(edge, instance, set, val) {
+  function edge_value(edge, set, val) {
     if (edge.hasOwnProperty("__value")) {
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
-      val = flexo.format.call(instance, edge.value, instance._properties);
+      val = flexo.format.call(edge.parent_instance, edge.value,
+          edge.parent_instance._properties);
     } else if (!set && edge.property) {
-      val = instance._properties[edge.property];
+      val = edge.instance._properties[edge.property];
     }
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
-      val = edge.action.call(instance, val, edge);
+      val = edge.action.call(edge.parent_instance, val, edge);
     }
     return val;
   }
@@ -530,7 +537,7 @@
       parseFloat(flexo.format.call(get.instance, set.delay,
             get.instance._properties));
     var follow = function () {
-      var set_value = edge_value(set, get.instance, true, get_value);
+      var set_value = edge_value(set, true, get_value);
       if (set_value !== undefined) {
         if (set.instance) {
           if (set.property) {
@@ -590,7 +597,7 @@
           get.cancel = function () {
             active = false;
           };
-          var get_value = edge_value(get, get.instance);
+          var get_value = edge_value(get);
           if (active) {
             get.watch.edges.forEach(function (set) {
               follow_set_edge(get, set, edges, get_value);
@@ -645,7 +652,7 @@
 
   // Make an edge for a get or set element
   prototypes.instance._make_edge = function (elem) {
-    var edge = {};
+    var edge = { parent_instance: this };
     if (elem._view) {
       edge.view = this._views[elem._view];
       if (!edge.view) {

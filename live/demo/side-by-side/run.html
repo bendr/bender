@@ -10,17 +10,18 @@
     <link rel="stylesheet" href="side-by-side.css">
     <script src="../../../flexo.js"></script>
     <script src="../../bender.js"></script>
+    <script src="button.js"></script>
+    <script src="side-by-side.js"></script>
   </head>
   <body>
     <div>
+      <div id="js">
+        <div id="js-app"></div>
+        <div id="js-source"></div>
+      </div>
       <div id="bender">
         <div id="bender-app"></div>
         <div id="bender-source"></div>
-      </div>
-      <div id="js">
-        <div id="js-app">
-        </div>
-        <div id="js-source"></div>
       </div>
     </div>
     <script>
@@ -35,6 +36,29 @@ flexo.listen_once(instance, "@loaded", function (e) {
     .appendChild(flexo.$section(flexo.$("div.bender--uri", e.uri)));
   flexo.ez_xhr(e.uri, { responseType: "text" }, function (req) {
     sec.appendChild(flexo.$pre(req.response));
+  });
+});
+
+flexo.ez_xhr("side-by-side.html", { responseType: "document" }, function (req) {
+  var div = document.getElementById("js-app");
+  Array.prototype.forEach.call(req.response.body.childNodes, function (ch) {
+    div.appendChild(document.importNode(ch));
+  });
+  init_clicks();
+});
+
+flexo.ez_xhr("side-by-side.html", { responseType: "text" }, function (req) {
+  var sec = document.getElementById("js-source")
+    .appendChild(flexo.$section(
+      flexo.$("div.bender--uri",
+        flexo.absolute_uri(document.baseURI, "side-by-side.html")),
+      flexo.$pre(req.response)));
+  flexo.ez_xhr("side-by-side.js", { responseType: "text" }, function (req) {
+    var sec = document.getElementById("js-source")
+      .appendChild(flexo.$section(
+        flexo.$("div.bender--uri",
+          flexo.absolute_uri(document.baseURI, "side-by-side.js")),
+        flexo.$pre(req.response)));
   });
 });
 
