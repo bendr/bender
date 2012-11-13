@@ -11,6 +11,6 @@
   </view>
   <watch>
     <get instance="text-box" property="value"/>
-    <set instance="$self" value="text"/>
+    <set instance="$self" property="text"/>
   </watch>
 </component>
