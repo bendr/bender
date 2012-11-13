@@ -1,0 +1,17 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="clicks" type="number" value="0"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <instance href="../../ui/button.xml" id="button">
+        Click me
+      </instance>
+    </html:p>
+    <html:p>
+      Number of clicks: {clicks}
+    </html:p>
+  </view>
+  <watch>
+    <get instance="button" property="@pushed"/>
+    <set instance="$self" property="clicks" value="{ {clicks} + 1 }"/>
+  </watch>
+</component>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Side-by-side comparison</title>
+    <link rel="stylesheet" href="../../ui/ui.css">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+      content="width=device-width, target-densityDpi=device-dpi">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="side-by-side.css">
+    <script src="../../../flexo.js"></script>
+    <script src="../../bender.js"></script>
+  </head>
+  <body>
+    <div>
+      <div id="bender">
+        <div id="bender-app"></div>
+        <div id="bender-source"></div>
+      </div>
+      <div id="js">
+        <div id="js-app">
+        </div>
+        <div id="js-source"></div>
+      </div>
+    </div>
+    <script>
+"use strict";
+
+var context = bender.create_context(document.getElementById("bender-app"));
+var instance = context.$("instance", { href: "side-by-side.xml" });
+context._add_instance(instance);
+
+flexo.listen_once(instance, "@loaded", function (e) {
+  var sec = document.getElementById("bender-source")
+    .appendChild(flexo.$section(flexo.$("div.bender--uri", e.uri)));
+  flexo.ez_xhr(e.uri, { responseType: "text" }, function (req) {
+    sec.appendChild(flexo.$pre(req.response));
+  });
+});
+
+    </script>
+  </body>
+</html>
