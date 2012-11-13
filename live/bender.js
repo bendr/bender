@@ -286,7 +286,7 @@
       var value;
       this._set[property._name] = function (v) {
         if (typeof v === "string") {
-          v = property._get_value(v, this._properties);
+          v = property._get_value(v, this);
         }
         if (v !== value) {
           var prev = value;
@@ -751,6 +751,8 @@
     "string": flexo.id
   };
 
+  property_types.eval = property_types.dynamic;
+
 
   prototypes.property._init = function () {
     this._value = "";
@@ -782,9 +784,11 @@
   };
 
   // Get the parsed value for the property
-  prototypes.property._get_value = function (v, properties) {
+  prototypes.property._get_value = function (v, instance) {
+    var that = this._type === "eval" || this._type === "dynamic" ?
+      instance : instance._properties;
     return property_types[this._type]
-      .call(properties, v === undefined ? this._value : v);
+      .call(that, v === undefined ? this._value : v);
   };
 
   prototypes.property._set_type = function (type) {
