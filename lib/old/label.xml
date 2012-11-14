@@ -1,9 +1,0 @@
-<component xmlns="http://bender.igel.co.jp"
-  xmlns:html="http://www.w3.org/1999/xhtml" id="label">
-  <stylesheet>
-    .bender-label { display: inline; }
-  </stylesheet>
-  <view>
-    <html:div class="bender-label"><content/></html:div>
-  </view>
-</component>
