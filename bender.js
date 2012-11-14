@@ -1,75 +1,533 @@
 (function (bender) {
   "use strict";
 
+  var K = 0;  // counter for placeholders (debug)
+
   var A = Array.prototype;
 
-  // Bender namespace; added to the flexo module for create_element to work as
-  // expected with the "bender" namespace prefix, e.g. flexo.$("bender:app")
-  bender.NS = flexo.ns.bender = "http://bender.igel.co.jp";
+  // The Bender namespace, also adding the "bender" namespace prefix for
+  // flexo.create_element
+  bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  // The component of a node is itself if it is a component node (or app or
-  // context), or the component of its parent
-  function component_of(node) {
-    return node ?
-      node._is_component ?
-        node :
-        component_of(node.parentNode) :
-      null;
-  }
+  // Create a rendering contest given a target element in a host document (using
+  // the document element as a default.)
+  bender.create_context = function (target) {
+    target = target || document.documentElement;
+    var host_doc = target.ownerDocument;
+    var context = host_doc.implementation.createDocument(bender.ns, "context",
+      null);
+    context._uri = host_doc.baseURI;
 
-  // Get a placeholder element to render into and store it into the <use>.
-  function get_placeholder(use, dest, ref) {
-    if (use.__placeholder) {
-      if (ref) {
-        ref.parentNode.insertBefore(use.__placeholder, ref);
+    // Wrap all new elements created in this context
+    context.createElement = function (name) {
+      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
+            bender.ns, name));
+    };
+    context.createElementNS = function (ns, qname) {
+      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
+            ns, qname));
+    };
+
+    // Read-only target property
+    Object.defineProperty(context, "_target", {
+      enumerable: true,
+      get: function () {
+        return target;
       }
-    } else {
-      use.__placeholder = dest.ownerDocument.createElementNS(bender.NS,
-          "placeholder");
-      A.forEach.call(use.attributes, function (attr) {
-        use.__placeholder.setAttribute(attr.name, attr.value);
-      });
-      dest.insertBefore(use.__placeholder, ref);
-      use.__placeholder._use = use;
-    }
-  }
+    });
 
-  // Import a node and its children from a foreign document and add it as a
-  // child of the parent element
-  function import_node(parent, node, uri) {
-    if (node.nodeType === window.Node.ELEMENT_NODE) {
-      var n = parent.ownerDocument.createElementNS(node.namespaceURI,
-          node.localName);
-      if (n._is_component) {
-        n._uri = uri;
-      }
-      for (var i = 0, m = node.attributes.length; i < m; ++i) {
-        var attr = node.attributes[i];
-        if (attr.namespaceURI) {
-          if (attr.namespaceURI === flexo.ns.xmlns &&
-              attr.localName !== "xmlns") {
-            n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
+    // Add an instance to the context; it now becomes live. Return the added
+    // instance.
+    context._instances = [];
+    context._add_instance = function (instance) {
+      return this.documentElement.appendChild(instance);
+    };
+
+    // Loaded files by URI. When a file is being loaded, store all instances
+    // that are requesting it; once it's loaded, store the loaded component
+    var loaded = {};
+    loaded[flexo.normalize_uri(context._uri, "")] = context.documentElement;
+
+    // Load the component at the given URI for the instance
+    context._load_component = function (uri, instance) {
+      var split = uri.split("#");
+      var locator = flexo.normalize_uri(instance._uri, split[0]);
+      // TODO keep track of id's to load components inside components
+      // var id = split[1];
+      if (loaded[locator] instanceof window.Node) {
+        flexo.notify(instance, "@loaded", { uri: locator,
+          component: loaded[locator] });
+      } else if (Array.isArray(loaded[locator])) {
+        loaded[locator].push(instance);
+      } else {
+        loaded[locator] = [instance];
+        flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
+          var ev = { uri: locator, req: req };
+          if (req.status !== 0 && req.status !== 200) {
+            ev.message = "HTTP error {0}".fmt(req.status);
+            flexo.notify(instance, "@error", ev);
+          } else if (!req.response) {
+            ev.message = "could not parse response as XML";
+            flexo.notify(instance, "@error", ev);
           } else {
-            n.setAttributeNS(attr.namespaceURI, attr.localName, attr.nodeValue);
+            var c = context._import_node(req.response.documentElement, locator);
+            if (is_bender_element(c, "component")) {
+              ev.component = c;
+              loaded[locator].forEach(function (i) {
+                flexo.notify(i, "@loaded", ev);
+              });
+              loaded[locator] = c;
+            } else {
+              ev.message = "not a Bender component";
+              flexo.notify(instance, "@error", ev);
+            }
           }
+        });
+      }
+    };
+
+    // Import a node in the context (for loaded components)
+    context._import_node = function (node, uri) {
+      if (node.nodeType === window.Node.ELEMENT_NODE) {
+        var n = this.createElementNS(node.namespaceURI, node.localName);
+        if (is_bender_element(n, "component")) {
+          n._uri = uri;
+        }
+        A.forEach.call(node.attributes, function (attr) {
+          if (attr.namespaceURI) {
+            if (attr.namespaceURI === flexo.ns.xmlns &&
+                attr.localName !== "xmlns") {
+              n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
+            } else {
+              n.setAttributeNS(attr.namespaceURI, attr.localName,
+                attr.nodeValue);
+            }
+          } else {
+            n.setAttribute(attr.localName, attr.nodeValue);
+          }
+        });
+        A.forEach.call(node.childNodes, function (ch) {
+          var ch_ = this._import_node(ch, uri);
+          if (ch_) {
+            n.appendChild(ch_);
+          }
+        }, this);
+        return n;
+      }
+      if (node.nodeType === window.Node.TEXT_NODE ||
+          node.nodeType === window.Node.CDATA_SECTION_NODE) {
+        return this.createTextNode(node.textContent)
+      }
+    };
+
+    context.$ = flexo.create_element.bind(context);
+    var view = wrap_element(context.documentElement);
+    view._target = target;
+    return context;
+  };
+
+
+  // Bender elements overload some DOM methods in order to track changes to the
+  // tree.
+
+  var prototypes = {
+    // Default overloaded DOM methods for Bender elements
+    "": {
+      // Make sure that an overloaded insertBefore() is called for appendChild()
+      appendChild: function (ch) {
+        return this.insertBefore(ch, null);
+      },
+    }
+  };
+
+  ["component", "context", "get", "instance", "property", "set", "target",
+    "view", "watch"
+  ].forEach(function (p) {
+    prototypes[p] = {};
+  });
+
+
+  // Component methods
+
+  prototypes.component._init = function () {
+    this._properties = [];  // all the property elements for this component
+    this._watches = [];     // all the watch elements fro this component
+    this._instances = [];   // live instances of this componet
+  };
+
+  // Convenience method to create a new instance of that component
+  prototypes.component._create_instance = function () {
+    var instance = this.ownerDocument.$("instance");
+    instance._component = this;
+    return instance;
+  };
+
+  prototypes.component.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "view") {
+        if (this._view) {
+          console.error("Multiple views for component", this);
         } else {
-          n.setAttribute(attr.localName, attr.nodeValue);
+          this._view = ch;
+        }
+      } else if (ch.localName === "property") {
+        this._properties.push(ch);
+      } else if (ch.localName === "watch") {
+        this._watches.push(ch);
+      }
+    }
+    return ch;
+  };
+
+  prototypes.component.removeChild = function (ch) {
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "view") {
+        if (this._view === ch) {
+          delete this._view;
+          this._instances.forEach(function (instance) {
+            // TODO unrender?
+          });
+        }
+      } else if (ch.localName === "property") {
+        flexo.remove_from_array(this._properties, ch);
+      } else if (ch.localName === "watch") {
+        flexo.remove_from_array(this._watches, ch);
+      }
+    }
+    Object.getPrototypeOf(this).removeChild.call(this, ch);
+    return ch;
+  };
+
+
+  // Context element methods (the view at the top of the tree, not to be
+  // confused with the context document)
+
+  // Add instances to the context and render them in the context target
+  prototypes.context.insertBefore = function (ch, ref) {
+    if (is_bender_element(ch, "instance")) {
+      Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+      ch._uri = this.ownerDocument._uri;
+      var placeholder = ch._render(this._target);
+      this._target.insertBefore(placeholder, ref && ref._placeholder);
+      this.ownerDocument._instances.push(ch);
+      return ch;
+    } else {
+      console.warn("Unexpected element in context:", ch);
+    }
+  };
+
+  prototypes.context.removeChild = function (ch) {
+    if (is_bender_element(ch, "instance")) {
+      // TODO unrender
+    }
+    Object.getPrototypeOf(this).removeChild.call(this, ch);
+    return ch;
+  };
+
+
+  // Instance methods
+  // Status of an instance:
+  //   ._uri: base URI
+  //   ._href: has a reference to a component
+  //   ._component: if set, then loaded; otherwise, not ready
+
+  prototypes.instance._init = function (component) {
+    this._children = [];
+    this._values = {};
+    // Set the component: instantiate and render it (it is already loaded)
+    Object.defineProperty(this, "_component", { enumerable: true,
+      get: function () { return component; },
+      set: function (c) {
+        if (component !== c) {
+          component = c;
         }
       }
-      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-        import_node(n, ch, uri);
+    });
+  };
+
+  // Render this instance in a fresh placeholder, and return the placeholder.
+  // Actual rendering may be delayed if the component is not loaded yet but the
+  // placeholder can be inserted in its place immediately. Send a notification
+  // that rendering has started (@rendering); a notification that rendering has
+  // ended will be sent as well (@rendered)
+  prototypes.instance._render = function (dest) {
+    this._placeholder = dest.ownerDocument.createElementNS(bender.ns,
+        "placeholder");
+    this._placeholder.setAttribute("no", K++);
+    this._placeholder._instance = this;
+    this._views = {};
+    this._instances = { $self: this };
+    this._edges = [];
+    this._properties = {};
+    flexo.notify(this, "@rendering");
+    // Keep track of pending instances (see _finished_rendering below),
+    // including self
+    this.__pending = [this];
+    var render = function () {
+      this._setup_properties();
+      if (this._component._view) {
+        this._render_children(this._component._view, this._placeholder);
       }
-      return parent.appendChild(n);
-    } else if (node.nodeType === window.Node.TEXT_NODE ||
-        node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      return parent.appendChild(parent.ownerDocument.importNode(node, false));
+      this._finished_rendering(this);
+    };
+    if (this._component) {
+      render.call(this);
+    } else {
+      this._load_component(render);
     }
+    return this._placeholder;
+  };
+
+  // Initialize properties defined by their <property> element
+  // TODO <property> as children of the instance as well
+  prototypes.instance._setup_properties = function () {
+    this._set = {};
+    this._component._properties.forEach(function (property) {
+      var value;
+      this._set[property._name] = function (v) {
+        if (typeof v === "string") {
+          v = property._get_value(v, this);
+        }
+        if (v !== value) {
+          var prev = value;
+          value = v;
+        }
+      };
+      var instance = this;
+      Object.defineProperty(this._properties, property._name, {
+        enumerable: true,
+        get: function () { return value; },
+        set: function (v) {
+          instance._set[property._name].call(instance, v);
+          traverse_graph(instance._edges.filter(function (e) {
+            return e.property === property._name;
+          }));
+        }
+      });
+      this._unprop_value(property);
+    }, this);
+  };
+
+  // Extract properties from an attribute
+  prototypes.instance._unprop_attr = function (node, attr) {
+    var pattern = attr.value;
+    var edge = {
+      parent_instance: this,
+      view: node,
+      attr: attr.localName,
+      value: pattern
+    };
+    if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
+      edge.ns = attr.namespaceURI;
+    }
+    return this._unprop(pattern, edge);
+  };
+
+  // Extract properties from a property value on an instance element
+  prototypes.instance._unprop_prop = function (instance, property, value) {
+    return this._unprop(value, {
+      parent_instance: this,
+      instance: instance,
+      property: property,
+      value: value
+    });
   }
 
-  // Find the instance that the parent component of node `n` is in (if any)
-  function instance_of(n) { 
-    return n && (n.__instance || instance_of(n.parentNode));
-  }
+  // Extract properties from a text node
+  prototypes.instance._unprop_text = function (node) {
+    var pattern = node.textContent;
+    return this._unprop(pattern,
+        { parent_instance: this, view: node, value: pattern });
+  };
+
+  // Extract properties from the value of a property
+  prototypes.instance._unprop_value = function (property) {
+    var pattern = property._value;
+    return this._unprop(pattern, {
+      parent_instance: this,
+      instance: this,
+      property: property._name,
+      value: pattern
+    });
+  };
+
+  // Extract properties from a text node or an attribute given a pattern and the
+  // corresponding set action. If properties are found in the pattern, then add
+  // a new watch
+  prototypes.instance._unprop = function (pattern, set_edge) {
+    var props = this._extract_props(pattern);
+    if (props.length > 0) {
+      var watch = { enabled: true, edges: [set_edge] };
+      props.forEach(function (p) {
+        this._edges.push({ property: p, watch: watch, instance: this });
+      }, this);
+      return true;
+    }
+  };
+
+  // Extract a list of properties for a pattern. Only properties that are
+  // actually defined are extracted.
+  prototypes.instance._extract_props = function (pattern) {
+    var props = {};
+    if (typeof pattern === "string") {
+      var open = false;
+      var prop;
+      pattern.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
+        if (token === "{") {
+          prop = "";
+          open = true;
+        } else if (token === "}") {
+          if (open) {
+            if (this._properties.hasOwnProperty(prop)) {
+              props[prop] = true;
+            }
+            open = false;
+          }
+        } else if (open) {
+          prop += token.replace(/^\\([{}\\])/, "$1");
+        }
+      }, this);
+    }
+    return Object.keys(props);
+  };
+
+  prototypes.instance._render_children = function (view, dest, unique) {
+    A.forEach.call(view.childNodes, function (ch) {
+      if (ch.nodeType === window.Node.ELEMENT_NODE) {
+        if (ch.namespaceURI === bender.ns) {
+          if (ch.localName === "instance") {
+            this._render_child_instance(ch, dest);
+          } else if (ch.localName === "content") {
+            var instance = this;
+            if (instance._template) {
+              instance = instance._template;
+            }
+            if (instance.childNodes.length > 0) {
+              this._parent._render_children(instance, dest, unique);
+            } else {
+              this._render_children(ch, dest, unique);
+            }
+          } else if (ch.localName === "target") {
+            var target = ch._find_target(dest);
+            if (!target) {
+              console.error("No target for", ch);
+              return;
+            }
+            if (ch._unique) {
+              if (!ch._rendered) {
+                this._render_children(ch, target, true);
+                ch._rendered = true;
+              }
+            } else {
+              this._render_children(ch, target);
+            }
+          } else {
+            console.warn("Unexpected Bender element {0} in view; skipped."
+              .fmt(ch.localName));
+          }
+        } else {
+          this._render_foreign(ch, dest, unique);
+        }
+      } else if (ch.nodeType === window.Node.TEXT_NODE ||
+          ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+        this._render_text(ch, dest);
+      }
+    }, this);
+  };
+
+  // Render child instances
+  // TODO handle attributes beside href and id
+  prototypes.instance._render_child_instance = function (template, dest) {
+    var child_instance = this._add_child_instance(template);
+    this.__pending.push(child_instance);
+    dest.appendChild(child_instance._render(dest));
+    if (template._id) {
+      this._instances[template._id] = child_instance;
+    }
+    Object.keys(template._values).forEach(function (p) {
+      this._unprop_prop(child_instance, p, template._values[p]);
+    }, this);
+  };
+
+  // Initialize all non-dynamic properties
+  // TODO sort edges to do initializations in the correct order
+  prototypes.instance._init_properties = function () {
+    var instance = this._template || this;
+    this._component._properties.forEach(function (property) {
+      if (instance._values.hasOwnProperty(property._name)) {
+        this._properties[property._name] =
+          flexo.format.call(this, instance._values[property._name],
+            this._properties);
+      } else if (property._value !== undefined) {
+        if (property._type === "dynamic") {
+          var props = this._extract_props(property._value);
+          if (props.length > 0) {
+            return;
+          }
+        }
+        this._properties[property._name] =
+          flexo.format.call(this, property._value, this._properties);
+      }
+    }, this);
+  };
+
+  // Render foreign content, keeping track of id
+  prototypes.instance._render_foreign = function (elem, dest, unique) {
+    var d = dest.appendChild(
+        dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
+    A.forEach.call(elem.attributes, function (attr) {
+      var val = attr.value;
+      if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
+        attr.localName === "id") {
+        this._views[val.trim()] = d;
+        if (unique) {
+          d.setAttribute("id", val);
+        }
+      } else if (attr.namespaceURI &&
+        attr.namespaceURI !== node.namespaceURI) {
+        if (!this._unprop_attr(d, attr)) {
+          d.setAttributeNS(attr.namespaceURI, attr.localName,
+            flexo.format.call(this, val, this._properties));
+        }
+      } else {
+        if (!this._unprop_attr(d, attr)) {
+          d.setAttribute(attr.localName,
+            flexo.format.call(this, val, this._properties));
+        }
+      }
+    }, this);
+    this._render_children(elem, d, unique);
+  };
+
+  // Render text content into a new text node
+  prototypes.instance._render_text = function (node, dest) {
+    var d = dest
+      .appendChild(dest.ownerDocument.createTextNode(node.textContent));
+    if (!this._unprop_text(d)) {
+      d.textContent =
+        flexo.format.call(this, node.textContent, this._properties);
+    }
+  };
+
+  // instance has finished rendering, so it can be removed from the current list
+  // of pending instances. When the list is empty, the instance is completely
+  // rendered so we can send the @rendered event, and tell the parent instance,
+  // if any, to take it of its pending list.
+  prototypes.instance._finished_rendering = function(instance) {
+    var removed = flexo.remove_from_array(this.__pending, instance);
+    if (this.__pending.length === 0) {
+      delete this.__pending;
+      this._views.$root = find_root(this._placeholder);
+      this._views.$document = this._placeholder.ownerDocument;
+      this._render_edges();
+      this._init_properties();
+      flexo.notify(this, "@rendered");
+      if (this._parent) {
+        this._parent._finished_rendering(this);
+      }
+    }
+  };
 
   // Get the value for an edge given an instance and a default value (may be
   // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
@@ -78,17 +536,18 @@
   // property, then the `property` property. String values are interpolated from
   // the instance properties.
   // TODO use type like properties
-  function edge_value(edge, instance, set, val) {
+  function edge_value(edge, set, val) {
     if (edge.hasOwnProperty("__value")) {
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
-      val = flexo.format.call(instance, edge.value, instance.properties);
+      val = flexo.format.call(edge.parent_instance, edge.value,
+          edge.parent_instance._properties);
     } else if (!set && edge.property) {
-      val = instance.get_property(edge.property);
+      val = edge.instance._properties[edge.property];
     }
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
-      val = edge.action.call(instance, val, edge);
+      val = edge.action.call(edge.parent_instance, val, edge);
     }
     return val;
   }
@@ -98,17 +557,17 @@
   function follow_set_edge(get, set, edges, get_value) {
     var delay = set.hasOwnProperty("delay") &&
       parseFloat(flexo.format.call(get.instance, set.delay,
-            get.instance.properties));
+            get.instance._properties));
     var follow = function () {
-      var set_value = edge_value(set, get.instance, true, get_value);
+      var set_value = edge_value(set, true, get_value);
       if (set_value !== undefined) {
-        if (set.use) {
+        if (set.instance) {
           if (set.property) {
             if (typeof delay === "number" && delay >= 0) {
-              set.use.properties[set.property] = set_value;
+              set.instance._properties[set.property] = set_value;
             } else {
-              set.use._set[set.property](set_value);
-              A.push.apply(edges, set.use.edges.filter(function (e) {
+              set.instance._set[set.property](set_value);
+              A.push.apply(edges, set.instance._edges.filter(function (e) {
                 return e.property === set.property && edges.indexOf(e) < 0;
               }));
             }
@@ -131,7 +590,7 @@
         if (get_value instanceof window.Event) {
           get_value = { dom_event: get_value };
         }
-        flexo.notify(set.use || set.view, set.event, get_value);
+        flexo.notify(set.instance || set.view, set.event, get_value);
       }
     };
     if (typeof delay === "number" && delay >= 0) {
@@ -154,14 +613,14 @@
       var get = edges[i];
       if (get.watch.enabled && !get.__active) {
         get.__active = true;
-        var carry_on = typeof get.when !== "function" ||
+        var active = typeof get.when !== "function" ||
           get.when.call(get.instance);
-        if (carry_on) {
+        if (active) {
           get.cancel = function () {
-            carry_on = false;
+            active = false;
           };
-          var get_value = edge_value(get, get.instance);
-          if (carry_on) {
+          var get_value = edge_value(get);
+          if (active) {
             get.watch.edges.forEach(function (set) {
               follow_set_edge(get, set, edges, get_value);
             });
@@ -175,635 +634,127 @@
     });
   }
 
-  // Extend an element with Bender methods, calls its _init() method, and return
-  // the wrapped element.
-  function wrap_element(e) {
-    var proto = PROTOTYPES[e.localName];
-    if (proto) {
-      for (var p in proto) {
-        if (proto.hasOwnProperty(p)) {
-          e[p] = proto[p];
+  // When the instance has finished rendering, we render its edges
+  prototypes.instance._render_edges = function (instance) {
+    this._component._watches.forEach(function (watch) {
+      // Create a watch node for this watch element
+      var w = { enabled: true, edges: [] };
+      watch._gets.forEach(function (get) {
+        var edge = this._make_edge(get);
+        if (!edge) {
+          return;
         }
-      }
-    }
-    for (p in PROTOTYPES[""]) {
-      if (PROTOTYPES[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
-        e[p] = PROTOTYPES[""][p];
-      }
-    }
-    e._init();
-    return e;
-  }
-
-  // Create a Bender context for the given target (host document root element or
-  // body by default.) All Bender applications run in a context, which is itself
-  // a document that can be represented as:
-  //
-  //   <bender xmlns="http://bender.igel.co.jp">
-  //     <context/>
-  //     <use/>
-  //   </bender>
-  //
-  // The <context> element is returned; this is a Bender component that acts as
-  // root of the context tree. The target of the context is the root of the host
-  // document subtree where rendering happens. The <use> element initiates the
-  // rendering process if the target is an element, making the context live.
-  bender.create_context = function (target) {
-    target = target || document.body || document.documentElement;
-    var doc = target.ownerDocument || target;
-    var context = doc.implementation.createDocument(bender.NS, "bender", null);
-
-    // Wrap all new elements created in this context
-    context.createElement = function (name) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            bender.NS, name));
-    };
-    context.createElementNS = function (ns, qname) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            ns, qname));
-    };
-
-    // Manage the render queue specific to this context. The purpose of the
-    // render queue is to gather refresh requests from different instances
-    // (including multiple requests from the same instance) before doing the
-    // actual rendering in order to avoid multiple refreshes and cycles (as
-    // rendering requests are ignored while the queue is being flushed.)
-    var render_queue = [];
-    var timeout = null;
-
-    // Flush the queue: actually do the rendering for the instances in the queue
-    // TODO use a generator here?
-    var flush_queue = function () {
-      for (var i = 0; i < render_queue.length; ++i) {
-        render_queue[i].refresh_instance();
-      }
-      timeout = null;
-      render_queue = [];
-    };
-
-    // Send a notification from the context that this instance was just
-    // refreshed; also send it from the instance itself (so that it can easily
-    // listen to its own refresh events)
-    context._refreshed_instance = function (instance) {
-      flexo.notify(this, "@refreshed", { instance: instance });
-      flexo.notify(instance, "@refreshed");
-    };
-
-    // Method called by instances to request a refresh
-    // TODO can we end up in a situation where an instance wants another refresh
-    // in the same flush cycle and this request should *not* be ignored? e.g.
-    // during an animation?
-    context._refresh_instance = function (instance) {
-      if (render_queue.indexOf(instance) >= 0) {
-        return;
-      }
-      render_queue.push(instance);
-      if (!timeout) {
-        timeout = setTimeout(flush_queue, 0);
-      }
-    };
-
-    // Create a root context element and initiate rendering with a use element
-    var component = context.createElement("context");
-    Object.defineProperty(component, "target", { enumerable: true,
-      get: function () { return target; }
-    });
-    context.documentElement.appendChild(component);
-    var use = component.$("use");
-    use._component = component;
-    context.documentElement.appendChild(use);
-    use._render(target);
-
-    // The context keeps track of loaded URIs and catalogues all components
-    var loaded = {};      // loaded URIs
-    var components = {};  // known components by URI/id
-    loaded[flexo.normalize_uri(doc.baseURI, "")] = component;
-
-    // Keep track of uri/id pairs to find components with the href attribute
-    context._add_component = function (component) {
-      var uri = flexo.normalize_uri(doc.baseURI,
-          component._uri + "#" + component._id);
-      components[uri] = component;
-    };
-
-    // Request for a component to be loaded. If the component was already
-    // loaded, return the component node, otherwise return the requested URI
-    // normalized. In that situation, a "@loaded" event will be sent when
-    // loading has finished with a uri parameter corresponding to the returned
-    // URI and the loaded component; an "@error" event will be sent with the
-    // same URI parameter in case of error.
-    context._load_component = function (uri, base) {
-      var split = uri.split("#");
-      var locator = flexo.normalize_uri(base || doc.baseURI, split[0]);
-      var id = split[1];
-      if (typeof loaded[locator] === "object") {
-        return id ? components[locator + "#" + id] : loaded[locator];
-      } else {
-        if (!loaded[locator]) {
-          loaded[locator] = true;
-          flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-            if (req.status !== 0 && req.status !== 200) {
-              flexo.notify(context, "@error", { uri: locator, req: req,
-                message: "HTTP error {0}".fmt(req.status) });
-            } else if (!req.response) {
-              flexo.notify(context, "@error", { uri: locator, req: req,
-                message: "could not parse document as XML" });
-            } else {
-              var c = import_node(component, req.response.documentElement,
-                locator);
-              if (c._is_component) {
-                loaded[locator] = c;
-                flexo.notify(context, "@loaded", { component: c,
-                  uri: locator });
-              } else {
-                flexo.notify(context, "@error", { uri: locator, req: req,
-                  message: "not a Bender component" });
-              }
-            }
-          });
-        }
-        return locator;
-      }
-    };
-
-    return component;
-  };
-
-
-  // Prototype for a component instance. Prototypes may be extended through the
-  // <script> element.
-  var instance = {
-
-    // Initialize the instance from a <use> element given a <component>
-    // description node.
-    init: function (use, parent, target) {
-      this.use = use;
-      this.component = this.use._component;
-      this.target = target;
-      this.views = {};       // rendered views by id
-      this.uses = {};        // rendered uses by id
-      this.rendered = [];    // root DOM nodes and use instances
-      this.properties = {};  // properties defined by <property> elements
-      this._set = {};        // set property functions
-      this.edges = [];       // edges out to watches
-      this.__init_properties = [];
-      // Setup a readonly $self property (pointing to this)
-      Object.defineProperty(this.properties, "$self", {
-        enumerable: true,
-        get: function () { return this; }
-      });
-      // Setup prototype properties
-      Object.keys(this.component._properties).forEach(function (k) {
-        if (!use._properties.hasOwnProperty(k) ||
-          !(use._properties[k] instanceof window.Node)) {
-          this.init_property(this.component._properties[k]);
-        }
-      }, this);
-      // Setup instance properties
-      Object.keys(use._properties).forEach(function (k) {
-        if (!this.component._properties.hasOwnProperty(k) &&
-          this.component._properties[k] instanceof window.Element) {
-          this.init_property(use._properties[k]);
-        }
-      }, this);
-      this.component._instances.push(this);
-      this.uses.$self = this;
-      this.uses.$parent = parent;
-      this.uses.$context = use.ownerDocument;
-      return this;
-    },
-
-    // Initialize a property for the instance defined by a <property> element
-    // (either from the original component or from the <use> element that
-    // instantiated it.)
-    // TODO proper initialization
-    init_property: function (property, value) {
-      var instance = this;
-      this._set[property._name] = function (v) {
-        console.log("Set {0}=\"{1}\" on".fmt(property._name, v), this);
-        if (typeof v === "string") {
-          v = property._get_value(v, this.properties);
-        }
-        if (v !== value) {
-          var prev = value;
-          value = v;
-        }
-      }.bind(this);
-      Object.defineProperty(this.properties, property._name, { enumerable: true,
-        get: function () { return value; },
-        set: function (v) {
-          instance._set[property._name](v);
-          traverse_graph(instance.edges.filter(function (e) {
-            return e.property === property._name;
-          }));
-        }
-      });
-      this.unprop_value(property);
-      var init_val;
-      if (this.use._properties.hasOwnProperty(property._name)) {
-        init_val = this.use._properties[property._name].value;
-      }
-      this.__init_properties.push(function () {
-        if (this.properties[property._name] === undefined) {
-          this.properties[property._name] =
-            typeof property._get_value === "function" ?
-              property._get_value(init_val, this.properties) :
-              init_val;
-        }
-      });
-    },
-
-    // Return an absolute URI with this instance's component as the base for the
-    // given URI
-    absolute_uri: function (uri) {
-      return flexo.absolute_uri(this.component._uri, uri);
-    },
-
-    get_property: function (name) {
-      if (this.properties.hasOwnProperty(name)) {
-        return this.properties[name];
-      } else if (this.uses.$parent) {
-        return this.uses.$parent.get_property(name);
-      }
-    },
-
-    // Remove the placeholder from a child instance from the pending array; if
-    // the array is empty, then we can render the watches and notify the parent
-    remove_pending: function (placeholder) {
-      var removed = flexo.remove_from_array(this.__pending, placeholder);
-      if (removed) {
-        console.log("<<< Removed pending", placeholder);
-      }
-      if (this.__pending.length === 0) {
-        console.log("!!! No more pending instances, can render watches");
-        this.render_watches();
-        if (this.__init_properties) {
-          this.__init_properties.forEach(function (init) {
-            init.call(this);
-          }, this);
-          delete this.__init_properties;
-        }
-        delete this.__pending;
-        delete this.component.__instance;
-        this.component.ownerDocument._refreshed_instance(this);
-        if (this.uses.$parent) {
-          this.uses.$parent.remove_pending(instance);
-        }
-      }
-    },
-
-    // Unrender, then render the view when the target is an Element.
-    refresh_instance: function () {
-      var ref = this.unrender();
-      console.log("+++ Storing pending placeholders for", this.use);
-      this.__pending = [];
-      // Only render rooted elements
-      if (flexo.root(this.use) !== this.use.ownerDocument) {
-        return;
-      }
-      if (ref && ref.parentNode !== this.target) {
-        ref = null;
-      }
-      // TODO how to improve this? It is necessary for rendering <content>
-      this.component.__instance = this;
-      if (this.target instanceof Element) {
-        get_placeholder(this.use, this.target, ref);
-        // Render the <use> elements outside of the view
-        this.component._uses.forEach(function (u) {
-          this.render_use(u, this.use.__placeholder);
-        }, this);
-        // Render the <view> element
-        this.views.$document = this.target.ownerDocument;
-        this.views.$target = this.target;
-        if (this.component._view) {
-          this.render_children(this.component._view, this.use.__placeholder);
-          this.views.$root = flexo.find_first(this.rendered, function (n) {
-            return n instanceof window.Node &&
-              n.nodeType === window.Node.ELEMENT_NODE;
-          });
-          if (this.views.$root) {
-            // TODO what's this again?
-            Object.keys(this.use._properties).forEach(function (k) {
-              if (!this.component._properties.hasOwnProperty(k) &&
-                !(this.component._properties[k] instanceof window.Element)) {
-                this.views.$root.setAttribute(k, this.use._properties[k].value);
-              }
-            }, this);
-          }
-        }
-        // TODO move content up from placeholder
-        // flexo.safe_remove(this.use.__placeholder);
-        this.update_title();
-      }
-    },
-
-    // Render the child nodes of `node` (in the Bender tree) as children of
-    // `dest` (in the target tree.) 
-    render_children: function (node, dest, unique) {
-      for (var ch = node.firstChild; ch; ch = ch.nextSibling) {
-        if (ch.nodeType === window.Node.ELEMENT_NODE) {
-          if (ch.namespaceURI === bender.NS) {
-            if (ch.localName === "use") {
-              this.render_use(ch, dest);
-            } else if (ch.localName === "target") {
-              var target = ch._find_target(dest);
-              if (!target) {
-                console.error("No target for", ch);
-                return;
-              }
-              if (ch._unique) {
-                if (!ch._rendered) {
-                  this.render_children(ch, target, true);
-                  ch._rendered = true;
-                }
-              } else {
-                this.render_children(ch, target);
-              }
-            } else if (ch.localName === "content") {
-              // <content> renders either the contents of the <use> node or its
-              // own by default.
-              if (this.use.childNodes.length > 0) {
-                instance_of(this.use).render_children(this.use, dest, unique);
-              } else {
-                this.render_children(ch, dest, unique);
-              }
-              // TODO 
-              // this.render_use_params(r, ch);
-            } else if (ch.localName === "attribute") {
-              this.render_attribute(ch, dest);
-            } else {
-              console.warn("Unexpected Bender element in view: {0}"
-                  .fmt(ch.localName));
-            }
-          } else {
-            this.render_foreign(ch, dest, unique);
-          }
-        } else if (ch.nodeType === window.Node.TEXT_NODE ||
-            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-          this.render_text(ch, dest, unique);
-        }
-      }
-    },
-
-    // Extract a list of properties for a pattern. Only properties that are
-    // actually defined are extracted.
-    extract_props: function (pattern) {
-      var props = {};
-      if (typeof pattern === "string") {
-        var open = false;
-        var prop;
-        pattern.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
-          if (token === "{") {
-            prop = "";
-            open = true;
-          } else if (token === "}") {
-            if (open) {
-              if (this.properties.hasOwnProperty(prop)) {
-                props[prop] = true;
-              }
-              open = false;
-            }
-          } else if (open) {
-            prop += token.replace(/^\\([{}\\])/, "$1");
-          }
-        }, this);
-      }
-      return Object.keys(props);
-    },
-
-    unprop_node: function (pattern, set_edge) {
-      var props = this.extract_props(pattern);
-      if (props.length > 0) {
-        var watch = { enabled: true, edges: [set_edge] };
-        props.forEach(function (p) {
-          this.edges.push({ property: p, watch: watch, instance: this });
-        }, this);
-        return true;
-      }
-    },
-
-    unprop_attr: function (node, attr) {
-      var pattern = attr.value;
-      var edge = { view: node, attr: attr.localName, value: pattern };
-      if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
-        edge.ns = attr.namespaceURI;
-      }
-      return this.unprop_node(pattern, edge);
-    },
-
-    unprop_text: function (node) {
-      var pattern = node.textContent;
-      return this.unprop_node(pattern, { view: node, value: pattern });
-    },
-
-    unprop_value: function (property) {
-      var pattern = property._value;
-      return this.unprop_node(pattern, {
-        use: this,
-        property: property._name,
-        value: pattern
-      });
-    },
-
-    // Render foreign nodes within a view; arguments and return value are the
-    // same as render_children() above.
-    render_foreign: function (node, dest, unique) {
-      var d = dest.ownerDocument.createElementNS(node.namespaceURI,
-          node.localName);
-      A.forEach.call(node.attributes, function (attr) {
-        var val = attr.value;
-        if ((attr.namespaceURI === flexo.XML_NS || !attr.namespaceURI) &&
-            attr.localName === "id") {
-          this.views[val.trim()] = d;
-          if (unique) {
-            d.setAttribute("id", val);
-          }
-        } else if (attr.namespaceURI &&
-            attr.namespaceURI !== node.namespaceURI) {
-          if (!this.unprop_attr(d, attr)) {
-            d.setAttributeNS(attr.namespaceURI, attr.localName,
-              flexo.format.call(this, val, this.properties));
-          }
-        } else {
-          if (!this.unprop_attr(d, attr)) {
-            d.setAttribute(attr.localName,
-              flexo.format.call(this, val, this.properties));
-          }
-        }
-      }, this);
-      dest.appendChild(d);
-      if (dest.parentNode === this.target) {
-        this.rendered.push(d);
-      }
-      this.render_children(node, d, unique);
-    },
-
-    // Render a text node (or CDATA node)
-    render_text: function (node, dest) {
-      var d = dest.ownerDocument.createTextNode(node.textContent);
-      if (!this.unprop_text(d)) {
-        d.textContent = flexo.format.call(this, node.textContent,
-            this.properties);
-      }
-      dest.appendChild(d);
-      if (dest.parentNode === this.target) {
-        this.rendered.push(d);
-      }
-    },
-
-    // Render an attribute element (as an attribute, of course)
-    render_attribute: function (node, dest) {
-      var name = node.getAttribute("name");
-      if (!name) {
-        return;
-      }
-      var value = node.getAttribute("value") || "";
-      // unprop_attr
-      dest.setAttribute(name.trim(), flexo.format.call(this, value,
-            this.properties));
-
-    },
-
-    // Render a use node, return either the instance or the promise of a future
-    // instance.
-    render_use: function (use, dest) {
-      get_placeholder(use, dest);
-      console.log(">>> pending", use.__placeholder);
-      this.__pending.push(use.__placeholder);
-      var instance = use._render(dest, this);
-      if (instance === true) {
-        flexo.listen(use, "@loaded", function () {
-          this.rendered_use(use);
-        }.bind(this));
-      } else if (instance) {
-        this.rendered_use(use);
-      }
-      return instance;
-    },
-
-    // After a <use> was rendered, keep track of its instance and remove it from
-    // the list of pending instances
-    rendered_use: function (use) {
-      if (use._instance) {
-        this.rendered.push(use._instance);
-        if (use._id) {
-          this.uses[use._id] = use._instance;
-        }
-        if (this.uses.$parent) {
-          this.uses.$parent.remove_pending(use.__placeholder);
-        }
-      } else {
-        console.error("rendered_use: no instance for", use);
-      }
-    },
-
-    render_watches: function () {
-      this.component._watches.forEach(function (watch) {
-        // Create a watch node for this watch element
-        var w = { enabled: true, edges: [] };
-        watch._gets.forEach(function (get) {
-          var edge = this.make_edge(get);
-          if (!edge) {
-            return;
-          }
-          if (edge.view && edge.property) {
-            console.error("Get edge cannot watch the property of a view for",
-              get);
-            return;
-          }
-          if (edge.dom_event && !edge.view) {
-            console.error("Get edge has no view for DOM event", get);
-            return;
-          }
-          edge.watch = w;
+        edge.watch = w;
+        if (!edge.instance) {
           edge.instance = this;
-          (edge.use || this).edges.push(edge);
-          // Set the event listeners to start graph traversal. We don't need to
-          // worry about properties because they initiate traversal on their own
-          var h = function (e) {
-            if (!edge.__active) {
-              edge.__value = e;
-              traverse_graph([edge]);
-            }
-          };
-          if (edge.dom_event) {
-            edge.view.addEventListener(edge.dom_event, h, false);
-          } else if (edge.event) {
-            flexo.listen(edge.view || edge.use, edge.event, h);
+        }
+        (edge.instance || this)._edges.push(edge);
+        // Set the event listeners to start graph traversal. We don't need to
+        // worry about properties because they initiate traversal on their own
+        var h = function (e) {
+          if (!edge.__active) {
+            edge.__value = e;
+            traverse_graph([edge]);
           }
-        }, this);
-        watch._sets.forEach(function (set) {
-          var edge = this.make_edge(set);
-          if (edge) {
-            w.edges.push(edge);
-          }
-        }, this);
+        };
+        if (edge.dom_event) {
+          edge.view.addEventListener(edge.dom_event, h, false);
+        } else if (edge.event) {
+          flexo.listen(edge.view || edge.instance, edge.event, h);
+        }
       }, this);
-      flexo.notify(this, "@rendered");
-      if (this.uses.$parent && this.uses.$parent.__pending_watches) {
-        this.uses.$parent.render_watches();
-      }
-    },
-
-    // Make an edge for a get or set element
-    make_edge: function (elem) {
-      var edge = {};
-      if (elem._view) {
-        edge.view = this.views[elem._view];
-        if (!edge.view) {
-          console.error("No view \"{0}\" for {1}"
-              .fmt(elem._view, elem.localName));
-          return;
+      watch._sets.forEach(function (set) {
+        var edge = this._make_edge(set);
+        if (edge) {
+          w.edges.push(edge);
         }
-      }
-      if (elem._use) {
-        edge.use = this.uses[elem._use];
-        if (!edge.use) {
-          console.error("No instance \"{0}\" for {1}"
-              .fmt(elem._use, elem.localName));
-          return;
-        }
-      }
-      ["action", "attr", "delay", "dom_event", "event", "property", "value",
-        "when"
-      ].forEach(function (p) {
-          if (elem.hasOwnProperty("_" + p)) {
-            edge[p] = elem["_" + p];
-          }
-        });
-      return edge;
-    },
+      }, this);
+    }, this);
+  };
 
-    // Unrender this instance, and return the next sibling for re-rendering in
-    // the same spot
-    unrender: function () {
-      flexo.notify(this, "@unrender");
-      var first = flexo.find_first(this.rendered, function (n) {
-        return n instanceof window.Node;
+  // Make an edge for a get or set element
+  prototypes.instance._make_edge = function (elem) {
+    var edge = { parent_instance: this };
+    if (elem._view) {
+      edge.view = this._views[elem._view];
+      if (!edge.view) {
+        console.error("No view \"{0}\" for".fmt(elem._view), elem);
+        return;
+      }
+    }
+    if (elem._instance) {
+      edge.instance = this._instances[elem._instance];
+      if (!edge.instance) {
+        console.error("No instance \"{0}\" for".fmt(elem._instance), elem);
+        return;
+      }
+    } else {
+      edge.instance = this;
+    }
+    ["action", "attr", "delay", "dom_event", "event", "property", "value",
+      "when"
+    ].forEach(function (p) {
+      if (elem.hasOwnProperty("_" + p)) {
+        edge[p] = elem["_" + p];
+      }
+    });
+    if (edge.dom_event && !edge.view) {
+      edge.view = this.$document;
+    }
+    return edge;
+  };
+
+  prototypes.instance._load_component = function (k) {
+    if (this._href && !this._component) {
+      flexo.listen_once(this, "@loaded", function (e) {
+        e.source._component = e.component;
+        k.call(e.source);
       });
-      var prev = first && first.previousSibling;
-      this.rendered.forEach(function (r) {
-        if (r instanceof window.Node) {
-          flexo.safe_remove(r);
-        } else {
-          flexo.remove_from_array(r.component._instances, r);
-          r.unrender();
-        }
+      flexo.listen_once(this.ownerDocument, "@error", function (e) {
+        console.error("Error loading component at {0}: {1}"
+          .fmt(e.uri, e.message), e.source);
       });
-      this.rendered = [];
-      return prev && prev.nextSibling;
-    },
-
-    update_title: function () {
-      if (this.target instanceof Element &&
-          this.component.localName === "app" && this.component._title) {
-        this.target.ownerDocument.title = this.component._title.textContent;
-      }
+      this.ownerDocument._load_component(this._href, this);
     }
   };
 
-  // Property type map with the corresponding parsing function
-  var PROPERTY_TYPES = {
+  prototypes.instance._add_child_instance = function(template) {
+    var instance = this.ownerDocument.$("instance");
+    instance._template = template;
+    instance._parent = this;
+    this._children.push(instance);
+    instance._uri = component_of(template)._uri;
+    instance._href = template._href;
+    instance._component = template._component;
+    return instance;
+  };
+
+  // Keep track of href and id; anything else is considered as a value for a
+  // property
+  prototypes.instance.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "href") {
+      this._href = value.trim();
+    } else if (name === "id") {
+      this._id = value.trim();
+    } else {
+      this._values[name] = value;
+    }
+  };
+
+  prototypes.instance.insertBefore = prototypes.component.insertBefore;
+
+  // Return an absolute URI with this instance's component as the base for the
+  // given URI
+  prototypes.instance._absolute_uri = function (uri) {
+    return flexo.absolute_uri(this._uri, uri);
+  };
+
+
+  // Properties
+
+  // Property type map with the corresponding evaluation function
+  var property_types = {
     "boolean": flexo.is_true,
     "dynamic": function (value) {
       try {
@@ -828,625 +779,223 @@
     "string": flexo.id
   };
 
-  // Note: we extend DOM objects and overload some of their methods here. When
-  // adding a custom method or property, we prefix it with `_` (e.g., _init(),
-  // _refresh(), _components, &c.) to distinguish them from regular DOM methods.
-  // _setTextContent() is necessary because we cannot override the textContent
-  // property for setting.
-  // TODO replace overloaded methods with Mutation Observers?
-  var PROTOTYPES = {
 
-    "": {
-      appendChild: function (ch) { return this.insertBefore(ch, null); },
+  prototypes.property._init = function () {
+    this._value = "";
+    this._type = "string";
+  };
 
-      cloneNode: function (deep) {
-        var clone = this.ownerDocument._hash(wrap_element(
-              Object.getPrototypeOf(this).cloneNode.call(this, false)));
-        if (deep) {
-          var component = component_of(this)._uri;
-          var uri = component ? component._uri : "";
-          A.forEach.call(this.childNodes, function (ch) {
-            import_node(clone, ch);
-          });
-        }
-        return clone;
-      },
-
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        this._refresh();
-        return ch;
-      },
-
-      removeChild: function (ch) {
-        var parent = this.parentNode;
-        Object.getPrototypeOf(this).removeChild.call(this, ch);
-        this._refresh(parent);
-        return ch;
-      },
-
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        this._refresh();
-      },
-
-      setAttributeNS: function (ns, name, value) {
-        Object.getPrototypeOf(this).setAttributeNS.call(this, ns, name, value);
-        this._refresh();
-      },
-
-      removeAttribute: function (name, value) {
-        Object.getPrototypeOf(this).removeAttribute.call(this, name, value);
-        this._refresh();
-      },
-
-      removeAttributeNS: function (ns, name, value) {
-        Object.getPrototypeOf(this).removeAttributeNS.call(this, ns, name,
-            value);
-        this._refresh();
-      },
-
-      _textContent: function (t) {
-        this.textContent = t;
-        this._refresh();
-      },
-
-      // Stub for init since it is always called
-      _init: function () {},
-
-      // Shorthand for element creation in the current context (be careful
-      // because flexo.$ creates element in the host document!)
-      $: function () {
-        return flexo.create_element.apply(this.ownerDocument, arguments);
-      },
-
-      // The node was modified (a child was added or removed, text content
-      // changed, or an attribute was set.) Instances of the component that the
-      // node is part of (if any) will be scheduled for refresh. A @refresh
-      // event is sent.
-      _refresh: function () {
-        var component = component_of(this);
-        if (component) {
-          component._instances.forEach(function (i) {
-            component.ownerDocument._refresh_instance(i);
-          });
-        }
-        flexo.notify(this, "@refresh");
-      },
-
-      // TODO make a smarter serializer
-      _serialize: function () {
-        return new XMLSerializer().serializeToString(this);
-      }
-    },
-
-    // The <component> element (also <app> and <context> then) is the
-    // description of a component. May contain subcomponents, metadata (title,
-    // desc), properties, watches, and a view
-    component: {
-      _init: function () {
-        this._components = {};       // child components
-        this._watches = [];          // child watches
-        this._properties = {};       // properties map (elements)
-        this._uses = [];             // use children (outside of a view)
-        this._instances = [];        // instances of this component
-        this._uri = "";
-        Object.defineProperty(this, "_is_component", { enumerable: true,
-          get: function () { return true; }
-        });
-      },
-
-      // Keep track of the various child nodes
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "app" || ch.localName === "component") {
-            this._add_component(ch);
-          } else if (ch.localName === "desc") {
-            if (this._desc) {
-              Object.getPrototypeOf(this).removeChild.call(this, this._desc);
-            }
-            this._desc = ch;
-          } else if (ch.localName === "property") {
-            this._properties[ch._name] = ch;
-          } else if (ch.localName === "script") {
-            ch._run();
-          } else if (ch.localName === "title") {
-            if (this._title) {
-              Object.getPrototypeOf(this).removeChild.call(this, this._title);
-            }
-            this._title = ch;
-            this._instances.forEach(function (i) {
-              i.update_title();
-            });
-          } else if (ch.localName === "use") {
-            this._uses.push(ch);
-            this._refresh();
-          } else if (ch.localName === "view") {
-            if (this._view) {
-              Object.getPrototypeOf(this).removeChild.call(this, this._view);
-            }
-            this._view = ch;
-            this._refresh();
-          } else if (ch.localName === "watch") {
-            this._watches.push(ch);
-            this._refresh();
-          }
-        }
-        return ch;
-      },
-
-      // Still keeping track of contents
-      removeChild: function (ch) {
-        Object.getPrototypeOf(this).removeChild.call(this, ch);
-        if (ch._id && this._components[ch._id]) {
-          delete this._components[ch._id];
-        } else if (ch === this._desc) {
-          delete this._desc;
-        } else if (ch === this._title) {
-          delete this._title;
-        } else if (ch === this._view) {
-          delete this._view;
-          this._refresh();
-        } else if (ch.hasOwnProperty("_value") && ch.hasOwnProperty("_name")) {
-          delete this._properties[ch._name];
-        } else if (ch._render) {   // use node
-          flexo.remove_from_array(this._uses, ch);
-          this._refresh();
-        } else if (ch._watches) {  // watch node
-          flexo.remove_from_array(this._watches, ch);
-          this._refresh();
-        }
-        return ch;
-      },
-
-      // Track changes in id as this is how the component is referred to
-      setAttribute: function (name, value) {
-        if (name === "id") {
-          this._id = value.trim();
-          if (this.parentNode && this.parentNode._add_component) {
-            this.parentNode._add_component(this);
-          }
-        }
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-      },
-
-      // Add a new sub-component
-      _add_component: function (component) {
-        if (component._id) {
-          // TODO check for duplicate id
-          this._components[component._id] = component;
-          this.ownerDocument._add_component(component);
-        }
-      }
-    },
-
-    // The content element is a placeholder for contents to be added at
-    // instantiation time. When a component is instantiated with a <use>
-    // element, the contents of the <use> element are inserted in place of the
-    // <content> element. When the <use> element has no content, then the
-    // contents of the <content> element are used by default.
-    // Attributes of the <content> element are copied to its top-level element
-    // children (in most case, there would be only one element child, such as a
-    // <div> or <g> to avoid ambiguity), with the exception of `id` and
-    // `content-id`. `content-id` will be used as the id of the instantiated
-    // content.
-    // TODO use `id` to provide different named content slots for instantiation:
-    // <component>                    <use>
-    //   <view>                         <content ref="a">A</content>
-    //     <content id="a"/>   -->      <content ref="b">B</content>
-    //     <content id="b"/>          </use>
-    //   </view>
-    // </component>
-    content: {
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "content-id" || name === "id") {
-          this["_" + name.replace(/-i/, "I")] = value.trim();
-        }
-        this._refresh();
-      }
-    },
-
-    // <get> element, as a child of a <watch> element: create an edge from the
-    // target node (DOM node or instance) to the parent watch
-    get: {
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === window.Node.TEXT_NODE ||
-            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-          this._update_action();
-        }
-        return ch;
-      },
-
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "event" || name === "property" ||
-            name === "use" || name === "view") {
-          this["_" + name] = value.trim();
-        } else if (name === "dom-event") {
-          this._dom_event = value.trim();
-        } else if (name === "once") {
-          this._unique = flexo.is_true(value);
-        } else if (name === "when") {
-          try {
-            this._when = new Function("return " + value);
-          } catch(e) {
-            console.error("Could not compile when predicate for", this);
-          }
-        }
-      },
-
-      _textContent: function (t) {
-        this.textContent = t;
-        this._update_action();
-      },
-
-      // Update the action: make a new function from the text content of the
-      // element. If it has no content or there were compilation errors, default
-      // to the id function
-      _update_action: function () {
-        if (/\S/.test(this.textContent)) {
-          try {
-            this._action = new Function("value", "get", this.textContent);
-          } catch (e) {
-            console.error("Could not compile action \"{0}\": {1}"
-                .fmt(this.textContent, e.message));
-            delete this._action;
-          }
-        } else {
-          delete this._action;
-        }
-      }
-    },
-
-    // Declares and/or sets the value of a property
-    //   * `name` is the name of the property (mandatory)
-    //   * `value` is the value of the property (defaults to "")
-    //   * `type` is the type of the value, i.e., how the argument string should
-    //   be parsed (defaults to "string"; see PROPERTY_TYPES for legal types)
-    // TODO adding, removing and modifying property nodes dynamically
-    property: {
-      _init: function () {
-        this._value = "";
-        this._type = "string";
-      },
-
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === window.Node.TEXT_NODE ||
-            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-          this._value = this.textContent;
-        }
-      },
-
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "name") {
-          if (this.hasOwnProperty(name) && value !== this._name) {
-            if (this.parentNode) {
-              if (typeof this.parentNode._properties === "object") {
-                delete this.parentNode._properties[this._name];
-              }
-              if (typeof this.parentNode._property_values === "object") {
-                delete this.parentNode._property_values;
-              }
-            }
-          }
-          this._name = value.trim();
-          if (this.parentNode &&
-              typeof this.parentNode._property_values === "object") {
-            this.parentNode._property_values[this._name] = this._get_value();
-          }
-        } else if (name === "type") {
-          this._set_type(value);
-        } else if (name === "value") {
-          this._value = value;
-        }
-      },
-
-      _textContent: function (t) {
-        this.textContent = t;
-        this._value = t;
-      },
-
-      // Get the parsed value for the property
-      _get_value: function (v, properties) {
-        return PROPERTY_TYPES[this._type]
-          .call(properties, v === undefined ? this._value : v);
-      },
-
-      _set_type: function (type) {
-        type = type.trim().toLowerCase();
-        if (type in PROPERTY_TYPES) {
-          this._type = type;
-        }
-      }
-    },
-
-    replicate: {
-      _init: function () {
-        this._from = 0;
-        this._to = 0;
-        this._by = 1;
-        return this;
-      },
-
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "from" || name === "to" || name === "by") {
-          var v = parseFloat(value);
-          if (!isNaN(v)) {
-            this["_" + name] = v;
-          }
-        }
-      }
-    },
-
-    script: {
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === window.Node.TEXT_NODE ||
-            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-          this._run();
-        }
-        return ch;
-      },
-
-      // TODO setAttribute: href for script file location
-
-      _textContent: function (t) {
-        this.textContent = t;
-        this._run();
-      },
-
-      _run: function () {
-        if (!this.parentNode || this._ran || !/\S/.test(this.textContent)) {
-          return;
-        }
-        if (!this.parentNode._prototype) {
-          this.parentNode._prototype = Object.create(instance);
-        }
-        new Function(this.textContent).call(this.parentNode);
-        this._ran = true;
-      }
-    },
-
-    // <set> element (child of a <watch>)
-    set: {
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.nodeType === window.Node.TEXT_NODE ||
-            ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-          this._update_action();
-        }
-        return ch;
-      },
-
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "attr" || name === "delay" || name === "event" ||
-            name === "property" || name === "use" || name === "value" ||
-            name === "view") {
-          this["_" + name] = value.trim();
-        }
-      },
-
-      _textContent: function (t) {
-        this.textContent = t;
-        this._update_action();
-      },
-
-      // Update the action: make a new function from the text content of the
-      // element. If it has no content or there were compilation errors, default
-      // to the id function
-      _update_action: function () {
-        if (/\S/.test(this.textContent)) {
-          try {
-            this._action = new Function("value", "get", "set", this.textContent);
-          } catch (e) {
-            console.error("Could not compile action \"{0}\": {1}"
-                .fmt(this.textContent, e.message));
-            delete this._action;
-          }
-        } else {
-          delete this._action;
-        }
-      }
-    },
-
-    // <target> appears in <view> and allows to redirect rendering to a
-    // particular host element, using a query selector or a reference (to an
-    // id.) It also has a unique attribute, which when true, limits the
-    // rendering of the contents to a 
-    target: {
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "q") {
-          this._q = value.trim();
-          this._refresh();
-        } else if (name === "unique") {
-          this._unique = flexo.is_true(value);
-          this._refresh();
-        }
-      },
-
-      _find_target: function (dest) {
-        if (this._q) {
-          return dest.ownerDocument.querySelector(this._q);
-        }
-        return dest;
-      }
-    },
-
-    // The <use> element instantiates a component. This element can appear
-    // anywhere in a view subtree or as a child of component (for components
-    // that have no view or do not need to render their view.) The component to
-    // be instantiated can be referred to with the `href` attribute
-    use: {
-      _init: function () {
-        this._properties = {};
-      },
-
-      // Handle property elements
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS && ch.localName === "property") {
-          this._properties[ch._name] = ch;
-        }
-        return ch;
-      },
-
-      // Handle property elements
-      removeChild: function (ch) {
-        Object.getPrototypeOf(this).removeChild.call(this, ch);
-        if (ch.hasOwnProperty("_value") && ch.hasOwnProperty("_name")) {
-          delete this._properties[ch._name];
-        }
-        return ch;
-      },
-
-      // Set `href` or `id`, and treat any other attribute as a shorthand for a
-      // <property> child element
-      setAttribute: function (name, value) {
-        Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-        if (name === "href" || name === "id") {
-          this["_" + name] = value.trim();
-        } else {
-          this._properties[name] = { name: name, value: value };
-        }
-        this._refresh();
-      },
-
-      // TODO removeAttribute
-
-      // Find the component referred to by the node (through the ref, q or href
-      // attribute, checked in that order.) Return the component node or its URI
-      // if it needs loading.
-      _find_component: function () {
-        if (this._component) {
-          return this._component;
-        }
-        var component;
-        var parent_component = component_of(this);
-        if (this._href) {
-          var base = parent_component && parent_component._uri || "";
-          var href = (this._href.indexOf("#") === 0 ? base : "") + this._href;
-          return this.ownerDocument._load_component(href, base);
-        } else {
-          console.error("No href attribute for use; defaulting to ", this);
-        }
-      },
-
-      // Render the node in the given target and parent instance; return the new
-      // instance or true to mark a promise that this component will be
-      // rendered.
-      _render: function (target, parent) {
-        var component = this._find_component();
-        if (typeof component === "string") {
-          var loaded = function (e) {
-            if (e.uri === component) {
-              flexo.notify(this, "@loaded", { instance:
-                this._render_component(e.component, target, parent) });
-              flexo.unlisten(this.ownerDocument, "@loaded", loaded);
-            }
-          }.bind(this);
-          flexo.listen(this.ownerDocument, "@loaded", loaded);
-          return true;
-        }
-        if (component) {
-          return this._render_component(component, target, parent);
-        }
-        console.error("use._render: No component for", this);
-      },
-
-      _render_component: function (component, target, parent) {
-        this._component = component;
-        this._instance =
-          Object.create(component._prototype || instance)
-            .init(this, parent, target);
-        if (this._instance.instantiated) {
-          this._instance.instantiated();
-        }
-        flexo.notify(this, "@instance", { instance: this._instance });
-        this._instance.refresh_instance();
-        return this._instance;
-      },
-
-      _unrender: function () {
-        if (this._instance) {
-          this._instance.unrender();
-          delete this._instance;
-        }
-      }
-    },
-
-    // The <view> element must be unique. Its contents are foreign elements, and
-    // Bender <use> and <target> elements.
-    view: {
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "target" || ch.localName === "use") {
-            this._refresh();
-          }
-        } else {
-          this._refresh();
-        }
-        return ch;
-      },
-
-      removeChild: function (ch) {
-        Object.getPrototypeOf(this).removeChild.call(this, ch);
-        this._refresh();
-        return ch;
-      }
-    },
-
-    // The <watch> element has <get> and <set> children, as well as sub-watches
-    // (active when the parent watch is). When the component is instanced, the
-    // watch edges will be created
-    watch: {
-      _init: function () {
-        this._gets = [];
-        this._sets = [];
-        this._watches = [];
-      },
-
-      insertBefore: function (ch, ref) {
-        Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-        if (ch.namespaceURI === bender.NS) {
-          if (ch.localName === "get") {
-            this._gets.push(ch);
-          } else if (ch.localName === "set") {
-            this._sets.push(ch);
-          } else if (ch.localName === "watch") {
-            this._watches.push(ch);
-          }
-        }
-        // TODO update the graph
-      }
-
-      // TODO removeChild?!
+  prototypes.property.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+      this._value = this.textContent;
     }
   };
 
-  // Specific functions to create get, set and script attributes with an actual
-  // function rather than a string to create a function for the action
-  ["get", "set", "script"].forEach(function (name) {
-    PROTOTYPES.component["$" + name] = function (attrs, action) {
-      var elem = action ? this.$(name, attrs) : this.$(name);
-      if (typeof action === "function") {
-        elem._action = action;
-      } else if (typeof attrs === "function") {
-        elem._action = attrs;
+  prototypes.property.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "name") {
+      this._name = value.trim();
+    } else if (name === "type") {
+      this._set_type(value);
+    } else if (name === "value") {
+      this._value = value;
+    }
+  };
+
+  prototypes.property._textContent = function (t) {
+    this.textContent = t;
+    this._value = t;
+  };
+
+  // Get the parsed value for the property
+  prototypes.property._get_value = function (v, instance) {
+    var that = this._type === "eval" || this._type === "dynamic" ?
+      instance : instance._properties;
+    return property_types[this._type]
+      .call(that, v === undefined ? this._value : v);
+  };
+
+  prototypes.property._set_type = function (type) {
+    type = type.trim().toLowerCase();
+    if (type in property_types) {
+      this._type = type;
+    }
+  }
+
+
+  // Target methods
+
+  prototypes.target.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "q") {
+      this._q = value.trim();
+    } else if (name === "unique") {
+      this._unique = flexo.is_true(value);
+    }
+  };
+
+  // Find the target element given the `q` attribute using querySelector on the
+  // destination element. If no `q` is set, just return the dest. Be careful
+  // that the target may not be found
+  prototypes.target._find_target = function (dest) {
+    if (this._q) {
+      return dest.ownerDocument.querySelector(this._q);
+    }
+    return dest;
+  };
+
+
+  // Watch, get and set elements
+
+  prototypes.watch._init = function () {
+    this._gets = [];
+    this._sets = [];
+    this._watches = [];
+  };
+
+  prototypes.watch.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "get") {
+        this._gets.push(ch);
+      } else if (ch.localName === "set") {
+        this._sets.push(ch);
+      } else if (ch.localName === "watch") {
+        this._watches.push(ch);
       }
+    }
+  };
+
+
+  // Get and set
+
+  prototypes.get.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+      this._update_action();
+    }
+    return ch;
+  };
+
+  prototypes.get.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "event" || name === "instance" || name === "property" ||
+        name === "view") {
+      this["_" + name] = value.trim();
+    } else if (name === "dom-event") {
+      this._dom_event = value.trim();
+    } else if (name === "once") {
+      this._once = flexo.is_true(value);
+    } else if (name === "when") {
+      try {
+        this._when = new Function("return " + value);
+      } catch(e) {
+        console.error("Could not compile when predicate for", this);
+      }
+    }
+  };
+
+  prototypes.get._textContent = function (t) {
+    this.textContent = t;
+    this._update_action();
+  };
+
+  // Update the action: make a new function from the text content of the
+  // element. If it has no content or there were compilation errors, default
+  // to the id function
+  prototypes.get._update_action = function () {
+    if (/\S/.test(this.textContent)) {
+      try {
+        this._action = new Function("value", "get", this.textContent);
+      } catch (e) {
+        console.error("Could not compile action \"{0}\": {1}"
+            .fmt(this.textContent, e.message));
+        delete this._action;
+      }
+    } else {
+      delete this._action;
+    }
+  };
+
+  prototypes.set.insertBefore = prototypes.get.insertBefore;
+  prototypes.set._textContent = prototypes.get._textContent;
+  prototypes.set._update_action = prototypes.get._update_action;
+
+  prototypes.set.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "delay" || name === "event" || name === "instance" ||
+        name === "property" || name === "view" || name === "value") {
+      this["_" + name] = value.trim();
+    } else if (name === "dom-event") {
+      this._dom_event = value.trim();
+    } else if (name === "when") {
+      try {
+        this._when = new Function("return " + value);
+      } catch(e) {
+        console.error("Could not compile when predicate for", this);
+      }
+    }
+  };
+
+
+
+  // Utility functions
+
+  function find_root(elem) {
+    var queue = [elem];
+    while (queue.length > 0) {
+      var e = queue.shift();
+      if (e.nodeType === window.Node.ELEMENT_NODE &&
+          e.namespaceURI !== bender.ns) {
+        return e;
+      }
+      A.unshift.apply(queue, e.childNodes);
+    }
+  }
+
+  function component_of(elem) {
+    if (is_bender_element(elem, "component")) {
       return elem;
-    };
-  });
+    }
+    if (elem.parentNode) {
+      return component_of(elem.parentNode);
+    }
+  }
 
-  PROTOTYPES.app = PROTOTYPES.component;
-  PROTOTYPES.context = PROTOTYPES.component;
+  // Test whether the given node is an element in the Bender namespace with the
+  // given name
+  function is_bender_element(node, name) {
+    return node instanceof window.Node &&
+      node.nodeType === window.Node.ELEMENT_NODE &&
+      node.namespaceURI === bender.ns &&
+      (name === undefined || node.localName === name);
+  }
 
-}(typeof exports === "object" ? exports : window.bender = {}));
+  // Extend an element with Bender methods, calls its _init() method, and return
+  // the wrapped element.
+  function wrap_element(e, proto) {
+    if (typeof proto !== "object") {
+      proto = prototypes[e.localName];
+    }
+    if (proto) {
+      for (var p in proto) {
+        if (proto.hasOwnProperty(p)) {
+          e[p] = proto[p];
+        }
+      }
+    }
+    for (p in prototypes[""]) {
+      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
+        e[p] = prototypes[""][p];
+      }
+    }
+    if (typeof e._init === "function") {
+      e._init();
+    }
+    return e;
+  }
+
+}(window.bender = {}))

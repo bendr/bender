@@ -1,9 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <property name="text"/>
-  <property name="class"/>
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <use href="p.xml">
-      <html:span class="{class}">{text}</html:span>
-    </use>
-  </view>
-</component>

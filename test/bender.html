@@ -4,19 +4,15 @@
     <title>Test Bender</title>
     <meta charset="UTF-8">
     <meta http-equiv="cache-control" content="no-cache">
-    <style>
-      body { font-family: Univers, "Helvetica Neue", Helvetica, sans-serif; }
-      a { text-decoration: none; color: #ff4040; }
-    </style>
     <link rel="stylesheet" href="../node_modules/mocha/mocha.css">
+  </head>
+  <body>
+    <div id="mocha"></div>
     <script src="../node_modules/chai/chai.js"></script>
     <script src="../node_modules/mocha/mocha.js"></script>
     <script>mocha.setup("bdd");</script>
     <script src="../flexo.js"></script>
     <script src="../bender.js"></script>
-  </head>
-  <body>
-    <div id="mocha"></div>
     <script src="bender.js"></script>
     <script>
       mocha.run().globals(["console", "getInterface", "navigator"]);

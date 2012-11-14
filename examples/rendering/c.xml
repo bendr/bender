@@ -1,9 +1,0 @@
-<component xmlns="http://bender.igel.co.jp"
-  xmlns:svg="http://www.w3.org/2000/svg">
-  <view>
-    <svg:g>
-      <svg:circle fill="#dec72e" cx="50" cy="50" r="40"/>
-      <svg:circle fill="#244545" cx="50" cy="50" r="20"/>
-    </svg:g>
-  </view>
-</component>
