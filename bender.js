@@ -1,55 +1,41 @@
 (function (bender) {
   "use strict";
 
-  var K = 0;  // counter for placeholders (debug)
-
   var A = Array.prototype;
 
   // The Bender namespace, also adding the "bender" namespace prefix for
   // flexo.create_element
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  // Create a rendering contest given a target element in a host document (using
-  // the document element as a default.)
-  bender.create_context = function (target) {
-    target = target || document.documentElement;
-    var host_doc = target.ownerDocument;
-    var context = host_doc.implementation.createDocument(bender.ns, "context",
-      null);
-    context._uri = host_doc.baseURI;
+  // The context stores the definitions on the components, indexed by their URI,
+  // as well as the instance hierarchy of rendered components.
+  var context = {
 
-    // Wrap all new elements created in this context
-    context.createElement = function (name) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            bender.ns, name));
-    };
-    context.createElementNS = function (ns, qname) {
-      return wrap_element(Object.getPrototypeOf(this).createElementNS.call(this,
-            ns, qname));
-    };
+    // Initialize the context for the given host document
+    init: function (host, instances, loaded) {
+      Object.defineProperty(this, "document", { enumerable: true,
+        get: function () { return host; } });
+      Object.defineProperty(this, "instances", { enumerable: true,
+        get: function () { return instances; } });
+      Object.defineProperty(this, "loaded", { enumerable: true,
+        get: function () { return loaded; } });
+      // Top component with the URI of the host document (for components created
+      // programmatically)
+      loaded[flexo.normalize_uri(host.baseURI, "")] =
+        flexo.create_element.call(host, "bender:component");
+      return this;
+    },
 
-    // Read-only target property
-    Object.defineProperty(context, "_target", {
-      enumerable: true,
-      get: function () {
-        return target;
-      }
-    });
+    // Add a top-level instance to the context and render it in the given target
+    add_instance: function (instance, target) {
+      this.instances.push(instance);
+      instance.render(target);
+    },
 
-    // Add an instance to the context; it now becomes live. Return the added
-    // instance.
-    context._instances = [];
-    context._add_instance = function (instance) {
-      return this.documentElement.appendChild(instance);
-    };
-
-    // Loaded files by URI. When a file is being loaded, store all instances
-    // that are requesting it; once it's loaded, store the loaded component
-    var loaded = {};
-    loaded[flexo.normalize_uri(context._uri, "")] = context.documentElement;
-
-    // Load the component at the given URI for the instance
-    context._load_component = function (uri, instance) {
+    // Load a component at the given URI. While a file is being loaded, store
+    // all instances that are requesting it; once it's loaded, store the loaded
+    // component itself. Let's try importing only on rendering.
+    load_component: function () {
       var split = uri.split("#");
       var locator = flexo.normalize_uri(instance._uri, split[0]);
       // TODO keep track of id's to load components inside components
@@ -84,8 +70,20 @@
           }
         });
       }
-    };
+    },
 
+  };
+
+  // Create a new Bender context for the given host document (window.document by
+  // default.)
+  bender.create_context = function (host) {
+    return Object.create(context).init(host || window.document, [], {});
+  };
+
+  /*
+
+    // Load the component at the given URI for the instance
+    context._load_component = function (uri, instance) {
     // Import a node in the context (for loaded components)
     context._import_node = function (node, uri) {
       if (node.nodeType === window.Node.ELEMENT_NODE) {
@@ -254,7 +252,6 @@
   prototypes.instance._render = function (dest) {
     this._placeholder = dest.ownerDocument.createElementNS(bender.ns,
         "placeholder");
-    this._placeholder.setAttribute("no", K++);
     this._placeholder._instance = this;
     this._views = {};
     this._instances = { $self: this };
@@ -998,4 +995,5 @@
     return e;
   }
 
+*/
 }(window.bender = {}))
