@@ -18,6 +18,9 @@
       assert.isObject(context, "The context is an object");
     });
 
+    it("context.add_instance()");
+    it("context.load_component()");
+
   });
 
 }(window.chai.assert, window.flexo, window.bender));
