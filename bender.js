@@ -22,8 +22,17 @@
       // Top component with the URI of the host document (for components created
       // programmatically)
       loaded[flexo.normalize_uri(host.baseURI, "")] =
-        flexo.create_element.call(host, "bender:component");
+        this.$("bender:component");
       return this;
+    },
+
+    // Create elements for the context by wrapping them with Bender functions
+    // TODO bender namespace by default
+    $: function () {
+      var e = wrap_element(flexo.create_element.apply(this.document,
+            arguments));
+      e.context = this;
+      return e;
     },
 
     // Add a top-level instance to the context and render it in the given target
@@ -32,23 +41,23 @@
       instance.render(target);
     },
 
-    // Load a component at the given URI. While a file is being loaded, store
-    // all instances that are requesting it; once it's loaded, store the loaded
-    // component itself. Let's try importing only on rendering.
-    load_component: function () {
+    // Load a component definition for an instanceI. While a file is being
+    // loaded, store all instances that are requesting it; once it's loaded,
+    // store the loaded component itself.
+    load_component: function (instance) {
       var split = uri.split("#");
-      var locator = flexo.normalize_uri(instance._uri, split[0]);
+      var locator = flexo.normalize_uri(instance.uri, split[0]);
       // TODO keep track of id's to load components inside components
       // var id = split[1];
       if (loaded[locator] instanceof window.Node) {
         flexo.notify(instance, "@loaded", { uri: locator,
-          component: loaded[locator] });
+          definition: loaded[locator] });
       } else if (Array.isArray(loaded[locator])) {
         loaded[locator].push(instance);
       } else {
         loaded[locator] = [instance];
         flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-          var ev = { uri: locator, req: req };
+          var ev = { uri: uri, req: req };
           if (req.status !== 0 && req.status !== 200) {
             ev.message = "HTTP error {0}".fmt(req.status);
             flexo.notify(instance, "@error", ev);
@@ -56,7 +65,7 @@
             ev.message = "could not parse response as XML";
             flexo.notify(instance, "@error", ev);
           } else {
-            var c = context._import_node(req.response.documentElement, locator);
+            var c = context.import_node(req.response.documentElement, uri);
             if (is_bender_element(c, "component")) {
               ev.component = c;
               loaded[locator].forEach(function (i) {
@@ -72,24 +81,13 @@
       }
     },
 
-  };
-
-  // Create a new Bender context for the given host document (window.document by
-  // default.)
-  bender.create_context = function (host) {
-    return Object.create(context).init(host || window.document, [], {});
-  };
-
-  /*
-
-    // Load the component at the given URI for the instance
-    context._load_component = function (uri, instance) {
     // Import a node in the context (for loaded components)
-    context._import_node = function (node, uri) {
+    import_node: function (node, uri) {
       if (node.nodeType === window.Node.ELEMENT_NODE) {
-        var n = this.createElementNS(node.namespaceURI, node.localName);
+        var n = wrap_element(this.host.createElementNS(node.namespaceURI,
+              node.localName));
         if (is_bender_element(n, "component")) {
-          n._uri = uri;
+          n.uri = uri;
         }
         A.forEach.call(node.attributes, function (attr) {
           if (attr.namespaceURI) {
@@ -105,7 +103,7 @@
           }
         });
         A.forEach.call(node.childNodes, function (ch) {
-          var ch_ = this._import_node(ch, uri);
+          var ch_ = this.import_node(ch, uri);
           if (ch_) {
             n.appendChild(ch_);
           }
@@ -114,16 +112,17 @@
       }
       if (node.nodeType === window.Node.TEXT_NODE ||
           node.nodeType === window.Node.CDATA_SECTION_NODE) {
-        return this.createTextNode(node.textContent)
+        return this.host.createTextNode(node.textContent)
       }
-    };
+    },
 
-    context.$ = flexo.create_element.bind(context);
-    var view = wrap_element(context.documentElement);
-    view._target = target;
-    return context;
   };
 
+  // Create a new Bender context for the given host document (window.document by
+  // default.)
+  bender.create_context = function (host) {
+    return Object.create(context).init(host || window.document, [], {});
+  };
 
   // Bender elements overload some DOM methods in order to track changes to the
   // tree.
@@ -135,8 +134,37 @@
       appendChild: function (ch) {
         return this.insertBefore(ch, null);
       },
+      $: function () {
+        return this.context.create_element.apply(this.context, arguments);
+      }
     }
   };
+
+  // Extend an element with Bender methods, calls its _init() method, and return
+  // the wrapped element.
+  function wrap_element(e, proto) {
+    if (typeof proto !== "object") {
+      proto = prototypes[e.localName];
+    }
+    if (proto) {
+      for (var p in proto) {
+        if (proto.hasOwnProperty(p)) {
+          e[p] = proto[p];
+        }
+      }
+    }
+    for (p in prototypes[""]) {
+      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
+        e[p] = prototypes[""][p];
+      }
+    }
+    if (typeof e._init === "function") {
+      e._init();
+    }
+    return e;
+  }
+
+  /*
 
   ["component", "context", "get", "instance", "property", "set", "target",
     "view", "watch"
@@ -843,7 +871,6 @@
     return dest;
   };
 
-
   // Watch, get and set elements
 
   prototypes.watch._init = function () {
@@ -864,7 +891,6 @@
       }
     }
   };
-
 
   // Get and set
 
@@ -937,8 +963,6 @@
     }
   };
 
-
-
   // Utility functions
 
   function find_root(elem) {
@@ -969,30 +993,6 @@
       node.nodeType === window.Node.ELEMENT_NODE &&
       node.namespaceURI === bender.ns &&
       (name === undefined || node.localName === name);
-  }
-
-  // Extend an element with Bender methods, calls its _init() method, and return
-  // the wrapped element.
-  function wrap_element(e, proto) {
-    if (typeof proto !== "object") {
-      proto = prototypes[e.localName];
-    }
-    if (proto) {
-      for (var p in proto) {
-        if (proto.hasOwnProperty(p)) {
-          e[p] = proto[p];
-        }
-      }
-    }
-    for (p in prototypes[""]) {
-      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
-        e[p] = prototypes[""][p];
-      }
-    }
-    if (typeof e._init === "function") {
-      e._init();
-    }
-    return e;
   }
 
 */
