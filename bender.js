@@ -9,120 +9,241 @@
 
   // The context stores the definitions on the components, indexed by their URI,
   // as well as the instance hierarchy of rendered components.
-  var context = {
+  var context = {};
 
-    // Initialize the context for the given host document
-    init: function (host, instances, loaded) {
-      Object.defineProperty(this, "document", { enumerable: true,
-        get: function () { return host; } });
-      Object.defineProperty(this, "instances", { enumerable: true,
-        get: function () { return instances; } });
-      Object.defineProperty(this, "loaded", { enumerable: true,
-        get: function () { return loaded; } });
-      // Top component with the URI of the host document (for components created
-      // programmatically)
-      loaded[flexo.normalize_uri(host.baseURI, "")] =
-        this.$("bender:component");
-      return this;
-    },
+  // Initialize the context for the given host document
+  context.init = function (host, instances, loaded) {
+    this.host = host;
+    this.instances = [];
+    this.loaded = {};
+    // Top component with the URI of the host document (for components created
+    // programmatically)
+    this.loaded[flexo.normalize_uri(host.baseURI, "")] =
+      this.$("bender:component");
+    return this;
+  };
 
-    // Create elements for the context by wrapping them with Bender functions
-    // TODO bender namespace by default
-    $: function () {
-      var e = wrap_element(flexo.create_element.apply(this.document,
-            arguments));
-      e.context = this;
-      return e;
-    },
+  // Create elements for the context by wrapping them with Bender functions
+  // TODO bender namespace by default
+  context.$ = function () {
+    var e = wrap_element(flexo.create_element.apply(this.document,
+          arguments));
+    e.context = this;
+    return e;
+  };
 
-    // Add a top-level instance to the context and render it in the given target
-    add_instance: function (instance, target) {
-      this.instances.push(instance);
-      instance.render(target);
-    },
+  // Add a top-level instance to the context and render it in the given target
+  // (inserted before the ref or appended)
+  context.add_instance = function (instance, target, ref) {
+    this.instances.push(instance);
+    instance.render(target, ref);
+  };
 
-    // Load a component definition for an instanceI. While a file is being
-    // loaded, store all instances that are requesting it; once it's loaded,
-    // store the loaded component itself.
-    load_component: function (instance) {
-      var split = uri.split("#");
-      var locator = flexo.normalize_uri(instance.uri, split[0]);
-      // TODO keep track of id's to load components inside components
-      // var id = split[1];
-      if (loaded[locator] instanceof window.Node) {
-        flexo.notify(instance, "@loaded", { uri: locator,
-          definition: loaded[locator] });
-      } else if (Array.isArray(loaded[locator])) {
-        loaded[locator].push(instance);
-      } else {
-        loaded[locator] = [instance];
-        flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-          var ev = { uri: uri, req: req };
-          if (req.status !== 0 && req.status !== 200) {
-            ev.message = "HTTP error {0}".fmt(req.status);
-            flexo.notify(instance, "@error", ev);
-          } else if (!req.response) {
-            ev.message = "could not parse response as XML";
-            flexo.notify(instance, "@error", ev);
+  // Load a component definition for an instanceI. While a file is being
+  // loaded, store all instances that are requesting it; once it's loaded,
+  // store the loaded component itself.
+  context.load_component = function (instance) {
+    var split = uri.split("#");
+    var locator = flexo.normalize_uri(instance.uri, split[0]);
+    // TODO keep track of id's to load components inside components
+    // var id = split[1];
+    if (loaded[locator] instanceof window.Node) {
+      flexo.notify(instance, "@loaded", { uri: locator,
+        definition: loaded[locator] });
+    } else if (Array.isArray(loaded[locator])) {
+      loaded[locator].push(instance);
+    } else {
+      loaded[locator] = [instance];
+      flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
+        var ev = { uri: uri, req: req };
+        if (req.status !== 0 && req.status !== 200) {
+          ev.message = "HTTP error {0}".fmt(req.status);
+          flexo.notify(instance, "@error", ev);
+        } else if (!req.response) {
+          ev.message = "could not parse response as XML";
+          flexo.notify(instance, "@error", ev);
+        } else {
+          var c = context.import_node(req.response.documentElement, uri);
+          if (is_bender_element(c, "component")) {
+            ev.component = c;
+            loaded[locator].forEach(function (i) {
+              flexo.notify(i, "@loaded", ev);
+            });
+            loaded[locator] = c;
           } else {
-            var c = context.import_node(req.response.documentElement, uri);
-            if (is_bender_element(c, "component")) {
-              ev.component = c;
-              loaded[locator].forEach(function (i) {
-                flexo.notify(i, "@loaded", ev);
-              });
-              loaded[locator] = c;
-            } else {
-              ev.message = "not a Bender component";
-              flexo.notify(instance, "@error", ev);
-            }
+            ev.message = "not a Bender component";
+            flexo.notify(instance, "@error", ev);
           }
-        });
-      }
-    },
-
-    // Import a node in the context (for loaded components)
-    import_node: function (node, uri) {
-      if (node.nodeType === window.Node.ELEMENT_NODE) {
-        var n = wrap_element(this.host.createElementNS(node.namespaceURI,
-              node.localName));
-        if (is_bender_element(n, "component")) {
-          n.uri = uri;
         }
-        A.forEach.call(node.attributes, function (attr) {
-          if (attr.namespaceURI) {
-            if (attr.namespaceURI === flexo.ns.xmlns &&
-                attr.localName !== "xmlns") {
-              n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
-            } else {
-              n.setAttributeNS(attr.namespaceURI, attr.localName,
-                attr.nodeValue);
-            }
-          } else {
-            n.setAttribute(attr.localName, attr.nodeValue);
-          }
-        });
-        A.forEach.call(node.childNodes, function (ch) {
-          var ch_ = this.import_node(ch, uri);
-          if (ch_) {
-            n.appendChild(ch_);
-          }
-        }, this);
-        return n;
-      }
-      if (node.nodeType === window.Node.TEXT_NODE ||
-          node.nodeType === window.Node.CDATA_SECTION_NODE) {
-        return this.host.createTextNode(node.textContent)
-      }
-    },
+      });
+    }
+  };
 
+  // Import a node in the context (for loaded components)
+  context.import_node = function (node, uri) {
+    if (node.nodeType === window.Node.ELEMENT_NODE) {
+      var n = wrap_element(this.host.createElementNS(node.namespaceURI,
+            node.localName));
+      if (is_bender_element(n, "component")) {
+        n.uri = uri;
+      }
+      A.forEach.call(node.attributes, function (attr) {
+        if (attr.namespaceURI) {
+          if (attr.namespaceURI === flexo.ns.xmlns &&
+              attr.localName !== "xmlns") {
+            n.setAttribute("xmlns:" + attr.localName, attr.nodeValue);
+          } else {
+            n.setAttributeNS(attr.namespaceURI, attr.localName,
+              attr.nodeValue);
+          }
+        } else {
+          n.setAttribute(attr.localName, attr.nodeValue);
+        }
+      });
+      A.forEach.call(node.childNodes, function (ch) {
+        var ch_ = this.import_node(ch, uri);
+        if (ch_) {
+          n.appendChild(ch_);
+        }
+      }, this);
+      return n;
+    }
+    if (node.nodeType === window.Node.TEXT_NODE ||
+        node.nodeType === window.Node.CDATA_SECTION_NODE) {
+      return this.host.createTextNode(node.textContent)
+    }
   };
 
   // Create a new Bender context for the given host document (window.document by
   // default.)
   bender.create_context = function (host) {
-    return Object.create(context).init(host || window.document, [], {});
+    return Object.create(context).init(host || window.document);
   };
+
+
+  // Instances
+  var instance = {};
+
+  instance.init = function (component) {
+    this.component = component;
+    return this;
+  };
+
+  // Render this instance in a fresh placeholder, and return the placeholder.
+  // Actual rendering may be delayed if the component is not loaded yet but the
+  // placeholder can be inserted in its place immediately. Send a notification
+  // that rendering has started (@rendering); a notification that rendering has
+  // ended will be sent as well (@rendered)
+  instance.render = function (dest, ref) {
+    this.views = {};
+    this.instances = { $self: this };
+    this.edges = [];
+    this.properties = {};
+    var placeholder = dest.ownerDocument.createElementNS(bender.ns,
+        "placeholder");
+    dest.insertBefore(placeholder, ref);
+    flexo.notify(this, "@rendering");
+    // Keep track of pending instances (see _finished_rendering below),
+    // including self
+    this.__pending = [this];
+    var render = function () {
+      this.setup_properties();
+      if (this.component.view) {
+        if (this.component.view.firstElementChild) {
+          this.render_node(this.component.view.firstElementChild,
+            placeholder);
+          dest.insertBefore(placeholder.firstElementChild, placeholder);
+        }
+        dest.removeChild(placeholder);
+      }
+      this.finished_rendering(this);
+    };
+    if (this.component) {
+      render.call(this);
+    } else {
+      this.load_component(render);
+    }
+    return this.placeholder;
+  };
+
+  instance.render_node = function (node, dest) {
+    if node.nodeType === window.Node.ELEMENT_NODE) {
+      if (node.namespaceURI === bender.ns) {
+        if (node.localName === "component") {
+          this.render_child_instance(node, dest);
+        } else if (node.localName === "content") {
+          var from_element = this.parent && this.parent.element;
+          if (from_element && from_element.childNodes.length > 0) {
+            this.render_children(from_element, dest);
+          } else {
+            this.render_children(ch, dest, unique);
+          }
+        } else {
+          console.warn("[render_node] Unexpected Bender element {0} in view"
+              .fmt(node.localName);
+        }
+      } else {
+        this.render_foreign(node, dest);
+      }
+    } else if (node.nodeType === window.Node.TEXT_NODE ||
+        node.nodeType === window.Node.CDATA_SECTION_NODE) {
+      this.render_text(node, dest);
+    }
+  };
+
+  instance.render_foreign = function (elem, dest) {
+    var d = dest.appendChild(
+        dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
+    A.forEach.call(elem.attributes, function (attr) {
+      var val = attr.value;
+      if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
+        attr.localName === "id") {
+        this.views[val.trim()] = d;
+      } else if (attr.namespaceURI &&
+        attr.namespaceURI !== node.namespaceURI) {
+        if (!this.bind_attr(d, attr)) {
+          d.setAttributeNS(attr.namespaceURI, attr.localName,
+            flexo.format.call(this, val, this.properties));
+        }
+      } else {
+        if (!this.bind_attr(d, attr)) {
+          d.setAttribute(attr.localName,
+            flexo.format.call(this, val, this.properties));
+        }
+      }
+    }, this);
+    this.render_children(elem, d);
+  };
+
+  instance.render_text = function (node, dest) {
+    var d = dest
+      .appendChild(dest.ownerDocument.createTextNode(node.textContent));
+    if (!this.bind_text(d)) {
+      d.textContent =
+        flexo.format.call(this, node.textContent, this.properties);
+    }
+  };
+
+  // Render child instances
+  // TODO handle attributes beside href and id
+  instance.render_child_instance = function (elem, dest) {
+    var child_instance = this.add_child_instance(elem);
+
+    this.__pending.push(child_instance);
+    dest.appendChild(child_instance._render(dest));
+    if (template._id) {
+      this._instances[template._id] = child_instance;
+    }
+    Object.keys(template._values).forEach(function (p) {
+      this._unprop_prop(child_instance, p, template._values[p]);
+    }, this);
+  };
+
+  instance.render_children = function (node, dest) {
+    A.forEach.call(node.childNodes, function (ch) {
+      this.render_node(ch, dest);
+    }, this);
+  }
 
   // Bender elements overload some DOM methods in order to track changes to the
   // tree.
@@ -134,9 +255,6 @@
       appendChild: function (ch) {
         return this.insertBefore(ch, null);
       },
-      $: function () {
-        return this.context.create_element.apply(this.context, arguments);
-      }
     }
   };
 
@@ -158,49 +276,39 @@
         e[p] = prototypes[""][p];
       }
     }
-    if (typeof e._init === "function") {
-      e._init();
+    if (typeof e.init === "function") {
+      e.init();
     }
     return e;
   }
 
-  /*
-
-  ["component", "context", "get", "instance", "property", "set", "target",
-    "view", "watch"
+  ["component"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
 
-
-  // Component methods
-
-  prototypes.component._init = function () {
-    this._properties = [];  // all the property elements for this component
-    this._watches = [];     // all the watch elements fro this component
-    this._instances = [];   // live instances of this componet
+  prototypes.component.init = function () {
+    this.properties = [];  // child property elements; will add the view
+    this.instance = [];    // instances of the component
   };
 
-  // Convenience method to create a new instance of that component
-  prototypes.component._create_instance = function () {
-    var instance = this.ownerDocument.$("instance");
-    instance._component = this;
-    return instance;
+  prototypes.component.create_instance = function () {
+    var instance = Object.create(instance).init(this);
+    this.instances.push(instance);
+    return this.instance;
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (ch.namespaceURI === bender.ns) {
+    if (is_bender_element(ch)) {
       if (ch.localName === "view") {
-        if (this._view) {
+        if (this.view) {
           console.error("Multiple views for component", this);
         } else {
-          this._view = ch;
+          this.view = ch;
         }
       } else if (ch.localName === "property") {
-        this._properties.push(ch);
-      } else if (ch.localName === "watch") {
-        this._watches.push(ch);
+        this.properties.push(ch);
       }
     }
     return ch;
@@ -209,22 +317,27 @@
   prototypes.component.removeChild = function (ch) {
     if (ch.namespaceURI === bender.ns) {
       if (ch.localName === "view") {
-        if (this._view === ch) {
+        if (this.view === ch) {
           delete this._view;
-          this._instances.forEach(function (instance) {
-            // TODO unrender?
-          });
         }
       } else if (ch.localName === "property") {
-        flexo.remove_from_array(this._properties, ch);
-      } else if (ch.localName === "watch") {
-        flexo.remove_from_array(this._watches, ch);
+        flexo.remove_from_array(this.properties, ch);
       }
     }
     Object.getPrototypeOf(this).removeChild.call(this, ch);
     return ch;
   };
 
+  // Test whether the given node is an element in the Bender namespace with the
+  // given name (or just a Bender node if no name is given)
+  function is_bender_element(node, name) {
+    return node instanceof window.Node &&
+      node.nodeType === window.Node.ELEMENT_NODE &&
+      node.namespaceURI === bender.ns &&
+      (name === undefined || node.localName === name);
+  }
+
+  /*
 
   // Context element methods (the view at the top of the tree, not to be
   // confused with the context document)
@@ -270,38 +383,6 @@
         }
       }
     });
-  };
-
-  // Render this instance in a fresh placeholder, and return the placeholder.
-  // Actual rendering may be delayed if the component is not loaded yet but the
-  // placeholder can be inserted in its place immediately. Send a notification
-  // that rendering has started (@rendering); a notification that rendering has
-  // ended will be sent as well (@rendered)
-  prototypes.instance._render = function (dest) {
-    this._placeholder = dest.ownerDocument.createElementNS(bender.ns,
-        "placeholder");
-    this._placeholder._instance = this;
-    this._views = {};
-    this._instances = { $self: this };
-    this._edges = [];
-    this._properties = {};
-    flexo.notify(this, "@rendering");
-    // Keep track of pending instances (see _finished_rendering below),
-    // including self
-    this.__pending = [this];
-    var render = function () {
-      this._setup_properties();
-      if (this._component._view) {
-        this._render_children(this._component._view, this._placeholder);
-      }
-      this._finished_rendering(this);
-    };
-    if (this._component) {
-      render.call(this);
-    } else {
-      this._load_component(render);
-    }
-    return this._placeholder;
   };
 
   // Initialize properties defined by their <property> element
@@ -417,64 +498,6 @@
     return Object.keys(props);
   };
 
-  prototypes.instance._render_children = function (view, dest, unique) {
-    A.forEach.call(view.childNodes, function (ch) {
-      if (ch.nodeType === window.Node.ELEMENT_NODE) {
-        if (ch.namespaceURI === bender.ns) {
-          if (ch.localName === "instance") {
-            this._render_child_instance(ch, dest);
-          } else if (ch.localName === "content") {
-            var instance = this;
-            if (instance._template) {
-              instance = instance._template;
-            }
-            if (instance.childNodes.length > 0) {
-              this._parent._render_children(instance, dest, unique);
-            } else {
-              this._render_children(ch, dest, unique);
-            }
-          } else if (ch.localName === "target") {
-            var target = ch._find_target(dest);
-            if (!target) {
-              console.error("No target for", ch);
-              return;
-            }
-            if (ch._unique) {
-              if (!ch._rendered) {
-                this._render_children(ch, target, true);
-                ch._rendered = true;
-              }
-            } else {
-              this._render_children(ch, target);
-            }
-          } else {
-            console.warn("Unexpected Bender element {0} in view; skipped."
-              .fmt(ch.localName));
-          }
-        } else {
-          this._render_foreign(ch, dest, unique);
-        }
-      } else if (ch.nodeType === window.Node.TEXT_NODE ||
-          ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-        this._render_text(ch, dest);
-      }
-    }, this);
-  };
-
-  // Render child instances
-  // TODO handle attributes beside href and id
-  prototypes.instance._render_child_instance = function (template, dest) {
-    var child_instance = this._add_child_instance(template);
-    this.__pending.push(child_instance);
-    dest.appendChild(child_instance._render(dest));
-    if (template._id) {
-      this._instances[template._id] = child_instance;
-    }
-    Object.keys(template._values).forEach(function (p) {
-      this._unprop_prop(child_instance, p, template._values[p]);
-    }, this);
-  };
-
   // Initialize all non-dynamic properties
   // TODO sort edges to do initializations in the correct order
   prototypes.instance._init_properties = function () {
@@ -495,44 +518,6 @@
           flexo.format.call(this, property._value, this._properties);
       }
     }, this);
-  };
-
-  // Render foreign content, keeping track of id
-  prototypes.instance._render_foreign = function (elem, dest, unique) {
-    var d = dest.appendChild(
-        dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
-    A.forEach.call(elem.attributes, function (attr) {
-      var val = attr.value;
-      if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
-        attr.localName === "id") {
-        this._views[val.trim()] = d;
-        if (unique) {
-          d.setAttribute("id", val);
-        }
-      } else if (attr.namespaceURI &&
-        attr.namespaceURI !== node.namespaceURI) {
-        if (!this._unprop_attr(d, attr)) {
-          d.setAttributeNS(attr.namespaceURI, attr.localName,
-            flexo.format.call(this, val, this._properties));
-        }
-      } else {
-        if (!this._unprop_attr(d, attr)) {
-          d.setAttribute(attr.localName,
-            flexo.format.call(this, val, this._properties));
-        }
-      }
-    }, this);
-    this._render_children(elem, d, unique);
-  };
-
-  // Render text content into a new text node
-  prototypes.instance._render_text = function (node, dest) {
-    var d = dest
-      .appendChild(dest.ownerDocument.createTextNode(node.textContent));
-    if (!this._unprop_text(d)) {
-      d.textContent =
-        flexo.format.call(this, node.textContent, this._properties);
-    }
   };
 
   // instance has finished rendering, so it can be removed from the current list
@@ -984,15 +969,6 @@
     if (elem.parentNode) {
       return component_of(elem.parentNode);
     }
-  }
-
-  // Test whether the given node is an element in the Bender namespace with the
-  // given name
-  function is_bender_element(node, name) {
-    return node instanceof window.Node &&
-      node.nodeType === window.Node.ELEMENT_NODE &&
-      node.namespaceURI === bender.ns &&
-      (name === undefined || node.localName === name);
   }
 
 */
