@@ -13,23 +13,14 @@
 
   // Initialize the context for the given host document
   context.init = function (host, instances, loaded) {
-    this.host = host;
+    this.document = host;
     this.instances = [];
     this.loaded = {};
     // Top component with the URI of the host document (for components created
     // programmatically)
     this.loaded[flexo.normalize_uri(host.baseURI, "")] =
-      this.$("bender:component");
+      this.create_component();
     return this;
-  };
-
-  // Create elements for the context by wrapping them with Bender functions
-  // TODO bender namespace by default
-  context.$ = function () {
-    var e = wrap_element(flexo.create_element.apply(this.document,
-          arguments));
-    e.context = this;
-    return e;
   };
 
   // Add a top-level instance to the context and render it in the given target
@@ -37,6 +28,29 @@
   context.add_instance = function (instance, target, ref) {
     this.instances.push(instance);
     instance.render(target, ref);
+  };
+
+  // Create a new component node with some attributes
+  context.create_component = function (attrs) {
+    var component = wrap_element(this.document.createElementNS(bender.ns,
+          "component"));
+    component.uri = this.document.baseURI;
+    if (typeof attrs === "object") {
+      Object.keys(attrs).forEach(function (attr) {
+        var a = attr.split(":");
+        if (a[1]) {
+          var ns = flexo.ns[a[0]];
+          if (!ns) {
+            console.error("Unknown namespace prefix {0} for {1}=\"{2}\""
+              .fmt(a[0], attr, attrs[a]));
+          } else {
+            component.setAttributeNS(a[0], a[1], attrs[attr]);
+          }
+        }
+        component.setAttribute(attr, attrs[attr]);
+      });
+    }
+    return component;
   };
 
   // Load a component definition for an instanceI. While a file is being
@@ -120,13 +134,22 @@
     return Object.create(context).init(host || window.document);
   };
 
-
-  // Instances
   var instance = {};
 
+  // Initialize an instance of the given component. Note that the component may
+  // be a reference to a component that is not loaded yet, or is empty so far
   instance.init = function (component) {
     this.component = component;
+    this.children = [];
     return this;
+  };
+
+  // Add a new child instance
+  instance.add_child_instance = function(component) {
+    var child_instance = component.create_instance();
+    child_instance.parent = this;
+    this.children.push(child_instance);
+    return child_instance;
   };
 
   // Render this instance in a fresh placeholder, and return the placeholder.
@@ -142,32 +165,53 @@
     var placeholder = dest.ownerDocument.createElementNS(bender.ns,
         "placeholder");
     dest.insertBefore(placeholder, ref);
-    flexo.notify(this, "@rendering");
+    flexo.notify(this, "@rendering", { placeholder: placeholder });
     // Keep track of pending instances (see _finished_rendering below),
     // including self
     this.__pending = [this];
     var render = function () {
-      this.setup_properties();
+      // this.setup_properties();
       if (this.component.view) {
         if (this.component.view.firstElementChild) {
           this.render_node(this.component.view.firstElementChild,
             placeholder);
-          dest.insertBefore(placeholder.firstElementChild, placeholder);
         }
-        dest.removeChild(placeholder);
       }
-      this.finished_rendering(this);
+      this.finished_rendering(this, placeholder);
     };
     if (this.component) {
       render.call(this);
     } else {
       this.load_component(render);
     }
-    return this.placeholder;
+  };
+
+  // instance has finished rendering, so it can be removed from the current list
+  // of pending instances. When the list is empty, the instance is completely
+  // rendered so we can send the @rendered event, and tell the parent instance,
+  // if any, to take it of its pending list.
+  instance.finished_rendering = function(pending, placeholder) {
+    flexo.remove_from_array(this.__pending, pending);
+    if (this.__pending.length === 0) {
+      delete this.__pending;
+      this.views.$document = placeholder.ownerDocument;
+      var parent = placeholder.parentNode;
+      if (placeholder.firstElementChild) {
+        this.views.$root = placeholder.firstElementChild;
+        parent.insertBefore(this.views.$root, placeholder);
+      }
+      parent.removeChild(placeholder);
+      // this.render_edges();
+      // this.init_properties();
+      flexo.notify(this, "@rendered");
+      if (this.parent) {
+        this.parent.finished_rendering(this);
+      }
+    }
   };
 
   instance.render_node = function (node, dest) {
-    if node.nodeType === window.Node.ELEMENT_NODE) {
+    if (node.nodeType === window.Node.ELEMENT_NODE) {
       if (node.namespaceURI === bender.ns) {
         if (node.localName === "component") {
           this.render_child_instance(node, dest);
@@ -180,7 +224,7 @@
           }
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
-              .fmt(node.localName);
+              .fmt(node.localName));
         }
       } else {
         this.render_foreign(node, dest);
@@ -226,16 +270,15 @@
 
   // Render child instances
   // TODO handle attributes beside href and id
-  instance.render_child_instance = function (elem, dest) {
-    var child_instance = this.add_child_instance(elem);
-
+  instance.render_child_instance = function (component, dest) {
+    var child_instance = this.add_child_instance(component);
     this.__pending.push(child_instance);
-    dest.appendChild(child_instance._render(dest));
-    if (template._id) {
-      this._instances[template._id] = child_instance;
+    child_instance.render(dest);
+    if (component.id) {
+      this.instances[component.id] = child_instance;
     }
-    Object.keys(template._values).forEach(function (p) {
-      this._unprop_prop(child_instance, p, template._values[p]);
+    Object.keys(component.values).forEach(function (p) {
+      this.bind_prop(child_instance, p, component.values[p]);
     }, this);
   };
 
@@ -244,6 +287,93 @@
       this.render_node(ch, dest);
     }, this);
   }
+
+  // Extract properties from an attribute
+  instance.bind_attr = function (node, attr) {
+    var pattern = attr.value;
+    var set = {
+      parent_instance: this,
+      view: node,
+      attr: attr.localName,
+      value: pattern
+    };
+    if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
+      set.ns = attr.namespaceURI;
+    }
+    return this.bind(pattern, set);
+  };
+
+  // Extract properties from a property value on an instance element
+  instance.bind_prop = function (instance, property, value) {
+    return this.bind(value, {
+      parent_instance: this,
+      instance: instance,
+      property: property,
+      value: value
+    });
+  }
+
+  // Extract properties from a text node
+  instance.bind_text = function (node) {
+    var pattern = node.textContent;
+    return this.bind(pattern, {
+      parent_instance: this,
+      view: node,
+      value: pattern
+    });
+  };
+
+  // Extract properties from the value of a property
+  instance.bind_value = function (property) {
+    var pattern = property.value;
+    return this.bind(pattern, {
+      parent_instance: this,
+      instance: this,
+      property: property.name,
+      value: pattern
+    });
+  };
+
+  // Extract properties from a text node or an attribute given a pattern and the
+  // corresponding set action. If properties are found in the pattern, then add
+  // a new watch to implement the binding and return true to indicate that a
+  // binding was created
+  instance.bind = function (pattern, set_edge) {
+    var props = this.extract_props(pattern);
+    if (props.length > 0) {
+      var watch = { edges: [set_edge] };
+      props.forEach(function (p) {
+        this.edges.push({ property: p, watch: watch, instance: this });
+      }, this);
+      return true;
+    }
+  };
+
+  // Extract a list of properties for a pattern. Only properties that are
+  // actually defined are extracted.
+  instance.extract_props = function (pattern) {
+    var props = {};
+    if (typeof pattern === "string") {
+      var open = false;
+      var prop;
+      pattern.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
+        if (token === "{") {
+          prop = "";
+          open = true;
+        } else if (token === "}") {
+          if (open) {
+            if (this._properties.hasOwnProperty(prop)) {
+              props[prop] = true;
+            }
+            open = false;
+          }
+        } else if (open) {
+          prop += token.replace(/^\\([{}\\])/, "$1");
+        }
+      }, this);
+    }
+    return Object.keys(props);
+  };
 
   // Bender elements overload some DOM methods in order to track changes to the
   // tree.
@@ -289,13 +419,14 @@
 
   prototypes.component.init = function () {
     this.properties = [];  // child property elements; will add the view
-    this.instance = [];    // instances of the component
+    this.instances = [];   // instances of the component
+    this.values = {};      // values given as attributes (TODO properties?)
   };
 
   prototypes.component.create_instance = function () {
-    var instance = Object.create(instance).init(this);
-    this.instances.push(instance);
-    return this.instance;
+    var i = Object.create(instance).init(this);
+    this.instances.push(i);
+    return i;
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
@@ -326,6 +457,28 @@
     }
     Object.getPrototypeOf(this).removeChild.call(this, ch);
     return ch;
+  };
+
+  // TODO handle changes
+  prototypes.component.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "href") {
+      this.href = value.trim();
+    } else if (name === "id") {
+      this.id = value.trim();
+    } else {
+      this.values[name] = value;
+    }
+  };
+
+  prototypes.component.removeAttribute = function (name) {
+    if (name === "href") {
+      delete this.href;
+    } else if (name === "id") {
+      delete this.id;
+    } else {
+      delete this.values[name];
+    }
   };
 
   // Test whether the given node is an element in the Bender namespace with the
@@ -415,89 +568,6 @@
     }, this);
   };
 
-  // Extract properties from an attribute
-  prototypes.instance._unprop_attr = function (node, attr) {
-    var pattern = attr.value;
-    var edge = {
-      parent_instance: this,
-      view: node,
-      attr: attr.localName,
-      value: pattern
-    };
-    if (attr.namespaceURI && attr.namespaceURI !== node.namespaceURI) {
-      edge.ns = attr.namespaceURI;
-    }
-    return this._unprop(pattern, edge);
-  };
-
-  // Extract properties from a property value on an instance element
-  prototypes.instance._unprop_prop = function (instance, property, value) {
-    return this._unprop(value, {
-      parent_instance: this,
-      instance: instance,
-      property: property,
-      value: value
-    });
-  }
-
-  // Extract properties from a text node
-  prototypes.instance._unprop_text = function (node) {
-    var pattern = node.textContent;
-    return this._unprop(pattern,
-        { parent_instance: this, view: node, value: pattern });
-  };
-
-  // Extract properties from the value of a property
-  prototypes.instance._unprop_value = function (property) {
-    var pattern = property._value;
-    return this._unprop(pattern, {
-      parent_instance: this,
-      instance: this,
-      property: property._name,
-      value: pattern
-    });
-  };
-
-  // Extract properties from a text node or an attribute given a pattern and the
-  // corresponding set action. If properties are found in the pattern, then add
-  // a new watch
-  prototypes.instance._unprop = function (pattern, set_edge) {
-    var props = this._extract_props(pattern);
-    if (props.length > 0) {
-      var watch = { enabled: true, edges: [set_edge] };
-      props.forEach(function (p) {
-        this._edges.push({ property: p, watch: watch, instance: this });
-      }, this);
-      return true;
-    }
-  };
-
-  // Extract a list of properties for a pattern. Only properties that are
-  // actually defined are extracted.
-  prototypes.instance._extract_props = function (pattern) {
-    var props = {};
-    if (typeof pattern === "string") {
-      var open = false;
-      var prop;
-      pattern.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
-        if (token === "{") {
-          prop = "";
-          open = true;
-        } else if (token === "}") {
-          if (open) {
-            if (this._properties.hasOwnProperty(prop)) {
-              props[prop] = true;
-            }
-            open = false;
-          }
-        } else if (open) {
-          prop += token.replace(/^\\([{}\\])/, "$1");
-        }
-      }, this);
-    }
-    return Object.keys(props);
-  };
-
   // Initialize all non-dynamic properties
   // TODO sort edges to do initializations in the correct order
   prototypes.instance._init_properties = function () {
@@ -518,25 +588,6 @@
           flexo.format.call(this, property._value, this._properties);
       }
     }, this);
-  };
-
-  // instance has finished rendering, so it can be removed from the current list
-  // of pending instances. When the list is empty, the instance is completely
-  // rendered so we can send the @rendered event, and tell the parent instance,
-  // if any, to take it of its pending list.
-  prototypes.instance._finished_rendering = function(instance) {
-    var removed = flexo.remove_from_array(this.__pending, instance);
-    if (this.__pending.length === 0) {
-      delete this.__pending;
-      this._views.$root = find_root(this._placeholder);
-      this._views.$document = this._placeholder.ownerDocument;
-      this._render_edges();
-      this._init_properties();
-      flexo.notify(this, "@rendered");
-      if (this._parent) {
-        this._parent._finished_rendering(this);
-      }
-    }
   };
 
   // Get the value for an edge given an instance and a default value (may be
@@ -726,17 +777,6 @@
       });
       this.ownerDocument._load_component(this._href, this);
     }
-  };
-
-  prototypes.instance._add_child_instance = function(template) {
-    var instance = this.ownerDocument.$("instance");
-    instance._template = template;
-    instance._parent = this;
-    this._children.push(instance);
-    instance._uri = component_of(template)._uri;
-    instance._href = template._href;
-    instance._component = template._component;
-    return instance;
   };
 
   // Keep track of href and id; anything else is considered as a value for a
