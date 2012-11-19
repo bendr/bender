@@ -11,26 +11,23 @@
   // as well as the instance hierarchy of rendered components.
   var context = {};
 
-  // Initialize the context for the given host document
-  context.init = function (host, instances, loaded) {
+  // Initialize the context for the given host document (this.document); keep
+  // track of instance tree roots (this.instance) and loaded URIs (this.loaded)
+  context.init = function (host) {
     this.document = host;
     this.instances = [];
     this.loaded = {};
-    // Top component with the URI of the host document (for components created
-    // programmatically)
-    this.loaded[flexo.normalize_uri(host.baseURI, "")] =
-      this.create_component();
     return this;
   };
 
   // Add a top-level instance to the context and render it in the given target
-  // (inserted before the ref or appended)
+  // (inserted before the ref or added as the last child)
   context.add_instance = function (instance, target, ref) {
     this.instances.push(instance);
     instance.render(target, ref);
   };
 
-  // Create a new component node with some attributes
+  // Create a new component element with some attributes
   context.create_component = function (attrs) {
     var component = wrap_element(this.document.createElementNS(bender.ns,
           "component"));
