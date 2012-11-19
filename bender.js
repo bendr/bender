@@ -166,10 +166,10 @@
     return Object.create(context).init(host || window.document);
   };
 
-  var instance = {};
+  bender.instance = {};
 
   // Initialize a new instance
-  instance.init = function (reference, template) {
+  bender.instance.init = function (reference, template) {
     this.reference = reference;
     this.template = template;
     this.children = [];
@@ -177,7 +177,7 @@
   };
 
   // Add a new child instance
-  instance.add_child_instance = function(component) {
+  bender.instance.add_child_instance = function(component) {
     var child_instance = component.create_instance();
     child_instance.parent = this;
     this.children.push(child_instance);
@@ -189,7 +189,7 @@
   // placeholder can be inserted in its place immediately. Send a notification
   // that rendering has started (@rendering); a notification that rendering has
   // ended will be sent as well (@rendered)
-  instance.render = function (dest, ref) {
+  bender.instance.render = function (dest, ref) {
     this.views = {};
     this.instances = { $self: this };
     this.edges = [];
@@ -201,7 +201,7 @@
     // Keep track of pending instances (cf finished_rendering), including self
     this.__pending = [this];
     var render = function () {
-      // this.setup_properties();
+      this.setup_properties();
       var view = (this.reference && this.reference.view) || this.template.view;
       if (view && view.firstElementChild) {
         this.render_node(view.firstElementChild, this.__placeholder);
@@ -216,7 +216,7 @@
   };
 
   // Load the component for this instance
-  instance.load_component = function (k) {
+  bender.instance.load_component = function (k) {
     if (this.reference && this.reference.href) {
       flexo.listen_once(this, "@loaded", function (e) {
         e.source.template = e.component;
@@ -226,8 +226,6 @@
         console.error("Error loading component at {0}: {1}"
           .fmt(e.uri, e.message), e.source);
       });
-      console.log("[load_component] load {0} ({1})"
-          .fmt(this.reference.href, this.reference.uri));
       this.reference.context.load_component(this.reference.href, this);
     }
   };
@@ -236,7 +234,7 @@
   // of pending instances. When the list is empty, the instance is completely
   // rendered so we can send the @rendered event, and tell the parent instance,
   // if any, to take it of its pending list.
-  instance.finished_rendering = function(pending) {
+  bender.instance.finished_rendering = function(pending) {
     flexo.remove_from_array(this.__pending, pending);
     if (this.__pending.length === 0) {
       delete this.__pending;
@@ -247,8 +245,8 @@
         parent.insertBefore(this.views.$root, this.__placeholder);
       }
       parent.removeChild(this.__placeholder);
-      // this.render_edges();
-      // this.init_properties();
+      this.render_edges();
+      this.init_properties();
       flexo.notify(this, "@rendered");
       if (this.parent) {
         this.parent.finished_rendering(this);
@@ -256,7 +254,7 @@
     }
   };
 
-  instance.render_node = function (node, dest) {
+  bender.instance.render_node = function (node, dest) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
       if (node.namespaceURI === bender.ns) {
         if (node.localName === "component") {
@@ -280,7 +278,7 @@
     }
   };
 
-  instance.render_foreign = function (elem, dest) {
+  bender.instance.render_foreign = function (elem, dest) {
     var d = dest.appendChild(
         dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
     A.forEach.call(elem.attributes, function (attr) {
@@ -304,7 +302,7 @@
     this.render_children(elem, d);
   };
 
-  instance.render_text = function (node, dest) {
+  bender.instance.render_text = function (node, dest) {
     var d = dest
       .appendChild(dest.ownerDocument.createTextNode(node.textContent));
     if (!this.bind_text(d)) {
@@ -315,7 +313,7 @@
 
   // Render child instances
   // TODO handle attributes beside href and id
-  instance.render_child_instance = function (component, dest) {
+  bender.instance.render_child_instance = function (component, dest) {
     var child_instance = this.add_child_instance(component);
     this.__pending.push(child_instance);
     child_instance.render(dest);
@@ -327,14 +325,45 @@
     }, this);
   };
 
-  instance.render_children = function (node, dest) {
+  bender.instance.render_children = function (node, dest) {
     A.forEach.call(node.childNodes, function (ch) {
       this.render_node(ch, dest);
     }, this);
-  }
+  };
+
+  // Initialize properties defined by their <property> element
+  // TODO <property> as children of the instance as well
+  bender.instance.setup_properties = function () {
+    this.set_property = {};
+    this.template.properties.forEach(this.setup_property, this);
+  };
+
+  bender.instance.setup_property = function (property) {
+    var value;
+    this.set_property[property.name] = function (v) {
+      if (v !== value) {
+        if (typeof v === "string") {
+          v = property.parse_value(v, this);
+        }
+        var prev = value;
+        value = v;
+      }
+    };
+    var instance = this;
+    Object.defineProperty(this.properties, property.name, { enumerable: true,
+      get: function () { return value; },
+      set: function (v) {
+        instance.set_property[property.name].call(instance, v);
+        traverse_graph(instance.edges.filter(function (e) {
+          return e.property === property.name;
+        }));
+      }
+    });
+    this.bind_value(property);
+  };
 
   // Extract properties from an attribute
-  instance.bind_attr = function (node, attr) {
+  bender.instance.bind_attr = function (node, attr) {
     var pattern = attr.value;
     var set = {
       parent_instance: this,
@@ -349,7 +378,7 @@
   };
 
   // Extract properties from a property value on an instance element
-  instance.bind_prop = function (instance, property, value) {
+  bender.instance.bind_prop = function (instance, property, value) {
     return this.bind(value, {
       parent_instance: this,
       instance: instance,
@@ -359,7 +388,7 @@
   }
 
   // Extract properties from a text node
-  instance.bind_text = function (node) {
+  bender.instance.bind_text = function (node) {
     var pattern = node.textContent;
     return this.bind(pattern, {
       parent_instance: this,
@@ -369,7 +398,7 @@
   };
 
   // Extract properties from the value of a property
-  instance.bind_value = function (property) {
+  bender.instance.bind_value = function (property) {
     var pattern = property.value;
     return this.bind(pattern, {
       parent_instance: this,
@@ -383,7 +412,7 @@
   // corresponding set action. If properties are found in the pattern, then add
   // a new watch to implement the binding and return true to indicate that a
   // binding was created
-  instance.bind = function (pattern, set_edge) {
+  bender.instance.bind = function (pattern, set_edge) {
     var props = this.extract_props(pattern);
     if (props.length > 0) {
       var watch = { edges: [set_edge] };
@@ -396,7 +425,7 @@
 
   // Extract a list of properties for a pattern. Only properties that are
   // actually defined are extracted.
-  instance.extract_props = function (pattern) {
+  bender.instance.extract_props = function (pattern) {
     var props = {};
     if (typeof pattern === "string") {
       var open = false;
@@ -420,6 +449,123 @@
     return Object.keys(props);
   };
 
+  // When the instance has finished rendering, we render its edges
+  // TODO add watches from reference
+  bender.instance.render_edges = function (instance) {
+    this.template.watches.forEach(function (watch) {
+      var w = { enabled: true, edges: [] };
+      watch.gets.forEach(function (get) {
+        var edge = this.make_get_edge(get);
+        if (!edge) {
+          return;
+        }
+        edge.watch = w;
+        if (!edge.instance) {
+          edge.instance = this;
+        }
+        edge.instance.edges.push(edge);
+        // Set the event listeners to start graph traversal. We don't need to
+        // worry about properties because they initiate traversal on their own
+        var h = function (e) {
+          if (!edge.__active) {
+            edge.__value = e;
+            traverse_graph([edge]);
+          }
+        };
+        edge.listen(h);
+        if (edge.dom_event) {
+          edge.view.addEventListener(edge.dom_event, h, false);
+        } else if (edge.event) {
+          flexo.listen(edge.view || edge.instance, edge.event, h);
+        }
+      }, this);
+      watch.sets.forEach(function (set) {
+        var edge = this.make_edge(set);
+        if (edge) {
+          w.edges.push(edge);
+        }
+      }, this);
+    }, this);
+  };
+
+  bender.instance.make_get_edge = function (elem) {
+    var edge = this.make_edge(elem);
+    if (edge) {
+      if (elem.dom_event) {
+        if (!edge.view) {
+          edge.view = this.$document;
+        }
+        return edge;
+      } else if (elem.event) {
+        edge.event = elem.event;
+        return edge;
+      } else if (elem.property) {
+        edge.property = elem.property;
+        return edge;
+      }
+    }
+  };
+
+  bender.instance.make_set_edge = function (elem) {
+    var edge = this.make_edge(elem);
+    if (edge) {
+      if (elem.attr) {
+        edge.attr = elem.attr;
+        return edge;
+      } else if (elem.property) {
+        edge.property = elem.property;
+        return edge;
+      } else if (elem.event) {
+        edge.event = elem.event;
+        return edge;
+      }
+    }
+  };
+
+  // Make an edge for a get or set element
+  bender.instance.make_edge = function (elem) {
+    var edge = { parent_instance: this };
+    if (elem.view) {
+      edge.view = this.views[elem.view];
+      if (!edge.view) {
+        console.error("No view \"{0}\" for".fmt(elem.view), elem);
+        return;
+      }
+    }
+    if (elem.instance) {
+      edge.instance = this.instances[elem.instance];
+      if (!edge.instance) {
+        console.error("No instance \"{0}\" for".fmt(elem.instance), elem);
+        return;
+      }
+    } else {
+      edge.instance = this;
+    }
+    return edge;
+  };
+
+  // Initialize all non-dynamic properties
+  // TODO sort edges to do initializations in the correct order
+  bender.instance.init_properties = function () {
+    this.template.properties.forEach(function (property) {
+      if (this.reference &&
+        this.reference.values.hasOwnProperty(property.name)) {
+        this.properties[property.name] =
+          flexo.format.call(this, this.reference.values[property.name],
+            this.properties);
+      } else if (property.value !== undefined) {
+        if (property.as === "dynamic") {
+          var props = this.extract_props(property.value);
+          if (props.length > 0) {
+            return;
+          }
+        }
+        this.properties[property.name] =
+          flexo.format.call(this, property.value, this.properties);
+      }
+    }, this);
+  };
+
   // Bender elements overload some DOM methods in order to track changes to the
   // tree.
 
@@ -433,19 +579,20 @@
     }
   };
 
-  ["component"
+  ["component", "get", "property", "set", "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
 
   prototypes.component.init = function () {
-    this.properties = [];  // child property elements; will add the view
+    this.properties = [];  // child property elements
+    this.watches = [];     // child watch elements
     this.instances = [];   // instances of the component
     this.values = {};      // values given as attributes (TODO properties?)
   };
 
   prototypes.component.create_instance = function () {
-    var i = Object.create(instance).init(this);
+    var i = Object.create(bender.instance).init(this);
     this.instances.push(i);
     return i;
   };
@@ -461,6 +608,8 @@
         }
       } else if (ch.localName === "property") {
         this.properties.push(ch);
+      } else if (ch.localName === "watch") {
+        this.watches.push(ch);
       }
     }
     return ch;
@@ -474,6 +623,8 @@
         }
       } else if (ch.localName === "property") {
         flexo.remove_from_array(this.properties, ch);
+      } else if (ch.localName === "watch") {
+        flexo.remove_from_array(this.watches, ch);
       }
     }
     Object.getPrototypeOf(this).removeChild.call(this, ch);
@@ -517,105 +668,110 @@
       (name === undefined || node.localName === name);
   }
 
-  /*
 
-  // Context element methods (the view at the top of the tree, not to be
-  // confused with the context document)
-
-  // Add instances to the context and render them in the context target
-  prototypes.context.insertBefore = function (ch, ref) {
-    if (is_bender_element(ch, "instance")) {
-      Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-      ch._uri = this.ownerDocument._uri;
-      var placeholder = ch._render(this._target);
-      this._target.insertBefore(placeholder, ref && ref._placeholder);
-      this.ownerDocument._instances.push(ch);
-      return ch;
-    } else {
-      console.warn("Unexpected element in context:", ch);
-    }
-  };
-
-  prototypes.context.removeChild = function (ch) {
-    if (is_bender_element(ch, "instance")) {
-      // TODO unrender
-    }
-    Object.getPrototypeOf(this).removeChild.call(this, ch);
-    return ch;
-  };
-
-
-  // Instance methods
-  // Status of an instance:
-  //   ._uri: base URI
-  //   ._href: has a reference to a component
-  //   ._component: if set, then loaded; otherwise, not ready
-
-  prototypes.instance._init = function (component) {
-    this._children = [];
-    this._values = {};
-    // Set the component: instantiate and render it (it is already loaded)
-    Object.defineProperty(this, "_component", { enumerable: true,
-      get: function () { return component; },
-      set: function (c) {
-        if (component !== c) {
-          component = c;
+  // Property type map with the corresponding evaluation function
+  var property_types = {
+    "boolean": flexo.is_true,
+    "dynamic": function (value) {
+      try {
+        if (!/\n/.test(value)) {
+          value = "return " + value;
         }
+        return new Function(value).call(this);
+      } catch (e) {
+        console.error("Error evaluating dynamic property \"{0}\": {1}"
+            .fmt(value, e.message));
       }
+    },
+    "number": parseFloat,
+    "object": function (value) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        console.error("Could not parse \"{0}\" as JSON: {1}"
+          .fmt(value, e.message));
+      }
+    },
+    "string": flexo.id
+  };
+
+  prototypes.property.init = function () {
+    this.value = "";
+    this.as = "string";
+  };
+
+  prototypes.property.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "name") {
+      this.name = value.trim();
+    } else if (name === "as") {
+      var as = value.trim().toLowerCase();
+      if (as in property_types) {
+        this.as = as;
+      }
+    } else if (name === "value") {
+      this.value = value;
+    }
+  };
+
+  // Get the parsed value for the property
+  prototypes.property.parse_value = function (v, instance) {
+    var that = this.as === "dynamic" ? instance : instance.properties;
+    return property_types[this.as].call(that, v === undefined ? this.value : v);
+  };
+
+
+  prototypes.watch.init = function () {
+    this.gets = [];
+    this.sets = [];
+  };
+
+  prototypes.watch.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (is_bender_element(ch)) {
+      if (ch.localName === "get") {
+        this.gets.push(ch);
+      } else if (ch.localName === "set") {
+        this.sets.push(ch);
+      }
+    }
+  };
+
+  prototypes.watch.removeChild = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (is_bender_element(ch)) {
+      if (ch.localName === "get") {
+        flexo.remove_from_array(this.gets, ch);
+      } else if (ch.localName === "set") {
+        flexo.remove_from_array(this.sets, ch);
+      }
+    }
+  };
+
+
+  // Traverse the graph of watches starting with an initial set of edges
+  // TODO depth-first traversal of the graph?
+  function traverse_graph(edges) {
+    for (var i = 0; i < edges.length; ++i) {
+      var get = edges[i];
+      if (!get.__active) {
+        get.__active = true;
+        get.cancel = function () {
+          active = false;
+        };
+        var get_value = edge_value(get);
+        if (active) {
+          get.watch.edges.forEach(function (set) {
+            follow_set_edge(get, set, edges, get_value);
+          });
+        }
+        delete get.cancel;
+      }
+    }
+    edges.forEach(function (edge) {
+      delete edge.__active;
     });
-  };
-
-  // Initialize properties defined by their <property> element
-  // TODO <property> as children of the instance as well
-  prototypes.instance._setup_properties = function () {
-    this._set = {};
-    this._component._properties.forEach(function (property) {
-      var value;
-      this._set[property._name] = function (v) {
-        if (typeof v === "string") {
-          v = property._get_value(v, this);
-        }
-        if (v !== value) {
-          var prev = value;
-          value = v;
-        }
-      };
-      var instance = this;
-      Object.defineProperty(this._properties, property._name, {
-        enumerable: true,
-        get: function () { return value; },
-        set: function (v) {
-          instance._set[property._name].call(instance, v);
-          traverse_graph(instance._edges.filter(function (e) {
-            return e.property === property._name;
-          }));
-        }
-      });
-      this._unprop_value(property);
-    }, this);
-  };
-
-  // Initialize all non-dynamic properties
-  // TODO sort edges to do initializations in the correct order
-  prototypes.instance._init_properties = function () {
-    var instance = this._template || this;
-    this._component._properties.forEach(function (property) {
-      if (instance._values.hasOwnProperty(property._name)) {
-        this._properties[property._name] =
-          flexo.format.call(this, instance._values[property._name],
-            this._properties);
-      } else if (property._value !== undefined) {
-        if (property._type === "dynamic") {
-          var props = this._extract_props(property._value);
-          if (props.length > 0) {
-            return;
-          }
-        }
-        this._properties[property._name] =
-          flexo.format.call(this, property._value, this._properties);
-      }
-    }, this);
-  };
+  }
 
   // Get the value for an edge given an instance and a default value (may be
   // undefined; e.g. for get edges.) The `set` flag indicates that this is a set
@@ -630,9 +786,9 @@
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
       val = flexo.format.call(edge.parent_instance, edge.value,
-          edge.parent_instance._properties);
+          edge.parent_instance.properties);
     } else if (!set && edge.property) {
-      val = edge.instance._properties[edge.property];
+      val = edge.instance.properties[edge.property];
     }
     if (typeof edge.action === "function" && !edge.hasOwnProperty("value")) {
       val = edge.action.call(edge.parent_instance, val, edge);
@@ -694,199 +850,13 @@
     }
   }
 
-  // Traverse the graph of watches starting with an initial set of edges
-  // TODO depth-first traversal of the graph?
-  function traverse_graph(edges) {
-    for (var i = 0; i < edges.length; ++i) {
-      var get = edges[i];
-      if (get.watch.enabled && !get.__active) {
-        get.__active = true;
-        var active = typeof get.when !== "function" ||
-          get.when.call(get.instance);
-        if (active) {
-          get.cancel = function () {
-            active = false;
-          };
-          var get_value = edge_value(get);
-          if (active) {
-            get.watch.edges.forEach(function (set) {
-              follow_set_edge(get, set, edges, get_value);
-            });
-          }
-          delete get.cancel;
-        }
-      }
-    }
-    edges.forEach(function (edge) {
-      delete edge.__active;
-    });
-  }
-
-  // When the instance has finished rendering, we render its edges
-  prototypes.instance._render_edges = function (instance) {
-    this._component._watches.forEach(function (watch) {
-      // Create a watch node for this watch element
-      var w = { enabled: true, edges: [] };
-      watch._gets.forEach(function (get) {
-        var edge = this._make_edge(get);
-        if (!edge) {
-          return;
-        }
-        edge.watch = w;
-        if (!edge.instance) {
-          edge.instance = this;
-        }
-        (edge.instance || this)._edges.push(edge);
-        // Set the event listeners to start graph traversal. We don't need to
-        // worry about properties because they initiate traversal on their own
-        var h = function (e) {
-          if (!edge.__active) {
-            edge.__value = e;
-            traverse_graph([edge]);
-          }
-        };
-        if (edge.dom_event) {
-          edge.view.addEventListener(edge.dom_event, h, false);
-        } else if (edge.event) {
-          flexo.listen(edge.view || edge.instance, edge.event, h);
-        }
-      }, this);
-      watch._sets.forEach(function (set) {
-        var edge = this._make_edge(set);
-        if (edge) {
-          w.edges.push(edge);
-        }
-      }, this);
-    }, this);
-  };
-
-  // Make an edge for a get or set element
-  prototypes.instance._make_edge = function (elem) {
-    var edge = { parent_instance: this };
-    if (elem._view) {
-      edge.view = this._views[elem._view];
-      if (!edge.view) {
-        console.error("No view \"{0}\" for".fmt(elem._view), elem);
-        return;
-      }
-    }
-    if (elem._instance) {
-      edge.instance = this._instances[elem._instance];
-      if (!edge.instance) {
-        console.error("No instance \"{0}\" for".fmt(elem._instance), elem);
-        return;
-      }
-    } else {
-      edge.instance = this;
-    }
-    ["action", "attr", "delay", "dom_event", "event", "property", "value",
-      "when"
-    ].forEach(function (p) {
-      if (elem.hasOwnProperty("_" + p)) {
-        edge[p] = elem["_" + p];
-      }
-    });
-    if (edge.dom_event && !edge.view) {
-      edge.view = this.$document;
-    }
-    return edge;
-  };
-
-  // Keep track of href and id; anything else is considered as a value for a
-  // property
-  prototypes.instance.setAttribute = function (name, value) {
-    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-    if (name === "href") {
-      this._href = value.trim();
-    } else if (name === "id") {
-      this._id = value.trim();
-    } else {
-      this._values[name] = value;
-    }
-  };
-
-  prototypes.instance.insertBefore = prototypes.component.insertBefore;
+  /*
 
   // Return an absolute URI with this instance's component as the base for the
   // given URI
   prototypes.instance._absolute_uri = function (uri) {
     return flexo.absolute_uri(this._uri, uri);
   };
-
-
-  // Properties
-
-  // Property type map with the corresponding evaluation function
-  var property_types = {
-    "boolean": flexo.is_true,
-    "dynamic": function (value) {
-      try {
-        if (!/\n/.test(value)) {
-          value = "return " + value;
-        }
-        return new Function(value).call(this);
-      } catch (e) {
-        console.error("Error evaluating dynamic property \"{0}\": {1}"
-            .fmt(value, e.message));
-      }
-    },
-    "number": parseFloat,
-    "object": function (value) {
-      try {
-        return JSON.parse(value);
-      } catch (e) {
-        console.error("Could not parse \"{0}\" as JSON: {1}"
-          .fmt(value, e.message));
-      }
-    },
-    "string": flexo.id
-  };
-
-
-  prototypes.property._init = function () {
-    this._value = "";
-    this._type = "string";
-  };
-
-  prototypes.property.insertBefore = function (ch, ref) {
-    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (ch.nodeType === window.Node.TEXT_NODE ||
-        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-      this._value = this.textContent;
-    }
-  };
-
-  prototypes.property.setAttribute = function (name, value) {
-    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-    if (name === "name") {
-      this._name = value.trim();
-    } else if (name === "type") {
-      this._set_type(value);
-    } else if (name === "value") {
-      this._value = value;
-    }
-  };
-
-  prototypes.property._textContent = function (t) {
-    this.textContent = t;
-    this._value = t;
-  };
-
-  // Get the parsed value for the property
-  prototypes.property._get_value = function (v, instance) {
-    var that = this._type === "eval" || this._type === "dynamic" ?
-      instance : instance._properties;
-    return property_types[this._type]
-      .call(that, v === undefined ? this._value : v);
-  };
-
-  prototypes.property._set_type = function (type) {
-    type = type.trim().toLowerCase();
-    if (type in property_types) {
-      this._type = type;
-    }
-  }
-
 
   // Target methods
 
@@ -910,25 +880,6 @@
   };
 
   // Watch, get and set elements
-
-  prototypes.watch._init = function () {
-    this._gets = [];
-    this._sets = [];
-    this._watches = [];
-  };
-
-  prototypes.watch.insertBefore = function (ch, ref) {
-    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (ch.namespaceURI === bender.ns) {
-      if (ch.localName === "get") {
-        this._gets.push(ch);
-      } else if (ch.localName === "set") {
-        this._sets.push(ch);
-      } else if (ch.localName === "watch") {
-        this._watches.push(ch);
-      }
-    }
-  };
 
   // Get and set
 
