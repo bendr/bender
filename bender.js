@@ -22,14 +22,14 @@
 
   // Add a top-level instance to the context and render it in the given target
   // (inserted before the ref or added as the last child)
-  context.add_instance = function (instance, target, ref) {
-    this.instances.push(instance);
-    instance.render(target, ref);
+  context.add_instance = function (inst, target, ref) {
+    this.instances.push(inst);
+    inst.render(target, ref);
   };
 
   // Create a new component element with some attributes
   context.create_component = function (attrs) {
-    var component = wrap_element(this.document.createElementNS(bender.ns,
+    var component = this.wrap_element(this.document.createElementNS(bender.ns,
           "component"));
     component.uri = this.document.baseURI;
     if (typeof attrs === "object") {
@@ -53,47 +53,47 @@
   // Load a component definition for an instanceI. While a file is being
   // loaded, store all instances that are requesting it; once it's loaded,
   // store the loaded component itself.
-  context.load_component = function (instance) {
+  context.load_component = function (uri, inst) {
     var split = uri.split("#");
-    var locator = flexo.normalize_uri(instance.uri, split[0]);
+    var locator = flexo.normalize_uri(inst.reference.uri, split[0]);
     // TODO keep track of id's to load components inside components
     // var id = split[1];
-    if (loaded[locator] instanceof window.Node) {
-      flexo.notify(instance, "@loaded", { uri: locator,
-        definition: loaded[locator] });
-    } else if (Array.isArray(loaded[locator])) {
-      loaded[locator].push(instance);
+    if (this.loaded[locator] instanceof window.Node) {
+      flexo.notify(inst, "@loaded", { uri: locator,
+        definition: this.loaded[locator] });
+    } else if (Array.isArray(this.loaded[locator])) {
+      this.loaded[locator].push(inst);
     } else {
-      loaded[locator] = [instance];
+      this.loaded[locator] = [inst];
       flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
         var ev = { uri: uri, req: req };
         if (req.status !== 0 && req.status !== 200) {
           ev.message = "HTTP error {0}".fmt(req.status);
-          flexo.notify(instance, "@error", ev);
+          flexo.notify(inst, "@error", ev);
         } else if (!req.response) {
           ev.message = "could not parse response as XML";
-          flexo.notify(instance, "@error", ev);
+          flexo.notify(inst, "@error", ev);
         } else {
-          var c = context.import_node(req.response.documentElement, uri);
+          var c = this.import_node(req.response.documentElement, uri);
           if (is_bender_element(c, "component")) {
             ev.component = c;
-            loaded[locator].forEach(function (i) {
+            this.loaded[locator].forEach(function (i) {
               flexo.notify(i, "@loaded", ev);
             });
-            loaded[locator] = c;
+            this.loaded[locator] = c;
           } else {
             ev.message = "not a Bender component";
-            flexo.notify(instance, "@error", ev);
+            flexo.notify(inst, "@error", ev);
           }
         }
-      });
+      }.bind(this));
     }
   };
 
   // Import a node in the context (for loaded components)
   context.import_node = function (node, uri) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
-      var n = wrap_element(this.host.createElementNS(node.namespaceURI,
+      var n = this.wrap_element(this.document.createElementNS(node.namespaceURI,
             node.localName));
       if (is_bender_element(n, "component")) {
         n.uri = uri;
@@ -121,9 +121,44 @@
     }
     if (node.nodeType === window.Node.TEXT_NODE ||
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      return this.host.createTextNode(node.textContent)
+      return this.document.createTextNode(node.textContent)
     }
   };
+
+  // Update the URI of a component for the loaded map
+  context.updated_uri = function (component, prev_uri) {
+    if (component.uri !== prev_uri && this.loaded[prev_uri] === component) {
+      delete this.loaded[prev_uri];
+      if (!this.loaded[component.uri]) {
+        this.loaded[component.uri] = component;
+      }
+    }
+  };
+
+  // Extend an element with Bender methods, calls its _init() method, and return
+  // the wrapped element.
+  context.wrap_element = function (e, proto) {
+    if (typeof proto !== "object") {
+      proto = prototypes[e.localName];
+    }
+    if (proto) {
+      for (var p in proto) {
+        if (proto.hasOwnProperty(p)) {
+          e[p] = proto[p];
+        }
+      }
+    }
+    for (p in prototypes[""]) {
+      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
+        e[p] = prototypes[""][p];
+      }
+    }
+    e.context = this;
+    if (typeof e.init === "function") {
+      e.init();
+    }
+    return e;
+  }
 
   // Create a new Bender context for the given host document (window.document by
   // default.)
@@ -133,10 +168,10 @@
 
   var instance = {};
 
-  // Initialize an instance of the given component. Note that the component may
-  // be a reference to a component that is not loaded yet, or is empty so far
-  instance.init = function (component) {
-    this.component = component;
+  // Initialize a new instance
+  instance.init = function (reference, template) {
+    this.reference = reference;
+    this.template = template;
     this.children = [];
     return this;
   };
@@ -163,23 +198,35 @@
         "placeholder");
     dest.insertBefore(placeholder, ref);
     flexo.notify(this, "@rendering", { placeholder: placeholder });
-    // Keep track of pending instances (see _finished_rendering below),
-    // including self
+    // Keep track of pending instances (cf finished_rendering), including self
     this.__pending = [this];
     var render = function () {
       // this.setup_properties();
-      if (this.component.view) {
-        if (this.component.view.firstElementChild) {
-          this.render_node(this.component.view.firstElementChild,
-            placeholder);
-        }
+      var view = (this.reference && this.reference.view) || this.template.view;
+      if (view && view.firstElementChild) {
+        this.render_node(view.firstElementChild, placeholder);
       }
       this.finished_rendering(this, placeholder);
     };
-    if (this.component) {
+    if (this.template) {
       render.call(this);
-    } else {
+    } else if (this.reference) {
       this.load_component(render);
+    }
+  };
+
+  // Load the component for this instance
+  instance.load_component = function (k) {
+    if (this.reference && this.reference.href) {
+      flexo.listen_once(this, "@loaded", function (e) {
+        e.source.template = e.component;
+        k.call(e.source);
+      });
+      flexo.listen_once(this, "@error", function (e) {
+        console.error("Error loading component at {0}: {1}"
+          .fmt(e.uri, e.message), e.source);
+      });
+      this.reference.context.load_component(this.reference.href, this);
     }
   };
 
@@ -385,30 +432,6 @@
     }
   };
 
-  // Extend an element with Bender methods, calls its _init() method, and return
-  // the wrapped element.
-  function wrap_element(e, proto) {
-    if (typeof proto !== "object") {
-      proto = prototypes[e.localName];
-    }
-    if (proto) {
-      for (var p in proto) {
-        if (proto.hasOwnProperty(p)) {
-          e[p] = proto[p];
-        }
-      }
-    }
-    for (p in prototypes[""]) {
-      if (prototypes[""].hasOwnProperty(p) && !e.hasOwnProperty(p)) {
-        e[p] = prototypes[""][p];
-      }
-    }
-    if (typeof e.init === "function") {
-      e.init();
-    }
-    return e;
-  }
-
   ["component"
   ].forEach(function (p) {
     prototypes[p] = {};
@@ -463,6 +486,9 @@
       this.href = value.trim();
     } else if (name === "id") {
       this.id = value.trim();
+      var prev_uri = this.uri;
+      this.uri = this.uri.replace(/(#.*)?$/, "#" + this.id);
+      this.context.updated_uri(this, prev_uri);
     } else {
       this.values[name] = value;
     }
@@ -473,6 +499,9 @@
       delete this.href;
     } else if (name === "id") {
       delete this.id;
+      var prev_uri = this.uri;
+      this.uri = this.uri.replace(/(#.*)?$/, "");
+      this.context.updated_uri(this, prev_uri);
     } else {
       delete this.values[name];
     }
@@ -760,20 +789,6 @@
       edge.view = this.$document;
     }
     return edge;
-  };
-
-  prototypes.instance._load_component = function (k) {
-    if (this._href && !this._component) {
-      flexo.listen_once(this, "@loaded", function (e) {
-        e.source._component = e.component;
-        k.call(e.source);
-      });
-      flexo.listen_once(this.ownerDocument, "@error", function (e) {
-        console.error("Error loading component at {0}: {1}"
-          .fmt(e.uri, e.message), e.source);
-      });
-      this.ownerDocument._load_component(this._href, this);
-    }
   };
 
   // Keep track of href and id; anything else is considered as a value for a
