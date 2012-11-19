@@ -1,17 +1,22 @@
-<component xmlns="http://bender.igel.co.jp">
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <instance href="p.xml">Paragraph 1*</instance>
-    <instance href="q.xml" text="Paragraph 2**"/>
-    <html:p>Paragraph before A/B</html:p>
-    <instance href="r.xml"/>
-    <instance href="p.xml">Paragraph 3*</instance>
-    <html:p>Paragraph 4</html:p>
-    <instance href="q.xml" text="Paragraph 5**" class="q"/>
-    <target q="head" unique="true">
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <require>
+    <target q="head">
       <html:style>
-        .q \{ font-style: italic; \}
-        .r \{ font-weight: bold; \}
+        .q { font-style: italic; }
+        .r { font-weight: bold; }
       </html:style>
     </target>
+  </require>
+  <view>
+    <html:div>
+      <component href="p.xml">Paragraph 1*</component>
+      <component href="q.xml" text="Paragraph 2**"/>
+      <html:p>Paragraph before A/B</html:p>
+      <component href="r.xml"/>
+      <component href="p.xml">Paragraph 3*</component>
+      <html:p>Paragraph 4</html:p>
+      <component href="q.xml" text="Paragraph 5**" class="q"/>
+    </html:div>
   </view>
 </component>

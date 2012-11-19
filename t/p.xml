@@ -1,5 +1,7 @@
 <component xmlns="http://bender.igel.co.jp">
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p><content>Just your basic paragraph.</content></html:p>
+    <html:p>
+      <content>Just your basic paragraph.</content>
+    </html:p>
   </view>
 </component>

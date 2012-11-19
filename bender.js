@@ -60,13 +60,13 @@
     // var id = split[1];
     if (this.loaded[locator] instanceof window.Node) {
       flexo.notify(inst, "@loaded", { uri: locator,
-        definition: this.loaded[locator] });
+        component: this.loaded[locator] });
     } else if (Array.isArray(this.loaded[locator])) {
       this.loaded[locator].push(inst);
     } else {
       this.loaded[locator] = [inst];
       flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-        var ev = { uri: uri, req: req };
+        var ev = { uri: locator, req: req };
         if (req.status !== 0 && req.status !== 200) {
           ev.message = "HTTP error {0}".fmt(req.status);
           flexo.notify(inst, "@error", ev);
@@ -74,7 +74,7 @@
           ev.message = "could not parse response as XML";
           flexo.notify(inst, "@error", ev);
         } else {
-          var c = this.import_node(req.response.documentElement, uri);
+          var c = this.import_node(req.response.documentElement, locator);
           if (is_bender_element(c, "component")) {
             ev.component = c;
             this.loaded[locator].forEach(function (i) {
@@ -194,19 +194,19 @@
     this.instances = { $self: this };
     this.edges = [];
     this.properties = {};
-    var placeholder = dest.ownerDocument.createElementNS(bender.ns,
+    this.__placeholder = dest.ownerDocument.createElementNS(bender.ns,
         "placeholder");
-    dest.insertBefore(placeholder, ref);
-    flexo.notify(this, "@rendering", { placeholder: placeholder });
+    dest.insertBefore(this.__placeholder, ref);
+    flexo.notify(this, "@rendering");
     // Keep track of pending instances (cf finished_rendering), including self
     this.__pending = [this];
     var render = function () {
       // this.setup_properties();
       var view = (this.reference && this.reference.view) || this.template.view;
       if (view && view.firstElementChild) {
-        this.render_node(view.firstElementChild, placeholder);
+        this.render_node(view.firstElementChild, this.__placeholder);
       }
-      this.finished_rendering(this, placeholder);
+      this.finished_rendering(this);
     };
     if (this.template) {
       render.call(this);
@@ -226,6 +226,8 @@
         console.error("Error loading component at {0}: {1}"
           .fmt(e.uri, e.message), e.source);
       });
+      console.log("[load_component] load {0} ({1})"
+          .fmt(this.reference.href, this.reference.uri));
       this.reference.context.load_component(this.reference.href, this);
     }
   };
@@ -234,17 +236,17 @@
   // of pending instances. When the list is empty, the instance is completely
   // rendered so we can send the @rendered event, and tell the parent instance,
   // if any, to take it of its pending list.
-  instance.finished_rendering = function(pending, placeholder) {
+  instance.finished_rendering = function(pending) {
     flexo.remove_from_array(this.__pending, pending);
     if (this.__pending.length === 0) {
       delete this.__pending;
-      this.views.$document = placeholder.ownerDocument;
-      var parent = placeholder.parentNode;
-      if (placeholder.firstElementChild) {
-        this.views.$root = placeholder.firstElementChild;
-        parent.insertBefore(this.views.$root, placeholder);
+      this.views.$document = this.__placeholder.ownerDocument;
+      var parent = this.__placeholder.parentNode;
+      if (this.__placeholder.firstElementChild) {
+        this.views.$root = this.__placeholder.firstElementChild;
+        parent.insertBefore(this.views.$root, this.__placeholder);
       }
-      parent.removeChild(placeholder);
+      parent.removeChild(this.__placeholder);
       // this.render_edges();
       // this.init_properties();
       flexo.notify(this, "@rendered");
@@ -260,11 +262,10 @@
         if (node.localName === "component") {
           this.render_child_instance(node, dest);
         } else if (node.localName === "content") {
-          var from_element = this.parent && this.parent.element;
-          if (from_element && from_element.childNodes.length > 0) {
-            this.render_children(from_element, dest);
+          if (this.reference && this.reference.childNodes.length > 0) {
+            this.render_children(this.reference, dest);
           } else {
-            this.render_children(ch, dest, unique);
+            this.render_children(node, dest);
           }
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
@@ -406,7 +407,7 @@
           open = true;
         } else if (token === "}") {
           if (open) {
-            if (this._properties.hasOwnProperty(prop)) {
+            if (this.properties.hasOwnProperty(prop)) {
               props[prop] = true;
             }
             open = false;
