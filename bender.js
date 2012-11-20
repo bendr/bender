@@ -642,6 +642,8 @@
       var prev_uri = this.uri;
       this.uri = this.uri.replace(/(#.*)?$/, "#" + this.id);
       this.context.updated_uri(this, prev_uri);
+    } else if (name === "prototype") {
+      this.prototype = value.trim();
     } else {
       this.values[name] = value;
     }
@@ -655,6 +657,8 @@
       var prev_uri = this.uri;
       this.uri = this.uri.replace(/(#.*)?$/, "");
       this.context.updated_uri(this, prev_uri);
+    } else if (name === "prototype") {
+      delete this.prototype;
     } else {
       delete this.values[name];
     }

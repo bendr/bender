@@ -6,29 +6,39 @@
     <meta http-equiv="cache-control" content="no-cache">
     <style>
 
+      html {
+        height: 100%;
+      }
+
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
   margin: 0;
   padding: 0;
+
+  background-color: #102040; /* fallback color if gradients are not supported */
+  background-image: -webkit-linear-gradient(top, #ff6a4d, #fc8);
+  background-image:    -moz-linear-gradient(top, #ff6a4d, #fc8);
+  background-image:         linear-gradient(to bottom, #ff6a4d, #fc8);
 }
 
-body > ul {
+div.tiles {
   width: 960px;
-  margin: auto;
-  display: inline;
-  list-style-type: none;
+  margin: 10px auto;
+  padding: 0;
 }
 
-body > ul > li {
+div.tiles > div {
   width: 220px;
   height: 220px;
   margin: 10px;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   display: inline-block;
+  vertical-align: bottom;
+  box-shadow: 0 0 10px #444;
 }
 
-ul ul {
+ul {
   list-style-type: none;
   padding-left: 0;
 }
@@ -39,18 +49,25 @@ h1, h2, h3 {
 
 a {
   text-decoration: none;
-  color: #ff4040;
 }
 
-li.text {
+.tiles .text {
+  padding: 0 10px;
+  text-align: center;
+}
+
+.tiles .text div {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-box-pack: center;
   display: -moz-box;
   -moz-box-orient: vertical;
   -moz-box-pack: center;
-  padding: 0 10px;
-  text-align: center;
+  height: 100%;
+}
+
+.tiles .text p {
+  margin: 0;
 }
 
 .orange-bg {
@@ -79,9 +96,9 @@ li.text {
   </head>
   <body>
 
-    <ul>
+    <div class="tiles">
 
-      <li class="orange-bg">
+      <div class="orange-bg">
         <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
           xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128">
           <g transform="translate(64, 64)" stroke-width="16" stroke-linejoin="round">
@@ -98,46 +115,47 @@ li.text {
             </g>
           </g>
         </svg>
-      </li>
+      </div><div class="text blue-bg">
+        <div>
+          <p><strong>Bender</strong> is an experimental, declarative Web
+          application authoring framework based on XML, Javascript and Web
+          technologies, and with a focus on rich graphical user interfaces.</p>
+        </div>
+      </div><div class="text blue-bg">
+        <div>
+          <p><strong>Bender</strong> is free software and is released under the
+          <a href="https://github.com/bendr/bender/blob/master/LICENSE">Apache
+            License v2.0</a>. The <a
+            href="https://github.com/bendr/bender">source code</a> is hosted on
+          Github.</p>
+        </div>
+      </div><div class="text orange-bg">
+        <div>
+          <h2>Tests</h2>
+        </div>
+      </div><div class="text green-bg">
+        <div>
+          <h3>Automated tests</h3>
+          <ul>
+            <li><a href="test/flexo.html">Flexo</a> (all tests should pass;
+            <a href="flexo.js">source</a>)</li>
+            <li><a href="test/bender.html">Bender</a> (all tests should pass;
+            <a href="bender.js">source</a>)</li>
+          </ul>
+        </div>
+      </div><div class="text green-bg">
+        <div>
+          <h3>Examples</h3>
+          <ul>
+            <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
+            <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
+            <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
+            <li><a href="run.html?href=t/attr.xml">t/attr.xml</a></li>
+          </ul>
+        </div>
+      </div>
 
-      <li class="text blue-bg">
-        <p><strong>Bender</strong> is an experimental, declarative Web
-        application authoring framework based on XML, Javascript and Web
-        technologies, and with a focus on rich graphical user interfaces.</p>
-      </li>
-
-      <li class="text blue-bg">
-        <p><strong>Bender</strong> is free software and is released under the
-        <a href="https://github.com/bendr/bender/blob/master/LICENSE">Apache
-          License v2.0</a>. The <a
-          href="https://github.com/bendr/bender">source code</a> is hosted on
-        Github.</p>
-      </li>
-
-      <li class="text orange-bg">
-        <h2>Tests</h2>
-      </li>
-
-      <li class="text green-bg">
-        <h3>Automated tests</h3>
-        <ul>
-          <li><a href="test/flexo.html">Flexo</a> (all tests should pass;
-          <a href="flexo.js">source</a>)</li>
-          <li><a href="test/bender.html">Bender</a> (all tests should pass;
-          <a href="bender.js">source</a>)</li>
-        </ul>
-      </li>
-
-      <li class="text green-bg">
-        <h3>Examples</h3>
-        <ul>
-          <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
-          <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
-          <li>*<a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
-        </ul>
-      </li>
-
-    </ul>
+    </div>
 
   </body>
 </html>
