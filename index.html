@@ -3,7 +3,6 @@
   <head>
     <title>Bender</title>
     <meta charset="UTF-8">
-    <meta http-equiv="cache-control" content="no-cache">
     <style>
 
 html {
@@ -49,6 +48,10 @@ li {
 }
 
 h1, h2, h3 {
+  font-weight: normal;
+}
+
+strong {
   font-weight: normal;
 }
 
@@ -118,24 +121,7 @@ a {
 
     <div class="tiles">
 
-      <div class="orange-bg">
-        <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
-          xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128">
-          <g transform="translate(64, 64)" stroke-width="16" stroke-linejoin="round">
-            <polygon fill="white" stroke="white" points="29.29,-30.1 -5.27,-41.67
-            -35.86,-21.86 -39.45,14.41 -13.33,39.83 22.83,35.25 41.8,4.13">
-              <animateTransform attributeName="transform" attributeType="XML"
-                type="rotate" from="160" to="0" dur="0.5s" additive="sum"/>
-            </polygon>
-            <g stroke="#ff6a4d" stroke-linecap="round" fill="none">
-              <line x1="-20" y1="-50" x2="-20" y2="0"/>
-              <circle r="20"/>
-              <animateTransform attributeName="transform" attributeType="XML"
-                type="scale" from="0" to="1" dur="0.4s" fill="freeze"/>
-            </g>
-          </g>
-        </svg>
-      </div><div class="text blue-bg">
+      <div class="orange-bg" id="logo"></div><div class="text blue-bg">
         <div>
           <p><strong>Bender</strong> is an experimental, declarative Web
           application authoring framework based on XML, Javascript and Web
@@ -179,12 +165,30 @@ a {
             <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
             <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
             <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
-            <li><a href="run.html?href=t/attr.xml">t/attr.xml</a></li>
+            <li><a href="run.html?href=t/arrow.xml">t/arrow.xml</a></li>
           </ul>
         </div>
       </div>
 
     </div>
+
+    <script src="flexo.js"></script>
+    <script src="bender.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var logo_component = context.create_component({ href: "t/logo.xml",
+  fgcolor: "#ff6a4d", bgcolor: "white" });
+var logo_instance = logo_component.create_instance();
+context.add_instance(logo_instance, document.getElementById("logo"));
+
+    </script>
+  </body>
+</html>
+
+
+    </script>
 
   </body>
 </html>
