@@ -1,8 +1,7 @@
 <component xmlns="http://bender.igel.co.jp">
 
   <property name="class" value="ui-text-box"/>
-  <property name="value" type="string"/>
-  <property name="enabled" type="boolean" value="true"/>
+  <property name="value"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:input aria-role="textbox" class="{class}" value="{value}"/>
@@ -13,7 +12,7 @@
       console.log("Change: \"{0}\"".fmt(get.view.value));
       return get.view.value;
     </get>
-    <set use="$self" property="value"/>
+    <set instance="$self" property="value"/>
   </watch>
 
 </component>

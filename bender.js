@@ -22,9 +22,9 @@
 
   // Add a top-level instance to the context and render it in the given target
   // (inserted before the ref or added as the last child)
-  context.add_instance = function (inst, target, ref) {
-    this.instances.push(inst);
-    inst.render(target, ref);
+  context.add_instance = function (instance, target, ref) {
+    this.instances.push(instance);
+    instance.render(target, ref);
   };
 
   // Create a new component element with some attributes
@@ -53,26 +53,26 @@
   // Load a component definition for an instanceI. While a file is being
   // loaded, store all instances that are requesting it; once it's loaded,
   // store the loaded component itself.
-  context.load_component = function (uri, inst) {
+  context.load_component = function (uri, instance) {
     var split = uri.split("#");
-    var locator = flexo.normalize_uri(inst.reference.uri, split[0]);
+    var locator = flexo.normalize_uri(instance.reference.uri, split[0]);
     // TODO keep track of id's to load components inside components
     // var id = split[1];
     if (this.loaded[locator] instanceof window.Node) {
-      flexo.notify(inst, "@loaded", { uri: locator,
+      flexo.notify(instance, "@loaded", { uri: locator,
         component: this.loaded[locator] });
     } else if (Array.isArray(this.loaded[locator])) {
-      this.loaded[locator].push(inst);
+      this.loaded[locator].push(instance);
     } else {
-      this.loaded[locator] = [inst];
+      this.loaded[locator] = [instance];
       flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
         var ev = { uri: locator, req: req };
         if (req.status !== 0 && req.status !== 200) {
           ev.message = "HTTP error {0}".fmt(req.status);
-          flexo.notify(inst, "@error", ev);
+          flexo.notify(instance, "@error", ev);
         } else if (!req.response) {
           ev.message = "could not parse response as XML";
-          flexo.notify(inst, "@error", ev);
+          flexo.notify(instance, "@error", ev);
         } else {
           var c = this.import_node(req.response.documentElement, locator);
           if (is_bender_element(c, "component")) {
@@ -83,7 +83,7 @@
             this.loaded[locator] = c;
           } else {
             ev.message = "not a Bender component";
-            flexo.notify(inst, "@error", ev);
+            flexo.notify(instance, "@error", ev);
           }
         }
       }.bind(this));
@@ -261,7 +261,7 @@
           this.render_child_instance(node, dest);
         } else if (node.localName === "content") {
           if (this.reference && this.reference.childNodes.length > 0) {
-            this.render_children(this.reference, dest);
+            this.parent.render_children(this.reference, dest);
           } else {
             this.render_children(node, dest);
           }
@@ -453,7 +453,7 @@
   // TODO add watches from reference
   bender.instance.render_edges = function (instance) {
     this.template.watches.forEach(function (watch) {
-      var w = { enabled: true, edges: [] };
+      var w = { edges: [] };
       watch.gets.forEach(function (get) {
         var edge = this.make_get_edge(get);
         if (!edge) {
@@ -472,7 +472,6 @@
             traverse_graph([edge]);
           }
         };
-        edge.listen(h);
         if (edge.dom_event) {
           edge.view.addEventListener(edge.dom_event, h, false);
         } else if (edge.event) {
@@ -480,7 +479,7 @@
         }
       }, this);
       watch.sets.forEach(function (set) {
-        var edge = this.make_edge(set);
+        var edge = this.make_set_edge(set);
         if (edge) {
           w.edges.push(edge);
         }
@@ -492,6 +491,7 @@
     var edge = this.make_edge(elem);
     if (edge) {
       if (elem.dom_event) {
+        edge.dom_event = elem.dom_event;
         if (!edge.view) {
           edge.view = this.$document;
         }
@@ -540,6 +540,9 @@
       }
     } else {
       edge.instance = this;
+    }
+    if (elem.action) {
+      edge.action = elem.action;
     }
     return edge;
   };
@@ -755,6 +758,7 @@
     for (var i = 0; i < edges.length; ++i) {
       var get = edges[i];
       if (!get.__active) {
+        var active = true;
         get.__active = true;
         get.cancel = function () {
           active = false;
@@ -799,95 +803,46 @@
   // Follow a set edge from a get edge, and push all corresponding get edges for
   // the rest of the traversal
   function follow_set_edge(get, set, edges, get_value) {
-    var delay = set.hasOwnProperty("delay") &&
-      parseFloat(flexo.format.call(get.instance, set.delay,
-            get.instance._properties));
-    var follow = function () {
-      var set_value = edge_value(set, true, get_value);
-      if (set_value !== undefined) {
-        if (set.instance) {
-          if (set.property) {
-            if (typeof delay === "number" && delay >= 0) {
-              set.instance._properties[set.property] = set_value;
-            } else {
-              set.instance._set[set.property](set_value);
-              A.push.apply(edges, set.instance._edges.filter(function (e) {
-                return e.property === set.property && edges.indexOf(e) < 0;
-              }));
-            }
-          }
-        } else if (set.view) {
-          if (set.attr) {
-            if (set.ns) {
-              set.view.setAttributeNS(set.ns, set.attr, set_value);
-            } else {
-              set.view.setAttribute(set.attr, set_value);
-            }
-          } else if (set.property) {
-            set.view[set.property] = set_value;
+    var set_value = edge_value(set, true, get_value);
+    if (set_value !== undefined) {
+      if (set.instance) {
+        if (set.property) {
+          if (typeof delay === "number" && delay >= 0) {
+            set.instance.properties[set.property] = set_value;
           } else {
-            set.view.textContent = set_value;
+            set.instance.set_property[set.property](set_value);
+            A.push.apply(edges, set.instance.edges.filter(function (e) {
+              return e.property === set.property && edges.indexOf(e) < 0;
+            }));
           }
         }
-      }
-      if (set.hasOwnProperty("event")) {
-        if (get_value instanceof window.Event) {
-          get_value = { dom_event: get_value };
+      } else if (set.view) {
+        if (set.attr) {
+          if (set.ns) {
+            set.view.setAttributeNS(set.ns, set.attr, set_value);
+          } else {
+            set.view.setAttribute(set.attr, set_value);
+          }
+        } else if (set.property) {
+          set.view[set.property] = set_value;
+        } else {
+          set.view.textContent = set_value;
         }
-        flexo.notify(set.instance || set.view, set.event, get_value);
       }
-    };
-    if (typeof delay === "number" && delay >= 0) {
-      if (get.instance.__timeout) {
-        clearTimeout(get.instance.__timeout);
+    }
+    if (set.hasOwnProperty("event")) {
+      if (get_value instanceof window.Event) {
+        get_value = { dom_event: get_value };
       }
-      get.instance.__timeout = setTimeout(function () {
-        follow();
-        delete get.instance.__timeout;
-      }, delay);
-    } else {
-      follow();
+      flexo.notify(set.instance || set.view, set.event, get_value);
     }
   }
-
-  /*
-
-  // Return an absolute URI with this instance's component as the base for the
-  // given URI
-  prototypes.instance._absolute_uri = function (uri) {
-    return flexo.absolute_uri(this._uri, uri);
-  };
-
-  // Target methods
-
-  prototypes.target.setAttribute = function (name, value) {
-    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-    if (name === "q") {
-      this._q = value.trim();
-    } else if (name === "unique") {
-      this._unique = flexo.is_true(value);
-    }
-  };
-
-  // Find the target element given the `q` attribute using querySelector on the
-  // destination element. If no `q` is set, just return the dest. Be careful
-  // that the target may not be found
-  prototypes.target._find_target = function (dest) {
-    if (this._q) {
-      return dest.ownerDocument.querySelector(this._q);
-    }
-    return dest;
-  };
-
-  // Watch, get and set elements
-
-  // Get and set
 
   prototypes.get.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-      this._update_action();
+      this.update_action();
     }
     return ch;
   };
@@ -895,85 +850,45 @@
   prototypes.get.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "event" || name === "instance" || name === "property" ||
-        name === "view") {
-      this["_" + name] = value.trim();
+        name === "view" || name === "value") {
+      this[name] = value.trim();
     } else if (name === "dom-event") {
-      this._dom_event = value.trim();
-    } else if (name === "once") {
-      this._once = flexo.is_true(value);
-    } else if (name === "when") {
-      try {
-        this._when = new Function("return " + value);
-      } catch(e) {
-        console.error("Could not compile when predicate for", this);
-      }
+      this.dom_event = value.trim();
     }
   };
 
-  prototypes.get._textContent = function (t) {
+  prototypes.get.set_textContent = function (t) {
     this.textContent = t;
-    this._update_action();
+    this.update_action();
   };
 
   // Update the action: make a new function from the text content of the
   // element. If it has no content or there were compilation errors, default
   // to the id function
-  prototypes.get._update_action = function () {
+  prototypes.get.update_action = function () {
     if (/\S/.test(this.textContent)) {
       try {
-        this._action = new Function("value", "get", this.textContent);
+        this.action = new Function("value", "get", this.textContent);
       } catch (e) {
         console.error("Could not compile action \"{0}\": {1}"
             .fmt(this.textContent, e.message));
-        delete this._action;
+        delete this.action;
       }
     } else {
-      delete this._action;
+      delete this.action;
     }
   };
 
   prototypes.set.insertBefore = prototypes.get.insertBefore;
-  prototypes.set._textContent = prototypes.get._textContent;
-  prototypes.set._update_action = prototypes.get._update_action;
+  prototypes.set.set_textContent = prototypes.get.set_textContent;
+  prototypes.set.update_action = prototypes.get.update_action;
 
   prototypes.set.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
-    if (name === "delay" || name === "event" || name === "instance" ||
-        name === "property" || name === "view" || name === "value") {
-      this["_" + name] = value.trim();
-    } else if (name === "dom-event") {
-      this._dom_event = value.trim();
-    } else if (name === "when") {
-      try {
-        this._when = new Function("return " + value);
-      } catch(e) {
-        console.error("Could not compile when predicate for", this);
-      }
+    if (name === "event" || name === "instance" || name === "property" ||
+        name === "view" || name === "value") {
+      this[name] = value.trim();
     }
   };
 
-  // Utility functions
-
-  function find_root(elem) {
-    var queue = [elem];
-    while (queue.length > 0) {
-      var e = queue.shift();
-      if (e.nodeType === window.Node.ELEMENT_NODE &&
-          e.namespaceURI !== bender.ns) {
-        return e;
-      }
-      A.unshift.apply(queue, e.childNodes);
-    }
-  }
-
-  function component_of(elem) {
-    if (is_bender_element(elem, "component")) {
-      return elem;
-    }
-    if (elem.parentNode) {
-      return component_of(elem.parentNode);
-    }
-  }
-
-*/
 }(window.bender = {}))

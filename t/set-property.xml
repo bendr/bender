@@ -1,7 +1,8 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="clicks" type="number" value="0"/>
-  <property name="roman" type="dynamic" value="flexo.to_roman({clicks})"/>
+  <property name="clicks" as="number" value="0"/>
+  <property name="roman" as="dynamic" value="flexo.to_roman({clicks})"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <!--
     <target q="head" unique="true">
       <html:style>
         .button \{
@@ -19,18 +20,21 @@
         \}
       </html:style>
     </target>
-    <html:p>
-      <html:div class="button" aria-role="button">
-        Click me
-      </html:div>
-    </html:p>
-    <html:p>
-      Number of clicks: {clicks} <html:span class="roman">{roman}</html:span>
-    </html:p>
-    <instance href="q.xml" class="q" text="Number of clicks: {clicks}"/>
+    -->
+    <html:div>
+      <html:p id="button">
+        <html:div class="button" aria-role="button">
+          Click me
+        </html:div>
+      </html:p>
+      <html:p>
+        Number of clicks: {clicks} <html:span class="roman">{roman}</html:span>
+      </html:p>
+      <component href="q.xml" class="q" text="Number of clicks: {clicks}"/>
+    </html:div>
   </view>
   <watch>
-    <get view="$root" dom-event="mousedown">
+    <get view="button" dom-event="mousedown">
       value.preventDefault();
     </get>
     <set instance="$self" property="clicks" value="{ {clicks} + 1 }"/>

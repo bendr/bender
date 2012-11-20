@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
   <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <!--
     <target q="head" unique="true">
       <html:style>
         .button \{
@@ -11,6 +12,7 @@
         \}
       </html:style>
     </target>
+    -->
     <html:div class="button" aria-role="button">
       Click me
     </html:div>

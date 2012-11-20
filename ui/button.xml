@@ -1,10 +1,9 @@
 <component xmlns="http://bender.igel.co.jp">
 
   <property name="class" value="ui-button"/>
-  <property name="enabled" type="boolean" value="true"/>
-  <property name="stop-propagation" type="boolean" value="false"/>
-  <property name="delay" type="number" value="50"/>
-  <property name="down" type="boolean" value="false"/>
+  <property name="enabled" as="boolean" value="true"/>
+  <property name="stop-propagation" as="boolean" value="false"/>
+  <property name="down" as="boolean" value="false"/>
   <property name="down-class"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
@@ -15,33 +14,43 @@
   </view>
 
   <watch>
-    <get view="$root" dom-event="mousedown" when="this._properties.enabled"/>
-    <get view="$root" dom-event="touchstart" when="this._properties.enabled"/>
+    <get view="$root" dom-event="mousedown"/>
+    <get view="$root" dom-event="touchstart"/>
     <set instance="$self" property="down">
-      value.preventDefault();
-      if (this._properties["stop-propagation"]) {
-        value.stopPropagation();
+      if (this.properties.enabled) {
+        value.preventDefault();
+        if (this.properties["stop-propagation"]) {
+          value.stopPropagation();
+        }
+        return true;
       }
-      return true;
     </set>
   </watch>
 
   <watch>
-    <get view="$document" dom-event="mouseup" when="this._properties.down"/>
-    <get view="$document" dom-event="touchend" when="this._properties.down"/>
-    <set instance="$self" property="down" value="false"/>
+    <get view="$document" dom-event="mouseup">
+      if (!this.properties.down) {
+        get.cancel();
+      }
+    </get>
+    <get view="$document" dom-event="touchend">
+      if (!this.properties.down) {
+        get.cancel();
+      }
+    </get>
     <set instance="$self" event="@pushed"/>
+    <set instance="$self" property="down" value="false"/>
   </watch>
 
   <watch>
-    <get view="$document" dom-event="mousemove" when="this._properties.down"/>
-    <get view="$document" dom-event="touchmove" when="this._properties.down"/>
+    <get view="$document" dom-event="mousemove"/>
+    <get view="$document" dom-event="touchmove"/>
     <set instance="$self" property="down" value="false"/>
   </watch>
 
   <watch>
     <get instance="$self" property="down"/>
-    <set instance="$self" property="down-class" delay="{delay}">
+    <set instance="$self" property="down-class">
       return value ? "ui--down" : "";
     </set>
   </watch>

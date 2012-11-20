@@ -8,6 +8,33 @@
 
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body > ul {
+  width: 960px;
+  margin: auto;
+  display: inline;
+  list-style-type: none;
+}
+
+body > ul > li {
+  width: 220px;
+  height: 220px;
+  margin: 10px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  display: inline-block;
+}
+
+ul ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+h1, h2, h3 {
+  font-weight: normal;
 }
 
 a {
@@ -15,30 +42,102 @@ a {
   color: #ff4040;
 }
 
+li.text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-box-pack: center;
+  display: -moz-box;
+  -moz-box-orient: vertical;
+  -moz-box-pack: center;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.orange-bg {
+  background-color: #ff6a4d;
+  color: white;
+}
+
+.blue-bg {
+  background-color: #0b486b;
+  color: white;
+}
+
+.green-bg {
+  background-color: #5eb26b;
+}
+
+.green-bg a {
+  color: #774f38;
+}
+
+.blue-bg a {
+  color: #ff0;
+}
+
     </style>
   </head>
   <body>
 
-    <h1>Bender</h1>
+    <ul>
 
-    <section id="tests">
-      <h2>Automated tests</h2>
-      <ul>
-        <li><a href="test/flexo.html">Flexo</a> (all tests should pass;
-        <a href="flexo.js">source</a>)</li>
-        <li><a href="test/bender.html">Bender</a> (all tests should pass;
-        <a href="bender.js">source</a>)</li>
-      </ul>
-    </section>
+      <li class="orange-bg">
+        <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+          xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128">
+          <g transform="translate(64, 64)" stroke-width="16" stroke-linejoin="round">
+            <polygon fill="white" stroke="white" points="29.29,-30.1 -5.27,-41.67
+            -35.86,-21.86 -39.45,14.41 -13.33,39.83 22.83,35.25 41.8,4.13">
+              <animateTransform attributeName="transform" attributeType="XML"
+                type="rotate" from="90" to="0" dur="0.3s" additive="sum"/>
+            </polygon>
+            <g stroke="#ff6a4d" stroke-linecap="round" fill="none">
+              <line x1="-20" y1="-50" x2="-20" y2="0"/>
+              <circle r="20"/>
+              <animateTransform attributeName="transform" attributeType="XML"
+                type="scale" from="0" to="1" dur="0.4s" fill="freeze"/>
+            </g>
+          </g>
+        </svg>
+      </li>
 
-    <section id="tests">
-      <h2>Examples</h2>
-      <ul>
-        <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
-        <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
-        <li>*<a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
-      </ul>
-    </section>
+      <li class="text blue-bg">
+        <p><strong>Bender</strong> is an experimental, declarative Web
+        application authoring framework based on XML, Javascript and Web
+        technologies, and with a focus on rich graphical user interfaces.</p>
+      </li>
+
+      <li class="text blue-bg">
+        <p><strong>Bender</strong> is free software and is released under the
+        <a href="https://github.com/bendr/bender/blob/master/LICENSE">Apache
+          License v2.0</a>. The <a
+          href="https://github.com/bendr/bender">source code</a> is hosted on
+        Github.</p>
+      </li>
+
+      <li class="text orange-bg">
+        <h2>Tests</h2>
+      </li>
+
+      <li class="text green-bg">
+        <h3>Automated tests</h3>
+        <ul>
+          <li><a href="test/flexo.html">Flexo</a> (all tests should pass;
+          <a href="flexo.js">source</a>)</li>
+          <li><a href="test/bender.html">Bender</a> (all tests should pass;
+          <a href="bender.js">source</a>)</li>
+        </ul>
+      </li>
+
+      <li class="text green-bg">
+        <h3>Examples</h3>
+        <ul>
+          <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
+          <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
+          <li>*<a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
+        </ul>
+      </li>
+
+    </ul>
 
   </body>
 </html>
