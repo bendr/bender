@@ -165,7 +165,7 @@ a {
             <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
             <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
             <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
-            <li><a href="run.html?href=t/arrow.xml">t/arrow.xml</a></li>
+            <li><a href="run.html?href=t/logo.xml">t/logo.xml</a></li>
           </ul>
         </div>
       </div>
@@ -179,7 +179,7 @@ a {
 
 var context = bender.create_context();
 var logo_component = context.create_component({ href: "t/logo.xml",
-  fgcolor: "#ff6a4d", bgcolor: "white" });
+  sides: "7", fgcolor: "#ff6a4d", bgcolor: "white" });
 var logo_instance = logo_component.create_instance();
 context.add_instance(logo_instance, document.getElementById("logo"));
 

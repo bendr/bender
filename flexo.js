@@ -678,4 +678,42 @@
       elem.localName === "svg" ? elem : flexo.find_svg(elem.parentNode);
   };
 
+  // Create a regular polygon with the number of sides inscribed in a circle of
+  // the given radius, with an optional starting phase (use Math.PI / 2 to have
+  // it pointing up at all times)
+  flexo.svg_polygon = function (sides, radius, phase) {
+    return $polygon({ points: flexo.svg_polygon_points(sides, radius, phase) });
+  };
+
+  flexo.svg_polygon_points = function (sides, radius, phase) {
+    if (phase === undefined) {
+      phase = 0;
+    }
+    var points = [];
+    for (var i = 0, ph = 2 * Math.PI / sides; i < sides; ++i) {
+      points.push(radius * Math.cos(phase + ph * i));
+      points.push(-radius * Math.sin(phase + ph * i));
+    }
+    return points.join(" ");
+  };
+
+  // Same as above but create a star with the given inner radius
+  flexo.svg_star = function (sides, ro, ri, phase) {
+    return $polygon({ points: flexo.svg_star_points(sides, ro, ri, phase) });
+  };
+
+  flexo.svg_star_points = function (sides, ro, ri, phase) {
+    if (phase === undefined) {
+      phase = 0;
+    }
+    sides *= 2;
+    var points = [];
+    for (var i = 0, ph = 2 * Math.PI / sides; i < sides; ++i) {
+      var r = i % 2 === 0 ? ro : ri;
+      points.push(r * Math.cos(phase + ph * i));
+      points.push(-r * Math.sin(phase + ph * i));
+    }
+    return points.join(" ");
+  };
+
 }(typeof exports === "object" ? exports : window.flexo = {}));

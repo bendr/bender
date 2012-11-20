@@ -1,13 +1,15 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="bgcolor" value="#ff6a4d"/>
+  <property name="bgcolor" value="{ flexo.random_element(['#ff6a4d', '#0b486b',
+    '#5eb26b', '#774f38', '#f8ca00', '#9e0b46', '#a61416']) }"/>
   <property name="fgcolor" value="white"/>
+  <property name="sides" as="number" value="{ flexo.random_int(5, 9) }"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 128 128">
       <svg:g transform="translate(64, 64)" stroke-width="16"
         stroke-linejoin="round">
-        <svg:polygon fill="{bgcolor}" stroke="{bgcolor}" points="29.29,-30.1
-          -5.27,-41.67 -35.86,-21.86 -39.45,14.41 -13.33,39.83 22.83,35.25
-          41.8,4.13">
+        <svg:polygon fill="{bgcolor}" stroke="{bgcolor}"
+          points="{ flexo.svg_polygon_points({sides}, 42,
+            flexo.random_int(0, 360)) }">
           <svg:animateTransform attributeName="transform" attributeType="XML"
             type="rotate" from="160" to="0" dur="0.5s" additive="sum"
             id="anim_p"/>
