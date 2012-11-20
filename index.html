@@ -6,28 +6,29 @@
     <meta http-equiv="cache-control" content="no-cache">
     <style>
 
-      html {
-        height: 100%;
-      }
+html {
+  min-height: 100%;
+}
 
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
   margin: 0;
   padding: 0;
-
-  background-color: #102040; /* fallback color if gradients are not supported */
-  background-image: -webkit-linear-gradient(top, #ff6a4d, #fc8);
-  background-image:    -moz-linear-gradient(top, #ff6a4d, #fc8);
-  background-image:         linear-gradient(to bottom, #ff6a4d, #fc8);
+  background-color: #69d2e7;
+  background-image: -webkit-linear-gradient(top, #69d2e7, #fff);
+  background-image:    -moz-linear-gradient(top, #69d2e7, #fff);
+  background-image:         linear-gradient(to bottom, #69d2e7, #fff);
 }
 
 div.tiles {
   width: 960px;
   margin: 10px auto;
   padding: 0;
+  height: 100%;
 }
 
 div.tiles > div {
+  border-radius: 5px;
   width: 220px;
   height: 220px;
   margin: 10px;
@@ -41,6 +42,10 @@ div.tiles > div {
 ul {
   list-style-type: none;
   padding-left: 0;
+}
+
+li {
+  margin-top: 0.5em;
 }
 
 h1, h2, h3 {
@@ -92,6 +97,21 @@ a {
   color: #ff0;
 }
 
+.yellow-bg {
+  background-color: #f8ca00;
+  color: black;
+}
+
+.purple-bg {
+  background-color: #9e0b46;
+  color: white;
+}
+
+.red-bg {
+  background-color: #a61416;
+  color: white;
+}
+
     </style>
   </head>
   <body>
@@ -105,7 +125,7 @@ a {
             <polygon fill="white" stroke="white" points="29.29,-30.1 -5.27,-41.67
             -35.86,-21.86 -39.45,14.41 -13.33,39.83 22.83,35.25 41.8,4.13">
               <animateTransform attributeName="transform" attributeType="XML"
-                type="rotate" from="90" to="0" dur="0.3s" additive="sum"/>
+                type="rotate" from="160" to="0" dur="0.5s" additive="sum"/>
             </polygon>
             <g stroke="#ff6a4d" stroke-linecap="round" fill="none">
               <line x1="-20" y1="-50" x2="-20" y2="0"/>
@@ -129,7 +149,15 @@ a {
             href="https://github.com/bendr/bender">source code</a> is hosted on
           Github.</p>
         </div>
-      </div><div class="text orange-bg">
+      </div><div class="text yellow-bg">
+        <div>
+          <h2>Docs</h2>
+        </div>
+      </div><div class="text purple-bg">
+        <div>
+          <h2>Demos</h2>
+        </div>
+      </div><div class="text red-bg">
         <div>
           <h2>Tests</h2>
         </div>
@@ -137,10 +165,11 @@ a {
         <div>
           <h3>Automated tests</h3>
           <ul>
-            <li><a href="test/flexo.html">Flexo</a> (all tests should pass;
-            <a href="flexo.js">source</a>)</li>
-            <li><a href="test/bender.html">Bender</a> (all tests should pass;
-            <a href="bender.js">source</a>)</li>
+            <li><a href="test/flexo.html">Flexo</a>
+            (see <a href="flexo.js">flexo.js</a>)</li>
+            <li><a href="test/bender.html">Bender</a>
+            (see <a href="bender.js">bender.js</a>)</li>
+            <li>All tests should pass</li>
           </ul>
         </div>
       </div><div class="text green-bg">

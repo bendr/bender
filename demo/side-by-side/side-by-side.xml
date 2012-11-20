@@ -1,8 +1,8 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="clicks" type="number" value="0"/>
+  <property name="clicks" as="number" value="0"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
-      <instance href="../../ui/button.xml" id="button">
+      <component href="../../ui/button.xml" id="button">
         Click me
       </instance>
     </html:p>
