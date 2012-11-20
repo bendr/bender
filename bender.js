@@ -511,15 +511,13 @@
     if (edge) {
       if (elem.attr) {
         edge.attr = elem.attr;
-        return edge;
       } else if (elem.property) {
         edge.property = elem.property;
-        return edge;
       } else if (elem.event) {
         edge.event = elem.event;
-        return edge;
       }
     }
+    return edge;
   };
 
   // Make an edge for a get or set element
