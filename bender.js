@@ -7,6 +7,9 @@
   // flexo.create_element
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+  // Extend this with custom instances, &c.
+  bender.$ = {};
+
   // The context stores the definitions on the components, indexed by their URI,
   // as well as the instance hierarchy of rendered components.
   var context = {};

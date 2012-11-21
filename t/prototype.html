@@ -11,19 +11,20 @@
 
 // Create a custom instance prototype
 
-var custom_instance = Object.create(bender.instance);
-custom_instance.init = function () {
+bender.$.custom_instance = Object.create(bender.instance);
+bender.$.custom_instance.init = function () {
   console.log("[custom_instance] init", this);
 };
-custom_instance.rendering = function () {
+bender.$.custom_instance.rendering = function () {
   console.log("[custom_instance] rendering", this);
 };
-custom_instance.rendered = function () {
+bender.$.custom_instance.rendered = function () {
   console.log("[custom_instance] rendered", this);
 };
 
 var context = bender.create_context();
-var component = context.create_component({ prototype: "custom_instance" });
+var component =
+  context.create_component({ prototype: "bender.$.custom_instance" });
 var instance = bender.create_instance({ template: component });
 flexo.listen_once(instance, "@rendering", function (e) {
   console.log("[run] rendering", e.source);

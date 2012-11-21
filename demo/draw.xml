@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp" prototype="draw">
+<component xmlns="http://bender.igel.co.jp" prototype="bender.$.draw">
 
   <property name="width" as="number" value="853"/>
   <property name="height" as="number" value="480"/>
