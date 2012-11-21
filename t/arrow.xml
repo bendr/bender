@@ -1,7 +1,7 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="angle" as="number" value="0"/>
+  <property name="angle" as="number" value="{ flexo.random_int(360) }"/>
   <property name="r" as="number" value="20"/>
-  <property name="v" as="number" value="100"/>
+  <property name="v" as="number" value="{ flexo.random_int(50) }"/>
   <property name="color"
     value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, {v}%)"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
