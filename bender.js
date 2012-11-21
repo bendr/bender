@@ -65,6 +65,11 @@
     return instance;
   };
 
+  context.$ = function () {
+    return this.wrap_element(flexo.create_element.apply(this.document,
+          arguments));
+  };
+
   // Load a component definition for an instanceI. While a file is being
   // loaded, store all instances that are requesting it; once it's loaded,
   // store the loaded component itself.
@@ -217,6 +222,11 @@
             object.template = this.template;
             object.original_instance = this;
             object.__placeholder = this.__placeholder;
+            if (this.parent) {
+              object.parent = this.parent;
+              flexo.replace_in_array(this.parent.children, this, object);
+              flexo.replace_in_array(this.parent.__pending, this, object);
+            }
             return render.call(object, true);
           } catch (e) {
             console.error("could not create instance for prototype \"{0}\""
@@ -283,9 +293,8 @@
         var o = this.original_instance;
         delete this.original_instance;
         flexo.notify(o, "@rendered", { instance: this });
-      } else {
-        flexo.notify(this, "@rendered");
       }
+      flexo.notify(this, "@rendered");
       if (this.parent) {
         this.parent.finished_rendering(this);
       }
@@ -362,9 +371,11 @@
     if (component.id) {
       this.instances[component.id] = child_instance;
     }
-    Object.keys(component.values).forEach(function (p) {
-      this.bind_prop(child_instance, p, component.values[p]);
-    }, this);
+    if (component.values) {
+      Object.keys(component.values).forEach(function (p) {
+        this.bind_prop(child_instance, p, component.values[p]);
+      }, this);
+    }
   };
 
   bender.instance.render_children = function (node, dest) {

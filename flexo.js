@@ -189,6 +189,18 @@
     }
   };
 
+  // Replace the first instance of old_item in array with new_item, and return
+  // old_item on success
+  flexo.replace_in_array = function (array, old_item, new_item) {
+    if (array && old_item != null) {
+      var index = array.indexOf(old_item);
+      if (index >= 0) {
+        array[index] = new_item;
+        return old_item;
+      }
+    }
+  };
+
 
   // URIs: parsing and resolving relative URIs (e.g. to load resources)
 

@@ -235,6 +235,10 @@
           assert.strictEqual(flexo.remove_from_array(null, 5));
         });
     });
+
+    describe("flexo.replace_in_array(array, old_item, new_item)", function () {
+      it("replaces the first instance of old_item in the array with new_item, and return old_item if it was present");
+    });
   });
 
 

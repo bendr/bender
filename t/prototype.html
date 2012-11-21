@@ -13,19 +13,18 @@
 
 bender.$.custom_instance = Object.create(bender.instance);
 bender.$.custom_instance.init = function () {
-  console.log("[custom_instance] init", this);
+  console.log("[custom_instance] init");
 };
 bender.$.custom_instance.rendering = function () {
-  console.log("[custom_instance] rendering", this);
+  console.log("[custom_instance] rendering");
 };
 bender.$.custom_instance.rendered = function () {
-  console.log("[custom_instance] rendered", this);
+  console.log("[custom_instance] rendered");
 };
 
 var context = bender.create_context();
-var component =
-  context.create_component({ prototype: "bender.$.custom_instance" });
-var instance = bender.create_instance({ template: component });
+var component = context.create_component({ href: "prototype-parent.xml" });
+var instance = bender.create_instance({ reference: component });
 flexo.listen_once(instance, "@rendering", function (e) {
   console.log("[run] rendering", e.source);
 });
