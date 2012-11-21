@@ -1,7 +1,9 @@
 <component xmlns="http://bender.igel.co.jp">
   <property name="angle" as="number" value="0"/>
+  <property name="r" as="number" value="20"/>
+  <property name="v" as="number" value="100"/>
   <property name="color"
-    value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, 50%)"/>
+    value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, {v}%)"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="-10 -10 20 20">
       <svg:g id="arrow" transform="rotate({angle})">
@@ -17,6 +19,11 @@
     <set property="angle">
       return flexo.remap(Math.atan2(value.y, value.x), -Math.PI, Math.PI,
         -180, 180);
+    </set>
+    <set property="v">
+      var d = Math.sqrt(value.x * value.x + value.y * value.y);
+      var diff = this.properties.r - d;
+      return Math.round(50 * (flexo.clamp(diff / this.properties.r, 0, 1)));
     </set>
   </watch>
 </component>

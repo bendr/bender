@@ -29,6 +29,9 @@
   flexo.format = function (string, args) {
     var stack = [""];
     var current = stack;
+    if (typeof string !== "string") {
+      string = string.toString();
+    }
     string.split(/(\{|\}|\\[{}\\])/).forEach(function (token) {
       if (token === "{") {
         var chunk = [""];
