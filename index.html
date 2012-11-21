@@ -200,8 +200,10 @@ a {
             <li><a href="t/prototype.html">t/prototype.html</a></li>
           </ul>
         </div>
-      </div><div class="text blue-bg">
-      </div><div class="text purple-bg">
+      </div><div class="text black-bg">
+        <a href="run.html?href=t/arrow.xml"></a>
+      </div><div class="text black-bg">
+        <a href="run.html?href=t/arrow.xml"></a>
       </div>
 
 
@@ -223,8 +225,11 @@ var logo_instance = bender.create_instance({ reference: logo_component });
 context.add_instance(logo_instance, document.getElementById("logo"));
 
 var arrow_component = context.create_component({ href: "t/arrow.xml" });
-var arrow_instance = bender.create_instance({ reference: arrow_component });
-context.add_instance(arrow_instance, document.querySelector(".black-bg a"));
+Array.prototype.forEach.call(document.querySelectorAll(".black-bg a"),
+  function (a) {
+    var arrow_instance = bender.create_instance({ reference: arrow_component });
+    context.add_instance(arrow_instance, a);
+  });
 
     </script>
 
