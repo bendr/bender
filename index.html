@@ -9,14 +9,25 @@ html {
   min-height: 100%;
 }
 
+footer {
+  text-align: center;
+  font-size: small;
+  margin-top: 4em;
+}
+
+footer a {
+  color: #444;
+}
+
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #69d2e7;
-  background-image: -webkit-linear-gradient(top, #69d2e7, #fff);
-  background-image:    -moz-linear-gradient(top, #69d2e7, #fff);
-  background-image:         linear-gradient(to bottom, #69d2e7, #fff);
+  background-color: #08f;
+  background-image: -webkit-linear-gradient(top, #fff, #08f);
+  background-image:    -moz-linear-gradient(top, #fff, #08f);
+  background-image:      -o-linear-gradient(top, #fff, #08f);
+  background-image:         linear-gradient(to bottom, #fff, #08f);
 }
 
 div.tiles {
@@ -33,6 +44,7 @@ div.tiles > div {
   margin: 10px;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
+  box-sizing: border-box;
   display: inline-block;
   vertical-align: bottom;
   box-shadow: 0 0 10px #444;
@@ -172,6 +184,10 @@ a {
 
     </div>
 
+    <footer>
+      Copyright © 2011, 2012, <a href="http://www.igel.co.jp">IGEL Co., Ltd.</a>
+    </footer>
+
     <script src="flexo.js"></script>
     <script src="bender.js"></script>
     <script>
@@ -182,11 +198,6 @@ var logo_component = context.create_component({ href: "t/logo.xml",
   sides: "7", fgcolor: "#ff6a4d", bgcolor: "white" });
 var logo_instance = logo_component.create_instance();
 context.add_instance(logo_instance, document.getElementById("logo"));
-
-    </script>
-  </body>
-</html>
-
 
     </script>
 

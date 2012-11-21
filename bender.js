@@ -50,6 +50,18 @@
     return component;
   };
 
+  // Call with keywords "reference", "template", or both
+  bender.create_instance = function (args) {
+    var instance = Object.create(bender.instance);
+    for (var a in args) {
+      if (args.hasOwnProperty(a)) {
+        instance[a] = args[a];
+      }
+    }
+    // TODO: keep track of instances
+    return instance;
+  };
+
   // Load a component definition for an instanceI. While a file is being
   // loaded, store all instances that are requesting it; once it's loaded,
   // store the loaded component itself.
@@ -168,14 +180,6 @@
 
   bender.instance = {};
 
-  // Initialize a new instance
-  bender.instance.init = function (reference, template) {
-    this.reference = reference;
-    this.template = template;
-    this.children = [];
-    return this;
-  };
-
   // Add a new child instance
   bender.instance.add_child_instance = function(component) {
     var child_instance = component.create_instance();
@@ -190,18 +194,40 @@
   // that rendering has started (@rendering); a notification that rendering has
   // ended will be sent as well (@rendered)
   bender.instance.render = function (dest, ref) {
-    this.views = {};
-    this.instances = { $self: this };
-    this.edges = [];
-    this.properties = {};
+    flexo.notify(this, "@rendering");
     this.__placeholder = dest.ownerDocument.createElementNS(bender.ns,
         "placeholder");
     dest.insertBefore(this.__placeholder, ref);
-    flexo.notify(this, "@rendering");
-    // Keep track of pending instances (cf finished_rendering), including self
-    this.__pending = [this];
-    var render = function () {
+    var render = function (with_prototype) {
+      if (!with_prototype) {
+        var prototype =
+          this.reference && this.reference.getAttribute("prototype") ||
+          this.template.getAttribute("prototype");
+        if (prototype) {
+          // try {
+            var object = eval("Object.create({0})".fmt(prototype));
+            if (!bender.instance.isPrototypeOf(object)) {
+              throw "not a valid instance";
+            }
+            object.reference = this.reference;
+            object.template = this.template;
+            object.original_instance = this;
+            object.__placeholder = this.__placeholder;
+            return render.call(object, true);
+          //} catch (e) {
+          //  console.error("could not create instance for prototype \"{0}\""
+          //      .fmt(prototype));
+          //}
+        }
+      }
+      this.children = [];
+      this.views = {};
+      this.instances = { $self: this };
+      this.edges = [];
+      this.properties = {};
+      this.init();
       this.setup_properties();
+      this.__pending = [this];
       var view = (this.reference && this.reference.view) || this.template.view;
       if (view && view.firstElementChild) {
         this.render_node(view.firstElementChild, this.__placeholder);
@@ -245,14 +271,26 @@
         parent.insertBefore(this.views.$root, this.__placeholder);
       }
       parent.removeChild(this.__placeholder);
+      this.rendering();
       this.render_edges();
       this.init_properties();
-      flexo.notify(this, "@rendered");
+      this.rendered();
+      if (this.original_instance) {
+        var o = this.original_instance;
+        delete this.original_instance;
+        flexo.notify(o, "@rendered", { instance: this });
+      } else {
+        flexo.notify(this, "@rendered");
+      }
       if (this.parent) {
         this.parent.finished_rendering(this);
       }
     }
   };
+
+  bender.instance.init = function () {};
+  bender.instance.rendering = function () {};
+  bender.instance.rendered = function () {};
 
   bender.instance.render_node = function (node, dest) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
@@ -590,12 +628,6 @@
     this.watches = [];     // child watch elements
     this.instances = [];   // instances of the component
     this.values = {};      // values given as attributes (TODO properties?)
-  };
-
-  prototypes.component.create_instance = function () {
-    var i = Object.create(bender.instance).init(this);
-    this.instances.push(i);
-    return i;
   };
 
   prototypes.component.insertBefore = function (ch, ref) {

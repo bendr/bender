@@ -29,7 +29,7 @@ var context = bender.create_context();
 var args = flexo.get_args();
 if (args.href) {
   var component = context.create_component(args);
-  var instance = component.create_instance();
+  var instance = bender.create_instance({ reference: component });
   flexo.listen(instance, "@error", function (e) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
@@ -39,6 +39,10 @@ if (args.href) {
   });
   flexo.listen(instance, "@rendered", function (e) {
     console.log("[run] rendered", e.source);
+    if (e.instance) {
+      console.log("[run] updating instance:", e.instance);
+      instance = e.instance;
+    }
   });
   context.add_instance(instance, document.body);
 } else {
