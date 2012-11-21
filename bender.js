@@ -181,8 +181,9 @@
   bender.instance = {};
 
   // Add a new child instance
+  // TODO check that the rendered instance is the same as the instance!
   bender.instance.add_child_instance = function(component) {
-    var child_instance = component.create_instance();
+    var child_instance = bender.create_instance({ reference: component });
     child_instance.parent = this;
     this.children.push(child_instance);
     return child_instance;
@@ -204,7 +205,7 @@
           this.reference && this.reference.getAttribute("prototype") ||
           this.template.getAttribute("prototype");
         if (prototype) {
-          // try {
+          try {
             var object = eval("Object.create({0})".fmt(prototype));
             if (!bender.instance.isPrototypeOf(object)) {
               throw "not a valid instance";
@@ -214,10 +215,10 @@
             object.original_instance = this;
             object.__placeholder = this.__placeholder;
             return render.call(object, true);
-          //} catch (e) {
-          //  console.error("could not create instance for prototype \"{0}\""
-          //      .fmt(prototype));
-          //}
+          } catch (e) {
+            console.error("could not create instance for prototype \"{0}\""
+                .fmt(prototype));
+          }
         }
       }
       this.children = [];

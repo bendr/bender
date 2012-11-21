@@ -12,7 +12,7 @@ html {
 footer {
   text-align: center;
   font-size: small;
-  margin-top: 4em;
+  margin: 4em 0;
 }
 
 footer a {
@@ -127,6 +127,14 @@ a {
   color: white;
 }
 
+.peach-bg {
+  background-color: #fbc599;
+}
+
+.peach-bg a {
+  color: #444;
+}
+
     </style>
   </head>
   <body>
@@ -155,6 +163,13 @@ a {
         <div>
           <h2>Demos</h2>
         </div>
+      </div><div class="text peach-bg">
+        <div>
+          <ul>
+            <li><a href="run.html?href=demo/logo.xml">Bender logo</a></li>
+            <li><a href="demo/draw.html">Drawing</a></li>
+          </ul>
+        </div>
       </div><div class="text red-bg">
         <div>
           <h2>Tests</h2>
@@ -172,15 +187,18 @@ a {
         </div>
       </div><div class="text green-bg">
         <div>
-          <h3>Examples</h3>
+          <h3>Rendering tests</h3>
           <ul>
             <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
             <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
             <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
-            <li><a href="run.html?href=t/logo.xml">t/logo.xml</a></li>
           </ul>
         </div>
+      </div><div class="text yellow-bg">
+      </div><div class="text blue-bg">
+      </div><div class="text purple-bg">
       </div>
+
 
     </div>
 
@@ -194,9 +212,9 @@ a {
 "use strict";
 
 var context = bender.create_context();
-var logo_component = context.create_component({ href: "t/logo.xml",
+var logo_component = context.create_component({ href: "demo/logo.xml",
   sides: "7", fgcolor: "#ff6a4d", bgcolor: "white" });
-var logo_instance = logo_component.create_instance();
+var logo_instance = bender.create_instance({ reference: logo_component });
 context.add_instance(logo_instance, document.getElementById("logo"));
 
     </script>
