@@ -25,6 +25,12 @@ code {
     <script>
 "use strict";
 
+bender.instance.rendering = function () {
+  if (this.reference && this.reference.id) {
+    this.views.$root.classList.add(this.reference.id);
+  }
+};
+
 var context = bender.create_context();
 var args = flexo.get_args();
 if (args.href) {

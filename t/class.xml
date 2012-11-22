@@ -1,0 +1,11 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div>
+      <html:p>First paragraph</html:p>
+      <component href="p.xml" id="p1">Second paragraph*</component>
+      <html:p>Third paragraph, then default content:</html:p>
+      <component href="p.xml" id="p2"/>
+    </html:div>
+  </view>
+</component>
+
