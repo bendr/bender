@@ -26,7 +26,7 @@ code {
 "use strict";
 
 bender.instance.rendering = function () {
-  if (this.reference && this.reference.id) {
+  if (this.reference && this.reference.id && this.views.$root) {
     this.views.$root.classList.add(this.reference.id);
   }
 };
