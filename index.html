@@ -230,7 +230,8 @@ var logo_component = context.create_component({ href: "demo/logo.xml",
 var logo_instance = bender.create_instance({ reference: logo_component });
 context.add_instance(logo_instance, document.getElementById("logo"));
 
-var arrow_component = context.create_component({ href: "t/arrow.xml", r: 120 });
+var arrow_component = context.create_component({ href: "t/arrow.xml", r: 120,
+  "white-bg": false });
 Array.prototype.forEach.call(document.querySelectorAll(".black-bg a"),
   function (a) {
     var arrow_instance = bender.create_instance({ reference: arrow_component });

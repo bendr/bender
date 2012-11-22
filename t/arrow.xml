@@ -2,6 +2,7 @@
   <property name="angle" as="number" value="{ flexo.random_int(360) }"/>
   <property name="r" as="number" value="20"/>
   <property name="v" as="number" value="{ flexo.random_int(50) }"/>
+  <property name="white-bg" as="boolean" value="true"/>
   <property name="color"
     value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, {v}%)"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
@@ -23,7 +24,9 @@
     <set property="v">
       var d = Math.sqrt(value.x * value.x + value.y * value.y);
       var diff = this.properties.r - d;
-      return Math.round(50 * (flexo.clamp(diff / this.properties.r, 0, 1)));
+      var v = flexo.clamp(diff / this.properties.r, 0, 1);
+      return this.properties["white-bg"] ?
+        50 + Math.round(50 * (1 - v)) : Math.round(50 * v);
     </set>
   </watch>
 </component>
