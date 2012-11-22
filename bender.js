@@ -280,11 +280,16 @@
       delete this.__pending;
       this.views.$document = this.__placeholder.ownerDocument;
       var parent = this.__placeholder.parentNode;
-      if (this.__placeholder.firstElementChild) {
-        this.views.$root = this.__placeholder.firstElementChild;
-        parent.insertBefore(this.views.$root, this.__placeholder);
+      if (parent) {
+        if (this.__placeholder.firstElementChild) {
+          this.views.$root = this.__placeholder.firstElementChild;
+          parent.insertBefore(this.views.$root, this.__placeholder);
+        }
+        parent.removeChild(this.__placeholder);
       }
-      parent.removeChild(this.__placeholder);
+      if (this.reference && this.reference.id) {
+        this.parent.instances[this.reference.id] = this;
+      }
       this.rendering();
       this.render_edges();
       this.init_properties();
@@ -368,9 +373,6 @@
     var child_instance = this.add_child_instance(component);
     this.__pending.push(child_instance);
     child_instance.render(dest);
-    if (component.id) {
-      this.instances[component.id] = child_instance;
-    }
     if (component.values) {
       Object.keys(component.values).forEach(function (p) {
         this.bind_prop(child_instance, p, component.values[p]);
