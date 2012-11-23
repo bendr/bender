@@ -10,70 +10,67 @@
   // Extend this with custom instances, &c.
   bender.$ = {};
 
+
   // The context stores the definitions on the components, indexed by their URI,
   // as well as the instance hierarchy of rendered components.
-  var context = {};
+  bender.context = {};
 
   // Initialize the context for the given host document (this.document); keep
   // track of instance tree roots (this.instance) and loaded URIs (this.loaded)
-  context.init = function (host) {
+  bender.context.init = function (host) {
     this.document = host;
     this.instances = [];
     this.loaded = {};
     return this;
   };
 
-  // Add a top-level instance to the context and render it in the given target
-  // (inserted before the ref or added as the last child)
-  context.add_instance = function (instance, target, ref) {
-    this.instances.push(instance);
-    instance.render(target, ref);
-  };
-
-  // Create a new component element with some attributes
-  context.create_component = function (attrs) {
-    var component = this.wrap_element(this.document.createElementNS(bender.ns,
-          "component"));
-    component.uri = this.document.baseURI;
-    if (typeof attrs === "object") {
-      Object.keys(attrs).forEach(function (attr) {
-        var a = attr.split(":");
-        if (a[1]) {
-          var ns = flexo.ns[a[0]];
-          if (!ns) {
-            console.error("Unknown namespace prefix {0} for {1}=\"{2}\""
-              .fmt(a[0], attr, attrs[a]));
+  // Wrap new elements
+  bender.context.$ = function (name, attrs) {
+    var contents;
+    if (typeof attrs === "object" && !(attrs instanceof Node)) {
+      contents = A.slice.call(arguments, 2);
+    } else {
+      contents = A.slice.call(arguments, 1);
+      attrs = {};
+    }
+    var classes = name.trim().split(".");
+    name = classes.shift();
+    if (classes.length > 0) {
+      attrs["class"] =
+        (attrs.hasOwnProperty("class") ? attrs["class"] + " " : "")
+        + classes.join(" ");
+    }
+    var m = name.match(/^(?:([^:]+):)?([^#]+)(?:#(.+))?$/);
+    if (m) {
+      var ns = (m[1] && flexo.ns[m[1].toLowerCase()]) || bender.ns;
+      var elem = this.wrap_element(ns ?
+          this.document.createElementNS(ns, m[2]) :
+          this.document.createElement(m[2]));
+      if (m[3]) {
+        attrs.id = m[3];
+      }
+      Object.keys(attrs).forEach(function (a) {
+        if (attrs[a] !== null && attrs[a] !== undefined && attrs[a] !== false) {
+          var sp = a.split(":");
+          var ns = sp[1] && flexo.ns[sp[0].toLowerCase()];
+          if (ns) {
+            elem.setAttributeNS(ns, sp[1], attrs[a]);
           } else {
-            component.setAttributeNS(a[0], a[1], attrs[attr]);
+            elem.setAttribute(a, attrs[a]);
           }
         }
-        component.setAttribute(attr, attrs[attr]);
       });
+      contents.forEach(function (ch) {
+        append_child(elem, ch);
+      });
+      return elem;
     }
-    return component;
-  };
-
-  // Call with keywords "reference", "template", or both
-  bender.create_instance = function (args) {
-    var instance = Object.create(bender.instance);
-    for (var a in args) {
-      if (args.hasOwnProperty(a)) {
-        instance[a] = args[a];
-      }
-    }
-    // TODO: keep track of instances
-    return instance;
-  };
-
-  context.$ = function () {
-    return this.wrap_element(flexo.create_element.apply(this.document,
-          arguments));
   };
 
   // Load a component definition for an instanceI. While a file is being
   // loaded, store all instances that are requesting it; once it's loaded,
   // store the loaded component itself.
-  context.load_component = function (uri, instance) {
+  bender.context.load_component = function (uri, instance) {
     var split = uri.split("#");
     var locator = flexo.normalize_uri(instance.reference.uri, split[0]);
     // TODO keep track of id's to load components inside components
@@ -111,7 +108,7 @@
   };
 
   // Import a node in the context (for loaded components)
-  context.import_node = function (node, uri) {
+  bender.context.import_node = function (node, uri) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
       var n = this.wrap_element(this.document.createElementNS(node.namespaceURI,
             node.localName));
@@ -146,7 +143,7 @@
   };
 
   // Update the URI of a component for the loaded map
-  context.updated_uri = function (component, prev_uri) {
+  bender.context.updated_uri = function (component, prev_uri) {
     if (component.uri !== prev_uri && this.loaded[prev_uri] === component) {
       delete this.loaded[prev_uri];
       if (!this.loaded[component.uri]) {
@@ -157,7 +154,7 @@
 
   // Extend an element with Bender methods, calls its _init() method, and return
   // the wrapped element.
-  context.wrap_element = function (e, proto) {
+  bender.context.wrap_element = function (e, proto) {
     if (typeof proto !== "object") {
       proto = prototypes[e.localName];
     }
@@ -178,13 +175,14 @@
       e.init();
     }
     return e;
-  }
+  };
 
   // Create a new Bender context for the given host document (window.document by
   // default.)
   bender.create_context = function (host) {
-    return Object.create(context).init(host || window.document);
+    return Object.create(bender.context).init(host || window.document);
   };
+
 
   bender.instance = {};
 
@@ -404,9 +402,6 @@
     var value;
     this.set_property[property.name] = function (v) {
       if (v !== value) {
-        if (typeof v === "string") {
-          v = property.parse_value(v, this);
-        }
         var prev = value;
         value = v;
       }
@@ -642,31 +637,119 @@
     }
   };
 
-  ["component", "get", "property", "set", "watch"
+  ["component", "content", "get", "property", "set", "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
 
   prototypes.component.init = function () {
-    this.properties = [];  // child property elements
-    this.watches = [];     // child watch elements
-    this.instances = [];   // instances of the component
-    this.values = {};      // values given as attributes (TODO properties?)
+    this.components = [];    // component children (outside of view)
+    this.properties = [];    // child property elements
+    this.watches = [];       // child watch elements
+    this.instances = [];     // instances of the component
+    this.values = {};        // values given as attributes (TODO properties?)
+    this.create_instance();  // prototype instance
+  };
+
+  prototypes.component.create_instance = function () {
+    var prototype = this.prototype || "bender.instance";
+    try {
+      var instance = eval("Object.create({0})".fmt(prototype));
+    } catch (e) {
+      console.error("[create_instance] could not create object {0}"
+          .fmt(prototype));
+    }
+    instance.component = this;
+    instance.properties = {};
+    instance.set_property = {};
+    instance.edges = [];
+    this.instances.push(instance);
+    return instance;
+  };
+
+  bender.context.request_update = function (update) {
+    if (!this.__update_queue) {
+      this.__update_queue = [];
+      setTimeout(function () {
+        console.log("[request_update] unqueuing updates", this.__update_queue);
+        this.__update_queue.forEach(function (update) {
+          update.source[update.action].call(update.source, update);
+        });
+        delete this.__update_queue;
+      }.bind(this), 0);
+    }
+    this.__update_queue.push(update);
+  };
+
+  bender.instance.add_child = function (instance) {
+    this.children.push(instance);
+    instance.parent = this;
+  };
+
+  bender.instance.remove_child = function (instance) {
+    flexo.remove_from_array(this.children, instance);
+    delete instance.parent;
+  };
+
+  prototypes.component.add_component = function (update) {
+    this.components.push(update.child);
+    this.instances[0].add_child(update.child.instances[0]);
+    for (var i = 1, n = this.instances.length; i < n; ++i) {
+      this.instances[i].add_child(update.child.create_instance());
+    }
+  };
+
+  prototypes.component.remove_component = function (update) {
+    flexo.remove_from_array(this.components, update.child);
+    for (var i = 0, n = this.instances.length; i < n; ++i) {
+      var instance = flexo.find_first(this.instances[i].children,
+          function (inst) {
+            return inst.component === update.child;
+          });
+      this.instances[i].remove_child(instance);
+    }
+  };
+
+  prototypes.component.add_property = function (update) {
+    if (update.child.name) {
+      this.properties.push(update.child);
+      for (var i = 0, n = this.instances.length; i < n; ++i) {
+        if (!this.instances[i].properties.hasOwnProperty(update.child.name)) {
+          this.instances[i].setup_property(update.child);
+        }
+      }
+      this.init_property(update);
+    }
+  };
+
+  prototypes.component.init_property = function (update) {
+    if (update.child.name) {
+      for (var i = 0, n = this.instances.length; i < n; ++i) {
+        this.instances[i].properties[update.child.name] =
+          update.child.parse_value(this.instances[i]);
+      }
+    }
+  };
+
+  prototypes.component.add_view = function (update) {
+    if (this.view) {
+      console.error("Component already has a view", component);
+    } else {
+      this.view = update.child;
+    }
+  };
+
+  prototypes.component.add_watch = function (update) {
+    this.properties.push(update.child);
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (is_bender_element(ch)) {
-      if (ch.localName === "view") {
-        if (this.view) {
-          console.error("Multiple views for component", this);
-        } else {
-          this.view = ch;
-        }
-      } else if (ch.localName === "property") {
-        this.properties.push(ch);
-      } else if (ch.localName === "watch") {
-        this.watches.push(ch);
+    if (ch.namespaceURI === bender.ns) {
+      if (ch.localName === "property" || ch.localName === "component" ||
+          ch.localName === "view" || ch.localName === "watch") {
+        this.context.request_update({ action: "add_" + ch.localName,
+          source: this, child: ch });
       }
     }
     return ch;
@@ -674,7 +757,10 @@
 
   prototypes.component.removeChild = function (ch) {
     if (ch.namespaceURI === bender.ns) {
-      if (ch.localName === "view") {
+      if (ch.localName === "component") {
+        context.request_update({ action: "remove_component", source: this,
+          child: ch });
+      } else if (ch.localName === "view") {
         if (this.view === ch) {
           delete this._view;
         }
@@ -688,7 +774,6 @@
     return ch;
   };
 
-  // TODO handle changes
   prototypes.component.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
@@ -745,14 +830,6 @@
       }
     },
     "number": parseFloat,
-    "object": function (value) {
-      try {
-        return JSON.parse(value);
-      } catch (e) {
-        console.error("Could not parse \"{0}\" as JSON: {1}"
-          .fmt(value, e.message));
-      }
-    },
     "string": flexo.id
   };
 
@@ -765,6 +842,11 @@
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "name") {
       this.name = value.trim();
+      if (this.parentNode &&
+          typeof this.parentNode.add_property === "function") {
+        this.context.request_update({ source: this.parentNode,
+          action: "add_property", child: this, target: this });
+      }
     } else if (name === "as") {
       var as = value.trim().toLowerCase();
       if (as in property_types) {
@@ -772,11 +854,27 @@
       }
     } else if (name === "value") {
       this.value = value;
+      if (this.parentNode &&
+          typeof this.parentNode.init_property === "function") {
+        this.context.request_update({ source: this.parentNode,
+          action: "init_property", child: this });
+      }
+    }
+  };
+
+  prototypes.property.removeAttribute = function (name) {
+    Object.getPrototypeOf(this).removeAttribute.call(this, name);
+    if (name === "name") {
+      delete this.name;
+    } else if (name === "as") {
+      this.as = "string";
+    } else if (name === "value") {
+      this.value = "";
     }
   };
 
   // Get the parsed value for the property
-  prototypes.property.parse_value = function (v, instance) {
+  prototypes.property.parse_value = function (instance, v) {
     var that = this.as === "dynamic" ? instance : instance.properties;
     return property_types[this.as].call(that, v === undefined ? this.value : v);
   };

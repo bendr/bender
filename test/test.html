@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Test Bender</title>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var component = context.$("component");
+var foo = context.$("property", { name: "foo", value: "baz" });
+component.appendChild(foo);
+var bar = context.$("property", { as: "number", value: 123 });
+component.appendChild(bar);
+bar.setAttribute("name", "bar");
+
+setTimeout(function () {
+  console.log(component.instances[0].properties.foo);
+  console.log(component.instances[0].properties.bar);
+}, 0);
+
+/*
+var view = context.$("bender:view");
+component.appendChild(view);
+var view_2 = context.$("bender:view");
+component.appendChild(view_2);
+*/
+
+    </script>
+  </body>
+</html>
+
