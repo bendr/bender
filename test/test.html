@@ -18,10 +18,11 @@ var bar = context.$("property", { as: "number", value: 123 });
 component.appendChild(bar);
 bar.setAttribute("name", "bar");
 
-setTimeout(function () {
+flexo.listen(context, "@update", function (e) {
+  console.log(e.updates);
   console.log(component.instances[0].properties.foo);
   console.log(component.instances[0].properties.bar);
-}, 0);
+});
 
 /*
 var view = context.$("bender:view");

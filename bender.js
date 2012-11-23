@@ -675,6 +675,7 @@
         this.__update_queue.forEach(function (update) {
           update.source[update.action].call(update.source, update);
         });
+        flexo.notify(context, "@update", { updates: this.__update_queue });
         delete this.__update_queue;
       }.bind(this), 0);
     }
