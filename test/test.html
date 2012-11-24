@@ -11,18 +11,28 @@
 "use strict";
 
 var context = bender.create_context();
-var component = context.$("component");
+var a = context.$("component", { id: "A" });
 var foo = context.$("property", { name: "foo", value: "baz" });
-component.appendChild(foo);
+a.appendChild(foo);
 var bar = context.$("property", { as: "number", value: 123 });
-component.appendChild(bar);
-bar.setAttribute("name", "bar");
+a.appendChild(bar);
 
-flexo.listen(context, "@update", function (e) {
+flexo.listen_once(context, "@update", function (e) {
   console.log(e.updates);
-  console.log(component.instances[0].properties.foo);
-  console.log(component.instances[0].properties.bar);
+  // console.log(a.instances[0].properties.foo);
+  // console.log(a.instances[0].properties.bar);
+  bar.setAttribute("name", "bar");
 });
+
+var custom_instance = Object.create(bender.instance);
+custom_instance.init = function () {
+  this.custom = true;
+  console.log("[custom_instance] init");
+};
+
+var b = context.$("component", { id: "B", href: "#A",
+  prototype: "custom_instance" });
+
 
 /*
 var view = context.$("bender:view");

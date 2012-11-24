@@ -149,6 +149,8 @@
       if (!this.loaded[component.uri]) {
         this.loaded[component.uri] = component;
       }
+    } else if (!this.loaded[component.uri]) {
+      this.loaded[component.uri] = component;
     }
   };
 
@@ -171,9 +173,7 @@
       }
     }
     e.context = this;
-    if (typeof e.init === "function") {
-      e.init();
-    }
+    e.init();
     return e;
   };
 
@@ -399,6 +399,7 @@
   };
 
   bender.instance.setup_property = function (property) {
+    console.log("[setup_property] {0}".fmt(property.name));
     var value;
     this.set_property[property.name] = function (v) {
       if (v !== value) {
@@ -634,6 +635,7 @@
       appendChild: function (ch) {
         return this.insertBefore(ch, null);
       },
+      init: function () {}
     }
   };
 
@@ -648,6 +650,7 @@
     this.watches = [];       // child watch elements
     this.instances = [];     // instances of the component
     this.values = {};        // values given as attributes (TODO properties?)
+    this.uri = this.context.document.baseURI;
     this.create_instance();  // prototype instance
   };
 
@@ -660,9 +663,16 @@
           .fmt(prototype));
     }
     instance.component = this;
+    instance.init();
     instance.properties = {};
     instance.set_property = {};
+    this.properties.forEach(function (p) {
+      instance.setup_property(p);
+    });
     instance.edges = [];
+    this.properties.forEach(function (p) {
+      instance.properties[p.name] = p.parse_value(instance);
+    });
     this.instances.push(instance);
     return instance;
   };
@@ -675,8 +685,9 @@
         this.__update_queue.forEach(function (update) {
           update.source[update.action].call(update.source, update);
         });
-        flexo.notify(context, "@update", { updates: this.__update_queue });
+        var updates = this.__update_queue.slice();
         delete this.__update_queue;
+        flexo.notify(context, "@update", { updates: updates });
       }.bind(this), 0);
     }
     this.__update_queue.push(update);
@@ -744,6 +755,37 @@
     this.properties.push(update.child);
   };
 
+  prototypes.component.set_instance_prototype = function () {
+    this.instances.forEach(function (instance, i, instances) {
+      var prototype = this.prototype || "bender.instance";
+      try {
+        var proto = eval(prototype);
+        var new_instance = Object.create(proto);
+        for (var p in instance) {
+          if (instance.hasOwnProperty(p) && !proto.hasOwnProperty(p)) {
+            new_instance[p] = instance[p];
+          }
+        }
+        new_instance.__previous_instance = instance;
+        instances[i] = new_instance;
+        new_instance.init();
+        // TODO update watches as well
+      } catch (e) {
+        console.error("[set_instance_prototype] could not create object {0}"
+            .fmt(prototype));
+      }
+    }, this);
+  };
+
+  // TODO
+  // Replace this component everywhere?
+  prototypes.component.set_component_prototype = function () {
+    var uri = flexo.absolute_uri(this.uri, this.href);
+    var prototype = this.context.loaded[uri];
+    console.warn("[set_component_prototype] not implemented yet ({0})".fmt(uri),
+        prototype);
+  };
+
   prototypes.component.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.namespaceURI === bender.ns) {
@@ -779,6 +821,8 @@
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
       this.href = value.trim();
+      this.context.request_update({ action: "set_component_prototype",
+        source: this });
     } else if (name === "id") {
       this.id = value.trim();
       var prev_uri = this.uri;
@@ -786,6 +830,8 @@
       this.context.updated_uri(this, prev_uri);
     } else if (name === "prototype") {
       this.prototype = value.trim();
+      this.context.request_update({ action: "set_instance_prototype",
+        source: this });
     } else {
       this.values[name] = value;
     }
@@ -842,11 +888,14 @@
   prototypes.property.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "name") {
-      this.name = value.trim();
-      if (this.parentNode &&
-          typeof this.parentNode.add_property === "function") {
-        this.context.request_update({ source: this.parentNode,
-          action: "add_property", child: this, target: this });
+      var n = value.trim();
+      if (this.name !== n) {
+        this.name = n;
+        if (this.parentNode &&
+            typeof this.parentNode.add_property === "function") {
+          this.context.request_update({ source: this.parentNode,
+            action: "add_property", child: this, target: this });
+        }
       }
     } else if (name === "as") {
       var as = value.trim().toLowerCase();
