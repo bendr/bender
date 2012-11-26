@@ -24,6 +24,21 @@
     return this;
   };
 
+  // Append a child node `ch` to `node`. If it is a string, create a text
+  // node with the string as content; if it is an array, append all elements of
+  // the array; if it is not a Node, then simply ignore it.
+  function append_child(node, ch) {
+    if (typeof ch === "string") {
+      node.appendChild(node.ownerDocument.createTextNode(ch));
+    } else if (ch instanceof Array) {
+      ch.forEach(function (ch_) {
+        append_child(node, ch_);
+      });
+    } else if (ch instanceof window.Node) {
+      node.appendChild(ch);
+    }
+  }
+
   // Wrap new elements
   bender.context.$ = function (name, attrs) {
     var contents;
@@ -195,6 +210,71 @@
     return child_instance;
   };
 
+  bender.instance.render_view = function () {
+    console.log("[render_view]", this);
+    // TODO clear all watches referring to the previous views, if any
+    this.views.$root = this.render_node(this.component.view.root);
+  };
+
+  bender.instance.render_node = function (node) {
+    if (node.nodeType === window.Node.ELEMENT_NODE) {
+      if (node.namespaceURI === bender.ns) {
+        if (node.localName === "component") {
+          // TODO <component>
+        } else {
+          // TODO <content>
+          console.warn("[render_node] Unexpected Bender element {0} in view"
+              .fmt(node.localName));
+        }
+      } else {
+        return this.render_foreign(node);
+      }
+    } else if (node.nodeType === window.Node.TEXT_NODE ||
+        node.nodeType === window.Node.CDATA_SECTION_NODE) {
+      return this.render_text(node);
+    }
+  };
+
+  bender.instance.render_text = function (node) {
+    var d = this.component.context.document.createTextNode(node.textContent);
+    if (!this.bind_text(d)) {
+      d.textContent =
+        flexo.format.call(this, node.textContent, this.properties);
+    }
+    return d;
+  };
+
+  bender.instance.render_foreign = function (elem) {
+    // TODO wrap the element
+    var d = this.component.context.document.createElementNS(elem.namespaceURI,
+        elem.localName);
+    A.forEach.call(elem.attributes, function (attr) {
+      var val = attr.value;
+      if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
+        attr.localName === "id") {
+        this.views[val.trim()] = d;
+      } else if (attr.namespaceURI &&
+        attr.namespaceURI !== node.namespaceURI) {
+        if (!this.bind_attr(d, attr)) {
+          d.setAttributeNS(attr.namespaceURI, attr.localName,
+            flexo.format.call(this, val, this.properties));
+        }
+      } else {
+        if (!this.bind_attr(d, attr)) {
+          d.setAttribute(attr.localName,
+            flexo.format.call(this, val, this.properties));
+        }
+      }
+    }, this);
+    A.forEach.call(elem.childNodes, function (ch) {
+      var r = this.render_node(ch);
+      if (r) {
+        d.appendChild(r);
+      }
+    }, this);
+    return d;
+  };
+
   // Render this instance in a fresh placeholder, and return the placeholder.
   // Actual rendering may be delayed if the component is not loaded yet but the
   // placeholder can be inserted in its place immediately. Send a notification
@@ -315,63 +395,6 @@
   bender.instance.init = function () {};
   bender.instance.rendering = function () {};
   bender.instance.rendered = function () {};
-
-  bender.instance.render_node = function (node, dest) {
-    if (node.nodeType === window.Node.ELEMENT_NODE) {
-      if (node.namespaceURI === bender.ns) {
-        if (node.localName === "component") {
-          this.render_child_instance(node, dest);
-        } else if (node.localName === "content") {
-          if (this.reference && this.reference.childNodes.length > 0) {
-            this.render_children(this.reference, dest);
-          } else {
-            this.render_children(node, dest);
-          }
-        } else {
-          console.warn("[render_node] Unexpected Bender element {0} in view"
-              .fmt(node.localName));
-        }
-      } else {
-        this.render_foreign(node, dest);
-      }
-    } else if (node.nodeType === window.Node.TEXT_NODE ||
-        node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      this.render_text(node, dest);
-    }
-  };
-
-  bender.instance.render_foreign = function (elem, dest) {
-    var d = dest.appendChild(
-        dest.ownerDocument.createElementNS(elem.namespaceURI, elem.localName));
-    A.forEach.call(elem.attributes, function (attr) {
-      var val = attr.value;
-      if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
-        attr.localName === "id") {
-        this.views[val.trim()] = d;
-      } else if (attr.namespaceURI &&
-        attr.namespaceURI !== node.namespaceURI) {
-        if (!this.bind_attr(d, attr)) {
-          d.setAttributeNS(attr.namespaceURI, attr.localName,
-            flexo.format.call(this, val, this.properties));
-        }
-      } else {
-        if (!this.bind_attr(d, attr)) {
-          d.setAttribute(attr.localName,
-            flexo.format.call(this, val, this.properties));
-        }
-      }
-    }, this);
-    this.render_children(elem, d);
-  };
-
-  bender.instance.render_text = function (node, dest) {
-    var d = dest
-      .appendChild(dest.ownerDocument.createTextNode(node.textContent));
-    if (!this.bind_text(d)) {
-      d.textContent =
-        flexo.format.call(this, node.textContent, this.properties);
-    }
-  };
 
   // Render child instances
   // TODO handle attributes beside href and id
@@ -640,7 +663,7 @@
     }
   };
 
-  ["component", "content", "get", "property", "set", "watch"
+  ["component", "content", "get", "property", "set", "view", "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
@@ -665,6 +688,7 @@
     }
     instance.component = this;
     instance.init();
+    instance.views = { $document: this.context.document };
     instance.properties = {};
     instance.set_property = {};
     this.properties.forEach(function (p) {
@@ -684,7 +708,13 @@
       setTimeout(function () {
         console.log("[request_update] unqueuing updates", this.__update_queue);
         this.__update_queue.forEach(function (update) {
-          update.source[update.action].call(update.source, update);
+          if (update.source &&
+            typeof update.source[update.action] === "function") {
+            update.source[update.action].call(update.source, update);
+          } else {
+            console.warn("[request_update] skipped update: no suitable source",
+              update.source);
+          }
         });
         var updates = this.__update_queue.slice();
         delete this.__update_queue;
@@ -749,7 +779,16 @@
       console.error("Component already has a view", component);
     } else {
       this.view = update.child;
+      if (this.view.root) {
+        this.instances.forEach(function (instance) {
+          instance.render_view();
+        });
+      }
     }
+  };
+
+  prototypes.component.update_view = function (update) {
+    console.log("[update_view]", this.view.root);
   };
 
   prototypes.component.add_watch = function (update) {
@@ -797,6 +836,23 @@
       }
     }
     return ch;
+  };
+
+  prototypes.view.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.nodeType === window.Node.ELEMENT_NODE ||
+        ((ch.nodeType === window.Node.TEXT_NODE ||
+          ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
+         /\S/.test(ch.textContent))) {
+      if (this.root) {
+        console.warn("View element already has content", this.root);
+      } else {
+        this.root = ch;
+        this.context.request_update({ action: "update_view",
+          source: this.parentElement, child: this });
+      }
+    }
+    this.context.request_update({ action: "update_view", source: this })
   };
 
   prototypes.component.removeChild = function (ch) {
