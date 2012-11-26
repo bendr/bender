@@ -222,7 +222,6 @@
             object.__placeholder = this.__placeholder;
             if (this.parent) {
               object.parent = this.parent;
-              object.__actual_parent = this.__actual_parent;
               flexo.replace_in_array(this.parent.children, this, object);
               flexo.replace_in_array(this.parent.__pending, this, object);
             }
@@ -287,7 +286,7 @@
         parent.removeChild(this.__placeholder);
       }
       if (this.reference && this.reference.id) {
-        (this.__actual_parent || this.parent).instances[this.reference.id] = this;
+        this.reference_instance().instances[this.reference.id] = this;
       }
       this.rendering();
       this.render_edges();
@@ -302,11 +301,15 @@
       if (this.parent) {
         this.parent.finished_rendering(this);
       }
-      if (this.__actual_parent) {
-        this.parent = this.__actual_parent;
-      }
-      delete this.__actual_parent;
+      delete this.__reference_instance;
     }
+  };
+
+  bender.instance.reference_instance = function () {
+    for (var top = this.reference; top && top.parentElement;
+        top = top.parentElement) {}
+    for (var ref = this; ref.template !== top; ref = ref.parent);
+    return ref;
   };
 
   bender.instance.init = function () {};
@@ -320,8 +323,7 @@
           this.render_child_instance(node, dest);
         } else if (node.localName === "content") {
           if (this.reference && this.reference.childNodes.length > 0) {
-            this.__actual_parent = this;
-            this.parent.render_children(this.reference, dest);
+            this.render_children(this.reference, dest);
           } else {
             this.render_children(node, dest);
           }
@@ -375,7 +377,6 @@
   // TODO handle attributes beside href and id
   bender.instance.render_child_instance = function (component, dest) {
     var child_instance = this.add_child_instance(component);
-    child_instance.__actual_parent = this.__actual_parent;
     this.__pending.push(child_instance);
     child_instance.render(dest);
     if (component.values) {

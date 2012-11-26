@@ -1,0 +1,24 @@
+<component xmlns="http://bender.igel.co.jp" id="a">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div>
+      <html:p>
+        A (
+        <component href="b.xml">
+          <component href="c.xml">
+            <component href="d.xml" id="d"/>
+          </component>
+        </component>
+        )
+      </html:p>
+      <component href="p.xml" id="p">
+        P()
+      </component>
+    </html:div>
+  </view>
+  <watch>
+    <get instance="$self" event="@rendered">
+      console.log(this.instances.d);
+      console.log(this.instances.p);
+    </get>
+  </watch>
+</component>

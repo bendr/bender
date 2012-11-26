@@ -35,9 +35,11 @@ div.tiles {
   margin: 10px auto;
   padding: 0;
   height: 100%;
+  font-size: 0;
 }
 
 div.tiles > div {
+  font-size: 16px;
   border-radius: 5px;
   width: 220px;
   height: 220px;
@@ -61,6 +63,7 @@ li {
 
 h1, h2, h3 {
   font-weight: normal;
+  margin: 0;
 }
 
 strong {
@@ -150,13 +153,18 @@ a {
 
     <div class="tiles">
 
-      <div class="orange-bg" id="logo"></div><div class="text blue-bg">
+      <div class="orange-bg" id="logo">
+      </div>
+
+      <div class="text blue-bg">
         <div>
           <p><strong>Bender</strong> is an experimental, declarative Web
           application authoring framework based on XML, Javascript and Web
           technologies, and with a focus on rich graphical user interfaces.</p>
         </div>
-      </div><div class="text blue-bg">
+      </div>
+
+      <div class="text blue-bg">
         <div>
           <p>Bender is free software and is released under the
           <a href="https://github.com/bendr/bender/blob/master/LICENSE">Apache
@@ -164,28 +172,42 @@ a {
             href="https://github.com/bendr/bender">source code</a> is hosted on
           Github.</p>
         </div>
-      </div><div class="text yellow-bg">
+      </div>
+
+      <div class="text yellow-bg">
         <div>
           <h2>Docs</h2>
         </div>
-      </div><div class="text purple-bg">
+      </div>
+
+
+      <div class="text purple-bg">
         <div>
           <h2>Demos</h2>
         </div>
-      </div><div class="text peach-bg">
+      </div>
+
+      <div class="text peach-bg">
         <div>
           <ul>
             <li><a href="run.html?href=demo/logo.xml">Bender logo</a></li>
             <li><a href="demo/draw.html">Drawing</a></li>
           </ul>
         </div>
-      </div><div class="text black-bg">
+      </div>
+
+      <div class="text black-bg">
         <a href="run.html?href=t/arrow.xml"></a>
-      </div><div class="text red-bg">
+      </div>
+
+      <div class="text red-bg">
         <div>
           <h2>Tests</h2>
         </div>
-      </div><div class="text green-bg">
+      </div>
+
+
+      <div class="text green-bg">
         <div>
           <h3>Automated tests</h3>
           <ul>
@@ -196,22 +218,28 @@ a {
             <li>All tests should pass</li>
           </ul>
         </div>
-      </div><div class="text green-bg">
+      </div>
+
+      <div class="text green-bg">
         <div>
           <ul>
             <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
             <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
             <li><a href="run.html?href=t/class.xml">t/class.xml</a></li>
             <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
+            <li><a href="run.html?href=t/a.xml">t/a.xml</a></li>
             <li><a href="t/prototype.html">t/prototype.html</a></li>
           </ul>
         </div>
-      </div><div class="text black-bg">
-        <a href="run.html?href=t/arrow.xml"></a>
-      </div><div class="text black-bg">
+      </div>
+
+      <div class="text black-bg">
         <a href="run.html?href=t/arrow.xml"></a>
       </div>
 
+      <div class="text black-bg">
+        <a href="run.html?href=t/arrow.xml"></a>
+      </div>
 
     </div>
 
