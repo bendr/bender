@@ -114,6 +114,10 @@ a {
   color: black;
 }
 
+.yellow-bg a {
+  color: #0000cd;
+}
+
 .purple-bg {
   background-color: #9e0b46;
   color: white;

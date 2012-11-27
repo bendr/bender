@@ -35,7 +35,11 @@
 
       <div class="text yellow-bg">
         <div>
-          <h2>ドキュメント</h2>
+          <h3>ドキュメント</h3>
+          <ul>
+            <li><a href="">API Reference</a></li>
+            <li><a href="http://bender-framework.tumblr.com">開発ログ</a></li>
+          </ul>
         </div>
       </div>
 
