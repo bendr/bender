@@ -21,6 +21,7 @@ body {
   background-image:    -moz-linear-gradient(top, #fff, #08f);
   background-image:      -o-linear-gradient(top, #fff, #08f);
   background-image:         linear-gradient(to bottom, #fff, #08f);
+  background-attachment: fixed;
 }
 
 div.tiles {
@@ -134,6 +135,19 @@ a {
 
 .peach-bg a {
   color: #444;
+}
+
+.pink-bg {
+  background-color: #db7093;
+}
+
+.gray-bg {
+  background-color: #d3d3d3;
+  color: #c71585;
+}
+
+.gray-bg a {
+  color: #9e0b46;
 }
 
 .black-bg {
