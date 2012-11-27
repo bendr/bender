@@ -16,9 +16,7 @@ var component =
     context.$("view",
       context.$("html:p", "Hello, world!")));
 
-flexo.listen_once(context, "@update", function (e) {
-  console.log(component.instances[0].views.$root);
-});
+component.insert_before(document.body);
 
 /*
 

@@ -212,8 +212,12 @@
 
   bender.instance.render_view = function () {
     console.log("[render_view]", this);
-    // TODO clear all watches referring to the previous views, if any
     this.views.$root = this.render_node(this.component.view.root);
+  };
+
+  bender.instance.unrender_view = function () {
+    console.log("[unrender_view]", this);
+    flexo.safe_remove(this.views.$root);
   };
 
   bender.instance.render_node = function (node) {
@@ -702,6 +706,13 @@
     return instance;
   };
 
+  prototypes.component.insert_before = function (parent, ref) {
+    this.target = { parent: parent, ref: ref };
+    if (this.instances[0] && this.instances[0].views.$root) {
+      parent.insertBefore(this.instances[0].views.$root, ref);
+    }
+  };
+
   bender.context.request_update = function (update) {
     if (!this.__update_queue) {
       this.__update_queue = [];
@@ -783,7 +794,20 @@
         this.instances.forEach(function (instance) {
           instance.render_view();
         });
+        if (this.target && this.instances[0]) {
+          this.target.parent.insertBefore(this.instances[0].views.$root,
+              this.target.ref);
+        }
       }
+    }
+  };
+
+  prototypes.component.remove_view = function (update) {
+    if (this.view === update.child) {
+      delete this.view;
+      this.instances.forEach(function (instance) {
+        instance.unrender_view();
+      });
     }
   };
 
@@ -861,9 +885,8 @@
         context.request_update({ action: "remove_component", source: this,
           child: ch });
       } else if (ch.localName === "view") {
-        if (this.view === ch) {
-          delete this._view;
-        }
+        context.request_update({ action: "remove_view", source: this,
+          child: ch });
       } else if (ch.localName === "property") {
         flexo.remove_from_array(this.properties, ch);
       } else if (ch.localName === "watch") {
