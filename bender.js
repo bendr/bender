@@ -668,27 +668,38 @@
 
     // view property
     var view;
+    this._unset_view = function (v) {
+      if (v === view) {
+        if (view) {
+          this.instances.forEach(function (instance) {
+            instance.unrender_view();
+          });
+        }
+        view = undefined;
+      }
+    };
+    this._set_view = function (v) {
+      if (v !== view) {
+        view = v;
+        if (view && view.root) {
+          this.instances.forEach(function (instance) {
+            instance.render_view();
+          });
+          if (this.target && this.instances[0]) {
+            this.target.parent.insertBefore(this.instances[0].views.$root,
+                this.target.ref);
+          }
+        }
+      }
+    };
     Object.defineProperty(this, "view", { enumerable: true,
       get: function () { return view; },
       set: function (v) {
         if (v !== view) {
-          if (view) {
-            this.instances.forEach(function (instance) {
-              instance.unrender_view();
-            });
-          }
-          view = v;
-          if (v) {
-            if (view.root) {
-              this.instances.forEach(function (instance) {
-                instance.render_view();
-              });
-              if (this.target && this.instances[0]) {
-                this.target.parent.insertBefore(this.instances[0].views.$root,
-                    this.target.ref);
-              }
-            }
-          }
+          flexo.safe_remove(view);
+        }
+        if (v) {
+          this.appendChild(v);
         }
       }
     });
@@ -801,14 +812,12 @@
     if (this.view) {
       console.error("Component already has a view", component);
     } else {
-      this.view = update.child;
+      this._set_view(update.child);
     }
   };
 
   prototypes.component.remove_view = function (update) {
-    if (this.view === update.child) {
-      this.view = undefined;
-    }
+    this._unset_view(update.child);
   };
 
   prototypes.component.update_view = function (update) {
