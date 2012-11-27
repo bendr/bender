@@ -67,12 +67,12 @@
     }
   };
 
-  // Load a component definition for an instanceI. While a file is being
+  // Load a component definition for an instance. While a file is being
   // loaded, store all instances that are requesting it; once it's loaded,
   // store the loaded component itself.
   bender.context.load_component = function (uri, instance) {
     var split = uri.split("#");
-    var locator = flexo.normalize_uri(instance.reference.uri, split[0]);
+    var locator = split[0];
     // TODO keep track of id's to load components inside components
     // var id = split[1];
     if (this.loaded[locator] instanceof window.Node) {
@@ -319,21 +319,6 @@
       render.call(this);
     } else if (this.reference) {
       this.load_component(render);
-    }
-  };
-
-  // Load the component for this instance
-  bender.instance.load_component = function (k) {
-    if (this.reference && this.reference.href) {
-      flexo.listen_once(this, "@loaded", function (e) {
-        e.source.template = e.component;
-        k.call(e.source);
-      });
-      flexo.listen_once(this, "@error", function (e) {
-        console.error("Error loading component at {0}: {1}"
-          .fmt(e.uri, e.message), e.source);
-      });
-      this.reference.context.load_component(this.reference.href, this);
     }
   };
 
@@ -666,6 +651,29 @@
     this.uri = this.context.document.baseURI;
     this.create_instance();  // prototype instance
 
+    // href property: this component inherits from that component
+    // may require loading
+    var href;
+    this._set_href = function (h) {
+      href = h;
+      if (h) {
+        this.context.request_update({ action: "set_component_prototype",
+          source: this });
+      }
+    };
+    Object.defineProperty(this, "href", { enumerable: true,
+      get: function () { return href; },
+      set: function (h) {
+        if (h !== href) {
+          if (h) {
+            this.setAttribute("href", h);
+          } else {
+            this.removeAttribute("href");
+          }
+        }
+      }
+    });
+
     // view property
     var view;
     this._unset_view = function (v) {
@@ -854,9 +862,15 @@
   // Replace this component everywhere?
   prototypes.component.set_component_prototype = function () {
     var uri = flexo.absolute_uri(this.uri, this.href);
-    var prototype = this.context.loaded[uri];
-    console.warn("[set_component_prototype] not implemented yet ({0})".fmt(uri),
-        prototype);
+    flexo.listen_once(this, "@loaded", function (e) {
+      e.source.prototype = e.component;
+      console.log("[set_component_prototype]", e);
+    });
+    flexo.listen_once(this, "@error", function (e) {
+      console.error("Error loading component at {0}: {1}"
+        .fmt(e.uri, e.message), e.source);
+    });
+    this.context.load_component(this.href, this);
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
@@ -909,9 +923,7 @@
   prototypes.component.setAttribute = function (name, value) {
     Object.getPrototypeOf(this).setAttribute.call(this, name, value);
     if (name === "href") {
-      this.href = value.trim();
-      this.context.request_update({ action: "set_component_prototype",
-        source: this });
+      this._set_href(value.trim());
     } else if (name === "id") {
       this.id = value.trim();
       var prev_uri = this.uri;
@@ -928,7 +940,7 @@
 
   prototypes.component.removeAttribute = function (name) {
     if (name === "href") {
-      delete this.href;
+      this._set_href();
     } else if (name === "id") {
       delete this.id;
       var prev_uri = this.uri;
