@@ -665,6 +665,33 @@
     this.values = {};        // values given as attributes (TODO properties?)
     this.uri = this.context.document.baseURI;
     this.create_instance();  // prototype instance
+
+    // view property
+    var view;
+    Object.defineProperty(this, "view", { enumerable: true,
+      get: function () { return view; },
+      set: function (v) {
+        if (v !== view) {
+          if (view) {
+            this.instances.forEach(function (instance) {
+              instance.unrender_view();
+            });
+          }
+          view = v;
+          if (v) {
+            if (view.root) {
+              this.instances.forEach(function (instance) {
+                instance.render_view();
+              });
+              if (this.target && this.instances[0]) {
+                this.target.parent.insertBefore(this.instances[0].views.$root,
+                    this.target.ref);
+              }
+            }
+          }
+        }
+      }
+    });
   };
 
   prototypes.component.create_instance = function () {
@@ -775,24 +802,12 @@
       console.error("Component already has a view", component);
     } else {
       this.view = update.child;
-      if (this.view.root) {
-        this.instances.forEach(function (instance) {
-          instance.render_view();
-        });
-        if (this.target && this.instances[0]) {
-          this.target.parent.insertBefore(this.instances[0].views.$root,
-              this.target.ref);
-        }
-      }
     }
   };
 
   prototypes.component.remove_view = function (update) {
     if (this.view === update.child) {
-      delete this.view;
-      this.instances.forEach(function (instance) {
-        instance.unrender_view();
-      });
+      this.view = undefined;
     }
   };
 
