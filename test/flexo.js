@@ -682,6 +682,13 @@
         });
       });
 
+      describe("flexo.append_child(node, ch)", function() {
+        it("appends a child node to a node if ch is a node");
+        it("appends a text node to a node if ch is a string");
+        it("appends all elements of ch if ch is an array");
+        it("ignores any other content");
+      });
+
 
       describe("flexo.event_client_pos(e)", function () {
         it("returns an { x: e.clientX, y: e.clientY } object for a mouse event", function (done) {
