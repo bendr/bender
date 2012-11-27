@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="bender.css">
+  </head>
+  <body>
+
+    <div class="tiles">
+
+      <div class="orange-bg" id="logo">
+      </div>
+
+      <div class="text blue-bg">
+        <div>
+          <p><strong>Bender</strong>は、
+          豊富なグラフィカルユーザインターフェースに
+          焦点をあてた、宣言型Webアプリケーションのオーサリングフレームワークです。
+          </p>
+        </div>
+      </div>
+
+      <div class="text blue-bg">
+        <div>
+          <p>Benderは
+          <a href="https://github.com/bendr/bender/blob/master/LICENSE">Apache
+            License v2.0</a>で配布されいてるフリーソフトウェアです。</p>
+          <p>
+          <a href="https://github.com/bendr/bender">ソースコード</a> はGithub上で
+            公開しています。
+          </p>
+        </div>
+      </div>
+
+      <div class="text yellow-bg">
+        <div>
+          <h2>ドキュメント</h2>
+        </div>
+      </div>
+
+      <div class="text purple-bg">
+        <div>
+          <h2>デモ</h2>
+        </div>
+      </div>
+
+      <div class="text peach-bg">
+        <div>
+          <ul>
+            <li><a href="run.html?href=demo/logo.xml">Bender ロゴ</a></li>
+            <li><a href="demo/draw.html">描画サンプル</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="text black-bg">
+        <a href="run.html?href=t/arrow.xml"></a>
+      </div>
+
+      <div class="text red-bg">
+        <div>
+          <h2>テスト</h2>
+        </div>
+      </div>
+
+
+      <div class="text green-bg">
+        <div>
+          <h3>Conformance Test</h3>
+          <ul>
+            <li><a href="test/flexo.html">Flexo</a>
+            (<a href="flexo.js">flexo.js</a>)</li>
+            <li><a href="test/bender.html">Bender</a>
+            (<a href="bender.js">bender.js</a>)</li>
+            <li>すべてのテストをパスするはずです。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="text green-bg">
+        <div>
+          <ul>
+            <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
+            <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
+            <li><a href="run.html?href=t/class.xml">t/class.xml</a></li>
+            <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
+            <li><a href="t/prototype.html">t/prototype.html</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="text black-bg">
+        <a href="run.html?href=t/arrow.xml"></a>
+      </div>
+
+      <div class="text black-bg">
+        <a href="run.html?href=t/arrow.xml"></a>
+      </div>
+
+    </div>
+
+    <footer>
+      Copyright © 2011, 2012, <a href="http://www.igel.co.jp">IGEL Co., Ltd.</a>
+    </footer>
+
+    <script src="flexo.js"></script>
+    <script src="bender.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var logo_component = context.create_component({ href: "demo/logo.xml",
+  sides: "7", fgcolor: "#ff6a4d", bgcolor: "white" });
+var logo_instance = bender.create_instance({ reference: logo_component });
+context.add_instance(logo_instance, document.getElementById("logo"));
+
+var arrow_component = context.create_component({ href: "t/arrow.xml", r: 120,
+  "white-bg": false });
+Array.prototype.forEach.call(document.querySelectorAll(".black-bg a"),
+  function (a) {
+    var arrow_instance = bender.create_instance({ reference: arrow_component });
+    context.add_instance(arrow_instance, a);
+  });
+
+    </script>
+
+  </body>
+</html>
+
