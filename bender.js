@@ -24,21 +24,6 @@
     return this;
   };
 
-  // Append a child node `ch` to `node`. If it is a string, create a text
-  // node with the string as content; if it is an array, append all elements of
-  // the array; if it is not a Node, then simply ignore it.
-  function append_child(node, ch) {
-    if (typeof ch === "string") {
-      node.appendChild(node.ownerDocument.createTextNode(ch));
-    } else if (ch instanceof Array) {
-      ch.forEach(function (ch_) {
-        append_child(node, ch_);
-      });
-    } else if (ch instanceof window.Node) {
-      node.appendChild(ch);
-    }
-  }
-
   // Wrap new elements
   bender.context.$ = function (name, attrs) {
     var contents;
@@ -76,7 +61,7 @@
         }
       });
       contents.forEach(function (ch) {
-        append_child(elem, ch);
+        flexo.append_child(elem, ch);
       });
       return elem;
     }
