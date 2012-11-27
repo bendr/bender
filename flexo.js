@@ -452,12 +452,12 @@
   // Append a child node `ch` to `node`. If it is a string, create a text
   // node with the string as content; if it is an array, append all elements of
   // the array; if it is not a Node, then simply ignore it.
-  function append_child(node, ch) {
+  flexo.append_child = function (node, ch) {
     if (typeof ch === "string") {
       node.appendChild(node.ownerDocument.createTextNode(ch));
     } else if (ch instanceof Array) {
       ch.forEach(function (ch_) {
-        append_child(node, ch_);
+        flexo.append_child(node, ch_);
       });
     } else if (ch instanceof window.Node) {
       node.appendChild(ch);
@@ -506,7 +506,7 @@
         }
       });
       contents.forEach(function (ch) {
-        append_child(elem, ch);
+        flexo.append_child(elem, ch);
       });
       return elem;
     }
@@ -521,7 +521,7 @@
   flexo.$$ = function () {
     var fragment = window.document.createDocumentFragment();
     A.forEach.call(arguments, function (ch) {
-      append_child(fragment, ch);
+      flexo.append_child(fragment, ch);
     });
     return fragment;
   }
