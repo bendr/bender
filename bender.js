@@ -706,7 +706,7 @@
       set: function (v) {
         if (v !== view) {
           if (view) {
-            this._unset_view(view);
+            this.removeChild(view);
           }
           if (v) {
             this.appendChild(v);
