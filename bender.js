@@ -203,7 +203,7 @@
 
   bender.instance.unrender_view = function () {
     console.log("[unrender_view]", this);
-    flexo.safe_remove(this.views.$root);
+    delete this.views.$root;
     flexo.notify(this, "@rendered");
   };
 
@@ -645,6 +645,7 @@
   });
 
   prototypes.component.init = function () {
+    this.derived = [];       // components that derive from this one
     this.components = [];    // component children (outside of view)
     this.properties = [];    // child property elements
     this.watches = [];       // child watch elements
@@ -686,20 +687,13 @@
           });
         }
         view = undefined;
+        this.refresh_view();
       }
     };
     this._set_view = function (v) {
       if (v !== view) {
         view = v;
-        if (view && view.root) {
-          this.instances.forEach(function (instance) {
-            instance.render_view();
-          });
-          if (this.target && this.instances[0]) {
-            this.target.parent.insertBefore(this.instances[0].views.$root,
-                this.target.ref);
-          }
-        }
+        this.refresh_view();
       }
     };
     this._has_own_view = function () {
@@ -720,6 +714,19 @@
         }
       }
     });
+  };
+
+  prototypes.component.refresh_view = function () {
+    if (this.view && this.view.root) {
+      this.instances.forEach(function (instance) {
+        instance.render_view();
+      });
+      this.derived.forEach(function (d) {
+        if (!d._has_own_view()) {
+          d.refresh_view();
+        }
+      });
+    }
   };
 
   prototypes.component.create_instance = function () {
@@ -746,19 +753,19 @@
     return instance;
   };
 
-  prototypes.component.insert_before = function (parent, ref) {
-    this.target = { parent: parent, ref: ref };
-    if (this.instances[0]) {
-      var root = this.instances[0].views.$root ||
-        parent.ownerDocument.createElementNS(bender.ns, "placeholder");
-      parent.insertBefore(root, ref);
-      flexo.listen(this.instances[0], "@rendered", function (e) {
-        var root_ = e.source.views.$root ||
-          parent.ownerDocument.createElementNS(bender.ns, "placeholder");
-        parent.replaceChild(root_, root);
-        root = root_;
-      });
+  prototypes.component.render_in = function (parent) {
+    this.target = parent;
+    var root = this.instances[0].views.$root;
+    if (root) {
+      parent.appendChild(root);
     }
+    flexo.listen(this.instances[0], "@rendered", function (e) {
+      flexo.safe_remove(root);
+      root = e.source.views.$root;
+      if (root) {
+        parent.appendChild(root);
+      }
+    });
   };
 
   bender.context.request_update = function (update) {
@@ -882,7 +889,11 @@
     flexo.listen_once(this, "@loaded", function (e) {
       // TODO make sure that it has its OWN view, not a prototype's
       var re_render = !e.source._has_own_view();
+      if (e.source.prototype) {
+        flexo.remove_from_array(e.source.prototype.derived, e.source);
+      }
       e.source.prototype = e.component;
+      e.source.prototype.derived.push(e.source);
       if (re_render) {
         e.source.instances.forEach(function (instance) {
           instance.render_view();

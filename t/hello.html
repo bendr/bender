@@ -20,7 +20,7 @@ var component =
   context.$("component",
     context.$("view",
       context.$("html:p", "Hello, world!")));
-component.insert_before(document.querySelector(".t"));
+component.render_in(document.querySelector(".t"));
 
     </script>
   </body>
