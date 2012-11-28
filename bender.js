@@ -657,12 +657,10 @@
   prototypes.component.init = function () {
     this.derived = [];       // components that derive from this one
     this.components = [];    // component children (outside of view)
-    this.properties = [];    // child property elements
     this.watches = [];       // child watch elements
     this.instances = [];     // instances of the component
     this.values = {};        // values given as attributes (TODO properties?)
     this.uri = this.context.document.baseURI;
-    this.create_instance();  // prototype instance
 
     // href property: this component inherits from that component
     // may require loading
@@ -684,6 +682,37 @@
             this.removeAttribute("href");
           }
         }
+      }
+    });
+
+    // properties property
+    var properties = {};
+    this._has_own_property = function (name) {
+      return properties.hasOwnProperty(name);
+    };
+    this._get_property = function (name) {
+      return this.properties.hasOwnProperty(name) ?
+        this.properties[name] :
+        this.prototype && this.prototype._get_property(name);
+    };
+    this._add_property = function (property) {
+      this.properties[property.name] = property;
+      this.instances.forEach(function (instance) {
+        instance.setup_property(property);
+      });
+    };
+    this._remove_property = function (property) {
+      delete this.properties[property.name];
+    };
+    Object.defineProperty(this, "properties", { enumerable: true,
+      get: function () {
+        var props = this.prototype ? this.prototype.properties : [];
+        for (var p in properties) {
+          if (properties.hasOwnProperty(p)) {
+            props.push(p);
+          }
+        }
+        return props;
       }
     });
 
@@ -724,6 +753,31 @@
         }
       }
     });
+
+    // content property (TODO)
+
+    this.create_instance();  // prototype instance
+  };
+
+  // Add a property element to the component, provided that it has a name.
+  prototypes.component.add_property = function (property) {
+    if (property.name) {
+      if (this._has_own_property(property.name)) {
+        this.removeChild(this.properties[property.name]);
+      }
+      this.appendChild(property);
+    } else {
+      console.warn("Not adding property without a name.", property);
+    }
+  };
+
+  // Remove a property from the component.
+  prototypes.component.remove_property = function (property) {
+    if (property.name && this.properties[property.name] === property) {
+      this.removeChild(property);
+    } else {
+      console.warn("Not a property of component", this);
+    }
   };
 
   prototypes.component.refresh_view = function () {
@@ -810,14 +864,6 @@
     delete instance.parent;
   };
 
-  prototypes.component.add_component = function (update) {
-    this.components.push(update.child);
-    this.instances[0].add_child(update.child.instances[0]);
-    for (var i = 1, n = this.instances.length; i < n; ++i) {
-      this.instances[i].add_child(update.child.create_instance());
-    }
-  };
-
   prototypes.component.remove_component = function (update) {
     flexo.remove_from_array(this.components, update.child);
     for (var i = 0, n = this.instances.length; i < n; ++i) {
@@ -829,45 +875,12 @@
     }
   };
 
-  prototypes.component.add_property = function (update) {
-    if (update.child.name) {
-      this.properties.push(update.child);
-      for (var i = 0, n = this.instances.length; i < n; ++i) {
-        if (!this.instances[i].properties.hasOwnProperty(update.child.name)) {
-          this.instances[i].setup_property(update.child);
-        }
-      }
-      this.init_property(update);
-    }
-  };
-
-  prototypes.component.init_property = function (update) {
-    if (update.child.name) {
-      for (var i = 0, n = this.instances.length; i < n; ++i) {
-        this.instances[i].properties[update.child.name] =
-          update.child.parse_value(this.instances[i]);
-      }
-    }
-  };
-
-  prototypes.component.add_view = function (update) {
-    if (this._has_own_view()) {
-      console.error("Component already has a view", this);
-    } else {
-      this._set_view(update.child);
-    }
-  };
-
   prototypes.component.remove_view = function (update) {
     this._unset_view(update.child);
   };
 
   prototypes.component.update_view = function (update) {
     console.log("[update_view]", this.view.root);
-  };
-
-  prototypes.component.add_watch = function (update) {
-    this.properties.push(update.child);
   };
 
   prototypes.component.set_instance_prototype = function () {
@@ -920,13 +933,53 @@
   prototypes.component.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.namespaceURI === bender.ns) {
-      if (ch.localName === "property" || ch.localName === "component" ||
-          ch.localName === "view" || ch.localName === "watch") {
-        this.context.request_update({ action: "add_" + ch.localName,
+      if (ch.localName === "component" || ch.localName === "content" ||
+          ch.localName === "property" || ch.localName === "view" ||
+          ch.localName === "watch") {
+        this.context.request_update({ action: "update_add_" + ch.localName,
           source: this, child: ch });
       }
     }
     return ch;
+  };
+
+  prototypes.component.update_add_component = function (update) {
+    this.components.push(update.child);
+    this.instances[0].add_child(update.child.instances[0]);
+    for (var i = 1, n = this.instances.length; i < n; ++i) {
+      this.instances[i].add_child(update.child.create_instance());
+    }
+  };
+
+  prototypes.component.update_add_content = function (update) {
+    if (this._has_own_content()) {
+      console.error("Component already has content", this);
+    } else {
+      this._set_content(update.child);
+    }
+  };
+
+  prototypes.component.update_add_property = function (update) {
+    if (update.child.name) {
+      if (this._has_own_property(update.child.name)) {
+        console.error("Component already has a property named \"{0}\""
+          .fmt(update.child.name, this));
+      } else {
+        this._add_property(update.child);
+      }
+    }
+  };
+
+  prototypes.component.update_add_view = function (update) {
+    if (this._has_own_view()) {
+      console.error("Component already has a view", this);
+    } else {
+      this._set_view(update.child);
+    }
+  };
+
+  prototypes.component.update_add_watch = function (update) {
+    this.properties.push(update.child);
   };
 
   prototypes.view.insertBefore = function (ch, ref) {
@@ -955,7 +1008,7 @@
         context.request_update({ action: "remove_view", source: this,
           child: ch });
       } else if (ch.localName === "property") {
-        flexo.remove_from_array(this.properties, ch);
+        this._remove_property(ch);
       } else if (ch.localName === "watch") {
         flexo.remove_from_array(this.watches, ch);
       }
@@ -1039,7 +1092,7 @@
         if (this.parentNode &&
             typeof this.parentNode.add_property === "function") {
           this.context.request_update({ source: this.parentNode,
-            action: "add_property", child: this, target: this });
+            action: "update_add_property", child: this, target: this });
         }
       }
     } else if (name === "as") {
