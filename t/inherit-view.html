@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Inherit view</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="t.css">
+    <style>
+      .t p { font-size: 400px; display: inline-block; margin: 0 0.1em }
+    </style>
+  </head>
+  <body>
+    <div class="t"></div>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var a =
+  context.$("component", { id: "A" },
+    context.$("view",
+      context.$("html:p", "A")));
+a.insert_before(document.querySelector(".t"));
+
+var b = context.$("component", { id: "B", href: "#A" });
+b.insert_before(document.querySelector(".t"));
+
+var c =
+  context.$("component", { id: "C", href: "#B" },
+    context.$("view",
+      context.$("html:p", "C")));
+c.insert_before(document.querySelector(".t"));
+
+    </script>
+  </body>
+</html>
+

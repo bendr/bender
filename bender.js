@@ -67,40 +67,38 @@
     }
   };
 
-  // Load a component definition for an instance. While a file is being
-  // loaded, store all instances that are requesting it; once it's loaded,
-  // store the loaded component itself.
-  bender.context.load_component = function (uri, instance) {
-    var split = uri.split("#");
-    var locator = split[0];
-    // TODO keep track of id's to load components inside components
-    // var id = split[1];
-    if (this.loaded[locator] instanceof window.Node) {
-      flexo.notify(instance, "@loaded", { uri: locator,
-        component: this.loaded[locator] });
-    } else if (Array.isArray(this.loaded[locator])) {
-      this.loaded[locator].push(instance);
+  // Load a component prototype for a component using its href attribute.
+  // While a file is being loaded, store all components that are requesting it;
+  // once it is loaded, store the loaded component prototype itself.
+  bender.context.load_component = function (component) {
+    var uri = flexo.normalize_uri(component.uri, component.href);
+    if (this.loaded[uri] instanceof window.Node) {
+      flexo.notify(component, "@loaded",
+          { uri: uri, component: this.loaded[uri] });
+    } else if (Array.isArray(this.loaded[uri])) {
+      this.loaded[uri].push(component);
     } else {
-      this.loaded[locator] = [instance];
-      flexo.ez_xhr(locator, { responseType: "document" }, function (req) {
-        var ev = { uri: locator, req: req };
+      this.loaded[uri] = [component];
+      flexo.ez_xhr(uri, { responseType: "document" }, function (req) {
+        var ev = { uri: uri, req: req };
         if (req.status !== 0 && req.status !== 200) {
           ev.message = "HTTP error {0}".fmt(req.status);
-          flexo.notify(instance, "@error", ev);
+          flexo.notify(component, "@error", ev);
         } else if (!req.response) {
           ev.message = "could not parse response as XML";
-          flexo.notify(instance, "@error", ev);
+          flexo.notify(component, "@error", ev);
         } else {
-          var c = this.import_node(req.response.documentElement, locator);
+          var c = this.import_node(req.response.documentElement, uri);
           if (is_bender_element(c, "component")) {
             ev.component = c;
-            this.loaded[locator].forEach(function (i) {
-              flexo.notify(i, "@loaded", ev);
+            var cs = this.loaded[uri].slice();
+            this.loaded[uri] = c;
+            cs.forEach(function (k) {
+              flexo.notify(k, "@loaded", ev);
             });
-            this.loaded[locator] = c;
           } else {
             ev.message = "not a Bender component";
-            flexo.notify(instance, "@error", ev);
+            flexo.notify(component, "@error", ev);
           }
         }
       }.bind(this));
@@ -197,12 +195,16 @@
 
   bender.instance.render_view = function () {
     console.log("[render_view]", this);
-    this.views.$root = this.render_node(this.component.view.root);
+    if (this.component.view && this.component.view.root) {
+      this.views.$root = this.render_node(this.component.view.root);
+    }
+    flexo.notify(this, "@rendered");
   };
 
   bender.instance.unrender_view = function () {
     console.log("[unrender_view]", this);
     flexo.safe_remove(this.views.$root);
+    flexo.notify(this, "@rendered");
   };
 
   bender.instance.render_node = function (node) {
@@ -700,14 +702,21 @@
         }
       }
     };
+    this._has_own_view = function () {
+      return !!view;
+    };
     Object.defineProperty(this, "view", { enumerable: true,
-      get: function () { return view; },
+      get: function () {
+        return view || (this.prototype && this.prototype.view);
+      },
       set: function (v) {
         if (v !== view) {
-          flexo.safe_remove(view);
-        }
-        if (v) {
-          this.appendChild(v);
+          if (view) {
+            this._unset_view(view);
+          }
+          if (v) {
+            this.appendChild(v);
+          }
         }
       }
     });
@@ -739,8 +748,16 @@
 
   prototypes.component.insert_before = function (parent, ref) {
     this.target = { parent: parent, ref: ref };
-    if (this.instances[0] && this.instances[0].views.$root) {
-      parent.insertBefore(this.instances[0].views.$root, ref);
+    if (this.instances[0]) {
+      var root = this.instances[0].views.$root ||
+        parent.ownerDocument.createElementNS(bender.ns, "placeholder");
+      parent.insertBefore(root, ref);
+      flexo.listen(this.instances[0], "@rendered", function (e) {
+        var root_ = e.source.views.$root ||
+          parent.ownerDocument.createElementNS(bender.ns, "placeholder");
+        parent.replaceChild(root_, root);
+        root = root_;
+      });
     }
   };
 
@@ -817,8 +834,8 @@
   };
 
   prototypes.component.add_view = function (update) {
-    if (this.view) {
-      console.error("Component already has a view", component);
+    if (this._has_own_view()) {
+      console.error("Component already has a view", this);
     } else {
       this._set_view(update.child);
     }
@@ -863,14 +880,21 @@
   prototypes.component.set_component_prototype = function () {
     var uri = flexo.absolute_uri(this.uri, this.href);
     flexo.listen_once(this, "@loaded", function (e) {
+      // TODO make sure that it has its OWN view, not a prototype's
+      var re_render = !e.source._has_own_view();
       e.source.prototype = e.component;
-      console.log("[set_component_prototype]", e);
+      if (re_render) {
+        e.source.instances.forEach(function (instance) {
+          instance.render_view();
+        });
+        console.log("[set_component_prototype] render view");
+      }
     });
     flexo.listen_once(this, "@error", function (e) {
       console.error("Error loading component at {0}: {1}"
         .fmt(e.uri, e.message), e.source);
     });
-    this.context.load_component(this.href, this);
+    this.context.load_component(this);
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
