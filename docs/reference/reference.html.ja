@@ -10,6 +10,7 @@
 <div class="content">
     <div class="tiles half">
       <div class="pink-bg" id="logo">
+        <a href="../../index.html.ja"></a>
       </div>
       <div class="text green-bg">
         <div>
@@ -103,7 +104,7 @@ var context = bender.create_context();
 var logo_component = context.create_component({ href: "../../demo/logo.xml",
   sides: "7", fgcolor: "#db7093", bgcolor: "white" });
 var logo_instance = bender.create_instance({ reference: logo_component });
-context.add_instance(logo_instance, document.getElementById("logo"));
+context.add_instance(logo_instance, document.querySelector("#logo a"));
 
 
     </script>
