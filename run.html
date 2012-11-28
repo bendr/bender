@@ -34,23 +34,12 @@ bender.instance.rendering = function () {
 var context = bender.create_context();
 var args = flexo.get_args();
 if (args.href) {
-  var component = context.create_component(args);
-  var instance = bender.create_instance({ reference: component });
-  flexo.listen(instance, "@error", function (e) {
+  var component = context.$("component", args);
+  flexo.listen(component, "@error", function (e) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
   });
-  flexo.listen(instance, "@rendering", function (e) {
-    console.log("[run] rendering", e.source);
-  });
-  flexo.listen(instance, "@rendered", function (e) {
-    console.log("[run] rendered", e.source);
-    if (e.instance) {
-      console.log("[run] updating instance:", e.instance);
-      instance = e.instance;
-    }
-  });
-  context.add_instance(instance, document.body);
+  component.render_in(document.body);
 } else {
   document.body.appendChild(flexo.$("p.bender--runtime-message",
     "Nothing to run. Please specify a Bender component to load with the ", 

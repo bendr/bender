@@ -19,7 +19,6 @@
   // track of instance tree roots (this.instance) and loaded URIs (this.loaded)
   bender.context.init = function (host) {
     this.document = host;
-    this.instances = [];
     this.loaded = {};
     return this;
   };
@@ -194,15 +193,16 @@
   };
 
   bender.instance.render_view = function () {
-    console.log("[render_view]", this);
+    console.log("[render_view]", this.component);
     if (this.component.view && this.component.view.root) {
       this.views.$root = this.render_node(this.component.view.root);
+      console.log(" ", this.views.$root);
     }
     flexo.notify(this, "@rendered");
   };
 
   bender.instance.unrender_view = function () {
-    console.log("[unrender_view]", this);
+    // console.log("[unrender_view]", this);
     delete this.views.$root;
     flexo.notify(this, "@rendered");
   };
@@ -211,9 +211,10 @@
     if (node.nodeType === window.Node.ELEMENT_NODE) {
       if (node.namespaceURI === bender.ns) {
         if (node.localName === "component") {
-          // TODO <component>
+          return this.render_component(node);
+        } else if (node.localName === "content") {
+          return this.render_children(node);
         } else {
-          // TODO <content>
           console.warn("[render_node] Unexpected Bender element {0} in view"
               .fmt(node.localName));
         }
@@ -224,6 +225,21 @@
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
       return this.render_text(node);
     }
+  };
+
+  bender.instance.render_children = function (node) {
+    var fragment = this.component.context.document.createDocumentFragment();
+    A.forEach.call(node.childNodes, function (ch) {
+      var r = this.render_node(ch);
+      if (r) {
+        fragment.appendChild(r);
+      }
+    }, this);
+    return fragment;
+  };
+
+  bender.instance.render_component = function (component) {
+    return component.context.$("placeholder");
   };
 
   bender.instance.render_text = function (node) {
@@ -245,7 +261,7 @@
         attr.localName === "id") {
         this.views[val.trim()] = d;
       } else if (attr.namespaceURI &&
-        attr.namespaceURI !== node.namespaceURI) {
+        attr.namespaceURI !== elem.namespaceURI) {
         if (!this.bind_attr(d, attr)) {
           d.setAttributeNS(attr.namespaceURI, attr.localName,
             flexo.format.call(this, val, this.properties));
@@ -383,12 +399,6 @@
         this.bind_prop(child_instance, p, component.values[p]);
       }, this);
     }
-  };
-
-  bender.instance.render_children = function (node, dest) {
-    A.forEach.call(node.childNodes, function (ch) {
-      this.render_node(ch, dest);
-    }, this);
   };
 
   // Initialize properties defined by their <property> element
@@ -772,7 +782,7 @@
     if (!this.__update_queue) {
       this.__update_queue = [];
       setTimeout(function () {
-        console.log("[request_update] unqueuing updates", this.__update_queue);
+        // console.log("[request_update] unqueuing updates", this.__update_queue);
         this.__update_queue.forEach(function (update) {
           if (update.source &&
             typeof update.source[update.action] === "function") {
@@ -898,7 +908,6 @@
         e.source.instances.forEach(function (instance) {
           instance.render_view();
         });
-        console.log("[set_component_prototype] render view");
       }
     });
     flexo.listen_once(this, "@error", function (e) {
