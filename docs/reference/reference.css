@@ -1,0 +1,53 @@
+
+body {
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #66cdaa;
+  background-image: -webkit-linear-gradient(top, #fff, #66cdaa);
+  background-image:    -moz-linear-gradient(top, #fff, #66cdaa);
+  background-image:      -o-linear-gradient(top, #fff, #66cdaa);
+  background-image:         linear-gradient(to bottom, #fff, #66cdaa);
+  background-attachment: fixed;
+}
+
+div.content {
+  width: 960px;
+  height: 100%;
+  margin: 0 auto;
+  display: -webkit-box;
+}
+
+div.tiles.half {
+  width: 480px;
+  position: absolute;
+}
+
+div.description.half {
+  width: 480px;
+  height: 100%;
+  margin: 10px;
+  padding: 0;
+  position: relative;
+  left: 480px;
+}
+div.description > div {
+  font-size: 16px;
+  border-radius: 5px;
+  width: 480px;
+  height: 100%;
+  margin: 10px;
+  padding: 10px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: bottom;
+  background-color: rgba(255,255,255,0.5);
+}
+
+footer {
+  position: relative;
+}
+
+

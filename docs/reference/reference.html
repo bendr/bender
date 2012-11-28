@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../bender.css">
+    <link rel="stylesheet" href="reference.css">
+  </head>
+  <body>
+<div class="content">
+    <div class="tiles half">
+      <div class="pink-bg" id="logo">
+        <a href="../../index.html.ja"></a>
+      </div>
+      <div class="text green-bg">
+        <div>
+          <h2>Bender API Reference</h2>
+        </div>
+      </div>
+      <div class="text blue-bg">
+        <div>
+          <h2>Element</h2>
+          <ul>
+            <li>component</li>
+            <li>content</li>
+            <li>get</li>
+          </ul>
+        </div>
+      </div>
+      <div class="text blue-bg">
+        <div>
+          <ul>
+            <li>property</li>
+            <li>set</li>
+            <li>view</li>
+            <li>watch</li>
+          </ul>
+        </div>
+      </div>
+      <div class="text purple-bg">
+        <div>
+          <h2>Attribute</h2>
+          <ul>
+            <li>as</li>
+            <li>dom-event</li>
+            <li>event</li>
+            <li>href</li>
+          </ul>
+        </div>
+      </div>
+      <div class="text purple-bg">
+        <div>
+          <ul>
+            <li>id</li>
+            <li>instance</li>
+            <li>name</li>
+            <li>property</li>
+            <li>prototype</li>
+            <li>value</li>
+            <li>view</li>
+          </ul>
+        </div>
+      </div>
+      <div class="text gray-bg">
+        <div>
+          <p>Copyright © 2011, 2012, <a href="http://www.igel.co.jp">IGEL Co., Ltd.</a></p>
+        </div>
+      </div>
+      <div class="peach-bg">
+      </div>
+    </div>
+    <div class="description half">
+      <div>
+      <h2>Overview</h2>
+      <p>Lorem ipsum dolor sit amet, qui ne ornatus commune suscipit, nam id adhuc mucius semper, pri voluptua neglegentur comprehensam an. Pro in ferri inimicus dissentias. Ne eos magna scriptorem. In alii aeque prodesset vel, ei docendi praesent sit. Vim in equidem habemus laboramus, vim doctus utamur constituto ex. Eum malorum posidonium referrentur ut, ut sit denique quaerendum.
+
+Paulo prompta mentitum cu vel, ut clita molestie sea, cu salutandi splendide vulputate eum. Est option oblique mnesarchum an, in vidit assueverit has. At vel nulla definiebas, duis dicta instructior in nec. Has in laudem rationibus, ex cum fugit omittantur, at nominavi deterruisset per.
+
+Pericula tincidunt no cum, novum postea et qui. Ei pri dicat percipit dissentias, vituperata reprimique vix ad. Mel vivendo petentium urbanitas no, eu cum tamquam utroque persecuti. Enim possit ne vel, corrumpit disputando ut mei.
+
+Suas mucius dissentiet nec te. Saperet hendrerit definitiones ei eam, nam eu eius voluptua, pri id mentitum explicari interpretaris. Amet regione accusamus ut eos, qui in delenit oporteat, vitae atomorum scriptorem ex his. Ei iudico invenire duo, porro suscipit rationibus an vis.
+
+Ut usu mucius malorum mnesarchum. At eum senserit repudiare, no senserit gloriatur vituperata has. Eos in wisi erat admodum. Mea eius consulatu et. Eam in nihil eirmod, magna inermis pericula in per, sit at tota debet. Ne nonumy minimum voluptaria sea.
+
+Vivendo assueverit per cu, virtute adolescens no vix. Sit eius postea doming id, possim voluptua te vis. Aperiam labores nec te, pro id labitur repudiare. Id nam nusquam accumsan, dico denique adipiscing sea ne.
+
+Id vel justo putent antiopam, mel iudicabit gloriatur cu. Voluptatum intellegam ius ad. Facete causae alterum ei mel, consequat similique no sea. Simul invenire et nec, inermis fabellas cum cu. Salutatus democritum cu est, et accusata maluisset per, eu diam timeam similique mel. Melius iriure aeterno ad eos, ad vix dolores mediocrem complectitur, sed alii accommodare ea.
+
+Eos idque elitr similique eu, natum liber eam ad. Ei assueverit quaerendum deterruisset nam. Ut usu case dolorem. Eam impedit minimum in, no sint iudico legimus vis. Ad habeo nemore fuisset usu, audiam disputando ut sed. His detraxit periculis at.
+
+Mei possim maiorum ut, his saperet praesent ad, mucius senserit interesset in nec. Ei vim exerci animal platonem, duo noluisse sapientem periculis no. Sit libris explicari disputationi ne. Ex altera ornatus quaerendum pri, in eos feugait hendrerit efficiendi, vivendo constituam in ius. Sit te mollis facilisi mnesarchum, id graeco melius has.
+
+No sit erat veniam, discere offendit ut vis, impedit facilisi cotidieque mea et. Sed ad electram scriptorem, sed no omnes latine. Ei aliquip senserit has, viris eligendi complectitur mea no, omnium copiosae atomorum an has. Facilis postulant sed ea, nobis abhorreant vis ex, vim docendi ancillae philosophia ei. Erant audire mei cu, et usu volumus pericula iudicabit.</p>
+      </div>
+    </div>
+</div>
+
+    <script src="../../flexo.js"></script>
+    <script src="../../bender.js"></script>
+    <script>
+"use strict";
+
+var context = bender.create_context();
+var logo_component = context.create_component({ href: "../../demo/logo.xml",
+  sides: "7", fgcolor: "#db7093", bgcolor: "white" });
+var logo_instance = bender.create_instance({ reference: logo_component });
+context.add_instance(logo_instance, document.querySelector("#logo a"));
+
+
+    </script>
+
+  </body>
+</html>
+

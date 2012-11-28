@@ -14,44 +14,46 @@
 
       <div class="text blue-bg">
         <div>
-          <p><strong>Bender</strong> is an experimental, declarative Web
-          application authoring framework based on XML, Javascript and Web
-          technologies, and with a focus on rich graphical user interfaces.</p>
+          <p><strong>Bender</strong>は、
+          豊富なグラフィカルユーザインターフェースに
+          焦点をあてた、宣言型Webアプリケーションのオーサリングフレームワークです。
+          </p>
         </div>
       </div>
 
       <div class="text blue-bg">
         <div>
-          <p>Bender is free software and is released under the
+          <p>Benderは
           <a href="https://github.com/bendr/bender/blob/master/LICENSE">Apache
-            License v2.0</a>. The <a
-            href="https://github.com/bendr/bender">source code</a> is hosted on
-          Github.</p>
+            License v2.0</a>で配布されいてるフリーソフトウェアです。</p>
+          <p>
+          <a href="https://github.com/bendr/bender">ソースコード</a> はGithub上で
+            公開しています。
+          </p>
         </div>
       </div>
 
       <div class="text yellow-bg">
         <div>
-          <h3>Docs</h3>
+          <h3>ドキュメント</h3>
           <ul>
-            <li><a href="docs/reference/reference.html">API Reference</a></li>
-            <li><a href="http://bender-framework.tumblr.com">Development log</a></li>
+            <li><a href="docs/reference/reference.html.ja">API Reference</a></li>
+            <li><a href="http://bender-framework.tumblr.com">開発ログ</a></li>
           </ul>
         </div>
       </div>
 
-
       <div class="text purple-bg">
         <div>
-          <h2>Demos</h2>
+          <h2>デモ</h2>
         </div>
       </div>
 
       <div class="text peach-bg">
         <div>
           <ul>
-            <li><a href="run.html?href=demo/logo.xml">Bender logo</a></li>
-            <li><a href="demo/draw.html">Drawing</a></li>
+            <li><a href="run.html?href=demo/logo.xml">Bender ロゴ</a></li>
+            <li><a href="demo/draw.html">描画サンプル</a></li>
           </ul>
         </div>
       </div>
@@ -62,20 +64,20 @@
 
       <div class="text red-bg">
         <div>
-          <h2>Tests</h2>
+          <h2>テスト</h2>
         </div>
       </div>
 
 
       <div class="text green-bg">
         <div>
-          <h3>Automated tests</h3>
+          <h3>Conformance Test</h3>
           <ul>
             <li><a href="test/flexo.html">Flexo</a>
-            (see <a href="flexo.js">flexo.js</a>)</li>
+            (<a href="flexo.js">flexo.js</a>)</li>
             <li><a href="test/bender.html">Bender</a>
-            (see <a href="bender.js">bender.js</a>)</li>
-            <li>All tests should pass</li>
+            (<a href="bender.js">bender.js</a>)</li>
+            <li>すべてのテストをパスするはずです。</li>
           </ul>
         </div>
       </div>
@@ -87,7 +89,6 @@
             <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
             <li><a href="run.html?href=t/class.xml">t/class.xml</a></li>
             <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
-            <li><a href="run.html?href=t/a.xml">t/a.xml</a></li>
             <li><a href="t/prototype.html">t/prototype.html</a></li>
           </ul>
         </div>
@@ -120,7 +121,6 @@
       </div>
 
     </div>
-
 
     <script src="flexo.js"></script>
     <script src="bender.js"></script>
