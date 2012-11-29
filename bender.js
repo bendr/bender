@@ -252,7 +252,7 @@
         if (node.localName === "component") {
           return this.render_component(node);
         } else if (node.localName === "content") {
-          return this.render_children(node);
+          return this.render_children(this.component.content || node);
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
               .fmt(node.localName));
@@ -760,7 +760,7 @@
         if (content) {
           return content;
         } else {
-          var c = this.context.ownerDocument.createDocumentFragment();
+          var c = this.context.document.createDocumentFragment();
           A.forEach.call(this.childNodes, function (ch) {
             if (ch.nodeType === window.Node.ELEMENT_NODE) {
               if (ch.namespaceURI === bender.ns) {
