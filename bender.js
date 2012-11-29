@@ -224,14 +224,24 @@
   };
 
   bender.instance.render_view = function () {
-    if (this.component.view && this.component.view.root) {
-      this.views.$root = this.render_node(this.component.view.root);
+    if (this.component.view) {
+      this.roots = this.render_children(this.component.view);
+      for (var ch = this.roots.firstChild; ch; ch = ch.nextSibling) {
+        if (ch.nodeType === window.Node.ELEMENT_NODE ||
+            ((ch.nodeType === window.Node.TEXT_NODE ||
+              ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
+             /\S/.test(ch.textContent))) {
+           this.views.$root = ch;
+           break;
+         }
+      }
     }
     console.log("[render_view] for {0}".fmt(this.component.uri));
     flexo.notify(this, "@rendered");
   };
 
   bender.instance.unrender_view = function () {
+    delete this.roots;
     delete this.views.$root;
     flexo.notify(this, "@rendered");
   };
@@ -271,12 +281,17 @@
     var placeholder = component.context.$("placeholder");
     console.log("[render_component] {0}".fmt(component.uri));
     flexo.listen(component.instances[0], "@rendered", function (e) {
-      if (e.source.views.$root) {
+      console.log("[render_component] rendered {0}".fmt(component.uri));
+      if (e.source.roots) {
         if (placeholder.parentElement) {
-          placeholder.parentElement.replaceChild(e.source.views.$root,
-            placeholder);
+          A.forEach.call(e.source.roots.childNodes, function (ch) {
+            placeholder.parentElement.insertBefore(ch, placeholder);
+          });
+          placeholder.parentElement.removeChild(placeholder);
         } else {
-          placeholder.appendChild(e.source.views.$root);
+          A.forEach.call(e.source.roots.childNodes, function (ch) {
+            placeholder.appendChild(ch);
+          });
         }
       }
     });
@@ -722,6 +737,61 @@
       }
     });
 
+    // content can be a node, or can be inferred from everything that is not
+    // content. Content is *not* inherited!
+    var content;
+    this.has_content_element = function() {
+      return !!content;
+    };
+    this._set_content = function (element) {
+      content = element;
+      this.instances.forEach(function (instance) {
+        instance.set_content(content);
+      });
+    };
+    this._remove_content = function (element) {
+      content = null;
+      this.instances.forEach(function (instance) {
+        isntance.set_content(this.content);
+      }, this);
+    };
+    Object.defineProperty(this, "content", { enumerable: true,
+      get: function () {
+        if (content) {
+          return content;
+        } else {
+          var c = this.context.ownerDocument.createDocumentFragment();
+          A.forEach.call(this.childNodes, function (ch) {
+            if (ch.nodeType === window.Node.ELEMENT_NODE) {
+              if (ch.namespaceURI === bender.ns) {
+                if (ch.localName === "component") {
+                  c.appendChild(ch);
+                }
+              } else {
+                c.appendChild(ch);
+              }
+            } else if (ch.nodeType === window.Node.TEXT_NODE ||
+              ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+              if (/\S/.test(ch.textContent)) {
+                c.appendChild(ch);
+              }
+            }
+          });
+          if (c.firstChild) {
+            return c;
+          }
+        }
+      },
+      set: function (c) {
+        if (content) {
+          this.removeChild(content);
+        }
+        if (c) {
+          this.appendChild(c);
+        }
+      }
+    });
+
     // properties property
     var properties = {};
     this._has_own_property = function (name) {
@@ -824,7 +894,7 @@
   };
 
   prototypes.component.refresh_view = function () {
-    if (this.view && this.view.root) {
+    if (this.view) {
       this.instances.forEach(function (instance) {
         instance.render_view();
       });
@@ -845,6 +915,7 @@
           .fmt(prototype));
     }
     instance.component = this;
+    instance.children = [];
     instance.init();
     instance.views = { $document: this.context.document };
     instance.properties = {};
@@ -864,15 +935,15 @@
 
   prototypes.component.render_in = function (parent) {
     this.target = parent;
-    var root = this.instances[0].views.$root;
-    if (root) {
+    var roots = this.instances[0].roots;
+    if (roots) {
       parent.appendChild(root);
     }
     flexo.listen(this.instances[0], "@rendered", function (e) {
-      flexo.safe_remove(root);
-      root = e.source.views.$root;
-      if (root) {
-        parent.appendChild(root);
+      flexo.remove_children(parent);
+      roots = e.source.roots
+      if (roots) {
+        parent.appendChild(roots);
       }
     });
   };
@@ -903,7 +974,7 @@
   };
 
   prototypes.component.update_view = function (update) {
-    console.log("[update_view]", this.view.root);
+    console.log("[update_view]", this.view);
   };
 
   prototypes.component.set_instance_prototype = function () {
@@ -1005,23 +1076,6 @@
     this.properties.push(update.child);
   };
 
-  prototypes.view.insertBefore = function (ch, ref) {
-    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
-    if (ch.nodeType === window.Node.ELEMENT_NODE ||
-        ((ch.nodeType === window.Node.TEXT_NODE ||
-          ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
-         /\S/.test(ch.textContent))) {
-      if (this.root) {
-        console.warn("View element already has content", this.root);
-      } else {
-        this.root = ch;
-        this.context.request_update({ action: "update_view",
-          source: this.parentElement, child: this });
-      }
-    }
-    this.context.request_update({ action: "update_view", source: this })
-  };
-
   prototypes.component.removeChild = function (ch) {
     if (ch.namespaceURI === bender.ns) {
       if (ch.localName === "component") {
@@ -1081,6 +1135,16 @@
       node.namespaceURI === bender.ns &&
       (name === undefined || node.localName === name);
   }
+
+  prototypes.view.insertBefore = function (ch, ref) {
+    Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    if (ch.nodeType === window.Node.ELEMENT_NODE) {
+      if (ch.namespaceURI !== bender.ns) {
+        this.context.wrap_element(ch, "view");
+      }
+    }
+    this.context.request_update({ action: "update_view", source: this })
+  };
 
 
   // Property type map with the corresponding evaluation function
