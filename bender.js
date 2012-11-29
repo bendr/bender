@@ -159,8 +159,8 @@
             typeof update.source[update.action] === "function") {
             update.source[update.action].call(update.source, update);
           } else {
-            console.warn("[request_update] skipped \"{0}\": no suitable source"
-              .fmt(update.action), update);
+            // console.warn("[request_update] skipped \"{0}\": no suitable source"
+            //   .fmt(update.action), update);
             update.skipped = true;
           }
         });
@@ -236,7 +236,6 @@
          }
       }
     }
-    console.log("[render_view] for {0}".fmt(this.component.uri));
     flexo.notify(this, "@rendered");
   };
 
@@ -252,6 +251,7 @@
         if (node.localName === "component") {
           return this.render_component(node);
         } else if (node.localName === "content") {
+          console.log(">>> content", node, this.component.content);
           return this.render_children(this.component.content || node);
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
@@ -279,9 +279,10 @@
 
   bender.instance.render_component = function (component) {
     var placeholder = component.context.$("placeholder");
-    console.log("[render_component] {0}".fmt(component.uri));
-    flexo.listen(component.instances[0], "@rendered", function (e) {
-      console.log("[render_component] rendered {0}".fmt(component.uri));
+    var instance = component.create_instance();
+    this.children.push(instance);
+    instance.parent = this;
+    flexo.listen(instance, "@rendered", function (e) {
       if (e.source.roots) {
         if (placeholder.parentElement) {
           A.forEach.call(e.source.roots.childNodes, function (ch) {
@@ -295,6 +296,7 @@
         }
       }
     });
+    instance.render_view();
     return placeholder;
   };
 
@@ -797,19 +799,19 @@
     this._has_own_property = function (name) {
       return properties.hasOwnProperty(name);
     };
-    this._get_property = function (name) {
-      return this.properties.hasOwnProperty(name) ?
-        this.properties[name] :
-        this.prototype && this.prototype._get_property(name);
-    };
     this._add_property = function (property) {
-      this.properties[property.name] = property;
+      properties[property.name] = property;
       this.instances.forEach(function (instance) {
         instance.setup_property(property);
       });
+      this.derived.forEach(function (component) {
+        if (!component._has_own_property(property.name)) {
+          component._add_property(property);
+        }
+      });
     };
     this._remove_property = function (property) {
-      delete this.properties[property.name];
+      delete properties[property.name];
     };
     Object.defineProperty(this, "properties", { enumerable: true,
       get: function () {
@@ -820,10 +822,9 @@
           }
         }
         if (this.prototype) {
-          A.push.call
-          this.prototype.properties.filter(function (p) {
+          A.push.apply(props, this.prototype.properties.filter(function (p) {
             return !properties.hasOwnProperty(p);
-          });
+          }));
         }
         return props;
       }
@@ -907,7 +908,7 @@
   };
 
   prototypes.component.create_instance = function () {
-    var prototype = this.prototype || "bender.instance";
+    var prototype = this.prototype_instance || "bender.instance";
     try {
       var instance = eval("Object.create({0})".fmt(prototype));
     } catch (e) {
@@ -937,7 +938,7 @@
     this.target = parent;
     var roots = this.instances[0].roots;
     if (roots) {
-      parent.appendChild(root);
+      parent.appendChild(roots);
     }
     flexo.listen(this.instances[0], "@rendered", function (e) {
       flexo.remove_children(parent);
@@ -979,7 +980,7 @@
 
   prototypes.component.set_instance_prototype = function () {
     this.instances.forEach(function (instance, i, instances) {
-      var prototype = this.prototype || "bender.instance";
+      var prototype = this.prototype_instance || "bender.instance";
       try {
         var proto = eval(prototype);
         var new_instance = Object.create(proto);
@@ -1104,7 +1105,7 @@
       this.uri = this.uri.replace(/(#.*)?$/, "#" + this.id);
       this.context.updated_uri(this, prev_uri);
     } else if (name === "prototype") {
-      this.prototype = value.trim();
+      this.prototype_instance = value.trim();
       this.context.request_update({ action: "set_instance_prototype",
         source: this });
     } else {

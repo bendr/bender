@@ -2,7 +2,7 @@
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:span>
       B (
-      <content/>
+      <content>*b*</content>
       )
     </html:span>
   </view>
