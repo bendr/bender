@@ -25,9 +25,10 @@ code {
     <script>
 "use strict";
 
-bender.instance.rendering = function () {
-  if (this.reference && this.reference.id && this.views.$root) {
-    this.views.$root.classList.add(this.reference.id);
+bender.instance.rendered = function () {
+  if (this.component.id && this.views.$root && this.views.$root.classList &&
+    typeof this.views.$root.classList.add === "function") {
+    this.views.$root.classList.add(this.component.id);
   }
 };
 
@@ -35,6 +36,9 @@ var context = bender.create_context();
 var args = flexo.get_args();
 if (args.href) {
   var component = context.$("component", args);
+  flexo.listen(component, "@loaded", function (e) {
+    component.create_instance(document.body);
+  });
   flexo.listen(component, "@error", function (e) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
@@ -49,7 +53,6 @@ if (args.href) {
       console.log("@update: " + updates);
     }
   });
-  component.render_in(document.body);
 } else {
   document.body.appendChild(flexo.$("p.bender--runtime-message",
     "Nothing to run. Please specify a Bender component to load with the ", 

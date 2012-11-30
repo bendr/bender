@@ -159,8 +159,6 @@
             typeof update.source[update.action] === "function") {
             update.source[update.action].call(update.source, update);
           } else {
-            // console.warn("[request_update] skipped \"{0}\": no suitable source"
-            //   .fmt(update.action), update);
             update.skipped = true;
           }
         });
@@ -172,7 +170,8 @@
     this.__update_queue.push(update);
   };
 
-  // Update the URI of a component for the loaded map
+  // Update the URI of a component for the loaded map (usually when the id is
+  // set, so the fragment identifier changes)
   bender.context.updated_uri = function (component, prev_uri) {
     if (component.uri !== prev_uri && this.loaded[prev_uri] === component) {
       delete this.loaded[prev_uri];
@@ -184,7 +183,7 @@
     }
   };
 
-  // Extend an element with Bender methods, calls its _init() method, and return
+  // Extend an element with Bender methods, calls its init() method, and return
   // the wrapped element.
   bender.context.wrap_element = function (e, proto) {
     if (typeof proto !== "object") {
@@ -215,18 +214,10 @@
   bender.instance.rendered = function () {};
   bender.instance.ready = function () {};
 
-  // Add a new child instance
-  bender.instance.add_child_instance = function(component) {
-    var child_instance = bender.create_instance({ reference: component });
-    child_instance.parent = this;
-    this.children.push(child_instance);
-    return child_instance;
-  };
-
   bender.instance.render_view = function () {
     if (this.component.view) {
-      this.roots = this.render_children(this.component.view);
-      for (var ch = this.roots.firstChild; ch; ch = ch.nextSibling) {
+      var roots = this.render_children(this.component.view);
+      for (var ch = roots.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === window.Node.ELEMENT_NODE ||
             ((ch.nodeType === window.Node.TEXT_NODE ||
               ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
@@ -235,12 +226,14 @@
            break;
          }
       }
+      if (this.target) {
+        this.target.appendChild(roots);
+      }
     }
     flexo.notify(this, "@rendered");
   };
 
   bender.instance.unrender_view = function () {
-    delete this.roots;
     delete this.views.$root;
     flexo.notify(this, "@rendered");
   };
@@ -278,7 +271,8 @@
   };
 
   bender.instance.render_component = function (component) {
-    var placeholder = component.context.$("placeholder");
+    var placeholder = component.context.$("placeholder",
+        { "for": component.uri });
     var instance = component.create_instance();
     this.children.push(instance);
     instance.parent = this;
@@ -445,7 +439,9 @@
   // Render child instances
   // TODO handle attributes beside href and id
   bender.instance.render_child_instance = function (component, dest) {
-    var child_instance = this.add_child_instance(component);
+    var ch = bender.create_instance({ reference: component });
+    ch.parent = this;
+    this.children.push(ch);
     this.__pending.push(child_instance);
     child_instance.render(dest);
     if (component.values) {
@@ -869,8 +865,6 @@
     });
 
     // content property (TODO)
-
-    this.create_instance();  // prototype instance
   };
 
   // Add a property element to the component, provided that it has a name.
@@ -907,46 +901,30 @@
     }
   };
 
-  prototypes.component.create_instance = function () {
+  // Create a new instance with a target element to render in
+  prototypes.component.create_instance = function (target) {
     var prototype = this.prototype_instance || "bender.instance";
     try {
       var instance = eval("Object.create({0})".fmt(prototype));
     } catch (e) {
-      console.error("[create_instance] could not create object {0}"
+      console.error("[create_instance] could not create object \"{0}\""
           .fmt(prototype));
+      instance = Object.create(bender.instance);
     }
+    this.instances.push(instance);
     instance.component = this;
-    instance.children = [];
-    instance.init();
+    if (target) {
+      instance.target = target;
+    }
+    instance.children = [];  // parent will be set when the instance is added
     instance.views = { $document: this.context.document };
     instance.properties = {};
     instance.set_property = {};
-    this.properties.forEach(function (p) {
-      instance.setup_property(p);
-    });
-    instance.rendered();
     instance.edges = [];
-    this.properties.forEach(function (p) {
-      instance.properties[p.name] = p.parse_value(instance);
-    });
-    this.instances.push(instance);
-    instance.ready();
+    instance.init();
+    this.properties.forEach(instance.setup_property.bind(instance));
+    instance.render_view();
     return instance;
-  };
-
-  prototypes.component.render_in = function (parent) {
-    this.target = parent;
-    var roots = this.instances[0].roots;
-    if (roots) {
-      parent.appendChild(roots);
-    }
-    flexo.listen(this.instances[0], "@rendered", function (e) {
-      flexo.remove_children(parent);
-      roots = e.source.roots
-      if (roots) {
-        parent.appendChild(roots);
-      }
-    });
   };
 
   bender.instance.add_child = function (instance) {
@@ -1040,10 +1018,9 @@
 
   prototypes.component.update_add_component = function (update) {
     this.components.push(update.child);
-    this.instances[0].add_child(update.child.instances[0]);
-    for (var i = 1, n = this.instances.length; i < n; ++i) {
-      this.instances[i].add_child(update.child.create_instance());
-    }
+    this.instances.forEach(function (instance) {
+      instance.add_child(update.child.create_instance());
+    });
   };
 
   prototypes.component.update_add_content = function (update) {
