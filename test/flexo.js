@@ -527,6 +527,11 @@
         }
       });
     });
+
+    describe("flexo.request_animation_frame", function () {
+      it("binds the prefixed requestAnimationFrame or uses setTimeout as fallback");
+      it("also flexo.cancel_animation_frame");
+    });
   });
 
 

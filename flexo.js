@@ -435,6 +435,18 @@
     return Object.create(seq)._init();
   };
 
+  flexo.request_animation_frame = (window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame ||
+      window.msRequestAnimationFrame || function (f) {
+        return window.setTimeout(function () {
+          f(Date.now());
+        }, 16);
+      }).bind(window);
+
+  flexo.cancel_animation_frame = (window.cancelAnimationFrame ||
+    window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame ||
+    window.msCancelAnimationFrame || window.clearTimeout).bind(window);
+
 
   // DOM
 
