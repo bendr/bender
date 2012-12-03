@@ -36,9 +36,7 @@ var context = bender.create_context();
 var args = flexo.get_args();
 if (args.href) {
   var component = context.$("component", args);
-  flexo.listen(component, "@loaded", function (e) {
-    component.create_instance(document.body);
-  });
+  component.create_instance(document.body);
   flexo.listen(component, "@error", function (e) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
