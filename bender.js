@@ -154,17 +154,29 @@
   bender.context.request_update = function (update) {
     if (!this.__update_queue) {
       this.__update_queue = [];
+      var pending = [];
       setTimeout(function () {
         this.__update_queue.forEach(function (update) {
-          if (update.source &&
-            typeof update.source[update.action] === "function") {
-            update.source[update.action].call(update.source, update);
-          } else {
+          if (typeof update === "function") {
+            update();
             update.skipped = true;
+          } else {
+            if (update.source && update.source.__pending) {
+              pending.push(update.source);
+            }
+            if (update.source &&
+              typeof update.source[update.action] === "function") {
+              update.source[update.action].call(update.source, update);
+            } else {
+              update.skipped = true;
+            }
           }
         });
         var updates = this.__update_queue.slice();
         delete this.__update_queue;
+        pending.forEach(function (p) {
+          p.clear_pending(p);
+        });
         flexo.notify(context, "@update", { updates: updates });
       }.bind(this), 0);
     }
@@ -493,6 +505,7 @@
   });
 
   prototypes.component.init = function () {
+    this.__pending = [this];
     this.derived = [];       // components that derive from this one
     this.components = [];    // component children (outside of view)
     this.watches = [];       // child watch elements
@@ -657,6 +670,22 @@
 
 
     // content property (TODO)
+  };
+
+  prototypes.component.clear_pending = function (p) {
+    if (this.__pending) {
+      flexo.remove_from_array(this.__pending, p);
+      if (this.__pending.length === 0) {
+        console.log("[clear_pending] ready", p);
+        delete this.__pending;
+        for (var p = this.parentElement;
+            p && !(typeof p.clear_pending === "function");
+            p = p.parentElement) {}
+        if (p) {
+          p.clear_pending(this);
+        }
+      }
+    }
   };
 
   // Add a property element to the component, provided that it has a name.
@@ -872,7 +901,15 @@
   // Replace this component everywhere?
   prototypes.component.set_component_prototype = function () {
     var uri = flexo.absolute_uri(this.uri, this.href);
+    if (this.__pending) {
+      this.__pending.push(uri);
+    }
     var loaded = function (e) {
+      if (this.__pending) {
+        this.context.request_update(function () {
+          this.clear_pending(uri);
+        }.bind(this));
+      }
       var re_render = !e.source.has_own_view();
       if (e.source.prototype) {
         flexo.remove_from_array(e.source.prototype.derived, e.source);
@@ -885,7 +922,7 @@
           instance.render_view();
         });
       }
-    };
+    }.bind(this);
     if (this.context.loaded[uri] instanceof window.Node) {
       loaded({ source: this, component: this.context.loaded[uri] });
     } else {
@@ -913,6 +950,9 @@
 
   prototypes.component.update_add_component = function (update) {
     this.components.push(update.child);
+    if (this.__pending) {
+      this.__pending.push(update.child);
+    }
     this.instances.forEach(function (instance) {
       instance.add_child(update.child.create_instance());
     });
@@ -1015,6 +1055,10 @@
       if (ch.namespaceURI !== bender.ns) {
         this.context.wrap_element(ch, "view");
       }
+    }
+    for (var p = this; p && !p.__pending; p = p.parentElement);
+    if (p && p.__pending) {
+      p.__pending.push(ch);
     }
     this.context.request_update({ action: "update_view", source: this })
   };
