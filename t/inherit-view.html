@@ -6,7 +6,10 @@
     <link rel="stylesheet" href="t.css">
     <style>
       .t div { display: inline-block; }
-      .t p { font-size: 400px; display: inline-block; margin: 0 0.1em }
+      .t p { font-size: 200px; display: inline-block; margin: 0 0.1em }
+      #a { color: #400; }
+      #b { color: #040; }
+      #c { color: #004; }
     </style>
   </head>
   <body>
@@ -25,16 +28,16 @@ var a =
   context.$("component", { id: "A" },
     context.$("view",
       context.$("html:p", "A")));
-a.render_in(document.getElementById("a"));
+var ia = a.create_instance(document.getElementById("a"));
 
 var b = context.$("component", { id: "B", href: "#A" });
-b.render_in(document.getElementById("b"));
+var ib = b.create_instance(document.getElementById("b"));
 
 var c =
   context.$("component", { id: "C", href: "#B" },
     context.$("view",
       context.$("html:p", "C")));
-c.render_in(document.getElementById("c"));
+var ic = c.create_instance(document.getElementById("c"));
 
     </script>
   </body>

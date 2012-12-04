@@ -219,8 +219,10 @@
       return;
     }
     delete this.__invalidated;
+    this.unrender_view();
     if (this.component.view) {
       var roots = this.render_children(this.component.view);
+      this.roots = A.slice.call(roots.childNodes);
       for (var ch = roots.firstChild; ch; ch = ch.nextSibling) {
         if (ch.nodeType === window.Node.ELEMENT_NODE ||
             ((ch.nodeType === window.Node.TEXT_NODE ||
@@ -244,6 +246,12 @@
   };
 
   bender.instance.unrender_view = function () {
+    if (this.roots) {
+      this.roots.forEach(function (r) {
+        flexo.safe_remove(r);
+      });
+      delete this.roots;
+    }
     delete this.views.$root;
   };
 
@@ -422,35 +430,6 @@
       }
       delete this.__reference_instance;
     }
-  };
-
-  bender.instance.reference_instance = function () {
-    for (var top = this.reference; top && top.parentElement;
-        top = top.parentElement) {}
-    for (var ref = this; ref.template !== top; ref = ref.parent);
-    return ref;
-  };
-
-  // Render child instances
-  // TODO handle attributes beside href and id
-  bender.instance.render_child_instance = function (component, dest) {
-    var ch = bender.create_instance({ reference: component });
-    ch.parent = this;
-    this.children.push(ch);
-    this.__pending.push(child_instance);
-    child_instance.render(dest);
-    if (component.values) {
-      Object.keys(component.values).forEach(function (p) {
-        this.bind_prop(child_instance, p, component.values[p]);
-      }, this);
-    }
-  };
-
-  // Initialize properties defined by their <property> element
-  // TODO <property> as children of the instance as well
-  bender.instance.setup_properties = function () {
-    this.set_property = {};
-    this.template.properties.forEach(this.setup_property, this);
   };
 
   bender.instance.setup_property = function (property) {
@@ -822,29 +801,9 @@
 
     // view property
     var view;
-    this._unset_view = function (v) {
-      if (v === view) {
-        if (view) {
-          this.instances.forEach(function (instance) {
-            instance.unrender_view();
-          });
-          this.derived.forEach(function (component) {
-            if (!component.has_own_view) {
-              component.instances.forEach(function (instance) {
-                instance.unrender_view();
-              });
-            }
-          });
-        }
-        view = undefined;
-        this.refresh_view();
-      }
-    };
     this._set_view = function (v) {
-      if (v !== view) {
-        view = v;
-        this.refresh_view();
-      }
+      view = v;
+      this.refresh_view();
     };
     this.has_own_view = function () {
       return !!view;
@@ -950,7 +909,7 @@
   };
 
   prototypes.component.remove_view = function (update) {
-    this._unset_view(update.child);
+    this._set_view();
   };
 
   prototypes.component.update_view = function (update) {
@@ -982,7 +941,7 @@
   // Replace this component everywhere?
   prototypes.component.set_component_prototype = function () {
     var uri = flexo.absolute_uri(this.uri, this.href);
-    flexo.listen_once(this, "@loaded", function (e) {
+    var loaded = function (e) {
       var re_render = !e.source.has_own_view();
       if (e.source.prototype) {
         flexo.remove_from_array(e.source.prototype.derived, e.source);
@@ -992,11 +951,15 @@
       if (re_render) {
         e.source.instances.forEach(function (instance) {
           instance.__invalidated = true;
-          instance.component.context.request_update({ source: instance,
-            action: "render_view" });
+          instance.render_view();
         });
       }
-    });
+    };
+    if (this.context.loaded[uri] instanceof window.Node) {
+      loaded({ source: this, component: this.context.loaded[uri] });
+    } else {
+      flexo.listen_once(this, "@loaded", loaded);
+    }
     flexo.listen_once(this, "@error", function (e) {
       console.error("Error loading component at {0}: {1}"
         .fmt(e.uri, e.message), e.source);
