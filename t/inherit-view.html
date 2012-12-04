@@ -28,16 +28,16 @@ var a =
   context.$("component", { id: "A" },
     context.$("view",
       context.$("html:p", "A")));
-var ia = a.create_instance(document.getElementById("a"));
+a.create_instance(document.getElementById("a"));
 
 var b = context.$("component", { id: "B", href: "#A" });
-var ib = b.create_instance(document.getElementById("b"));
+b.create_instance(document.getElementById("b"));
 
 var c =
   context.$("component", { id: "C", href: "#B" },
     context.$("view",
       context.$("html:p", "C")));
-var ic = c.create_instance(document.getElementById("c"));
+c.create_instance(document.getElementById("c"));
 
     </script>
   </body>
