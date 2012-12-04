@@ -281,8 +281,7 @@
     var placeholder = component.context.$("placeholder",
         { "for": component.href });
     var instance = component.create_instance(placeholder);
-    this.children.push(instance);
-    instance.parent = this;
+    this.add_child(instance);
     instance.__invalidated = true;
     instance.render_view(placeholder);
     return placeholder;
@@ -709,6 +708,7 @@
       instance.target = target;
     }
     instance.children = [];  // parent will be set when the instance is added
+    instance.instances = { $self: instance };
     instance.views = { $document: this.context.document };
     instance.properties = {};
     instance.set_property = {};
@@ -723,6 +723,11 @@
   bender.instance.add_child = function (instance) {
     this.children.push(instance);
     instance.parent = this;
+    if (instance.component.id) {
+      for (var p = this; p; p = p.component.parentElement && p.parent) {
+        p.instances[instance.component.id] = instance;
+      }
+    }
   };
 
   bender.instance.remove_child = function (instance) {
