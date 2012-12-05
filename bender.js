@@ -230,14 +230,16 @@
 
   bender.instance.render_view = function () {
     if (!this.__invalidated) {
+      console.log("[render_view] ---", this.component);
       return;
     }
+    console.log("[render_view]", this.component);
     delete this.__invalidated;
     this.unrender_view();
     if (this.component.view) {
-      var roots = this.render_children(this.component.view);
-      this.roots = A.slice.call(roots.childNodes);
-      for (var ch = roots.firstChild; ch; ch = ch.nextSibling) {
+      this.roots = this.render_children(this.component.view, this.target);
+      for (var i = 0, n = this.roots.length; i < n; ++i) {
+        var ch = this.roots[i];
         if (ch.nodeType === window.Node.ELEMENT_NODE ||
             ((ch.nodeType === window.Node.TEXT_NODE ||
               ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
@@ -246,84 +248,50 @@
            break;
          }
       }
-      if (this.target) {
-        if (this.target.namespaceURI === bender.ns &&
-            this.target.localName === "placeholder" &&
-            this.target.parentElement) {
-          this.target.parentElement.insertBefore(roots, this.target);
-          flexo.safe_remove(this.target);
-        } else {
-          this.target.appendChild(roots);
-        }
-      }
     }
   };
 
-  bender.instance.component_ready = function () {
-    console.log("[component_ready]", this.component);
-    remove_placeholder(this);
-    this.ready();
+  bender.instance.render_children = function (node, target) {
+    var roots = [];
+    A.forEach.call(Array.isArray(node) ? node : node.childNodes, function (ch) {
+      var r = this.render_node(ch, target);
+      if (r) {
+        roots.push(r);
+        target.appendChild(r);
+      }
+    }, this);
+    return roots;
   };
 
-  function remove_placeholder (instance) {
-    if (instance.roots && instance.roots.length > 0) {
-      var placeholder = instance.roots[0].parentElement;
-      if (is_bender_element(placeholder, "placeholder")) {
-        var parent = placeholder.parentElement;
-        if (parent) {
-          var ref = placeholder.nextSibling;
-          instance.roots.forEach(function (r) {
-            parent.insertBefore(r, ref);
-          });
-          parent.removeChild(placeholder);
-        }
-      }
-    }
-  }
-
-  bender.instance.render_node = function (node) {
+  bender.instance.render_node = function (node, target) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
       if (node.namespaceURI === bender.ns) {
         if (node.localName === "component") {
-          return this.render_component(node);
+          return this.render_component(node, target);
         } else if (node.localName === "content") {
-          return this.render_children(this.component.content || node);
+          return this.render_children(this.component.content || node, target);
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
               .fmt(node.localName));
         }
       } else {
-        return this.render_foreign(node);
+        return this.render_foreign(node, target);
       }
     } else if (node.nodeType === window.Node.TEXT_NODE ||
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      return this.render_text(node);
+      return this.render_text(node, target);
     }
   };
 
-  bender.instance.render_children = function (node) {
-    var fragment = this.component.context.document.createDocumentFragment();
-    A.forEach.call(Array.isArray(node) ? node : node.childNodes, function (ch) {
-      var r = this.render_node(ch);
-      if (r) {
-        fragment.appendChild(r);
-      }
-    }, this);
-    return fragment;
-  };
-
-  bender.instance.render_component = function (component) {
-    var placeholder = component.context.$("placeholder",
-        { "for": component.href });
-    var instance = component.create_instance(placeholder);
+  bender.instance.render_component = function (component, target) {
+    var instance = component.create_instance(target);
     this.add_child(instance);
-    instance.__invalidated = true;
-    instance.render_view();
-    return placeholder;
+    return instance.target;
   };
 
-  bender.instance.render_text = function (node) {
-    var d = this.component.context.document.createTextNode(node.textContent);
+  bender.instance.render_text = function (node, target) {
+    var d = target.appendChild(
+        this.component.context.document.createTextNode(node.textContent));
     if (!this.bind_text(d)) {
       d.textContent =
         flexo.format.call(this, node.textContent, this.properties);
@@ -331,10 +299,11 @@
     return d;
   };
 
-  bender.instance.render_foreign = function (elem) {
+  bender.instance.render_foreign = function (elem, target) {
     // TODO wrap the element
-    var d = this.component.context.document.createElementNS(elem.namespaceURI,
-        elem.localName);
+    var d = target.appendChild(
+        this.component.context.document.createElementNS(elem.namespaceURI,
+          elem.localName));
     A.forEach.call(elem.attributes, function (attr) {
       var val = attr.value;
       if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
@@ -354,10 +323,7 @@
       }
     }, this);
     A.forEach.call(elem.childNodes, function (ch) {
-      var r = this.render_node(ch);
-      if (r) {
-        d.appendChild(r);
-      }
+      this.render_node(ch, target);
     }, this);
     return d;
   };
@@ -709,8 +675,7 @@
         delete this.__pending;
         if (this.instances) {
           this.instances.forEach(function (instance) {
-            remove_placeholder(instance);
-            instance.ready();
+            instance.component_ready();
           });
         }
         for (var p = this.parentElement;
@@ -752,8 +717,8 @@
   prototypes.component.refresh_view = function () {
     this.instances.forEach(function (instance) {
       instance.__invalidated = true;
-      instance.render_view();
-    });
+      this.context.request_update({ source: instance, action: "render_view" });
+    }, this);
     this.derived.forEach(function (component) {
       if (!component.has_own_view()) {
         component.refresh_view();
@@ -763,6 +728,7 @@
 
   // Create a new instance with a target element to render in
   prototypes.component.create_instance = function (target) {
+    console.log("[create_instance] new instance for", this);
     var prototype = this.prototype_instance || "bender.instance";
     try {
       var instance = eval("Object.create({0})".fmt(prototype));
@@ -773,9 +739,7 @@
     }
     this.instances.push(instance);
     instance.component = this;
-    if (target) {
-      instance.target = target;
-    }
+    instance.target = target || this.context.document.createDocumentFragment();
     instance.children = [];  // parent will be set when the instance is added
     instance.instances = { $self: instance };
     instance.views = { $document: this.context.document };
@@ -783,10 +747,20 @@
     instance.set_property = {};
     instance.edges = [];
     instance.init();
-    this.properties.forEach(instance.setup_property.bind(instance));
-    instance.__invalidated = true;
-    instance.render_view();
+    if (component.__pending) {
+      instance.target =
+        instance.target.appendChild(this.context.$("placeholder"));
+    } else {
+      instance.component_ready();
+    }
     return instance;
+  };
+
+  bender.instance.component_ready = function () {
+    this.ready();
+    this.component.properties.forEach(this.setup_property.bind(this));
+    this.__invalidated = true;
+    this.render_view();
   };
 
   bender.instance.add_child = function (instance) {
@@ -954,7 +928,8 @@
       if (re_render) {
         e.source.instances.forEach(function (instance) {
           instance.__invalidated = true;
-          instance.render_view();
+          instance.component.context.request_update({ source: instance,
+            action: "render_view" });
         });
       }
       if (this.__pending) {

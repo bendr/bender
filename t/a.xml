@@ -5,7 +5,9 @@
         A (
         <component href="b.xml">
           <component href="c.xml">
-            <component href="d.xml" id="d"/>
+            <component href="d.xml">
+              <component href="e.xml" id="d"/>
+            </component>
           </component>
         </component>
         )
