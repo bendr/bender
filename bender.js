@@ -224,6 +224,7 @@
 
   // Dummy methods to be overloaded by custom instances
   bender.instance.init = function () {};
+  bender.instance.rendering = function () {};
   bender.instance.rendered = function () {};
   bender.instance.ready = function () {};
 
@@ -257,6 +258,28 @@
       }
     }
   };
+
+  bender.instance.component_ready = function () {
+    console.log("[component_ready]", this.component);
+    remove_placeholder(this);
+    this.ready();
+  };
+
+  function remove_placeholder (instance) {
+    if (instance.roots && instance.roots.length > 0) {
+      var placeholder = instance.roots[0].parentElement;
+      if (is_bender_element(placeholder, "placeholder")) {
+        var parent = placeholder.parentElement;
+        if (parent) {
+          var ref = placeholder.nextSibling;
+          instance.roots.forEach(function (r) {
+            parent.insertBefore(r, ref);
+          });
+          parent.removeChild(placeholder);
+        }
+      }
+    }
+  }
 
   bender.instance.render_node = function (node) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
@@ -295,7 +318,7 @@
     var instance = component.create_instance(placeholder);
     this.add_child(instance);
     instance.__invalidated = true;
-    instance.render_view(placeholder);
+    instance.render_view();
     return placeholder;
   };
 
@@ -668,10 +691,11 @@
       }
     });
 
-
     // content property (TODO)
   };
 
+  // Remove `p` from the list of pending items. If p is a string (an URI),
+  // replace it with the actual component that was loaded
   prototypes.component.clear_pending = function (p) {
     if (this.__pending) {
       flexo.remove_from_array(this.__pending, p);
@@ -682,8 +706,13 @@
         }
       }
       if (this.__pending.length === 0) {
-        console.log("[clear_pending] ready", this);
         delete this.__pending;
+        if (this.instances) {
+          this.instances.forEach(function (instance) {
+            remove_placeholder(instance);
+            instance.ready();
+          });
+        }
         for (var p = this.parentElement;
             p && !(typeof p.clear_pending === "function");
             p = p.parentElement);

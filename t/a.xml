@@ -15,10 +15,4 @@
       </component>
     </html:div>
   </view>
-  <watch>
-    <get instance="$self" event="@rendered">
-      console.log(this.instances.d);
-      console.log(this.instances.p);
-    </get>
-  </watch>
 </component>
