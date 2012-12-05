@@ -175,7 +175,7 @@
         var updates = this.__update_queue.slice();
         delete this.__update_queue;
         pending.forEach(function (p) {
-          p.clear_pending(p);
+          prototypes.component.clear_pending.call(p, p);
         });
         flexo.notify(context, "@update", { updates: updates });
       }.bind(this), 0);
@@ -675,14 +675,25 @@
   prototypes.component.clear_pending = function (p) {
     if (this.__pending) {
       flexo.remove_from_array(this.__pending, p);
+      if (typeof p === "string") {
+        p = this.context.loaded[p];
+        if (p.__pending) {
+          this.__pending.push(p);
+        }
+      }
       if (this.__pending.length === 0) {
-        console.log("[clear_pending] ready", p);
+        console.log("[clear_pending] ready", this);
         delete this.__pending;
         for (var p = this.parentElement;
             p && !(typeof p.clear_pending === "function");
-            p = p.parentElement) {}
+            p = p.parentElement);
         if (p) {
           p.clear_pending(this);
+        }
+        if (this.derived) {
+          this.derived.forEach(function (d) {
+            d.clear_pending(this);
+          }, this);
         }
       }
     }
@@ -905,11 +916,6 @@
       this.__pending.push(uri);
     }
     var loaded = function (e) {
-      if (this.__pending) {
-        this.context.request_update(function () {
-          this.clear_pending(uri);
-        }.bind(this));
-      }
       var re_render = !e.source.has_own_view();
       if (e.source.prototype) {
         flexo.remove_from_array(e.source.prototype.derived, e.source);
@@ -921,6 +927,11 @@
           instance.__invalidated = true;
           instance.render_view();
         });
+      }
+      if (this.__pending) {
+        this.context.request_update(function () {
+          this.clear_pending(uri);
+        }.bind(this));
       }
     }.bind(this);
     if (this.context.loaded[uri] instanceof window.Node) {
@@ -981,6 +992,10 @@
     if (this.has_own_view()) {
       console.error("Component already has a view", this);
     } else {
+      if (this.__pending && update.child.__pending) {
+        A.push.apply(this.__pending, update.child.__pending);
+        delete update.child.__pending;
+      }
       this._set_view(update.child);
     }
   };
@@ -1049,16 +1064,30 @@
       (name === undefined || node.localName === name);
   }
 
+  prototypes.view.init = function () {
+    this.__pending = [];
+  };
+
   prototypes.view.insertBefore = function (ch, ref) {
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
+    this.inserted(ch);
+  };
+
+  prototypes.view.inserted = function (ch) {
     if (ch.nodeType === window.Node.ELEMENT_NODE) {
       if (ch.namespaceURI !== bender.ns) {
-        this.context.wrap_element(ch, "view");
+        this.context.wrap_element(ch, prototypes.view);
+        A.forEach.call(ch.childNodes, ch.inserted.bind(ch));
       }
     }
-    for (var p = this; p && !p.__pending; p = p.parentElement);
-    if (p && p.__pending) {
-      p.__pending.push(ch);
+    for (var e = this; e.parentElement && !e.__pending; e = e.parentElement);
+    if (e.__pending) {
+      if (is_bender_element(ch, "component")) {
+        e.__pending.push(ch);
+      } else if (ch.__pending) {
+        A.push.apply(e.__pending, ch.__pending);
+        ch.__pending = [];
+      }
     }
     this.context.request_update({ action: "update_view", source: this })
   };
