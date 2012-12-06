@@ -24,11 +24,29 @@ body {
 }
 
 div.tiles {
-  width: 960px;
+  width: 240px;
   margin: 10px auto;
   padding: 0;
   height: 100%;
   font-size: 0;
+}
+
+@media (min-width: 480px) {
+  div.tiles {
+    width: 480px;
+  }
+}
+
+@media (min-width: 720px) {
+  div.tiles {
+    width: 720px;
+  }
+}
+
+@media (min-width: 960px) {
+  div.tiles {
+    width: 960px;
+  }
 }
 
 div.tiles > div {
