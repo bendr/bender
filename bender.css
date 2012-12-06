@@ -49,18 +49,6 @@ div.tiles {
   }
 }
 
-@media (min-width: 1200px) {
-  div.tiles {
-    width: 1200px;
-  }
-}
-
-@media (min-width: 1440px) {
-  div.tiles {
-    width: 1440px;
-  }
-}
-
 div.tiles > div {
   font-size: 16px;
   border-radius: 5px;
