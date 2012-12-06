@@ -257,7 +257,6 @@
       var r = this.render_node(ch, target);
       if (r) {
         roots.push(r);
-        target.appendChild(r);
       }
     }, this);
     return roots;
@@ -323,7 +322,7 @@
       }
     }, this);
     A.forEach.call(elem.childNodes, function (ch) {
-      this.render_node(ch, target);
+      this.render_node(ch, d);
     }, this);
     return d;
   };
@@ -739,6 +738,7 @@
     }
     this.instances.push(instance);
     instance.component = this;
+    instance.__invalidated = !!instance.component.view;
     instance.target = target || this.context.document.createDocumentFragment();
     instance.children = [];  // parent will be set when the instance is added
     instance.instances = { $self: instance };
@@ -759,7 +759,6 @@
   bender.instance.component_ready = function () {
     this.ready();
     this.component.properties.forEach(this.setup_property.bind(this));
-    this.__invalidated = true;
     this.render_view();
   };
 
@@ -919,7 +918,7 @@
       this.__pending.push(uri);
     }
     var loaded = function (e) {
-      var re_render = !e.source.has_own_view();
+      var re_render = !e.source.has_own_view() && !e.component.__pending;
       if (e.source.prototype) {
         flexo.remove_from_array(e.source.prototype.derived, e.source);
       }
