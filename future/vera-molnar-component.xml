@@ -1,0 +1,61 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:svg="http://www.w3.org/2000/svg">
+
+  <title>After Vera Molnar</title>
+
+  <property name="width" as="number" value="24"/>
+  <property name="height" as="number" value="24"/>
+  <property name="size" as="number" value="10"/>
+  <property name="stroke" as="number" value="2"/>
+  <property name="bgcolor" value="#e3e6e8"/>
+  <property name="fgcolor" value="#0f1114"/>
+
+  <component id="line">
+    <property name="size" as="number"/>
+  </component>
+
+  <component id="l0" href="#line">
+    <view>
+      <svg:line x2="${size}" y2="${size}"/>
+    </view>
+  </component>
+
+  <component id="l1" href="#line">
+    <view>
+      <svg:line x1="${size}" y2="${size}"/>
+    </view>
+  </component>
+
+  <component id="l2" href="#line">
+    <view>
+      <svg:line x1="${size / 2}" x2="${size / 2}" y2="${size}"/>
+    </view>
+  </component>
+
+  <component id="l3" href="#line">
+    <view>
+      <svg:line y1="${size / 2}" x2="${size}" y2="${size / 2}"/>
+    </view>
+  </component>
+
+  <view>
+    <svg:svg
+      viewBox="${-size} ${-size} ${(width + 2) * size} ${(height + 2) * size}">
+      <svg:rect x="${-size}" y="${-size}" width="${(width + 2) * size}"
+        height="${(height + 2) * size" fill="${bgcolor}"/>
+      <svg:g stroke="${fgcolor}">
+        <component>
+          <replicate count="${height}">
+            <attribute name="y" from="0" to="${height * size}"/>
+            <replicate count="${width}">
+              <attribute name="x" from="0" to="${height * size}"/>
+              <attribute name="href" value="#l${flexo.random_int(3)}"
+                size="${size}"/>
+            </replicate>
+          </replicate>
+        </component>
+      </svg:g>
+    </svg>
+  </view>
+
+</component>
