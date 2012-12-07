@@ -291,10 +291,9 @@
   bender.instance.render_text = function (node, target) {
     var d = target.appendChild(
         this.component.context.document.createTextNode(node.textContent));
-    if (!this.bind_text(d)) {
-      d.textContent =
-        flexo.format.call(this, node.textContent, this.properties);
-    }
+    this.bind_text(d);
+    d.textContent =
+      flexo.format.call(this, node.textContent, this.properties);
     return d;
   };
 
@@ -345,7 +344,6 @@
     var initialized = false;
     this.set_property[property.name] = function (v) {
       value = v;
-      initialized = true;
     };
     var instance = this;
     Object.defineProperty(this.properties, property.name, { enumerable: true,
@@ -354,6 +352,7 @@
       },
       set: function (v) {
         instance.set_property[property.name].call(instance, v);
+        initialized = true;
         traverse_graph(instance.edges.filter(function (e) {
           return e.property === property.name;
         }));
@@ -426,7 +425,7 @@
   // Match all properties inside a pattern
   // TODO
   bender.instance.match_properties = function (pattern) {
-    return [];
+    return this.extract_props(pattern);
   }
 
   // Extract a list of properties for a pattern. Only properties that are
@@ -1142,7 +1141,9 @@
   // Get the parsed value for the property
   prototypes.property.parse_value = function (instance, v) {
     var that = this.as === "dynamic" ? instance : instance.properties;
-    return property_types[this.as].call(that, v === undefined ? this.value : v);
+    var val = (v === undefined ? this.value : v).format(that);
+    return property_types[this.as].call(that, val);
+
   };
 
 
