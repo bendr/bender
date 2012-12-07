@@ -652,6 +652,7 @@
         }
       }
       if (this.__pending.length === 0) {
+        console.log("[clear_pending] no more pending, ready");
         delete this.__pending;
         if (this.instances) {
           this.instances.forEach(function (instance) {
@@ -708,7 +709,6 @@
 
   // Create a new instance with a target element to render in
   prototypes.component.create_instance = function (target) {
-    console.log("[create_instance] new instance for", this);
     var prototype = this.prototype_instance || "bender.instance";
     try {
       var instance = eval("Object.create({0})".fmt(prototype));
@@ -729,7 +729,8 @@
     instance.edges = [];
     instance.init();
     if (component.__pending) {
-      instance.target =
+      console.log("+++ adding placeholder for pending", component);
+      instance.__placeholder = instance.target =
         instance.target.appendChild(this.context.$("placeholder"));
     } else {
       instance.component_ready();
@@ -741,6 +742,13 @@
     this.ready();
     this.component.properties.forEach(this.setup_property.bind(this));
     this.render_view();
+    if (this.__placeholder) {
+      var parent = this.__placeholder.parentElement;
+      A.slice.call(this.__placeholder.childNodes).forEach(function (ch) {
+        parent.insertBefore(ch, this.__placeholder);
+      }, this);
+      parent.removeChild(this.__placeholder);
+    }
   };
 
   bender.instance.add_child = function (instance) {
@@ -914,6 +922,7 @@
       }
       if (this.__pending) {
         this.context.request_update(function () {
+          console.log("[set_component_prototype] clear pending {0}".fmt(uri));
           this.clear_pending(uri);
         }.bind(this));
       }
