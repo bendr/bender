@@ -224,9 +224,9 @@
 
   // Dummy methods to be overloaded by custom instances
   bender.instance.init = function () {};
+  bender.instance.ready = function () {};
   bender.instance.rendering = function () {};
   bender.instance.rendered = function () {};
-  bender.instance.ready = function () {};
 
   bender.instance.render_view = function () {
     if (!this.__invalidated) {
@@ -338,16 +338,20 @@
   };
 
   bender.instance.setup_property = function (property) {
+    if (this.properties.hasOwnProperty(property.name)) {
+      return;
+    }
     var value;
+    var initialized = false;
     this.set_property[property.name] = function (v) {
-      if (v !== value) {
-        var prev = value;
-        value = v;
-      }
+      value = v;
+      initialized = true;
     };
     var instance = this;
     Object.defineProperty(this.properties, property.name, { enumerable: true,
-      get: function () { return value; },
+      get: function () {
+        return initialized ? value : property.parse_value(instance);
+      },
       set: function (v) {
         instance.set_property[property.name].call(instance, v);
         traverse_graph(instance.edges.filter(function (e) {
@@ -449,28 +453,6 @@
       }, this);
     }
     return Object.keys(props);
-  };
-
-  // Initialize all non-dynamic properties
-  // TODO sort edges to do initializations in the correct order
-  bender.instance.init_properties = function () {
-    this.template.properties.forEach(function (property) {
-      if (this.reference &&
-        this.reference.values.hasOwnProperty(property.name)) {
-        this.properties[property.name] =
-          flexo.format.call(this, this.reference.values[property.name],
-            this.properties);
-      } else if (property.value !== undefined) {
-        if (property.as === "dynamic") {
-          var props = this.extract_props(property.value);
-          if (props.length > 0) {
-            return;
-          }
-        }
-        this.properties[property.name] =
-          flexo.format.call(this, property.value, this.properties);
-      }
-    }, this);
   };
 
   // Bender elements overload some DOM methods in order to track changes to the
@@ -605,12 +587,12 @@
         var props = [];
         for (var p in properties) {
           if (properties.hasOwnProperty(p)) {
-            props.push(p);
+            props.push(properties[p]);
           }
         }
         if (this.prototype) {
           A.push.apply(props, this.prototype.properties.filter(function (p) {
-            return !properties.hasOwnProperty(p);
+            return !properties.hasOwnProperty(p.name);
           }));
         }
         return props;
