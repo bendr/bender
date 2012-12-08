@@ -468,10 +468,19 @@
     }
   };
 
-  ["component", "content", "get", "property", "set", "view", "watch"
+  ["component", "content", "content-of", "get", "property", "set", "view",
+    "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
+
+  prototypes["content-of"].insertBefore = function () {
+    // TODO
+  };
+
+  prototypes["content-of"].setAttribute = function () {
+    // TODO
+  };
 
   prototypes.component.init = function () {
     this.__pending = [this];

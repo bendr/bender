@@ -1,0 +1,12 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <component id="c">
+      <view>
+        <content/>
+      </view>
+    </component>
+  </view>
+  <content-of href="#c" xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>This is the content of.</html:p>
+  </content-of>
+</component>
