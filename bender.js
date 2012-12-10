@@ -264,7 +264,7 @@
 
   bender.instance.find_instance_for_content = function (node) {
     for (var id = this.component.id, p = this.parent;
-        p && !p.component.content_of.hasOwnProperty(id); p = p.parent);
+        p && !p.component.has_content_for(id); p = p.parent);
     return p;
   };
 
@@ -277,7 +277,7 @@
           var instance = this.find_instance_for_content(node);
           if (instance) {
             return instance.render_children(instance.component
-                .content_of[this.component.id], target);
+                .content_for(this.component.id), target);
           } else {
             return this.render_children(node, target);
           }
@@ -295,8 +295,7 @@
   };
 
   bender.instance.render_component = function (component, target) {
-    var instance = component.create_instance(target);
-    this.add_child(instance);
+    var instance = component.create_instance(target, this);
     return instance.target;
   };
 
@@ -501,14 +500,13 @@
     Object.getPrototypeOf(this).removeAttribute.call(this, name);
     if (name === "instance") {
       delete this.instance;
-      // TODO update rendering
+      // TODO
     }
   };
 
   prototypes.component.init = function () {
     this.__pending = [this];
     this.derived = [];       // components that derive from this one
-    this.content_of = {};    // content-of children indexed by ref
     this.components = [];    // component children (outside of view)
     this.watches = [];       // child watch elements
     this.instances = [];     // instances of the component
@@ -537,6 +535,20 @@
         }
       }
     });
+
+    var content_of = {};
+    this.has_content_for = function (id) {
+      return content_of.hasOwnProperty(id) ||
+        (this.prototype && this.prototype.has_content_for(id));
+    };
+    this.add_content_for = function (id, content) {
+      content_of[id] = content;
+    };
+    this.content_for = function (id) {
+      return (content_of.hasOwnProperty(id) && content_of[id]) ||
+        (this.prototype && this.prototype.content_for(id));
+    };
+
 
     // content can be a node, or can be inferred from everything that is not
     // content. Content is *not* inherited!
@@ -740,8 +752,9 @@
     });
   };
 
-  // Create a new instance with a target element to render in
-  prototypes.component.create_instance = function (target) {
+  // Create a new instance with a target element to render in and optionally a
+  // parent instance
+  prototypes.component.create_instance = function (target, parent) {
     var prototype = this.prototype_instance || "bender.instance";
     try {
       var instance = eval("Object.create({0})".fmt(prototype));
@@ -754,7 +767,10 @@
     instance.component = this;
     instance.__invalidated = !!instance.component.view;
     instance.target = target || this.context.document.createDocumentFragment();
-    instance.children = [];  // parent will be set when the instance is added
+    instance.children = [];
+    if (parent) {
+      parent.add_child(instance);
+    }
     instance.instances = { $self: instance };
     instance.views = { $document: this.context.document };
     instance.properties = {};
@@ -774,6 +790,7 @@
   bender.instance.component_ready = function () {
     this.ready();
     this.component.properties.forEach(this.setup_property.bind(this));
+    console.log("[component_ready] ready to render", this.component);
     this.render_view();
     if (this.__placeholder) {
       var parent = this.__placeholder.parentElement;
@@ -785,6 +802,7 @@
   };
 
   bender.instance.add_child = function (instance) {
+    console.log("[add_child] instance of", instance.component);
     this.children.push(instance);
     instance.parent = this;
     if (instance.component.id) {
@@ -1008,7 +1026,7 @@
 
   prototypes.component.update_add_content_of = function (update) {
     if (update.child.instance) {
-      this.content_of[update.child.instance] = update.child;
+      this.add_content_for(update.child.instance, update.child);
       // TODO update rendering
     }
   };
