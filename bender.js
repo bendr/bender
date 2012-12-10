@@ -97,10 +97,11 @@
           var c = this.import_node(req.response.documentElement, locator);
           if (is_bender_element(c, "component")) {
             ev.component = c;
-            this.loaded[locator].forEach(function (i) {
+            var loaded = this.loaded[locator].slice();
+            this.loaded[locator] = c;
+            loaded.forEach(function (i) {
               flexo.notify(i, "@loaded", ev);
             });
-            this.loaded[locator] = c;
           } else {
             ev.message = "not a Bender component";
             flexo.notify(instance, "@error", ev);
