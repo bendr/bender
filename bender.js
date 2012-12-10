@@ -352,18 +352,25 @@
       return;
     }
     var value;
-    var initialized = false;
+    var set = false;
     this.set_property[property.name] = function (v) {
       value = v;
+      set = true;
     };
     var instance = this;
     Object.defineProperty(this.properties, property.name, { enumerable: true,
       get: function () {
-        return initialized ? value : property.parse_value(instance);
+        if (set) {
+          return value;
+        } else {
+          var prop = instance.component.get_property(property.name);
+          if (prop) {
+            return prop.parse_value(instance);
+          }
+        }
       },
       set: function (v) {
         instance.set_property[property.name].call(instance, v);
-        initialized = true;
         traverse_graph(instance.edges.filter(function (e) {
           return e.property === property.name;
         }));
@@ -433,15 +440,21 @@
     }
   };
 
-  // Match all properties inside a pattern
-  // TODO
-  bender.instance.match_properties = function (pattern) {
-    return this.extract_props(pattern);
-  }
+  bender.instance.has_property = function (prop) {
+    return this.properties.hasOwnProperty(prop) ||
+      this.component.has_property(prop);
+  };
 
-  // Extract a list of properties for a pattern. Only properties that are
-  // actually defined are extracted.
-  bender.instance.extract_props = function (pattern) {
+  bender.instance.find_instance_with_property = function (prop) {
+    if (this.has_property(prop)) {
+      return this;
+    } else {
+      return this.parent && this.parent.find_instance_with_property(prop);
+    }
+  };
+
+  // Match all properties inside a pattern
+  bender.instance.match_properties = function (pattern) {
     var props = {};
     if (typeof pattern === "string") {
       var open = false;
@@ -452,8 +465,8 @@
           open = true;
         } else if (token === "}") {
           if (open) {
-            if (this.properties.hasOwnProperty(prop)) {
-              props[prop] = true;
+            if (!(props.hasOwnProperty(prop))) {
+              props[prop] = this.find_instance_with_property(prop);
             }
             open = false;
           }
@@ -624,24 +637,15 @@
       });
     };
     this._remove_property = function (property) {
+      if (typeof property === "string") {
+        property = properties[property];
+      }
       delete properties[property.name];
     };
-    Object.defineProperty(this, "properties", { enumerable: true,
-      get: function () {
-        var props = [];
-        for (var p in properties) {
-          if (properties.hasOwnProperty(p)) {
-            props.push(properties[p]);
-          }
-        }
-        if (this.prototype) {
-          A.push.apply(props, this.prototype.properties.filter(function (p) {
-            return !properties.hasOwnProperty(p.name);
-          }));
-        }
-        return props;
-      }
-    });
+    this.get_property = function (name) {
+      return (properties.hasOwnProperty(name) && properties[name]) ||
+        (this.prototype && this.prototype.get_property(name));
+    };
 
     // watches property
     var watches = [];
@@ -681,8 +685,11 @@
         }
       }
     });
+  };
 
-    // content property (TODO)
+  prototypes.component.has_property = function (prop) {
+    return this._has_own_property(prop) ||
+      this.prototype && this.prototype.has_property(prop);
   };
 
   // Remove `p` from the list of pending items. If p is a string (an URI),
@@ -723,7 +730,7 @@
   prototypes.component.add_property = function (property) {
     if (property.name) {
       if (this._has_own_property(property.name)) {
-        this.removeChild(this.properties[property.name]);
+        this._remove_property(property.name);
       }
       this.appendChild(property);
     } else {
@@ -763,6 +770,7 @@
           .fmt(prototype));
       instance = Object.create(bender.instance);
     }
+
     this.instances.push(instance);
     instance.component = this;
     instance.__invalidated = !!instance.component.view;
@@ -789,7 +797,6 @@
 
   bender.instance.component_ready = function () {
     this.ready();
-    this.component.properties.forEach(this.setup_property.bind(this));
     console.log("[component_ready] ready to render", this.component);
     this.render_view();
     if (this.__placeholder) {
@@ -1214,7 +1221,6 @@
     var that = this.as === "dynamic" ? instance : instance.properties;
     var val = (v === undefined ? this.value : v).format(that);
     return property_types[this.as].call(that, val);
-
   };
 
 
