@@ -276,10 +276,10 @@
         } else if (node.localName === "content") {
           var instance = this.find_instance_for_content(node);
           if (instance) {
-            return instance.render_children(instance.component
+            return this.render_children(instance.component
                 .content_for(this.component.id), target);
           } else {
-            return this.render_children(node, target);
+            return this.render_children(this.component.content || node, target);
           }
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
