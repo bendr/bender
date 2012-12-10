@@ -262,13 +262,25 @@
     return roots;
   };
 
+  bender.instance.find_instance_for_content = function (node) {
+    for (var id = this.component.id, p = this.parent;
+        p && !p.component.content_of.hasOwnProperty(id); p = p.parent);
+    return p;
+  };
+
   bender.instance.render_node = function (node, target) {
     if (node.nodeType === window.Node.ELEMENT_NODE) {
       if (node.namespaceURI === bender.ns) {
         if (node.localName === "component") {
           return this.render_component(node, target);
         } else if (node.localName === "content") {
-          return this.render_children(this.component.content || node, target);
+          var instance = this.find_instance_for_content(node);
+          if (instance) {
+            return instance.render_children(instance.component
+                .content_of[this.component.id], target);
+          } else {
+            return this.render_children(node, target);
+          }
         } else {
           console.warn("[render_node] Unexpected Bender element {0} in view"
               .fmt(node.localName));
@@ -474,17 +486,29 @@
     prototypes[p] = {};
   });
 
-  prototypes["content-of"].insertBefore = function () {
-    // TODO
+  prototypes["content-of"].setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "instance") {
+      this.instance = value.trim();
+      if (this.parentElement &&
+          typeof this.parentElement.update_add_content_of === "function") {
+        this.parentElement.update_add_content_of({ child: this });
+      }
+    }
   };
 
-  prototypes["content-of"].setAttribute = function () {
-    // TODO
+  prototypes["content-of"].removeAttribute = function () {
+    Object.getPrototypeOf(this).removeAttribute.call(this, name);
+    if (name === "instance") {
+      delete this.instance;
+      // TODO update rendering
+    }
   };
 
   prototypes.component.init = function () {
     this.__pending = [this];
     this.derived = [];       // components that derive from this one
+    this.content_of = {};    // content-of children indexed by ref
     this.components = [];    // component children (outside of view)
     this.watches = [];       // child watch elements
     this.instances = [];     // instances of the component
@@ -956,6 +980,9 @@
           ch.localName === "watch") {
         this.context.request_update({ action: "update_add_" + ch.localName,
           source: this, child: ch });
+      } else if (ch.localName === "content-of") {
+        this.context.request_update({ action: "update_add_content_of",
+          source: this, child: ch });
       }
     }
     return ch;
@@ -976,6 +1003,13 @@
       console.error("Component already has content", this);
     } else {
       this._set_content(update.child);
+    }
+  };
+
+  prototypes.component.update_add_content_of = function (update) {
+    if (update.child.instance) {
+      this.content_of[update.child.instance] = update.child;
+      // TODO update rendering
     }
   };
 
@@ -1043,6 +1077,7 @@
   };
 
   prototypes.component.removeAttribute = function (name) {
+    Object.getPrototypeOf(this).removeAttribute.call(this, name);
     if (name === "href") {
       this._set_href();
     } else if (name === "id") {
