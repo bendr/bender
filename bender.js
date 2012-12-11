@@ -97,6 +97,7 @@
             var cs = this.loaded[uri].slice();
             this.loaded[uri] = c;
             cs.forEach(function (k) {
+              console.log("[load_component] {0}".fmt(uri));
               flexo.notify(k, "@loaded", ev);
             });
           } else {
@@ -1019,6 +1020,8 @@
         }.bind(this));
       }
     }.bind(this);
+    console.log("[set_component_prototype] {0}".fmt(uri),
+        this.context.loaded[uri]);
     if (this.context.loaded[uri] instanceof window.Node) {
       loaded({ source: this, component: this.context.loaded[uri] });
     } else {

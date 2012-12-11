@@ -2,18 +2,17 @@
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div>
       <component href="p.xml">Paragraph 1*</component>
-      <!--
-      <component href="q.xml" text="Paragraph 2**"/>
-      -->
+      <component href="q.xml">
+        <property name="text" value="Paragraph 2**"/>
+      </component>
       <html:p>Paragraph before A/B</html:p>
-      <!--
       <component href="r.xml"/>
-      -->
       <component href="p.xml">Paragraph 3*</component>
       <html:p>Paragraph 4</html:p>
-      <!--
-      <component href="q.xml" text="Paragraph 5**" class="q"/>
-    -->
+      <component href="q.xml">
+        <property name="text" value="Paragraph 5**"/>
+        <property name="class" value="q"/>
+      </component>
     </html:div>
   </view>
 </component>

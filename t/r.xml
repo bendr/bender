@@ -4,7 +4,10 @@
       <component href="q.xml" id="p1">
         <property name="text" value="Paragraph A"/>
       </component>
-      <component href="q.xml" text="Paragraph B" class="r" id="p2"/>
+      <component href="q.xml" id="p2">
+        <property name="text" value="Paragraph B"/>
+        <property name="class" value="r"/>
+      </component>
     </html:div>
   </view>
 </component>
