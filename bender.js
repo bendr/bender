@@ -320,15 +320,13 @@
         this.views[val.trim()] = d;
       } else if (attr.namespaceURI &&
         attr.namespaceURI !== elem.namespaceURI) {
-        if (!this.bind_attr(d, attr)) {
-          d.setAttributeNS(attr.namespaceURI, attr.localName,
-            flexo.format.call(this, val, this.properties));
-        }
+        this.bind_attr(d, attr);
+        d.setAttributeNS(attr.namespaceURI, attr.localName,
+          flexo.format.call(this, val, this.properties));
       } else {
-        if (!this.bind_attr(d, attr)) {
-          d.setAttribute(attr.localName,
-            flexo.format.call(this, val, this.properties));
-        }
+        this.bind_attr(d, attr);
+        d.setAttribute(attr.localName,
+          flexo.format.call(this, val, this.properties));
       }
     }, this);
     A.forEach.call(elem.childNodes, function (ch) {
@@ -347,10 +345,21 @@
     delete this.views.$root;
   };
 
-  bender.instance.setup_property = function (property) {
-    if (this.properties.hasOwnProperty(property.name)) {
+  bender.instance.setup_ro_property = function (name) {
+    if (this.properties.hasOwnProperty(name)) {
       return;
     }
+    var instance = this;
+    Object.defineProperty(this.properties, name, {
+      enumerable: true,
+      configurable: true,
+      get: function () {
+        return instance.parent.properties[name];
+      }
+    });
+  };
+
+  bender.instance.setup_property = function (property) {
     var value;
     var set = false;
     this.set_property[property.name] = function (v) {
@@ -431,17 +440,19 @@
   // binding was created
   bender.instance.bind = function (pattern, set_edge) {
     var props = this.match_properties(pattern);
-    if (props.length > 0) {
+    var keys = Object.keys(props);
+    if (keys.length > 0) {
       var watch = { edges: [set_edge] };
-      props.forEach(function (p) {
-        this.edges.push({ property: p, watch: watch, instance: this });
+      keys.forEach(function (p) {
+        props[p].edges.push({ property: p, watch: watch, instance: props[p] });
       }, this);
       return true;
     }
   };
 
   bender.instance.has_property = function (prop) {
-    return this.properties.hasOwnProperty(prop) ||
+    return (this.properties.hasOwnProperty(prop) &&
+        !!Object.getOwnPropertyDescriptor(this.properties, prop).set) ||
       this.component.has_property(prop);
   };
 
@@ -475,7 +486,7 @@
         }
       }, this);
     }
-    return Object.keys(props);
+    return props;
   };
 
   // Bender elements overload some DOM methods in order to track changes to the
@@ -776,15 +787,15 @@
     instance.__invalidated = !!instance.component.view;
     instance.target = target || this.context.document.createDocumentFragment();
     instance.children = [];
-    if (parent) {
-      parent.add_child(instance);
-    }
     instance.instances = { $self: instance };
     instance.views = { $document: this.context.document };
     instance.properties = {};
     instance.set_property = {};
     instance.edges = [];
     instance.init();
+    if (parent) {
+      parent.add_child(instance);
+    }
     if (component.__pending) {
       console.log("+++ adding placeholder for pending", component);
       instance.__placeholder = instance.target =
@@ -808,10 +819,20 @@
     }
   };
 
+  bender.instance.add_ro_properties = function () {
+    Object.keys(this.parent.properties).forEach(function (p) {
+      this.setup_ro_property(p);
+    }, this);
+    this.children.forEach(function (ch) {
+      ch.add_ro_properties(p);
+    });
+  };
+
   bender.instance.add_child = function (instance) {
     console.log("[add_child] instance of", instance.component);
     this.children.push(instance);
     instance.parent = this;
+    instance.add_ro_properties();
     if (instance.component.id) {
       for (var p = this; p; p = p.component.parentElement && p.parent) {
         p.instances[instance.component.id] = instance;
