@@ -11,8 +11,6 @@
   bender.$ = {};
 
 
-  // The context stores the definitions on the components, indexed by their URI,
-  // as well as the instance hierarchy of rendered components.
   bender.context = {};
 
   // Initialize the context for the given host document (this.document); keep
@@ -230,14 +228,16 @@
 
   bender.instance.render_view = function () {
     if (!this.__invalidated) {
-      console.log("[render_view] ---", this.component);
       return;
     }
-    console.log("[render_view]", this.component);
     delete this.__invalidated;
     this.unrender_view();
     if (this.component.view) {
       this.roots = this.render_children(this.component.view, this.target);
+      // Find the first child element or non-empty text node which will act as
+      // the $root view node
+      // TODO should be virtual so that even if there is no view it can still be
+      // created
       for (var i = 0, n = this.roots.length; i < n; ++i) {
         var ch = this.roots[i];
         if (ch.nodeType === window.Node.ELEMENT_NODE ||
@@ -345,7 +345,7 @@
     delete this.views.$root;
   };
 
-  bender.instance.setup_ro_property = function (name) {
+  bender.instance.setup_property_readonly = function (name) {
     if (this.properties.hasOwnProperty(name)) {
       return;
     }
@@ -367,15 +367,15 @@
       set = true;
     };
     var instance = this;
-    Object.defineProperty(this.properties, property.name, { enumerable: true,
+    Object.defineProperty(this.properties, property.name, {
+      enumerable: true,
+      configurable: true,
       get: function () {
         if (set) {
           return value;
         } else {
           var prop = instance.component.get_property(property.name);
-          if (prop) {
-            return prop.parse_value(instance);
-          }
+          return prop && prop.parse_value(instance);
         }
       },
       set: function (v) {
@@ -657,6 +657,15 @@
       return (properties.hasOwnProperty(name) && properties[name]) ||
         (this.prototype && this.prototype.get_property(name));
     };
+    Object.defineProperty(this, "properties", { enumerable: true,
+      get: function () {
+        var props = (this.prototype && this.prototype.properties) || {};
+        Object.keys(properties).forEach(function (p) {
+          props[p] = properties[p];
+        });
+        return props;
+      }
+    });
 
     // watches property
     var watches = [];
@@ -809,6 +818,10 @@
   bender.instance.component_ready = function () {
     this.ready();
     console.log("[component_ready] ready to render", this.component);
+    var props = this.component.properties;
+    Object.keys(props).forEach(function (p) {
+      this.setup_property(props[p]);
+    }, this);
     this.render_view();
     if (this.__placeholder) {
       var parent = this.__placeholder.parentElement;
@@ -821,7 +834,7 @@
 
   bender.instance.add_ro_properties = function () {
     Object.keys(this.parent.properties).forEach(function (p) {
-      this.setup_ro_property(p);
+      this.setup_property_readonly(p);
     }, this);
     this.children.forEach(function (ch) {
       ch.add_ro_properties(p);
@@ -1237,10 +1250,16 @@
     }
   };
 
+  prototypes.property.get_value = function () {
+    return (this.parentElement &&
+        this.parentElement.values.hasOwnProperty(this.name) &&
+        this.parentElement.values[this.name]) || this.value;
+  };
+
   // Get the parsed value for the property
   prototypes.property.parse_value = function (instance, v) {
     var that = this.as === "dynamic" ? instance : instance.properties;
-    var val = (v === undefined ? this.value : v).format(that);
+    var val = (v === undefined ? this.get_value() : v).format(that);
     return property_types[this.as].call(that, val);
   };
 

@@ -1,8 +1,10 @@
 <component xmlns="http://bender.igel.co.jp">
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div>
-      <component href="q.xml" text="Paragraph A"/>
-      <component href="q.xml" text="Paragraph B" class="r"/>
+      <component href="q.xml" id="p1">
+        <property name="text" value="Paragraph A"/>
+      </component>
+      <component href="q.xml" text="Paragraph B" class="r" id="p2"/>
     </html:div>
   </view>
 </component>
