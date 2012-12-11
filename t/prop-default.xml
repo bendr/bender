@@ -1,4 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" href="prop.xml">
+  <property name="x" value="5"/>
   <!--
   <component id="c">
     <property name="x" as="number" value="1"/>

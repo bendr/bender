@@ -1209,7 +1209,23 @@
 
   prototypes.property.init = function () {
     this.value = "";
-    this.as = "string";
+    var as;
+    Object.defineProperty(this, "as", { enumerable: true,
+      get: function () {
+        return as || (this.parentElement && this.parentElement.prototype &&
+          this.parentElement.prototype.properties[this.name] &&
+          this.parentElement.prototype.properties[this.name].as) || "string";
+      },
+      set: function (a) {
+        if (a != null) {
+          a = a.trim().toLowerCase();
+          if (!property_types.hasOwnProperty(a)) {
+            return;
+          }
+        }
+        as = a;
+      }
+    });
   };
 
   prototypes.property.setAttribute = function (name, value) {
@@ -1225,10 +1241,7 @@
         }
       }
     } else if (name === "as") {
-      var as = value.trim().toLowerCase();
-      if (as in property_types) {
-        this.as = as;
-      }
+      this.as = value;
     } else if (name === "value") {
       this.value = value;
       if (this.parentNode &&
