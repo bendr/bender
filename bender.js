@@ -19,6 +19,8 @@
     this.document = host;
     this.loaded = {};
     this.components = [];
+    this.instances = [];
+    this.invalidated = [];
     return this;
   };
 
@@ -98,7 +100,6 @@
             var cs = this.loaded[uri].slice();
             this.loaded[uri] = c;
             cs.forEach(function (k) {
-              console.log("[load_component] {0}".fmt(uri));
               flexo.notify(k, "@loaded", ev);
             });
           } else {
@@ -156,9 +157,11 @@
       this.__update_queue = [];
       var pending = [];
       setTimeout(function () {
-        for (var i = 0; i < this.__update_queue.length; ++i) {
-          console.log("<<< do update ({0})".fmt(i + 1));
-          var update = this.__update_queue[i];
+        var updates = this.__update_queue.slice();
+        delete this.__update_queue;
+        updates.forEach(function (update, i) {
+          console.log("[request_update] <<< {0}/{1} {2}"
+            .fmt(i + 1, updates.length, update.action));
           if (typeof update === "function") {
             update();
             update.skipped = true;
@@ -173,17 +176,16 @@
               update.skipped = true;
             }
           }
-        }
+        });
         pending.forEach(function (p) {
           prototypes.component.clear_pending.call(p, p);
         });
-        var updates = this.__update_queue.slice();
-        delete this.__update_queue;
         flexo.notify(context, "@update", { updates: updates });
       }.bind(this), 500);
     }
     this.__update_queue.push(update);
-    console.log(">>> push update ({0})".fmt(this.__update_queue.length));
+    console.log("[request_update] >>> {0} {1}"
+        .fmt(this.__update_queue.length, update.action));
   };
 
   // Update the URI of a component for the loaded map (usually when the id is
@@ -231,11 +233,26 @@
   bender.instance.rendering = function () {};
   bender.instance.rendered = function () {};
 
-  bender.instance.render_view = function () {
+  bender.instance.invalidate = function () {
     if (!this.__invalidated) {
-      return;
+      this.__invalidated = true;
+      this.component.context.invalidated.push(this);
+      this.component.context.request_update({ source: this,
+        action: "render_view" });
     }
+    console.log("[invalidate] {0}".fmt(this.seqno),
+        this.component.context.invalidated.map(function (i) {
+          return i.seqno;
+        }));
+  };
+
+  bender.instance.render_view = function () {
     delete this.__invalidated;
+    flexo.remove_from_array(this.component.context.invalidated, this);
+    console.log("[render_view] {0}".fmt(this.seqno),
+        this.component.context.invalidated.map(function (i) {
+          return i.seqno;
+        }));
     this.unrender_view();
     if (this.component.view) {
       this.roots = this.render_children(this.component.view, this.target);
@@ -722,7 +739,6 @@
   // Remove `p` from the list of pending items. If p is a string (an URI),
   // replace it with the actual component that was loaded
   prototypes.component.clear_pending = function (p) {
-    console.log("[clear_pending]", this.__pending, p);
     if (this.__pending) {
       flexo.remove_from_array(this.__pending, p);
       if (typeof p === "string") {
@@ -732,7 +748,6 @@
         }
       }
       if (this.__pending.length === 0) {
-        console.log("[clear_pending] no more pending, ready");
         delete this.__pending;
         if (this.instances) {
           this.instances.forEach(function (instance) {
@@ -777,8 +792,7 @@
 
   prototypes.component.refresh_view = function () {
     this.instances.forEach(function (instance) {
-      instance.__invalidated = true;
-      this.context.request_update({ source: instance, action: "render_view" });
+      instance.invalidate();
     }, this);
     this.derived.forEach(function (component) {
       if (!component.has_own_view()) {
@@ -798,10 +812,10 @@
           .fmt(prototype));
       instance = Object.create(bender.instance);
     }
-
     this.instances.push(instance);
+    instance.seqno = this.context.instances.length;
+    this.context.instances.push(instance);
     instance.component = this;
-    instance.__invalidated = !!instance.component.view;
     instance.target = target || this.context.document.createDocumentFragment();
     instance.children = [];
     instance.instances = { $self: instance };
@@ -813,10 +827,10 @@
     if (parent) {
       parent.add_child(instance);
     }
-    if (component.__pending) {
-      instance.__placeholder = instance.target =
-        instance.target.appendChild(this.context.$("placeholder"));
-    } else {
+    instance.__placeholder = instance.target =
+      instance.target.appendChild(this.context.$("placeholder",
+            { for: component.uri, seqno: instance.seqno }));
+    if (!this.__pending) {
       instance.component_ready();
     }
     return instance;
@@ -824,18 +838,22 @@
 
   bender.instance.component_ready = function () {
     this.ready();
-    console.log("[component_ready] ready to render", this.component);
     var props = this.component.properties;
     Object.keys(props).forEach(function (p) {
       this.setup_property(props[p]);
     }, this);
-    this.render_view();
+    this.invalidate();
     if (this.__placeholder) {
-      var parent = this.__placeholder.parentElement;
-      A.slice.call(this.__placeholder.childNodes).forEach(function (ch) {
-        parent.insertBefore(ch, this.__placeholder);
-      }, this);
-      parent.removeChild(this.__placeholder);
+      var placeholder = this.__placeholder;
+      var f = function () {
+        var parent = placeholder.parentElement;
+        A.slice.call(placeholder.childNodes).forEach(function (ch) {
+          parent.insertBefore(ch, placeholder);
+        });
+        parent.removeChild(placeholder);
+      };
+      f.action = "remove_placeholder";
+      this.component.context.request_update(f);
     }
   };
 
@@ -849,7 +867,6 @@
   };
 
   bender.instance.add_child = function (instance) {
-    console.log("[add_child] instance of", instance.component);
     this.children.push(instance);
     instance.parent = this;
     instance.add_ro_properties();
@@ -866,7 +883,6 @@
   };
 
   bender.instance.setup_watch = function (watch) {
-    console.log("[setup_watch]", watch);
     var w = { edges: [] };
     watch.gets.forEach(function (get) {
       var edge = this.make_get_edge(get);
@@ -1011,20 +1027,15 @@
       e.source.prototype.derived.push(e.source);
       if (re_render) {
         e.source.instances.forEach(function (instance) {
-          instance.__invalidated = true;
-          instance.component.context.request_update({ source: instance,
-            action: "render_view" });
+          instance.invalidate();
         });
       }
       if (this.__pending) {
         this.context.request_update(function () {
-          console.log("[set_component_prototype] clear pending {0}".fmt(uri));
           this.clear_pending(uri);
         }.bind(this));
       }
     }.bind(this);
-    console.log("[set_component_prototype] {0}".fmt(uri),
-        this.context.loaded[uri]);
     if (this.context.loaded[uri] instanceof window.Node) {
       loaded({ source: this, component: this.context.loaded[uri] });
     } else {
