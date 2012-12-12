@@ -160,8 +160,6 @@
         var updates = this.__update_queue.slice();
         delete this.__update_queue;
         updates.forEach(function (update, i) {
-          console.log("[request_update] <<< {0}/{1} {2}"
-            .fmt(i + 1, updates.length, update.action));
           if (typeof update === "function") {
             update();
             update.skipped = true;
@@ -184,8 +182,6 @@
       }.bind(this), 500);
     }
     this.__update_queue.push(update);
-    console.log("[request_update] >>> {0} {1}"
-        .fmt(this.__update_queue.length, update.action));
   };
 
   // Update the URI of a component for the loaded map (usually when the id is
@@ -233,43 +229,35 @@
   bender.instance.rendering = function () {};
   bender.instance.rendered = function () {};
 
-  bender.instance.invalidate = function () {
+  bender.instance.invalidate = function (reason) {
+    console.log("[invalidate] {0}{1}: {2}"
+        .fmt(this.seqno, this.__invalidated ? "*" : "", reason));
     if (!this.__invalidated) {
       this.__invalidated = true;
       this.component.context.invalidated.push(this);
-      this.component.context.request_update({ source: this,
-        action: "render_view" });
-    }
-    console.log("[invalidate] {0}".fmt(this.seqno),
-        this.component.context.invalidated.map(function (i) {
-          return i.seqno;
-        }));
-  };
-
-  bender.instance.render_view = function () {
-    delete this.__invalidated;
-    flexo.remove_from_array(this.component.context.invalidated, this);
-    console.log("[render_view] {0}".fmt(this.seqno),
-        this.component.context.invalidated.map(function (i) {
-          return i.seqno;
-        }));
-    this.unrender_view();
-    if (this.component.view) {
-      this.roots = this.render_children(this.component.view, this.target);
-      // Find the first child element or non-empty text node which will act as
-      // the $root view node
-      // TODO should be virtual so that even if there is no view it can still be
-      // created
-      for (var i = 0, n = this.roots.length; i < n; ++i) {
-        var ch = this.roots[i];
-        if (ch.nodeType === window.Node.ELEMENT_NODE ||
-            ((ch.nodeType === window.Node.TEXT_NODE ||
-              ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
-             /\S/.test(ch.textContent))) {
-           this.views.$root = ch;
-           break;
-         }
-      }
+      this.component.context.request_update(function () {
+        console.log("[invalidate] render {0}".fmt(this.seqno));
+        delete this.__invalidated;
+        flexo.remove_from_array(this.component.context.invalidated, this);
+        this.unrender_view();
+        if (this.component.view) {
+          this.roots = this.render_children(this.component.view, this.target);
+          // Find the first child element or non-empty text node which will act
+          // as the $root view node
+          // TODO should be virtual so that even if there is no view it can
+          // still be created
+          for (var i = 0, n = this.roots.length; i < n; ++i) {
+            var ch = this.roots[i];
+            if (ch.nodeType === window.Node.ELEMENT_NODE ||
+                ((ch.nodeType === window.Node.TEXT_NODE ||
+                  ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
+                 /\S/.test(ch.textContent))) {
+               this.views.$root = ch;
+               break;
+             }
+          }
+        }
+      }.bind(this));
     }
   };
 
@@ -792,7 +780,7 @@
 
   prototypes.component.refresh_view = function () {
     this.instances.forEach(function (instance) {
-      instance.invalidate();
+      instance.invalidate("refresh_view on component {0}".fmt(this.seqno));
     }, this);
     this.derived.forEach(function (component) {
       if (!component.has_own_view()) {
@@ -842,7 +830,7 @@
     Object.keys(props).forEach(function (p) {
       this.setup_property(props[p]);
     }, this);
-    this.invalidate();
+    this.invalidate("component {0} ready".fmt(this.component.seqno));
     if (this.__placeholder) {
       var placeholder = this.__placeholder;
       var f = function () {
@@ -1027,7 +1015,7 @@
       e.source.prototype.derived.push(e.source);
       if (re_render) {
         e.source.instances.forEach(function (instance) {
-          instance.invalidate();
+          instance.invalidate("rerender after prototype is set for component {0}".fmt(this.seqno));
         });
       }
       if (this.__pending) {
