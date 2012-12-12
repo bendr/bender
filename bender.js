@@ -18,6 +18,7 @@
   bender.context.init = function (host) {
     this.document = host;
     this.loaded = {};
+    this.components = [];
     return this;
   };
 
@@ -155,7 +156,9 @@
       this.__update_queue = [];
       var pending = [];
       setTimeout(function () {
-        this.__update_queue.forEach(function (update) {
+        for (var i = 0; i < this.__update_queue.length; ++i) {
+          console.log("<<< do update ({0})".fmt(i + 1));
+          var update = this.__update_queue[i];
           if (typeof update === "function") {
             update();
             update.skipped = true;
@@ -170,16 +173,17 @@
               update.skipped = true;
             }
           }
-        });
-        var updates = this.__update_queue.slice();
-        delete this.__update_queue;
+        }
         pending.forEach(function (p) {
           prototypes.component.clear_pending.call(p, p);
         });
+        var updates = this.__update_queue.slice();
+        delete this.__update_queue;
         flexo.notify(context, "@update", { updates: updates });
-      }.bind(this), 0);
+      }.bind(this), 500);
     }
     this.__update_queue.push(update);
+    console.log(">>> push update ({0})".fmt(this.__update_queue.length));
   };
 
   // Update the URI of a component for the loaded map (usually when the id is
@@ -531,6 +535,8 @@
 
   prototypes.component.init = function () {
     this.__pending = [this];
+    this.seqno = this.context.components.length;
+    this.context.components.push(this);
     this.derived = [];       // components that derive from this one
     this.components = [];    // component children (outside of view)
     this.watches = [];       // child watch elements
@@ -716,6 +722,7 @@
   // Remove `p` from the list of pending items. If p is a string (an URI),
   // replace it with the actual component that was loaded
   prototypes.component.clear_pending = function (p) {
+    console.log("[clear_pending]", this.__pending, p);
     if (this.__pending) {
       flexo.remove_from_array(this.__pending, p);
       if (typeof p === "string") {
@@ -807,7 +814,6 @@
       parent.add_child(instance);
     }
     if (component.__pending) {
-      console.log("+++ adding placeholder for pending", component);
       instance.__placeholder = instance.target =
         instance.target.appendChild(this.context.$("placeholder"));
     } else {
@@ -996,9 +1002,6 @@
   // Replace this component everywhere?
   prototypes.component.set_component_prototype = function () {
     var uri = flexo.absolute_uri(this.uri, this.href);
-    if (this.__pending) {
-      this.__pending.push(uri);
-    }
     var loaded = function (e) {
       var re_render = !e.source.has_own_view() && !e.component.__pending;
       if (e.source.prototype) {
@@ -1025,13 +1028,16 @@
     if (this.context.loaded[uri] instanceof window.Node) {
       loaded({ source: this, component: this.context.loaded[uri] });
     } else {
+      if (this.__pending) {
+        this.__pending.push(uri);
+      }
       flexo.listen_once(this, "@loaded", loaded);
+      flexo.listen_once(this, "@error", function (e) {
+        console.error("Error loading component at {0}: {1}"
+          .fmt(e.uri, e.message), e.source);
+      });
+      this.context.load_component(this);
     }
-    flexo.listen_once(this, "@error", function (e) {
-      console.error("Error loading component at {0}: {1}"
-        .fmt(e.uri, e.message), e.source);
-    });
-    this.context.load_component(this);
   };
 
   prototypes.component.insertBefore = function (ch, ref) {
