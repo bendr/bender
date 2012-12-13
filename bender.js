@@ -346,13 +346,18 @@
   };
 
   bender.instance.unrender_view = function () {
+    this.children.forEach(function (ch) {
+      if (ch.component.parentElement !== this.component) {
+        this.remove_child(ch);
+      }
+    }, this);
     if (this.roots) {
       this.roots.forEach(function (r) {
         flexo.safe_remove(r);
       });
       delete this.roots;
     }
-    delete this.views.$root;
+    this.views = {};
   };
 
   bender.instance.setup_property_readonly = function (name) {
@@ -830,7 +835,9 @@
     Object.keys(props).forEach(function (p) {
       this.setup_property(props[p]);
     }, this);
-    this.invalidate("component {0} ready".fmt(this.component.seqno));
+    if (!this.roots) {
+      this.invalidate("component {0} ready".fmt(this.component.seqno));
+    }
     if (this.__placeholder) {
       var placeholder = this.__placeholder;
       var f = function () {
@@ -863,6 +870,17 @@
         p.instances[instance.component.id] = instance;
       }
     }
+  };
+
+  bender.instance.remove_child = function (instance) {
+    instance.unrender_view();
+    flexo.remove_from_array(this.children, instance);
+    if (instance.component.id) {
+      for (var p = this; p; p = p.component.parentElement && p.parent) {
+        delete p.instances[instance.component.id];
+      }
+    }
+    delete instance.parent;
   };
 
   bender.instance.remove_child = function (instance) {
