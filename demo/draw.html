@@ -25,8 +25,8 @@ canvas {
 
 var context = bender.create_context();
 var args = flexo.get_args({ href: "draw.xml" });
-var component = context.create_component(args);
-var instance = bender.create_instance({ reference: component });
+var component = context.$("component", args);
+var instance = component.create_instance(document.body);
 flexo.listen(instance, "@error", function (e) {
   alert("Error loading {0}: {1}.".fmt(e.uri, e.message));
 });
@@ -40,7 +40,6 @@ flexo.listen(instance, "@rendered", function (e) {
     instance = e.instance;
   }
 });
-context.add_instance(instance, document.body);
 
     </script>
   </body>

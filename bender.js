@@ -21,6 +21,7 @@
     this.components = [];
     this.instances = [];
     this.invalidated = [];
+    this.request_update_delay = 0;
     return this;
   };
 
@@ -179,7 +180,7 @@
           prototypes.component.clear_pending.call(p, p);
         });
         flexo.notify(context, "@update", { updates: updates });
-      }.bind(this), 500);
+      }.bind(this), this.request_update_delay);
     }
     this.__update_queue.push(update);
   };
@@ -253,7 +254,6 @@
                   ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
                  /\S/.test(ch.textContent))) {
                this.views.$root = ch;
-               console.log("[invalidate] $root =", this.views.$root);
                break;
              }
           }
@@ -261,7 +261,6 @@
             var edges = this.__pending_edges.slice();
             delete this.__pending_edges;
             edges.forEach(function (f) {
-              console.log("[invalidate] pending edge");
               f.call(this);
             }, this);
           }
@@ -369,20 +368,6 @@
     this.views = {};
   };
 
-  bender.instance.setup_property_readonly = function (name) {
-    if (this.properties.hasOwnProperty(name)) {
-      return;
-    }
-    var instance = this;
-    Object.defineProperty(this.properties, name, {
-      enumerable: true,
-      configurable: true,
-      get: function () {
-        return instance.parent.properties[name];
-      }
-    });
-  };
-
   bender.instance.setup_property = function (property) {
     var value;
     var set = false;
@@ -464,27 +449,12 @@
   // binding was created
   bender.instance.bind = function (pattern, set_edge) {
     var props = this.match_properties(pattern);
-    var keys = Object.keys(props);
-    if (keys.length > 0) {
+    if (props.length > 0) {
       var watch = { edges: [set_edge] };
-      keys.forEach(function (p) {
-        props[p].edges.push({ property: p, watch: watch, instance: props[p] });
+      props.forEach(function (p) {
+        this.edges.push({ property: p, watch: watch, instance: this });
       }, this);
       return true;
-    }
-  };
-
-  bender.instance.has_property = function (prop) {
-    return (this.properties.hasOwnProperty(prop) &&
-        !!Object.getOwnPropertyDescriptor(this.properties, prop).set) ||
-      this.component.has_property(prop);
-  };
-
-  bender.instance.find_instance_with_property = function (prop) {
-    if (this.has_property(prop)) {
-      return this;
-    } else {
-      return this.parent && this.parent.find_instance_with_property(prop);
     }
   };
 
@@ -501,7 +471,9 @@
         } else if (token === "}") {
           if (open) {
             if (!(props.hasOwnProperty(prop))) {
-              props[prop] = this.find_instance_with_property(prop);
+              if (this.properties.hasOwnProperty(prop)) {
+                props[prop] = true;
+              }
             }
             open = false;
           }
@@ -510,8 +482,9 @@
         }
       }, this);
     }
-    return props;
+    return Object.keys(props);
   };
+
 
   // Bender elements overload some DOM methods in order to track changes to the
   // tree.
@@ -562,6 +535,15 @@
     this.instances = [];     // instances of the component
     this.values = {};        // initial property values
     this.uri = this.context.document.baseURI;
+
+    // parent component
+    Object.defineProperty(this, "parent_component", { enumerable: true,
+      get: function () {
+        for (var p = this.parentElement; p && !is_bender_element("component");
+          p = p.parentElement);
+        return p;
+      }
+    });
 
     // href property: this component inherits from that component
     // may require loading
@@ -733,9 +715,10 @@
     });
   };
 
-  prototypes.component.has_property = function (prop) {
-    return this._has_own_property(prop) ||
-      this.prototype && this.prototype.has_property(prop);
+  prototypes.component.has_property = function (name) {
+    return this._has_own_property(name) ||
+      (this.prototype && this.prototype.has_property(name)) ||
+      (this.parent_component && this.parent_component.has_property(name));
   };
 
   // Remove `p` from the list of pending items. If p is a string (an URI),
@@ -831,7 +814,7 @@
     }
     instance.__placeholder = instance.target =
       instance.target.appendChild(this.context.$("placeholder",
-            { for: component.uri, seqno: instance.seqno }));
+            { for: this.uri, seqno: instance.seqno }));
     if (!this.__pending) {
       instance.component_ready();
     }
@@ -861,19 +844,9 @@
     }
   };
 
-  bender.instance.add_ro_properties = function () {
-    Object.keys(this.parent.properties).forEach(function (p) {
-      this.setup_property_readonly(p);
-    }, this);
-    this.children.forEach(function (ch) {
-      ch.add_ro_properties(p);
-    });
-  };
-
   bender.instance.add_child = function (instance) {
     this.children.push(instance);
     instance.parent = this;
-    instance.add_ro_properties();
     if (instance.component.id) {
       for (var p = this; p; p = p.component.parentElement && p.parent) {
         p.instances[instance.component.id] = instance;
@@ -881,6 +854,7 @@
     }
   };
 
+  // TODO not really tested
   bender.instance.remove_child = function (instance) {
     instance.unrender_view();
     flexo.remove_from_array(this.children, instance);
