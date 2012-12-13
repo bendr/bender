@@ -253,8 +253,17 @@
                   ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
                  /\S/.test(ch.textContent))) {
                this.views.$root = ch;
+               console.log("[invalidate] $root =", this.views.$root);
                break;
              }
+          }
+          if (this.__pending_edges) {
+            var edges = this.__pending_edges.slice();
+            delete this.__pending_edges;
+            edges.forEach(function (f) {
+              console.log("[invalidate] pending edge");
+              f.call(this);
+            }, this);
           }
         }
       }.bind(this));
@@ -890,9 +899,12 @@
 
   bender.instance.setup_watch = function (watch) {
     var w = { edges: [] };
-    watch.gets.forEach(function (get) {
+    var add_get_edge = function (get) {
       var edge = this.make_get_edge(get);
       if (!edge) {
+        this.add_pending_edge(function () {
+          add_get_edge.call(this, get);
+        });
         return;
       }
       edge.watch = w;
@@ -913,12 +925,22 @@
       } else if (edge.event) {
         flexo.listen(edge.view || edge.instance, edge.event, h);
       }
+    };
+    watch.gets.forEach(function (get) {
+      add_get_edge.call(this, get);
     }, this);
-    watch.sets.forEach(function (set) {
+    var add_set_edge = function (set) {
       var edge = this.make_set_edge(set);
       if (edge) {
         w.edges.push(edge);
+      } else {
+        this.add_pending_edge(function () {
+          add_set_edge.call(this, set);
+        });
       }
+    };
+    watch.sets.forEach(function (set) {
+      add_set_edge.call(this, set);
     }, this);
   };
 
@@ -930,15 +952,13 @@
         if (!edge.view) {
           edge.view = this.$document;
         }
-        return edge;
       } else if (elem.event) {
         edge.event = elem.event;
-        return edge;
       } else if (elem.property) {
         edge.property = elem.property;
-        return edge;
       }
     }
+    return edge;
   };
 
   bender.instance.make_set_edge = function (elem) {
@@ -953,6 +973,13 @@
       }
     }
     return edge;
+  };
+
+  bender.instance.add_pending_edge = function (elem) {
+    if (!this.hasOwnProperty("__pending_edges")) {
+      this.__pending_edges = [];
+    }
+    this.__pending_edges.push(elem);
   };
 
   // Make an edge for a get or set element
