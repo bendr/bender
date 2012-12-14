@@ -4,7 +4,7 @@
     <html:p>
       <component href="../../ui/button.xml" id="button">
         Click me
-      </instance>
+      </component>
     </html:p>
     <html:p>
       Number of clicks: {clicks}
