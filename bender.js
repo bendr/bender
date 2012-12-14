@@ -18,6 +18,7 @@
   bender.context.init = function (host) {
     this.document = host;
     this.loaded = {};
+    // These are mostly for debugging purposes
     this.components = [];
     this.instances = [];
     this.invalidated = [];
@@ -227,8 +228,8 @@
   // Dummy methods to be overloaded by custom instances
   bender.instance.init = function () {};
   bender.instance.ready = function () {};
-  bender.instance.rendering = function () {};
-  bender.instance.rendered = function () {};
+  bender.instance.will_render = function () {};
+  bender.instance.did_render = function () {};
 
   bender.instance.invalidate = function (reason) {
     console.log("[invalidate] {0}{1}: {2}"
@@ -242,6 +243,7 @@
         flexo.remove_from_array(this.component.context.invalidated, this);
         this.unrender_view();
         if (this.component.view) {
+          this.will_render();
           this.roots = this.render_children(this.component.view, this.target);
           // Find the first child element or non-empty text node which will act
           // as the $root view node
@@ -264,6 +266,10 @@
               f.call(this);
             }, this);
           }
+          this.component.watches.forEach(function (watch) {
+            this.setup_watch(watch);
+          }, this);
+          this.did_render();
         }
       }.bind(this));
     }
@@ -365,7 +371,8 @@
       });
       delete this.roots;
     }
-    this.views = {};
+    var d = this.views.$document;
+    this.views = { $document: d };
   };
 
   bender.instance.setup_property = function (property) {
@@ -374,6 +381,7 @@
     this.set_property[property.name] = function (v) {
       value = v;
       set = true;
+      return value;
     };
     var instance = this;
     Object.defineProperty(this.properties, property.name, {
@@ -384,7 +392,8 @@
           return value;
         } else {
           var prop = instance.component.get_property(property.name);
-          return prop && prop.parse_value(instance);
+          return prop &&
+            instance.set_property[property.name](prop.parse_value(instance));
         }
       },
       set: function (v) {
@@ -531,7 +540,6 @@
     this.context.components.push(this);
     this.derived = [];       // components that derive from this one
     this.components = [];    // component children (outside of view)
-    this.watches = [];       // child watch elements
     this.instances = [];     // instances of the component
     this.values = {};        // initial property values
     this.uri = this.context.document.baseURI;
@@ -539,9 +547,22 @@
     // parent component
     Object.defineProperty(this, "parent_component", { enumerable: true,
       get: function () {
-        for (var p = this.parentElement; p && !is_bender_element("component");
-          p = p.parentElement);
+        for (var p = this.parentElement;
+          p && !is_bender_element(p, "component"); p = p.parentElement);
         return p;
+      }
+    });
+
+    // instance prototype
+    var instance_prototype;
+    Object.defineProperty(this, "instance_prototype", { enumerable: true,
+      get: function () {
+        return instance_prototype ||
+          (this.prototype && this.prototype.instance_prototype) ||
+          "bender.instance";
+      },
+      set: function (p) {
+        instance_prototype = p;
       }
     });
 
@@ -663,7 +684,8 @@
     };
     this.get_property = function (name) {
       return (properties.hasOwnProperty(name) && properties[name]) ||
-        (this.prototype && this.prototype.get_property(name));
+        (this.prototype && this.prototype.get_property(name)) ||
+        (this.parent_component && this.parent_component.get_property(name));
     };
     Object.defineProperty(this, "properties", { enumerable: true,
       get: function () {
@@ -688,6 +710,13 @@
         });
       });
     };
+    Object.defineProperty(this, "watches", { enumerable: true,
+      get: function () {
+        var w = (this.prototype && this.prototype.watches) || [];
+        w.push.apply(w, watches);
+        return w;
+      }
+    });
 
     // view property
     var view;
@@ -789,9 +818,8 @@
   // Create a new instance with a target element to render in and optionally a
   // parent instance
   prototypes.component.create_instance = function (target, parent) {
-    var prototype = this.prototype_instance || "bender.instance";
     try {
-      var instance = eval("Object.create({0})".fmt(prototype));
+      var instance = eval("Object.create({0})".fmt(this.instance_prototype));
     } catch (e) {
       console.error("[create_instance] could not create object \"{0}\""
           .fmt(prototype));
@@ -821,12 +849,22 @@
     return instance;
   };
 
+  bender.instance.setup_properties = function (component) {
+    var props = component.properties;
+    Object.keys(props).forEach(function (p) {
+      if (!this.hasOwnProperty(p)) {
+        this.setup_property(props[p]);
+      }
+    }, this);
+    component = component.parent_component;
+    if (component) {
+      this.setup_properties(component);
+    }
+  };
+
   bender.instance.component_ready = function () {
     this.ready();
-    var props = this.component.properties;
-    Object.keys(props).forEach(function (p) {
-      this.setup_property(props[p]);
-    }, this);
+    this.setup_properties(this.component);
     if (!this.roots) {
       this.invalidate("component {0} ready".fmt(this.component.seqno));
     }
@@ -962,7 +1000,8 @@
     if (elem.view) {
       edge.view = this.views[elem.view];
       if (!edge.view) {
-        console.error("No view \"{0}\" for".fmt(elem.view), elem);
+        console.error("[make_edge] No view \"{0}\" (#{1}) for"
+            .fmt(elem.view, this.seqno), elem);
         return;
       }
     }
@@ -1001,7 +1040,7 @@
 
   prototypes.component.set_instance_prototype = function () {
     this.instances.forEach(function (instance, i, instances) {
-      var prototype = this.prototype_instance || "bender.instance";
+      var prototype = this.instance_prototype || "bender.instance";
       try {
         var proto = eval(prototype);
         var new_instance = Object.create(proto);
@@ -1013,12 +1052,16 @@
         new_instance.__previous_instance = instance;
         instances[i] = new_instance;
         new_instance.init();
-        // TODO update watches as well
       } catch (e) {
         console.error("[set_instance_prototype] could not create object {0}"
             .fmt(prototype));
       }
     }, this);
+    this.derived.forEach(function (component) {
+      if (!component.hasOwnProperty("instance_prototype")) {
+        component.set_instance_prototype();
+      }
+    });
   };
 
   // TODO
@@ -1154,7 +1197,7 @@
       this.uri = this.uri.replace(/(#.*)?$/, "#" + this.id);
       this.context.updated_uri(this, prev_uri);
     } else if (name === "prototype") {
-      this.prototype_instance = value.trim();
+      this.instance_prototype = value.trim();
       this.context.request_update({ action: "set_instance_prototype",
         source: this });
     } else {

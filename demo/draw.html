@@ -26,20 +26,22 @@ canvas {
 var context = bender.create_context();
 var args = flexo.get_args({ href: "draw.xml" });
 var component = context.$("component", args);
-var instance = component.create_instance(document.body);
-flexo.listen(instance, "@error", function (e) {
-  alert("Error loading {0}: {1}.".fmt(e.uri, e.message));
-});
-flexo.listen(instance, "@rendering", function (e) {
-  console.log("[run] rendering", e.source);
-});
-flexo.listen(instance, "@rendered", function (e) {
-  console.log("[run] rendered", e.source);
-  if (e.instance) {
-    console.log("[run] updating instance:", e.instance);
-    instance = e.instance;
-  }
-});
+setTimeout(function () {
+  var instance = component.create_instance(document.body);
+  flexo.listen(instance, "@error", function (e) {
+    alert("Error loading {0}: {1}.".fmt(e.uri, e.message));
+  });
+  flexo.listen(instance, "@rendering", function (e) {
+    console.log("[run] rendering", e.source);
+  });
+  flexo.listen(instance, "@rendered", function (e) {
+    console.log("[run] rendered", e.source);
+    if (e.instance) {
+      console.log("[run] updating instance:", e.instance);
+      instance = e.instance;
+    }
+  });
+}, 1000);
 
     </script>
   </body>

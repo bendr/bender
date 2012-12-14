@@ -1,6 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" href="prop.xml">
   <property name="x" value="5"/>
-  <!--
   <component id="c">
     <property name="x" as="number" value="1"/>
     <view xmlns:html="http://www.w3.org/1999/xhtml">
@@ -10,5 +9,4 @@
   <view>
     <component href="#c"/>
   </view>
-  -->
 </component>
