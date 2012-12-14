@@ -172,8 +172,11 @@
   // Arrays
 
   // Find the first item x in a such that p(x) is true
-  flexo.find_first = function (a, p) {
-    for (var i = 0, n = a.length; i < n && !p(a[i], i, a); ++i) {}
+  flexo.find_first = function (a, p, that) {
+    if (!Array.isArray(a)) {
+      return;
+    }
+    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i) {}
     return a[i];
   };
 

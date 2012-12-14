@@ -2,16 +2,7 @@
 
 bender.$.draw = Object.create(bender.instance);
 
-bender.$.draw.init = function () {
-  console.log("[draw.init]");
-};
-
-bender.$.draw.ready = function () {
-  console.log("[draw.ready]");
-};
-
 bender.$.draw.did_render = function () {
-  console.log("[draw.did_render]");
   this.context = this.views.$root.getContext("2d");
   this.context.lineJoin = "round";
   this.context.lineCap = "round";
@@ -20,7 +11,6 @@ bender.$.draw.did_render = function () {
 };
 
 bender.$.draw.start_dragging = function (e) {
-  console.log("[draw.start_dragging]");
   e.preventDefault();
   var p = flexo.event_offset_pos(e, this.views.$root);
   this.context.moveTo(p.x, p.y);
@@ -38,6 +28,5 @@ bender.$.draw.keep_dragging = function (e) {
 };
 
 bender.$.draw.stop_dragging = function (e) {
-  console.log("[draw.stop_dragging]");
   this.down = false;
 };

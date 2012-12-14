@@ -30,7 +30,7 @@ code {
     <script>
 "use strict";
 
-bender.instance.rendered = function () {
+bender.instance.did_render = function () {
   if (this.component.id && this.views.$root && this.views.$root.classList &&
     typeof this.views.$root.classList.add === "function") {
     this.views.$root.classList.add(this.component.id);

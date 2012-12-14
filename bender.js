@@ -178,6 +178,8 @@
           }
         });
         pending.forEach(function (p) {
+          // TODO: the component is ready, but not its prototype :(
+          console.log("[request_update] clear pending for", p);
           prototypes.component.clear_pending.call(p, p);
         });
         flexo.notify(context, "@update", { updates: updates });
@@ -319,8 +321,8 @@
   };
 
   bender.instance.render_component = function (component, target) {
-    var instance = component.create_instance(target, this);
-    return instance.target;
+    component.create_instance(target, this);
+    return target;
   };
 
   bender.instance.render_text = function (node, target) {
@@ -536,6 +538,7 @@
 
   prototypes.component.init = function () {
     this.__pending = [this];
+    this.__pending_instances = [];
     this.seqno = this.context.components.length;
     this.context.components.push(this);
     this.derived = [];       // components that derive from this one
@@ -752,13 +755,13 @@
 
   // Remove `p` from the list of pending items. If p is a string (an URI),
   // replace it with the actual component that was loaded
-  prototypes.component.clear_pending = function (p) {
+  prototypes.component.clear_pending = function (pending) {
     if (this.__pending) {
-      flexo.remove_from_array(this.__pending, p);
-      if (typeof p === "string") {
-        p = this.context.loaded[p];
-        if (p.__pending) {
-          this.__pending.push(p);
+      flexo.remove_from_array(this.__pending, pending);
+      if (typeof pending === "string") {
+        pending = this.context.loaded[pending];
+        if (pending.__pending) {
+          this.__pending.push(pending);
         }
       }
       if (this.__pending.length === 0) {
@@ -778,6 +781,17 @@
           this.derived.forEach(function (d) {
             d.clear_pending(this);
           }, this);
+        }
+      }
+      if (this.__pending_instances) {
+        var still_pending = flexo.find_first(this.__pending, function (p) {
+          return p === this || p === this.prototype || typeof p === "string";
+        }, this);
+        if (!still_pending) {
+          this.__pending_instances.forEach(function (p) {
+            p.call(this);
+          }, this);
+          delete this.__pending_instances;
         }
       }
     }
@@ -817,7 +831,18 @@
 
   // Create a new instance with a target element to render in and optionally a
   // parent instance
-  prototypes.component.create_instance = function (target, parent) {
+  prototypes.component.create_instance = function (target, parent, k) {
+    var placeholder = target.appendChild(this.context.$("placeholder"));
+    if (this.__pending_instances) {
+      this.__pending_instances.push(function () {
+        this.create_instance_(placeholder, parent, k);
+      });
+    } else {
+      this.create_instance_(placeholder, parent, k);
+    }
+  };
+
+  prototypes.component.create_instance_ = function (placeholder, parent, k) {
     try {
       var instance = eval("Object.create({0})".fmt(this.instance_prototype));
     } catch (e) {
@@ -829,7 +854,8 @@
     instance.seqno = this.context.instances.length;
     this.context.instances.push(instance);
     instance.component = this;
-    instance.target = target || this.context.document.createDocumentFragment();
+    instance.target = placeholder;
+    instance.__placeholder = placeholder;
     instance.children = [];
     instance.instances = { $self: instance };
     instance.views = { $document: this.context.document };
@@ -840,13 +866,12 @@
     if (parent) {
       parent.add_child(instance);
     }
-    instance.__placeholder = instance.target =
-      instance.target.appendChild(this.context.$("placeholder",
-            { for: this.uri, seqno: instance.seqno }));
     if (!this.__pending) {
       instance.component_ready();
     }
-    return instance;
+    if (k) {
+      k(instance);
+    }
   };
 
   bender.instance.setup_properties = function (component) {
@@ -1123,7 +1148,10 @@
       this.__pending.push(update.child);
     }
     this.instances.forEach(function (instance) {
-      instance.add_child(update.child.create_instance());
+      update.child.create_instance(instance.target, instance,
+        function (child_instance) {
+          instance.add_child(child_instance);
+        });
     });
   };
 
