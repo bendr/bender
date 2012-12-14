@@ -1379,6 +1379,7 @@
     }
   };
 
+  // TODO get the value from the instance's component!
   prototypes.property.get_value = function () {
     return (this.parentElement &&
         this.parentElement.values.hasOwnProperty(this.name) &&
