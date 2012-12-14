@@ -385,26 +385,36 @@
       set = true;
       return value;
     };
-    var instance = this;
-    Object.defineProperty(this.properties, property.name, {
-      enumerable: true,
-      configurable: true,
-      get: function () {
-        if (set) {
-          return value;
-        } else {
-          var prop = instance.component.get_property(property.name);
-          return prop &&
-            instance.set_property[property.name](prop.parse_value(instance));
+    var instance = this.find_instance_with_property(property.name);
+    if (instance === this) {
+      Object.defineProperty(this.properties, property.name, {
+        enumerable: true,
+        configurable: true,
+        get: function () {
+          if (set) {
+            return value;
+          } else {
+            var prop = instance.component.get_property(property.name);
+            return prop &&
+              instance.set_property[property.name](prop.parse_value(instance));
+          }
+        },
+        set: function (v) {
+          instance.set_property[property.name].call(instance, v);
+          traverse_graph(instance.edges.filter(function (e) {
+            return e.property === property.name;
+          }));
         }
-      },
-      set: function (v) {
-        instance.set_property[property.name].call(instance, v);
-        traverse_graph(instance.edges.filter(function (e) {
-          return e.property === property.name;
-        }));
-      }
-    });
+      });
+    } else if (instance) {
+      Object.defineProperty(this.properties, property.name, {
+        enumerable: true,
+        configurable: true,
+        get: function () {
+          return instance.properties[property.name];
+        }
+      });
+    }
     this.bind_value(property);
   };
 
@@ -454,16 +464,22 @@
     });
   };
 
+  bender.instance.find_instance_with_property = function (p) {
+    return (this.component._has_own_property(p, true) && this) ||
+      (this.parent && this.parent.find_instance_with_property(p));
+  };
+
   // Extract properties from a text node or an attribute given a pattern and the
   // corresponding set action. If properties are found in the pattern, then add
   // a new watch to implement the binding and return true to indicate that a
   // binding was created
   bender.instance.bind = function (pattern, set_edge) {
     var props = this.match_properties(pattern);
-    if (props.length > 0) {
+    var keys = Object.keys(props);
+    if (keys.length > 0) {
       var watch = { edges: [set_edge] };
-      props.forEach(function (p) {
-        this.edges.push({ property: p, watch: watch, instance: this });
+      keys.forEach(function (p) {
+        props[p].edges.push({ property: p, watch: watch, instance: props[p] });
       }, this);
       return true;
     }
@@ -482,8 +498,10 @@
         } else if (token === "}") {
           if (open) {
             if (!(props.hasOwnProperty(prop))) {
-              if (this.properties.hasOwnProperty(prop)) {
-                props[prop] = true;
+              var instance = this.properties.hasOwnProperty(prop) &&
+                this.find_instance_with_property(prop);
+              if (instance) {
+                props[prop] = instance;
               }
             }
             open = false;
@@ -493,7 +511,7 @@
         }
       }, this);
     }
-    return Object.keys(props);
+    return props;
   };
 
 
@@ -663,8 +681,9 @@
 
     // properties property
     var properties = {};
-    this._has_own_property = function (name) {
-      return properties.hasOwnProperty(name);
+    this._has_own_property = function (name, inherited) {
+      return properties.hasOwnProperty(name) ||
+        (inherited && this.prototype && this.prototype._has_own_property(name));
     };
     this._add_property = function (property) {
       properties[property.name] = property;
@@ -748,8 +767,7 @@
   };
 
   prototypes.component.has_property = function (name) {
-    return this._has_own_property(name) ||
-      (this.prototype && this.prototype.has_property(name)) ||
+    return this._has_own_property(name, true) ||
       (this.parent_component && this.parent_component.has_property(name));
   };
 
