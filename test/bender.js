@@ -18,11 +18,6 @@
       assert.isObject(context, "The context is an object");
     });
 
-    it("context.$()");
-    it("context.add_instance()");
-    it("context.load_component()");
-    it("context.import_node()");
-
   });
 
 }(window.chai.assert, window.flexo, window.bender));

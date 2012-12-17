@@ -1,0 +1,5 @@
+<component xmlns="http://bender.igel.co.jp" href="shell.xml" id="shelled">
+  <component href="p.xml">
+    Inside the shell
+  </component>
+</component>

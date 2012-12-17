@@ -1,7 +1,9 @@
-<component xmlns="http://bender.igel.co.jp" id="d">
+<component xmlns="http://bender.igel.co.jp">
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:span>
-      D
+      D (
+      <content>*d*</content>
+      )
     </html:span>
   </view>
 </component>

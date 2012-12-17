@@ -4,10 +4,16 @@
       <html:p>
         A (
         <component href="b.xml">
-          <component href="b.xml">
-            <component href="d.xml" id="d"/>
+          <component href="c.xml">
+            <component href="d.xml">
+              <component href="e.xml" id="e"/>
+            </component>
+            <component href="d.xml">
+              <component href="e.xml" id="f"/>
+            </component>
           </component>
         </component>
+        <component href="b.xml"/>
         )
       </html:p>
       <component href="p.xml" id="p">
@@ -15,10 +21,4 @@
       </component>
     </html:div>
   </view>
-  <watch>
-    <get instance="$self" event="@rendered">
-      console.log(this.instances.d);
-      console.log(this.instances.p);
-    </get>
-  </watch>
 </component>

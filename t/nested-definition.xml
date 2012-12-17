@@ -1,0 +1,9 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <component>
+      <view>
+        <p xmlns="http://www.w3.org/1999/xhtml">Nested definition</p>
+      </view>
+    </component>
+  </view>
+</component>

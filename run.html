@@ -17,6 +17,11 @@ code {
 .bender--runtime-error {
   color: #ff4040;
 }
+/*placeholder {
+  display: block;
+  border: solid thin orange;
+  background-color: yellow;
+}*/
     </style>
     <script src="flexo.js"></script>
     <script src="bender.js"></script>
@@ -25,32 +30,35 @@ code {
     <script>
 "use strict";
 
-bender.instance.rendering = function () {
-  if (this.reference && this.reference.id && this.views.$root) {
-    this.views.$root.classList.add(this.reference.id);
+bender.instance.did_render = function () {
+  if (this.views.$root && this.views.$root.classList &&
+    typeof this.views.$root.classList.add === "function") {
+    for (var c = this.component; c && !c.hasOwnProperty("id"); c = c.prototype);
+    if (c) {
+      this.views.$root.classList.add(c.id);
+    }
   }
 };
 
 var context = bender.create_context();
 var args = flexo.get_args();
 if (args.href) {
-  var component = context.create_component(args);
-  var instance = bender.create_instance({ reference: component });
-  flexo.listen(instance, "@error", function (e) {
+  var component = context.$("component", args);
+  component.create_instance(document.body);
+  flexo.listen(component, "@error", function (e) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
   });
-  flexo.listen(instance, "@rendering", function (e) {
-    console.log("[run] rendering", e.source);
-  });
-  flexo.listen(instance, "@rendered", function (e) {
-    console.log("[run] rendered", e.source);
-    if (e.instance) {
-      console.log("[run] updating instance:", e.instance);
-      instance = e.instance;
+  flexo.listen(context, "@update", function (e) {
+    var updates = e.updates.filter(function (u) {
+      return !u.skipped;
+    }).map(function (u) {
+      return u.action;
+    }).join(", ");
+    if (updates) {
+      console.log("@update: " + updates);
     }
   });
-  context.add_instance(instance, document.body);
 } else {
   document.body.appendChild(flexo.$("p.bender--runtime-message",
     "Nothing to run. Please specify a Bender component to load with the ", 

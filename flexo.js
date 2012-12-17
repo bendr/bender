@@ -171,9 +171,24 @@
 
   // Arrays
 
+  flexo.extract_from_array = function (array, p, that) {
+    var extracted = [];
+    var original = A.slice.call(array);
+    for (var i = array.length - 1; i >= 0; --i) {
+      if (p.call(that, array[i], i, original)) {
+        extracted.unshift(array[i]);
+        A.splice.call(array, i, 1);
+      }
+    }
+    return extracted;
+  };
+
   // Find the first item x in a such that p(x) is true
-  flexo.find_first = function (a, p) {
-    for (var i = 0, n = a.length; i < n && !p(a[i], i, a); ++i) {}
+  flexo.find_first = function (a, p, that) {
+    if (!Array.isArray(a)) {
+      return;
+    }
+    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i) {}
     return a[i];
   };
 
@@ -202,6 +217,18 @@
         return old_item;
       }
     }
+  };
+
+  // Shuffle the array
+  flexo.shuffle_array = function (array) {
+    var shuffled = A.slice.call(array);
+    for (var i = shuffled.length - 1; i > 0; --i) {
+      var j = flexo.random_int(i);
+      var x = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = x;
+    }
+    return shuffled;
   };
 
 

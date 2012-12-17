@@ -82,10 +82,10 @@
           <ul>
             <li><a href="run.html?href=t/hello.xml">t/hello.xml</a></li>
             <li><a href="run.html?href=t/mix.xml">t/mix.xml</a></li>
-            <li><a href="run.html?href=t/class.xml">t/class.xml</a></li>
+            <li><a href="run.html?href=t/attr.xml">t/attr.xml</a></li>
             <li><a href="run.html?href=t/nest.xml">t/nest.xml</a></li>
             <li><a href="run.html?href=t/a.xml">t/a.xml</a></li>
-            <li><a href="t/prototype.html">t/prototype.html</a></li>
+            <li><a href="run.html?href=t/shelled.xml">t/shelled.xml</a></li>
           </ul>
         </div>
       </div>
@@ -110,17 +110,14 @@
 "use strict";
 
 var context = bender.create_context();
-var logo_component = context.create_component({ href: "demo/logo.xml",
-  sides: "7", fgcolor: "#ff6a4d", bgcolor: "white" });
-var logo_instance = bender.create_instance({ reference: logo_component });
-context.add_instance(logo_instance, document.getElementById("logo"));
+context.$("component", { href: "demo/logo.xml", sides: "7", fgcolor: "#ff6a4d",
+  bgcolor: "white" }).create_instance(document.getElementById("logo"));
 
-var arrow_component = context.create_component({ href: "t/arrow.xml", r: 120,
-  "white-bg": false });
+var arrow_component = context.$("component", { href: "t/arrow.xml", r: "120",
+  "white-bg": "false" });
 Array.prototype.forEach.call(document.querySelectorAll(".black-bg a"),
   function (a) {
-    var arrow_instance = bender.create_instance({ reference: arrow_component });
-    context.add_instance(arrow_instance, a);
+    arrow_component.create_instance(a);
   });
 
     </script>

@@ -2,11 +2,8 @@
 
 bender.$.draw = Object.create(bender.instance);
 
-bender.$.draw.rendering = function () {
+bender.$.draw.did_render = function () {
   this.context = this.views.$root.getContext("2d");
-}
-
-bender.$.draw.rendered = function () {
   this.context.lineJoin = "round";
   this.context.lineCap = "round";
   this.context.beginPath();

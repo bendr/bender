@@ -1,0 +1,13 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <component href="x.xml"/>
+    </html:p>
+    <html:p>
+      <component href="y.xml"/>
+    </html:p>
+    <html:p>
+      <component href="z.xml"/>
+    </html:p>
+  </view>
+</component>

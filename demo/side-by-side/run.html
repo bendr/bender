@@ -27,17 +27,19 @@
     <script>
 "use strict";
 
-var context = bender.create_context(document.getElementById("bender-app"));
-var instance = context.$("instance", { href: "side-by-side.xml" });
-context._add_instance(instance);
+var context = bender.create_context();
 
-flexo.listen_once(instance, "@loaded", function (e) {
-  var sec = document.getElementById("bender-source")
-    .appendChild(flexo.$section(flexo.$("div.bender--uri", e.uri)));
-  flexo.ez_xhr(e.uri, { responseType: "text" }, function (req) {
-    sec.appendChild(flexo.$pre(req.response));
+var component = context.$("component", { href: "side-by-side.xml" });
+component.create_instance(document.getElementById("bender-app"), null,
+  function (instance) {
+    flexo.listen_once(instance, "@loaded", function (e) {
+      var sec = document.getElementById("bender-source")
+        .appendChild(flexo.$section(flexo.$("div.bender--uri", e.uri)));
+      flexo.ez_xhr(e.uri, { responseType: "text" }, function (req) {
+        sec.appendChild(flexo.$pre(req.response));
+      });
+    });
   });
-});
 
 flexo.ez_xhr("side-by-side.html", { responseType: "document" }, function (req) {
   var div = document.getElementById("js-app");

@@ -1,0 +1,13 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" value="foo"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>outer x = {x}</html:p>
+    <component>
+      <property name="y" as="number" value="{'{x}'.length}"/>
+      <view>
+        <html:p>inner x = {x}</html:p>
+        <html:p>inner y = {y}</html:p>
+      </view>
+    </component>
+  </view>
+</component>
