@@ -268,6 +268,11 @@
             }, this);
           }
           this.did_render();
+          if (!this.__pending_edges && !this.__running) {
+            console.log("[invalidate] no more pending, running");
+            this.__running = true;
+            flexo.notify(this, "@running");
+          }
         }
       }.bind(this));
     }
@@ -959,6 +964,11 @@
         if (pending) {
           if (p.__pending_edges.length === 0) {
             delete p.__pending_edges;
+            if (!p.__running) {
+              console.log("[add_child] no more pending, running");
+              p.__running = true;
+              flexo.notify(p, "@running");
+            }
           }
           pending.forEach(function (f) {
             f.call(p);
