@@ -31,9 +31,12 @@ code {
 "use strict";
 
 bender.instance.did_render = function () {
-  if (this.component.id && this.views.$root && this.views.$root.classList &&
+  if (this.views.$root && this.views.$root.classList &&
     typeof this.views.$root.classList.add === "function") {
-    this.views.$root.classList.add(this.component.id);
+    for (var c = this.component; c && !c.hasOwnProperty("id"); c = c.prototype);
+    if (c) {
+      this.views.$root.classList.add(c.id);
+    }
   }
 };
 

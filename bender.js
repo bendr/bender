@@ -179,7 +179,6 @@
         });
         pending.forEach(function (p) {
           // TODO: the component is ready, but not its prototype :(
-          console.log("[request_update] clear pending for", p);
           prototypes.component.clear_pending.call(p, p);
         });
         flexo.notify(context, "@update", { updates: updates });
@@ -234,13 +233,10 @@
   bender.instance.did_render = function () {};
 
   bender.instance.invalidate = function (reason) {
-    console.log("[invalidate] {0}{1}: {2}"
-        .fmt(this.seqno, this.__invalidated ? "*" : "", reason));
     if (!this.__invalidated) {
       this.__invalidated = true;
       this.component.context.invalidated.push(this);
       this.component.context.request_update(function () {
-        console.log("[invalidate] render {0}".fmt(this.seqno));
         delete this.__invalidated;
         flexo.remove_from_array(this.component.context.invalidated, this);
         this.unrender_view();
@@ -261,6 +257,9 @@
                break;
              }
           }
+          this.component.watches.forEach(function (watch) {
+            this.setup_watch(watch);
+          }, this);
           if (this.__pending_edges) {
             var edges = this.__pending_edges.slice();
             delete this.__pending_edges;
@@ -268,9 +267,6 @@
               f.call(this);
             }, this);
           }
-          this.component.watches.forEach(function (watch) {
-            this.setup_watch(watch);
-          }, this);
           this.did_render();
         }
       }.bind(this));
@@ -689,6 +685,8 @@
           });
           if (c.length > 0) {
             return c;
+          } else if (this.prototype) {
+            return this.prototype.content;
           }
         }
       },
@@ -954,6 +952,18 @@
     if (instance.component.id) {
       for (var p = this; p; p = p.component.parentElement && p.parent) {
         p.instances[instance.component.id] = instance;
+        var pending = p.__pending_edges &&
+          flexo.extract_from_array(p.__pending_edges, function (f) {
+            return f.instance === instance.component.id;
+          });
+        if (pending) {
+          if (p.__pending_edges.length === 0) {
+            delete p.__pending_edges;
+          }
+          pending.forEach(function (f) {
+            f.call(p);
+          });
+        }
       }
     }
   };
@@ -981,8 +991,9 @@
       var edge = this.make_get_edge(get);
       if (!edge) {
         this.add_pending_edge(function () {
+          console.log("[setup_watch] add pending get edge", get);
           add_get_edge.call(this, get);
-        });
+        }, get.instance);
         return;
       }
       edge.watch = w;
@@ -1013,8 +1024,9 @@
         w.edges.push(edge);
       } else {
         this.add_pending_edge(function () {
+          console.log("[setup_watch] add pending set edge", set);
           add_set_edge.call(this, set);
-        });
+        }, set.instance);
       }
     };
     watch.sets.forEach(function (set) {
@@ -1053,11 +1065,15 @@
     return edge;
   };
 
-  bender.instance.add_pending_edge = function (elem) {
+  bender.instance.add_pending_edge = function (f, instance) {
     if (!this.hasOwnProperty("__pending_edges")) {
       this.__pending_edges = [];
     }
-    this.__pending_edges.push(elem);
+    if (instance) {
+      f.instance = instance;
+      console.log("+++ pending edge for {0}/{1}".fmt(this.seqno, instance));
+    }
+    this.__pending_edges.push(f);
   };
 
   // Make an edge for a get or set element
@@ -1074,7 +1090,8 @@
     if (elem.instance) {
       edge.instance = this.instances[elem.instance];
       if (!edge.instance) {
-        console.error("No instance \"{0}\" for".fmt(elem.instance), elem);
+        console.error("[make_edge] No instance \"{0}\" for"
+            .fmt(elem.instance), elem);
         return;
       }
     } else {
