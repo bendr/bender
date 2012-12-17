@@ -109,15 +109,11 @@
 "use strict";
 
 var context = bender.create_context();
-context.$("component", { href: "demo/logo.xml" },
-  context.$("property", { name: "sides", value: "7" }),
-  context.$("property", { name: "fgcolor", value: "#ff6a4d" }),
-  context.$("property", { name: "bgcolor", value: "white" }))
-  .create_instance(document.getElementById("logo"));
+context.$("component", { href: "demo/logo.xml", sides: "7", fgcolor: "#ff6a4d",
+  bgcolor: "white" }).create_instance(document.getElementById("logo"));
 
-var arrow_component = context.$("component", { href: "t/arrow.xml" },
-  context.$("property", { name: "r", value: "120" }),
-  context.$("property", { name: "white-bg", value: "false" }));
+var arrow_component = context.$("component", { href: "t/arrow.xml", r: "120",
+  "white-bg": "false" });
 Array.prototype.forEach.call(document.querySelectorAll(".black-bg a"),
   function (a) {
     arrow_component.create_instance(a);

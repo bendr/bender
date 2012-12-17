@@ -562,7 +562,6 @@
     this.derived = [];       // components that derive from this one
     this.components = [];    // component children (outside of view)
     this.instances = [];     // instances of the component
-    this.values = {};        // initial property values
     this.uri = this.context.document.baseURI;
 
     // parent component
@@ -571,6 +570,30 @@
         for (var p = this.parentElement;
           p && !is_bender_element(p, "component"); p = p.parentElement);
         return p;
+      }
+    });
+
+    // property values passed as arguments
+    var values = {};
+    this._add_value = function (name, value) {
+      values[name] = value;
+    };
+    this._delete_value = function (name) {
+      delete values[name];
+    }
+    Object.defineProperty(this, "values", { enumerable: true,
+      get: function () {
+        if (this.prototype) {
+          var vals = Object.create(this.prototype.values);
+          for (var v in values) {
+            if (values.hasOwnProperty(v)) {
+              vals[v] = values[v];
+            }
+          }
+          return vals;
+        } else {
+          return values;
+        }
       }
     });
 
@@ -1247,7 +1270,7 @@
       this.context.request_update({ action: "set_instance_prototype",
         source: this });
     } else {
-      this.values[name] = value;
+      this._add_value(name, value);
     }
   };
 
@@ -1263,7 +1286,7 @@
     } else if (name === "prototype") {
       delete this.prototype;
     } else {
-      delete this.values[name];
+      this._delete_value(name);
     }
   };
 
@@ -1380,8 +1403,10 @@
   };
 
   // TODO get the value from the instance's component!
-  prototypes.property.get_value = function () {
-    return (this.parentElement &&
+  prototypes.property.get_value = function (instance) {
+    return (instance.component.values.hasOwnProperty(this.name) &&
+        instance.component.values[this.name]) ||
+      (this.parentElement &&
         this.parentElement.values.hasOwnProperty(this.name) &&
         this.parentElement.values[this.name]) || this.value;
   };
@@ -1389,7 +1414,7 @@
   // Get the parsed value for the property
   prototypes.property.parse_value = function (instance, v) {
     var that = this.as === "dynamic" ? instance : instance.properties;
-    var val = (v === undefined ? this.get_value() : v).format(that);
+    var val = (v === undefined ? this.get_value(instance) : v).format(that);
     return property_types[this.as].call(that, val);
   };
 
