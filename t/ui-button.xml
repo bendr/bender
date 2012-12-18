@@ -1,10 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
+  <link rel="script" href="../ui/ui.js"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <!--
-    <target q="head">
-      <html:link rel="stylesheet" href="{ this._absolute_uri('ui/ui.css') }"/>
-    </target>
-    -->
     <component href="../ui/button.xml" id="ok-button">
       Click me
     </component>

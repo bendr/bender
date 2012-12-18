@@ -148,6 +148,22 @@
     }
   };
 
+  bender.context.link = function (link) {
+    if (link.done || !link.href || !link.rel || !link.parentElement) {
+      return;
+    }
+    // Mark link as being done so we don't try to load anything anymore
+    link.done = true;
+    var uri = flexo.absolute_uri(link.parentElement.uri, link.href);
+    if (this.loaded[uri]) {
+      return;
+    }
+    this["link_" + link.rel](uri, link);
+  };
+
+  bender.context.link_script = function () {};
+  bender.context.link_stylesheet = function () {};
+
   // Request an update. If there are no pending updates, create a new queue and
   // set a timeout so that additional updates can be queued up as well,
   // otherwise just add this update to the queue.
@@ -530,8 +546,8 @@
     }
   };
 
-  ["component", "content", "content-of", "get", "property", "set", "view",
-    "watch"
+  ["component", "content", "content-of", "get", "link", "property", "set",
+    "view", "watch"
   ].forEach(function (p) {
     prototypes[p] = {};
   });
@@ -891,7 +907,7 @@
       var instance = eval("Object.create({0})".fmt(this.instance_prototype));
     } catch (e) {
       console.error("[create_instance] could not create object \"{0}\""
-          .fmt(prototype));
+          .fmt(this.instance_prototype));
       instance = Object.create(bender.instance);
     }
     this.instances.push(instance);
@@ -1198,8 +1214,8 @@
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.namespaceURI === bender.ns) {
       if (ch.localName === "component" || ch.localName === "content" ||
-          ch.localName === "property" || ch.localName === "view" ||
-          ch.localName === "watch") {
+          ch.localName === "link" || ch.localName === "property" ||
+          ch.localName === "view" || ch.localName === "watch") {
         this.context.request_update({ action: "update_add_" + ch.localName,
           source: this, child: ch });
       } else if (ch.localName === "content-of") {
@@ -1236,6 +1252,10 @@
       this.add_content_for(update.child.instance, update.child);
       // TODO update rendering
     }
+  };
+
+  prototypes.component.update_add_link = function (update) {
+    this.context.link(update.child);
   };
 
   prototypes.component.update_add_property = function (update) {
@@ -1610,6 +1630,24 @@
     if (name === "event" || name === "instance" || name === "property" ||
         name === "view" || name === "value") {
       this[name] = value.trim();
+    }
+  };
+
+
+  prototypes.link.setAttribute = function (name, value) {
+    Object.getPrototypeOf(this).setAttribute.call(this, name, value);
+    if (name === "rel") {
+      var v = value.trim().toLowerCase();
+      if (v === "script" || v === "stylesheet") {
+        this.rel = v;
+        this.context.link(this);
+      } else {
+        console.error("rel attribute for link must be one of \"script\" or \"stylesheet\", not \"{0}\""
+            .fmt(value));
+      }
+    } else if (name === "href") {
+      this.href = value;
+      this.context.link(this);
     }
   };
 
