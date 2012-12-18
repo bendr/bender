@@ -5,6 +5,51 @@
     window.chai.assert;
   var flexo = typeof require === "function" && require("flexo") || window.flexo;
 
+  describe("Function.prototype.bind", function () {
+    it("is defined", function () {
+      assert.isFunction(Function.prototype.bind, "bind is a function");
+    });
+    var that = { x: 1, y: 2 };
+    var f = function (a, b) {
+      return this.x + this.y + a + b;
+    }.bind(that, 3);
+    if (Function.prototype.bind.native === false) {
+      it("is overridden by flexo", function () {
+        assert.strictEqual(f(4), 10, "bound to the right parameters");
+      });
+    } else {
+      it("is native", function () {
+        assert.strictEqual(f(4), 10, "bound to the right parameters");
+      });
+    }
+  });
+
+  describe("Objects", function () {
+
+    describe("flexo.instance_of(x, y)", function () {
+      var a = {};
+      var b = Object.create(a);
+      var c = Object.create(b);
+      var d = {};
+      it("tests whether x is an instance of y (simplest case: y is the prototype of x)", function () {
+        assert.strictEqual(Object.getPrototypeOf(b), a,
+          "a is the prototype of b (Object.getPrototypeOf)");
+        assert.isTrue(flexo.instance_of(b, a),
+          "a is the prototype of b (instance_of)");
+      });
+      it("general case: x and y are further apart in the prototype chain", function () {
+        assert.notStrictEqual(Object.getPrototypeOf(c), a,
+          "a is not the prototype of c");
+        assert.isTrue(flexo.instance_of(c, a),
+          "c is an instance of a (instance_of)");
+      });
+      it("fails when x and y are not in the same prototype chain", function () {
+        assert.isFalse(flexo.instance_of(c, d), "c is not an instance of d");
+      });
+    });
+
+  });
+
   describe("Strings", function () {
 
     describe("String.fmt(...)", function () {

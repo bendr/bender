@@ -6,6 +6,28 @@
   var A = Array.prototype;
   var browser = typeof window === "object";
 
+
+  if (typeof Function.prototype.bind !== "function") {
+    Function.prototype.bind = function (x) {
+      var f = this;
+      var args = A.slice.call(arguments, 1);
+      return function () {
+        return f.apply(x, args.concat(A.slice.call(arguments)));
+      };
+    };
+    Function.prototype.bind.native = false;
+  }
+
+  // Objects
+
+  // Test whether x is an instance of y (i.e. y is the prototype of x, or the
+  // prototype of its prototype, or...)
+  flexo.instance_of = function (x, y) {
+    var proto = Object.getPrototypeOf(x);
+    return !!proto && (proto === y || flexo.instance_of(proto, y));
+  };
+
+
   // Strings
 
   // Simple format function for messages and templates. Use {0}, {1}...
