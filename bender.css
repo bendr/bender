@@ -77,7 +77,7 @@ h1, h2, h3 {
   margin: 0;
 }
 
-strong {
+span.big {
   font-size: 200%;
   font-weight: normal;
 }
