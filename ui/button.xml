@@ -1,16 +1,12 @@
-<component xmlns="http://bender.igel.co.jp" prototype="bender.ui.button">
+<component xmlns="http://bender.igel.co.jp">
 
   <link rel="stylesheet" href="ui.css"/>
-  <link rel="script" href="ui.js"/>
 
   <property name="class" value="ui-button"/>
-  <property name="enabled" as="boolean" value="true"/>
-  <property name="stop-propagation" as="boolean" value="false"/>
   <property name="down" as="boolean" value="false"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:span aria-role="button"
-      class="{class} { {down} ? 'ui--down' : '' } { {enabled} ? '' : 'disabled' }">
+    <html:span aria-role="button" class="{class} { {down} ? 'ui--down' : '' }">
       <content/>
     </html:span>
   </view>
@@ -19,35 +15,24 @@
     <get view="$root" dom-event="mousedown"/>
     <get view="$root" dom-event="touchstart"/>
     <set instance="$self" property="down">
-      if (this.properties.enabled) {
-        value.preventDefault();
-        if (this.properties["stop-propagation"]) {
-          value.stopPropagation();
-        }
-        return true;
-      }
+      value.preventDefault();
+      return true;
     </set>
   </watch>
 
   <watch>
-    <get view="$document" dom-event="mouseup">
-      console.log(this.properties.down);
-      if (!this.properties.down) {
-        get.cancel();
-      }
-    </get>
-    <get view="$document" dom-event="touchend">
-      if (!this.properties.down) {
-        get.cancel();
-      }
-    </get>
-    <set instance="$self" event="@pushed"/>
-    <set instance="$self" property="down" value="false"/>
+    <get view="$root" dom-event="mouseup"/>
+    <get view="$root" dom-event="touchend"/>
+    <set instance="$self" property="down">
+      setTimeout(function () {
+        flexo.notify(this, "@pushed");
+      }.bind(this), 0);
+      return false;
+    </set>
   </watch>
 
   <watch>
-    <get view="$document" dom-event="mousemove"/>
-    <get view="$document" dom-event="touchmove"/>
+    <get view="$document" dom-event="mouseup"/>
     <set instance="$self" property="down" value="false"/>
   </watch>
 
