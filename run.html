@@ -37,10 +37,6 @@ bender.instance.did_render = function () {
   }
 };
 
-bender.context.link_script = function (uri) {
-  document.head.appendChild(flexo.$script({ src: uri }));
-};
-
 bender.context.link_stylesheet = function (uri) {
   document.head.appendChild(flexo.$link({ rel: "stylesheet", href: uri }));
 };

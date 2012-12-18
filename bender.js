@@ -158,10 +158,25 @@
     if (this.loaded[uri]) {
       return;
     }
+    this.loaded[uri] = true;
+    console.log("[link]", uri);
     this["link_" + link.rel](uri, link);
   };
 
-  bender.context.link_script = function () {};
+  bender.context.link_script = function (uri, link) {
+    if (link.parentElement.__pending) {
+      link.parentElement.__pending.push(uri);
+    }
+    flexo.ez_xhr(uri, { responseType: "text" }, function (req) {
+      try {
+        eval(req.responseText);
+      } catch (e) {
+        console.error("Error loading script {0}: {1}".fmt(uri, e.message));
+      }
+      link.parentElement.clear_pending(uri);
+    });
+  };
+
   bender.context.link_stylesheet = function () {};
 
   // Request an update. If there are no pending updates, create a new queue and
@@ -820,7 +835,7 @@
       flexo.remove_from_array(this.__pending, pending);
       if (typeof pending === "string") {
         pending = this.context.loaded[pending];
-        if (pending.__pending) {
+        if (typeof pending === "object" && pending.__pending) {
           this.__pending.push(pending);
         }
       }
@@ -892,6 +907,7 @@
   // Create a new instance with a target element to render in and optionally a
   // parent instance
   prototypes.component.create_instance = function (target, parent, k) {
+    console.log("[create_instance]", this);
     var placeholder = target.appendChild(this.context.$("placeholder"));
     if (this.__pending_instances) {
       this.__pending_instances.push(function () {
@@ -1214,13 +1230,15 @@
     Object.getPrototypeOf(this).insertBefore.call(this, ch, ref);
     if (ch.namespaceURI === bender.ns) {
       if (ch.localName === "component" || ch.localName === "content" ||
-          ch.localName === "link" || ch.localName === "property" ||
-          ch.localName === "view" || ch.localName === "watch") {
+          ch.localName === "property" || ch.localName === "view" ||
+          ch.localName === "watch") {
         this.context.request_update({ action: "update_add_" + ch.localName,
           source: this, child: ch });
       } else if (ch.localName === "content-of") {
         this.context.request_update({ action: "update_add_content_of",
           source: this, child: ch });
+      } else if (ch.localName === "link") {
+        this.context.link(ch);
       }
     }
     return ch;
@@ -1252,10 +1270,6 @@
       this.add_content_for(update.child.instance, update.child);
       // TODO update rendering
     }
-  };
-
-  prototypes.component.update_add_link = function (update) {
-    this.context.link(update.child);
   };
 
   prototypes.component.update_add_property = function (update) {
@@ -1531,6 +1545,7 @@
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
+      // console.log("[edge_value]", edge.value);
       val = flexo.format.call(edge.parent_instance, edge.value,
           edge.parent_instance.properties);
     } else if (!set && edge.property) {
