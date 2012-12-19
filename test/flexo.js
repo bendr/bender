@@ -242,6 +242,15 @@
 
   describe("Arrays", function () {
 
+    describe("flexo.drop_while(array, p, [this])", function () {
+      it("drops elements from the array while p is true", function () {
+        var a = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4];
+        assert.deepEqual([3, 4, 0, 1, 2, 3, 4],
+          flexo.drop_while(a, function (x) { return x < 3; }),
+          "dropped first elements x | x < 3")
+      });
+    });
+
     describe("flexo.find_first(array, p)", function () {
       it("finds the first item x in array such that p(x) is true", function () {
         var a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
