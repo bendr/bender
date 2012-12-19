@@ -278,15 +278,12 @@
           // as the $root view node
           // TODO should be virtual so that even if there is no view it can
           // still be created
-          for (var i = 0, n = this.roots.length; i < n; ++i) {
-            var ch = this.roots[i];
-            if (ch.nodeType === window.Node.ELEMENT_NODE ||
-                ((ch.nodeType === window.Node.TEXT_NODE ||
-                  ch.nodeType === window.Node.CDATA_SECTION_NODE) &&
-                 /\S/.test(ch.textContent))) {
-               this.views.$root = ch;
-               break;
-             }
+          var root = flexo.find_first(this.roots, function (ch) {
+            return ch.nodeType === window.Node.ELEMENT_NODE ||
+              /\S/.test(ch.textContent);
+          });
+          if (root) {
+            this.views.$root = root;
           }
           this.component.watches.forEach(function (watch) {
             this.setup_watch(watch);
@@ -678,11 +675,8 @@
 
 
     // content can be a node, or can be inferred from everything that is not
-    // content. Content is *not* inherited!
+    // content.
     var content;
-    this.has_content_element = function() {
-      return !!content;
-    };
     this._set_content = function (element) {
       content = element;
       this.instances.forEach(function (instance) {
@@ -700,7 +694,7 @@
         if (content) {
           return content;
         } else {
-          var c = [];
+          var c = (this.prototype && this.prototype.content) || [];
           A.forEach.call(this.childNodes, function (ch) {
             if (ch.nodeType === window.Node.ELEMENT_NODE) {
               if (ch.namespaceURI === bender.ns) {
@@ -712,15 +706,14 @@
               }
             } else if (ch.nodeType === window.Node.TEXT_NODE ||
               ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-              if (/\S/.test(ch.textContent)) {
-                c.push(ch);
-              }
+              c.push(ch);
             }
           });
-          if (c.length > 0) {
+          if (flexo.find_first(c, function (ch) {
+            return ch.nodeType === window.Node.ELEMENT_NODE ||
+              /\S/.test(ch.textContent);
+          })) {
             return c;
-          } else if (this.prototype) {
-            return this.prototype.content;
           }
         }
       },
