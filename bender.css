@@ -2,16 +2,6 @@ html {
   min-height: 100%;
 }
 
-footer {
-  text-align: center;
-  font-size: small;
-  margin: 4em 0;
-}
-
-footer a {
-  color: #444;
-}
-
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
   margin: 0;

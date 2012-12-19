@@ -7,19 +7,56 @@
     {block:Description}
       <meta name='description' content='{MetaDescription}' />
     {/block:Description}
-    <link href='http://fonts.googleapis.com/css?family=Open+Sans:100,200,400,300,600,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="http://bender.igel.co.jp/dev/bender.css">
     <style>
+
 body {
-  background-color: #fef9f0;
-  margin: 10px auto;
-  padding: 0;
-  font-family: "Century Schoolbook", Georgia, serif;
+  background-color: #ffc48c;
+  background-image: -webkit-linear-gradient(top, #fff, #ffc48c);
+  background-image:    -moz-linear-gradient(top, #fff, #ffc48c);
+  background-image:      -o-linear-gradient(top, #fff, #ffc48c);
+  background-image:         linear-gradient(to bottom, #fff, #ffc48c);
+  background-attachment: fixed;
 }
 
 a {
-  text-decoration: none;
-  font-weight: bold;
-  color: #1574b6;
+  color: #0b486b;
+}
+
+div.content {
+  width: 960px;
+  height: 100%;
+  margin: 0 auto;
+  display: -webkit-box;
+}
+
+div.tiles.quarter {
+  width: 240px;
+  position: absolute;
+}
+
+div.threefourth {
+  width: 720px;
+  height: 100%;
+  margin: 10px;
+  padding: 0;
+  position: relative;
+  left: 240px;
+}
+
+div.threefourth > div {
+  font-size: 16px;
+  border-radius: 5px;
+  width: 720px;
+  height: 100%;
+  margin: 10px;
+  padding: 10px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: bottom;
+  background-color: rgba(255,255,255,0.5);
 }
 
 ul.tags {
@@ -41,41 +78,9 @@ ul.tags a {
   font-weight: normal;
 }
 
-h1, h2, h3, nav, .post-date, ul.tags a, .description {
-  font-family: Univers, "Open Sans", "Helvetica Neue", Helvetica, sans-serif;
-}
-
-code, pre {
-  font-family: Inconsolata, Menlo, monospace;
-}
-
-header {
-  height: 140px;
-  display: -moz-box;
-  -moz-box-orient: vertical;
-  -moz-box-pack: center;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-box-pack: center;
-}
-
 h1 {
   margin: 0;
   font-size: 200%;
-}
-
-.description {
-  margin: 0;
-  font-size: 120%;
-}
-
-nav ul {
-  list-style-type: none;
-  padding-left: 10px;
-}
-
-nav li {
-  line-height: 1.5em;
 }
 
 .post-title {
@@ -107,10 +112,6 @@ h2 {
   -webkit-box-flex: 1;
 }
 
-code {
-  font-family: Inconsolata, Menlo, monospace;
-}
-
 .hl {
   background-color: #ff0;
 }
@@ -125,118 +126,96 @@ code {
   background-color: #ccc;
 }
 
-div.right {
-  max-width: 620px;
-  min-width: 460px;
-  position: absolute;
-  left: 170px;
-  padding-right: 10px;
+.purple-bg a {
+  color: white;
 }
 
-div.left {
-  width: 140px;
-  position: absolute;
-  left: 10px;
-}
-
-svg.logo {
-  width: 140px;
-  height: 140px;
-}
     </style>
   </head>
   <body>
 
-    <div class="right">
-      <header>
-        <a href="/"><h1>{Title}</h1></a>
-        <p class="description">{Description}</p>
-      </header>
-      
-      <div id="posts">
-        {block:Posts}
-          <section class="post">
-            {block:Title}
-              <div class="post-title">
-                <h2><a href="{Permalink}">{Title}</a></h2>
-                {block:Date}
-                  <div class="post-date">{ShortDayOfWeek} {ShortMonth} {DayOfMonth} {Year}</div>
-                {/block:Date}
-              </div>
-            {/block:Title}
-            {block:HasTags}
-              <ul class="tags">
-                {block:Tags}
-                  <li> <a href="{TagURL}">{Tag}</a></li>
-                {/block:Tags}
-              </ul>
-            {/block:HasTags}
-            {Body}
-          </section>
-        {/block:Posts}
+    <div class="content">
+      <div class="tiles quarter">
+
+        <div class="orange-bg" id="logo">
+          <a href="http://bender.igel.co.jp/dev/">
+            <svg viewBox="0 0 128 128">
+              <g transform="translate(64, 64)" stroke-width="16"
+                stroke-linejoin="round">
+                <polygon fill="white" stroke="white"
+                points="29.29,-30.1 -5.27,-41.67 -35.86,-21.86 -39.45,14.41
+                -13.33,39.83 22.83,35.25 41.8,4.13">
+                  <animateTransform attributeName="transform"
+                    attributeType="XML" type="rotate" from="160" to="0"
+                    dur="0.5s" additive="sum"/>
+                </polygon>
+                <g stroke="#ff6a4d" stroke-linecap="round" fill="none">
+                  <line x1="-20" y1="-50" x2="-20" y2="0"/>
+                  <circle r="20"/>
+                  <animateTransform attributeName="transform"
+                    attributeType="XML" type="scale" from="0" to="1" dur="0.4s"
+                    fill="freeze"/>
+                </g>
+              </g>
+            </svg>
+          </a>
+        </div>
+
+        <div class="text blue-bg">
+          <div>
+            <a href="http://bender.igel.co.jp/dev/"><h1>{Title}</h1></a>
+            <p class="description">{Description}</p>
+          </div>
+        </div>
+
+        <div class="text purple-bg">
+          <div>
+            <ul>
+              <li><a href="http://bender.igel.co.jp/dev/">Bender Website</a></li>
+              <li><a href="https://github.com/bendr/bender">Github repo</a></li>
+              <li><a href="https://twitter.com/julien_igel">@julien_igel</a></li>
+              {block:PreviousPage}
+                <li><a href="{PreviousPage}">&#171; Previous</a></li>
+              {/block:PreviousPage}
+              {block:NextPage}
+                <li><a href="{NextPage}">Next &#187;</a></li>
+              {/block:NextPage}
+              <li><a href="/archive">Archive</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="text gray-bg">
+          <div>
+            <p>Copyright © 2011, 2012, <a href="http://www.igel.co.jp">IGEL Co., Ltd.</a></p>
+          </div>
+        </div>
+      </div>
+      <div class="threefourth">
+        <div id="posts">
+          {block:Posts}
+            <section class="post">
+              {block:Title}
+                <div class="post-title">
+                  <h2><a href="{Permalink}">{Title}</a></h2>
+                  {block:Date}
+                    <div class="post-date">{ShortDayOfWeek} {ShortMonth} {DayOfMonth} {Year}</div>
+                  {/block:Date}
+                </div>
+              {/block:Title}
+              {block:HasTags}
+                <ul class="tags">
+                  {block:Tags}
+                    <li> <a href="{TagURL}">{Tag}</a></li>
+                  {/block:Tags}
+                </ul>
+              {/block:HasTags}
+              {Body}
+            </section>
+          {/block:Posts}
+        </div>
       </div>
     </div>
 
-    <div class="left">
-      <!-- Dynamic SVG Logo -->
-      <svg viewBox="0 0 128 128" class="logo">
-        <defs>
-          <clipPath id="r">
-            <rect x="-64" y="-64" width="128" height="128" rx="8" ry="8"/>
-          </clipPath>
-        </defs>
-        <g transform="translate(64, 64)" stroke-width="16" stroke-linejoin="round" clip-path="url(#r)">
-          <polygon>
-            <animateTransform attributeName="transform" attributeType="XML" type="scale" from="3" to="1" dur="0.3s" fill="freeze"/>
-            <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="90" to="0" dur="0.3s" additive="sum"/>
-          </polygon>
-          <g stroke="#fef9f0" stroke-linecap="round" fill="none">
-            <line x1="-20" y1="-50" x2="-20" y2="0"/>
-            <circle r="20"/>
-            <animateTransform attributeName="transform" attributeType="XML" type="scale" from="0" to="1" dur="0.4s" fill="freeze"/>
-          </g>
-        </g>
-        <script><![CDATA[
-(function () {
-  "use strict";
-
-  function polygon_points (sides, radius, phase) {
-    var points = [];
-    for (var i = 0, th = 2 * Math.PI / sides; i < sides; ++i) {
-      points.push(radius * Math.cos(phase + i * th));
-      points.push(-radius * Math.sin(phase + i * th));
-    }
-    return points.join(" ");
-  }
-
-  var colors = ["#ff4040", "#ff7f40", "#40ff40", "#40bfff", "#102040", "#fc9d9a"];
-  var color = colors[Math.floor(Math.random() * colors.length)];
-  var g = document.querySelector("g");
-  g.setAttribute("fill", color);
-  g.setAttribute("stroke", color);
-  var p = document.querySelector("polygon");
-  p.setAttribute("points", polygon_points(7, 42, Math.random()));
-
-  document.querySelector("h1").style.color = color;
-
-}());
-  ]]></script>
-      </svg>
-      <nav>
-        <ul>
-          <li><a href="http://bender.igel.co.jp/">Bender Website</a></li>
-          <li><a href="https://github.com/bendr/bender">Github repo</a></li>
-          <li><a href="https://twitter.com/julien_igel">@julien_igel</a></li>
-          {block:PreviousPage}
-            <li><a href="{PreviousPage}">&#171; Previous</a></li>
-          {/block:PreviousPage}
-          {block:NextPage}
-            <li><a href="{NextPage}">Next &#187;</a></li>
-          {/block:NextPage}
-          <li><a href="/archive">Archive</a></li>
-        </ul>
-      </nav>
-    </div>
-    
   </body>
 </html>
