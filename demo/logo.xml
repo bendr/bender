@@ -21,16 +21,6 @@
             type="scale" from="0" to="1" dur="0.4s" fill="freeze" id="anim_b"/>
         </svg:g>
       </svg:g>
-      <svg:rect id="mask" width="128" height="128" fill-opacity="0"/>
     </svg:svg>
   </view>
-  <watch>
-    <get view="mask" dom-event="mousedown">
-      value.preventDefault();
-    </get>
-    <get view="mask" dom-event="mouseup">
-      this.views.anim_b.beginElement();
-      this.views.anim_p.beginElement();
-    </get>
-  </watch>
 </component>

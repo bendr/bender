@@ -298,10 +298,8 @@
               f.call(this);
             }, this);
           }
-          this.did_render();
-          if (!this.__pending_edges && !this.__running) {
-            console.log("[invalidate] no more pending, running");
-            this.__running = true;
+          if (!this.__pending_edges) {
+            this.did_render();
             flexo.notify(this, "@running");
           }
         }

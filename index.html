@@ -10,8 +10,9 @@
 
     <div class="tiles">
 
-      <div class="orange-bg" id="logo">
-      </div>
+        <div class="orange-bg" id="logo">
+          <a href="run.html?href=demo/logo.xml"></a>
+        </div>
 
       <div class="text blue-bg">
         <div>
@@ -111,7 +112,7 @@
 
 var context = bender.create_context();
 context.$("component", { href: "demo/logo.xml", sides: "7", fgcolor: "#ff6a4d",
-  bgcolor: "white" }).create_instance(document.getElementById("logo"));
+  bgcolor: "white" }).create_instance(document.querySelector("#logo a"));
 
 var arrow_component = context.$("component", { href: "t/arrow.xml", r: "120",
   "white-bg": "false" });
