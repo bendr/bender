@@ -30,9 +30,10 @@ code {
 bender.instance.did_render = function () {
   if (this.views.$root && this.views.$root.classList &&
     typeof this.views.$root.classList.add === "function") {
-    for (var c = this.component; c && !c.hasOwnProperty("id"); c = c.prototype);
-    if (c) {
-      this.views.$root.classList.add(c.id);
+    for (var c = this.component; c; c = c.prototype) {
+      if (c.hasOwnProperty("id")) {
+        this.views.$root.classList.add(c.id);
+      }
     }
   }
 };
