@@ -746,7 +746,8 @@
     var properties = {};
     this._has_own_property = function (name, inherited) {
       return properties.hasOwnProperty(name) ||
-        (inherited && this.prototype && this.prototype._has_own_property(name));
+        (inherited && this.prototype &&
+         this.prototype._has_own_property(name, inherited));
     };
     this._add_property = function (property) {
       properties[property.name] = property;
@@ -956,16 +957,16 @@
   };
 
   bender.instance.setup_properties = function (component) {
+    if (!component) {
+      return;
+    }
     var props = component.properties;
     Object.keys(props).forEach(function (p) {
-      if (!this.hasOwnProperty(p)) {
+      if (!this.set_property.hasOwnProperty(p)) {
         this.setup_property(props[p]);
       }
     }, this);
-    component = component.parent_component;
-    if (component) {
-      this.setup_properties(component);
-    }
+    this.setup_properties(component.parent_component);
   };
 
   bender.instance.component_ready = function () {
@@ -1466,7 +1467,7 @@
 
   // TODO get the value from the instance's component!
   prototypes.property.get_value = function (instance) {
-    return (instance.component.values.hasOwnProperty(this.name) &&
+    return (this.name in instance.component.values &&
         instance.component.values[this.name]) ||
       (this.parentElement &&
         this.parentElement.values.hasOwnProperty(this.name) &&

@@ -1,0 +1,3 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="array" as="dynamic" value="[]"/>
+</component>
