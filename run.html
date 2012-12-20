@@ -25,7 +25,9 @@ code {
   </head>
   <body>
     <script>
-"use strict";
+
+// Disabled during development
+// "use strict";
 
 bender.context.link_stylesheet = function (uri) {
   document.head.appendChild(flexo.$link({ rel: "stylesheet", href: uri }));

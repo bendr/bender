@@ -1,5 +1,7 @@
 (function (bender) {
-  "use strict";
+
+  // Disabled during development
+  // "use strict";
 
   var A = Array.prototype;
 
@@ -999,11 +1001,7 @@
         if (pending) {
           if (p.__pending_edges.length === 0) {
             delete p.__pending_edges;
-            if (!p.__running) {
-              console.log("[add_child] no more pending, running");
-              p.__running = true;
-              flexo.notify(p, "@running");
-            }
+            p.decr_pending_render();
           }
           pending.forEach(function (f) {
             f.call(p);
