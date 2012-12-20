@@ -270,9 +270,9 @@
         delete this.__invalidated;
         flexo.remove_from_array(this.component.context.invalidated, this);
         this.unrender_view();
+        this.__pending_render = 1;
+        this.will_render();
         if (this.component.view) {
-          this.__pending_render = 1;
-          this.will_render();
           this.roots = this.render_children(this.component.view, this.target);
           // Find the first child element or non-empty text node which will act
           // as the $root view node
@@ -285,19 +285,19 @@
           if (root) {
             this.views.$root = root;
           }
-          this.component.watches.forEach(function (watch) {
-            this.setup_watch(watch);
+        }
+        this.component.watches.forEach(function (watch) {
+          this.setup_watch(watch);
+        }, this);
+        if (this.__pending_edges) {
+          var edges = this.__pending_edges.slice();
+          delete this.__pending_edges;
+          edges.forEach(function (f) {
+            f.call(this);
           }, this);
-          if (this.__pending_edges) {
-            var edges = this.__pending_edges.slice();
-            delete this.__pending_edges;
-            edges.forEach(function (f) {
-              f.call(this);
-            }, this);
-          }
-          if (!this.__pending_edges) {
-            this.decr_pending_render();
-          }
+        }
+        if (!this.__pending_edges) {
+          this.decr_pending_render();
         }
       }.bind(this));
     }
