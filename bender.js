@@ -436,9 +436,7 @@
           if (set) {
             return value;
           } else {
-            var prop = instance.component.get_property(property.name);
-            return prop &&
-              instance.set_property[property.name](prop.parse_value(instance));
+            return property.get_value(instance);
           }
         },
         set: function (v) {
@@ -453,7 +451,7 @@
         enumerable: true,
         configurable: true,
         get: function () {
-          return instance.properties[property.name];
+          return property.get_value(instance);
         }
       });
     }
@@ -767,11 +765,6 @@
         property = properties[property];
       }
       delete properties[property.name];
-    };
-    this.get_property = function (name) {
-      return (properties.hasOwnProperty(name) && properties[name]) ||
-        (this.prototype && this.prototype.get_property(name)) ||
-        (this.parent_component && this.parent_component.get_property(name));
     };
     Object.defineProperty(this, "properties", { enumerable: true,
       get: function () {
@@ -1467,7 +1460,7 @@
 
   // TODO get the value from the instance's component!
   prototypes.property.get_value = function (instance) {
-    return (instance.component.values.hasOwnProperty(this.name) &&
+    return (this.name in instance.component.values &&
         instance.component.values[this.name]) ||
       (this.parentElement &&
         this.parentElement.values.hasOwnProperty(this.name) &&
