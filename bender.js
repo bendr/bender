@@ -28,6 +28,8 @@
     return this;
   };
 
+  bender.context.rendered = function () {};
+
   // Create a new Bender context for the given host document (window.document by
   // default.)
   bender.create_context = function (host) {
