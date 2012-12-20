@@ -307,6 +307,7 @@
     --this.__pending_render;
     if (this.__pending_render === 0) {
       delete this.__pending_render;
+      this.component.context.rendered(this);
       this.did_render();
       flexo.notify(this, "@running");
       if (this.parent) {

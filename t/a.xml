@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="a" prototype="bender.$.a">
   <link rel="script" href="a.js"/>
+  <link rel="stylesheet" href="a.css"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div>
       <html:p>
