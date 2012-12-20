@@ -1,4 +1,5 @@
-<component xmlns="http://bender.igel.co.jp" id="a">
+<component xmlns="http://bender.igel.co.jp" id="a" prototype="bender.$.a">
+  <link rel="script" href="a.js"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div>
       <html:p>

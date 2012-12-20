@@ -159,7 +159,6 @@
       return;
     }
     this.loaded[uri] = true;
-    console.log("[link]", uri);
     this["link_" + link.rel](uri, link);
   };
 
@@ -272,6 +271,7 @@
         flexo.remove_from_array(this.component.context.invalidated, this);
         this.unrender_view();
         if (this.component.view) {
+          this.__pending_render = 1;
           this.will_render();
           this.roots = this.render_children(this.component.view, this.target);
           // Find the first child element or non-empty text node which will act
@@ -296,11 +296,22 @@
             }, this);
           }
           if (!this.__pending_edges) {
-            this.did_render();
-            flexo.notify(this, "@running");
+            this.decr_pending_render();
           }
         }
       }.bind(this));
+    }
+  };
+
+  bender.instance.decr_pending_render = function () {
+    --this.__pending_render;
+    if (this.__pending_render === 0) {
+      delete this.__pending_render;
+      this.did_render();
+      flexo.notify(this, "@running");
+      if (this.parent) {
+        this.parent.decr_pending_render();
+      }
     }
   };
 
@@ -348,6 +359,7 @@
   };
 
   bender.instance.render_component = function (component, target) {
+    ++this.__pending_render;
     component.create_instance(target, this);
     return target;
   };
@@ -898,7 +910,6 @@
   // Create a new instance with a target element to render in and optionally a
   // parent instance
   prototypes.component.create_instance = function (target, parent, k) {
-    console.log("[create_instance]", this);
     var placeholder = target.appendChild(this.context.$("placeholder"));
     if (this.__pending_instances) {
       this.__pending_instances.push(function () {

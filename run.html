@@ -51,16 +51,6 @@ if (args.href) {
     document.body.appendChild(flexo.$("p.bender--runtime-error",
       "Error loading ", flexo.$code(e.uri), ": {0}.".fmt(e.message)));
   });
-  flexo.listen(context, "@update", function (e) {
-    var updates = e.updates.filter(function (u) {
-      return !u.skipped;
-    }).map(function (u) {
-      return u.action;
-    }).join(", ");
-    if (updates) {
-      console.log("@update: " + updates);
-    }
-  });
 } else {
   document.body.appendChild(flexo.$("p.bender--runtime-message",
     "Nothing to run. Please specify a Bender component to load with the ", 
