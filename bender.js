@@ -421,6 +421,9 @@
     this.views = { $document: d };
   };
 
+  bender.instance.will_set_property = function (name, value) {};
+  bender.instance.did_set_property = function (name) {};
+
   bender.instance.setup_property = function (property) {
     var value;
     var set = false;
@@ -444,10 +447,12 @@
           }
         },
         set: function (v) {
+          instance.will_set_property(property.name, v);
           instance.set_property[property.name].call(instance, v);
           traverse_graph(instance.edges.filter(function (e) {
             return e.property === property.name;
           }));
+          instance.did_set_property(property.name);
         }
       });
     } else if (instance) {
