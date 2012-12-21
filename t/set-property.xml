@@ -11,9 +11,6 @@
       <html:p>
         Number of clicks: {clicks} <html:span class="roman">{roman}</html:span>
       </html:p>
-      <!--
-      <component href="q.xml" class="q" text="Number of clicks: {clicks}"/>
-      -->
     </html:div>
   </view>
   <watch>
@@ -21,9 +18,5 @@
       value.preventDefault();
     </get>
     <set instance="$self" property="clicks" value="{ {clicks} + 1 }"/>
-  </watch>
-  <watch>
-    <get instance="$self" property="clicks"/>
-    <set instance="q" property="text" value="Number of clicks: {clicks}"/>
   </watch>
 </component>

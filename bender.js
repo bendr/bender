@@ -312,6 +312,9 @@
     if (this.__pending_render === 0) {
       delete this.__pending_render;
       this.component.context.rendered(this);
+      Object.keys(this.properties).forEach(function (p) {
+        this.properties[p] = this.properties[p];
+      }, this);
       this.did_render();
       flexo.notify(this, "@running");
       if (this.parent) {
@@ -421,19 +424,19 @@
     this.views = { $document: d };
   };
 
-  bender.instance.will_set_property = function (name, value) {};
   bender.instance.did_set_property = function (name) {};
 
   bender.instance.setup_property = function (property) {
     var value;
     var set = false;
-    this.set_property[property.name] = function (v) {
-      value = v;
-      set = true;
-      return value;
-    };
     var instance = this.find_instance_with_property(property.name);
     if (instance === this) {
+      this.set_property[property.name] = function (v) {
+        set = true;
+        value = v;
+        instance.did_set_property(property.name);
+        return value;
+      };
       Object.defineProperty(this.properties, property.name, {
         enumerable: true,
         configurable: true,
@@ -447,12 +450,10 @@
           }
         },
         set: function (v) {
-          instance.will_set_property(property.name, v);
           instance.set_property[property.name].call(instance, v);
           traverse_graph(instance.edges.filter(function (e) {
             return e.property === property.name;
           }));
-          instance.did_set_property(property.name);
         }
       });
     } else if (instance) {
@@ -1578,7 +1579,7 @@
     if (set_value !== undefined) {
       if (set.instance) {
         if (set.property) {
-          // TODO find out why prop is not always
+          // TODO find out why prop is not always found?
           var prop = set.instance.component.properties[set.property];
           var v = (prop && prop.parse_value(set.instance, set_value)) ||
             set_value;
