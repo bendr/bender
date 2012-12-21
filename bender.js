@@ -312,11 +312,19 @@
     if (this.__pending_render === 0) {
       delete this.__pending_render;
       this.component.context.rendered(this);
-      Object.keys(this.properties).forEach(function (p) {
-        this.properties[p] = this.properties[p];
-      }, this);
       this.did_render();
       flexo.notify(this, "@running");
+      var pending = [];
+      Object.keys(this.properties).forEach(function (p) {
+        try {
+          this.properties[p] = this.properties[p];
+        } catch (e) {
+          pending.push(p);
+        }
+      }, this);
+      if (pending.length) {
+        console.warn("Error initializing {{0}}".fmt(pending.join(", ")));
+      }
       if (this.parent) {
         this.parent.decr_pending_render();
       }
