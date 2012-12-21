@@ -1486,6 +1486,9 @@
 
   // Get the parsed value for the property
   prototypes.property.parse_value = function (instance, v) {
+    if (typeof v !== "string" && v != null) {
+      return v;
+    }
     var that = this.as === "dynamic" ? instance : instance.properties;
     var val = (v === undefined ? this.get_value(instance) : v).format(that);
     return property_types[this.as].call(that, val);
@@ -1575,8 +1578,10 @@
     if (set_value !== undefined) {
       if (set.instance) {
         if (set.property) {
-          var prop = set.parent_instance.component.properties[set.property];
-          var v = prop.parse_value(set.parent_instance, set_value);
+          // TODO find out why prop is not always
+          var prop = set.instance.component.properties[set.property];
+          var v = (prop && prop.parse_value(set.instance, set_value)) ||
+            set_value;
           if (typeof delay === "number" && delay >= 0) {
             set.instance.properties[set.property] = v;
           } else {
