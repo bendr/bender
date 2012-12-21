@@ -1148,6 +1148,9 @@
     } else {
       edge.instance = this;
     }
+    if (elem.value) {
+      edge.value = elem.value;
+    }
     if (elem.action) {
       edge.action = elem.action;
     }
@@ -1554,7 +1557,6 @@
       val = edge.__value;
       delete edge.__value;
     } else if (edge.hasOwnProperty("value")) {
-      // console.log("[edge_value]", edge.value);
       val = flexo.format.call(edge.parent_instance, edge.value,
           edge.parent_instance.properties);
     } else if (!set && edge.property) {
@@ -1573,10 +1575,12 @@
     if (set_value !== undefined) {
       if (set.instance) {
         if (set.property) {
+          var prop = set.parent_instance.component.properties[set.property];
+          var v = prop.parse_value(set.parent_instance, set_value);
           if (typeof delay === "number" && delay >= 0) {
-            set.instance.properties[set.property] = set_value;
+            set.instance.properties[set.property] = v;
           } else {
-            set.instance.set_property[set.property](set_value);
+            set.instance.set_property[set.property](v);
             A.push.apply(edges, set.instance.edges.filter(function (e) {
               return e.property === set.property && edges.indexOf(e) < 0;
             }));
