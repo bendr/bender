@@ -1,19 +1,17 @@
 # The Bender Data Model
 
-## Bender data types
-
-### Components
+## Components
 
 A component is defined by:
 
-  * an optional identifier (a component may be anonymous);
-  * an optional URI (an URL if serialized to a file; may contain a fragment
-    identifier if its has an id);
-  * an optional prototype;
-  * zero or more links;
-  * an optional view;
-  * zero or more properties;
-  * zero or more watches.
+* an optional identifier (a component may be anonymous);
+* an optional URI (an URL if serialized to a file; may contain a fragment
+  identifier if its has an id);
+* an optional prototype;
+* zero or more links;
+* an optional view;
+* zero or more properties;
+* zero or more watches.
 
 The prototype of a component, if defined, is another component.
 There can be no cycle in the graph of prototypes: a component may not inherit
@@ -34,7 +32,7 @@ The watches of a component are *inputs*, *outputs* pairs that define the
 behavior of a component with regards to the values of properties and the
 occurrence of events.
 
-#### XML serialization of components
+### XML serialization of components
 
 A component is seralized as a `component` element.
 The identifier is seralized as an `id` attribute.
@@ -45,7 +43,7 @@ values for properties (see below.)
 The links, view, properties and watches of an element are serialized as child
 elements (see below for serialization details.)
 
-#### The component element as a container
+### The component element as a container
 
 When serialized as XML, a component may have other component child elements.
 Strictly speaking, these are not part of the data model: the component element
@@ -54,7 +52,7 @@ Although there is a structural, parent-child relationship between the component
 *elements*, there is no relationship between the components themselves: the
 “child” is not part of the “parent” in any way.
 
-#### Component loading
+### Component loading
 
 Components are loaded asynchronously.
 Loading a component starts when it is referred to through the `href` attribute
@@ -62,22 +60,35 @@ of a `component` element.
 This prototype component finishes loading once the resources that describes it
 is loaded, and all components in its view have finished loading.
 
-### Links
+### Rendering and mutations
+
+Rendering is the operation of rendering a component in the target application.
+Rendering occurs when:
+
+* the component is created;
+* the view of the component is set, unset or modified;
+* the prototype of the component is set, unset or modified.
+
+Once the component is rendered, mutations, that is changes to its own DOM
+(adding or removing elements, changing attribute values, &c.) and of its
+properties, are mirrored in the rendering.
+
+## Links
 
 A *link* establishes a relationship between a component and an external
 resource, namely a script or a stylesheet.
 A link is defined by:
 
-  * the location of the resource, given by URI; and
-  * its relationship with the component, *i.e.*, whether it is a script or a
-    stylesheet.
+* the location of the resource, given by URI; and
+* its relationship with the component, *i.e.*, whether it is a script or a
+  stylesheet.
 
-#### Stylesheet links
+### Stylesheet links
 
 Stylesheets are loaded asynchronously, and once *per component*.
 The application of a stylesheet is dependent on the runtime.
 
-#### Script links
+### Script links
 
 Scripts are loaded synchronously: a script will block the loading process until
 it is loaded and executed.
@@ -86,7 +97,7 @@ A script is guaranteed to run only once *per component*.
 
 When a Javascript script is run, it is invoked with `this` set to the component.
 
-#### XML serialization of links
+### XML serialization of links
 
 A link is serialized as a `link` element, appearing as the child of a
 `component` element.
@@ -94,7 +105,7 @@ The location is serialized as an `href` attribute.
 The relationship is serialized as a `rel` attribute with value `stylesheet` for
 a stylesheet and `script` for a script.
 
-### The component view
+## The component view
 
 A component has a view if and only if its view is specified, or it has a
 prototype and its prototype has a view.
@@ -123,12 +134,33 @@ all.
 The component author must be careful to provide a content slot if she is
 planning for the view of the component to be extensible (when in top stacking
 mode.)
+A view may have only one content slot.
 
-#### Foreign content; text and attribute elements
+### View content and rendered nodes
 
-[TODO]
+The content of the view is XML markup, consisting of *foreign elements*
+(elements not in the Bender namespace), text nodes, as well as the following
+Bender elements:
 
-#### XML serialization of a view
+* `component` (child components)
+* `content` (content slot)
+* `text` (addressable text node)
+
+When the view of the component is rendered by the runtime, new _rendered nodes_
+are created, corresponding to the view nodes.
+
+* foreign elements and text nodes are rendered as is;
+* `component` elements are rendered by rendering the view of the components;
+* the `content` is rendered by rendering the top view, if any, or the default
+  contents;
+* `text` elements are rendered by rendering a text node.
+
+Any element in the view may have an `id` attribute.
+This id is **not** rendered, but the component keeps a map of view ids to
+rendered nodes.
+These ids are used for watch inputs and outputs as described below.
+
+### XML serialization of a view
 
 A component view is serialized as a `view` element, appearing as the child of
 a `component` element.
@@ -139,20 +171,20 @@ Its contents are serialized as child elements and text nodes.
 The content slot of the view is serialized as a `content` element.
 Its contents are serialized as child elements and text nodes.
 
-### Properties
+## Properties
 
 A property is defined by:
 
-  * a name, which must be unique within the component;
-  * an optional value, which can be any Javascript value (`undefined` if no
-    value is given for the property.)
+* a name, which must be unique within the component;
+* an optional value, which can be any Javascript value (`undefined` if no value
+  is given for the property.)
 
 The properties of a component is the union of its *own* properties, *i.e.*,
 properties which are defined for the component, and the properties of its
 prototype.
 A component may redefine a value from its prototype.
 
-#### XML serialization of a property
+### XML serialization of a property
 
 A property is serialized as a `property` element, appearing as the child of a
 `component` element.
@@ -165,13 +197,13 @@ text node), the attribute `as` may be added to the `property` element to
 describe how the value should be parsed by the runtime.
 Possible values of `as` are:
 
-  * `string` (default): no additional parsing — the value is used as is;
-  * `number`: the value is parsed as number (float in Javascript);
-  * `boolean`: the value is parsed as a boolean (the string “true”, with or
-    without extra white space, and regardless of case, maps to `true`; all other
-    values map to `false`);
-  * `json`: the value is parsed as JSON;
-  * `dynamic`: the value is passed to `eval`, with `this` set to the component.
+* `string` (default): no additional parsing — the value is used as is;
+* `number`: the value is parsed as number (float in Javascript);
+* `boolean`: the value is parsed as a boolean (the string “true”, with or
+  without extra white space, and regardless of case, maps to `true`; all other
+  values map to `false`);
+* `json`: the value is parsed as JSON;
+* `dynamic`: the value is passed to `eval`, with `this` set to the component.
 
 In addition to `property` child elements, a `component` element may have
 attributes beside `id` and `href`.
@@ -183,14 +215,15 @@ property.
 If there is no such property, this attribute is ignored (a warning may be issued
 by the runtime.)
 
-### Watches
+## Watches
 
 A watch is defined by:
 
-  * one or more _inputs_;
-  * zero or more _outputs_.
+* one or more _inputs_;
+* zero or more _outputs_.
 
-A watch is activated when it is not activated and one of its output is
+A watch is not activated by default.
+A watch is activated when it is not already activated and one of its output is
 activated, as described below.
 Once a watch is activated, it will stay activated until the runtime deactivates
 it.
@@ -199,13 +232,22 @@ This may cause other watches to be activated, and their outputs to be applied.
 Once there are no more new activations, all activated watches become
 deactivated.
 
-#### Input activation
+### Bender events and DOM events
+
+DOM events are events that DOM nodes can generate.
+They provide an interface with the rendered nodes so that Bender components may
+receive input events from the runtime after they have been rendered.
+
+Bender events are custom events that any Javascript object can generate.
+They provide an interface for components to send event notifications.
+
+### Input activation
 
 There are three kinds of inputs:
 
-  1. a **property input** monitors the change of a property of a component;
-  2. an **event input** listens to an event from a component;
-  3. a **DOM event input** listens to a DOM event from a rendered element.
+1. a **property input** monitors the change of a property of a component;
+2. an **event input** listens to a Bender event from a component;
+3. a **DOM event input** listens to a DOM event from a rendered element.
 
 An input has an associated value, which goes through a transformation to produce
 the final activation value.
@@ -214,7 +256,7 @@ unchanged.
 
 A property input is activated when the value of the property of a component
 changes.
-The intial value of the property input is the new value of the property.
+The initial value of the property input is the new value of the property.
 
 An event input is activated when an event notification is sent by a component.
 The initial value of the event input is the event arguments object.
@@ -223,17 +265,15 @@ A DOM event input is activated when a DOM event notification is sent by a
 rendered element.
 The initial value of the event input is the event argument object.
 
-
-#### Output application
+### Output application
 
 There are four kinds of outputs:
 
-  1. a **property output** sets the value of a property of a component;
-  2. a **DOM output** sets the value of a DOM node (attribute, property, or
-     text content);
-  3. an **event output** generates an event notification;
-  4. a **custom output** does nothing on its own but can be customized through
-     Javascript.
+1. a **property output** sets the value of a property of a component;
+2. a **DOM output** sets an attribute or property of a view element;
+3. an **event output** generates an event notification;
+4. a **custom output** does nothing on its own but can be customized through
+   Javascript.
 
 After a watch has been activated through one of its ouputs being activated, all
 outputs are applied in sequence.
@@ -242,6 +282,21 @@ was activated.
 The input value is then transformed before the output is applied.
 The default output transformation is the identity function that returns the
 input value unchanged.
+
+              initial value
+                   ↓
+    ────┐ ┌─────────────────┐ ┌────
+    ... │ │ activated input │ │ ...
+    ────┘ └─────────────────┘ └────
+                   ↓
+            activation value
+          ↙        ↓        ↘
+    ┌────────┐ ┌────────┐ ┌────────┐
+    │ output │ │ output │ │ output │
+    └────────┘ └────────┘ └────────┘
+        ↓          ↓          ↓
+      output     output     output
+      value      value      value
 
 A property output is applied by setting the value of the property to the output
 value.
@@ -256,7 +311,7 @@ The event argument is the output value.
 A custom output does nothing and relies only on the side effects of the output
 value transformation.
 
-#### XML serialization of a watch
+### XML serialization of a watch
 
 A watch is serialized as a `watch` element.
 
@@ -303,17 +358,3 @@ An event ouput is serialized as a `set` element with the following attribute:
 
   * the `event` attribute is the name of the event to send (default is to use
     the `type` property of the output value.)
-
-#### Property bindings (forthcoming)
-
-### Replication (forthcoming)
-
-View elements (that is any element appearing inside the view of a component)
-may be replicated.
-
-
-## Rendering
-
-Rendered nodes, ids, &c.
-
-## Updates
