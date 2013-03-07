@@ -358,3 +358,6 @@ An event ouput is serialized as a `set` element with the following attribute:
 
   * the `event` attribute is the name of the event to send (default is to use
     the `type` property of the output value.)
+
+The `$root` meta-value can be used to refer to the root of the rendered view of
+the component.
