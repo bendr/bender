@@ -1,5 +1,7 @@
 # The Bender data model
 
+Bender v0.8, 8 March 2013
+
 Bender describes Web applications through the combination of _components_.
 Running a Bender application requires a runtime, which renders the component
 describing the application, and runs the event loop for user interaction.
@@ -64,7 +66,11 @@ A **view** consists of:
   * a Bender `content` element.
 
 Component elements are XML representations of components as described above.
+There is a parent-child relationship between the component and components that
+are referred to within the view.
+
 Text elements are placeholders for text nodes that can referred to by their id.
+
 Content elements are XML representations of content slots.
 
 A **content slot** consists of:
@@ -206,3 +212,5 @@ This XML document describes a component *C* with
     * incoming value *E*
     * outgoing value *count* + 1, where *count* is the current value of the
       property named `count` on component *C*.
+
+_Note: list indentation may be broken on Github_
