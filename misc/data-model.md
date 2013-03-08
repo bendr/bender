@@ -159,48 +159,49 @@ A simple example of a Bender component, using the XML serialization:
 </component>
 ```
 
-* A component *C* with
+This XML document describes a component *C* with
+
+* no identifier
+* no prototype
+* a property, which has
+  * name `count`
+  * value *0* (note: the `as` attribute of the `value` element defines how the
+    attribute value, which in XML is always a string, should be parsed)
+* a view with
   * no identifier
-  * no prototype
-  * a property, which has
-    * name `count`
-    * value *0* (note: the `as` attribute of the `value` element defines how the
-      attribute value, which in XML is always a string, should be parsed)
-  * a view with
-    * no identifier
-    * **top** stacking mode (note: this is the default in the absence of a
-      `stack` attribute)
-    * an HTML `p` element
-      * a text node
-      * a Bender `text` element *T* with
-        * identifier `clicks`
-      * a text node
-    * an HTML `p` element
-      * a component element *B* with
-        * identifier `button`
-        * a prototype defined by the XML document at the URL `button.xml`
-        * a view with
-          * no identifier
-          * **top** stacking mode
-          * a text node
-  * a watch with
-    * a property input with
-      * source component *C* (note: the parent component is the default
-        component in the absence of a `component` attribute)
-      * property name `count`
-      * both incoming and outgoing value are the value of the *count* property
-        on *C*
-    * a DOM output with
-      * target element *T*
-      * DOM property `textContent` (note: this is the default)
-      * both incoming and outgoing value are the value of the *count* property
-        on *C*
-  * a watch with
-    * an event input with
-      * source component *B*
-      * event type `@pushed`
-      * both incoming and outgoing value are an event object *E*
-    * a property output with
-      * target component *C*[^component-footnote]
-      * incoming value *E*
-      * outgoing value *count* + 1
+  * **top** stacking mode (note: this is the default in the absence of a
+    `stack` attribute)
+  * an HTML `p` element
+    * a text node
+    * a Bender `text` element *T* with
+      * identifier `clicks`
+    * a text node
+  * an HTML `p` element
+    * a component element *B* with
+      * identifier `button`
+      * a prototype defined by the XML document at the URL `button.xml`
+      * a view with
+        * no identifier
+        * **top** stacking mode
+        * a text node
+* a watch with
+  * a property input with
+    * source component *C* (note: the parent component is the default
+      component in the absence of a `component` attribute)
+    * property name `count`
+    * both incoming and outgoing value are the value of the *count* property on
+      *C*
+  * a DOM output with
+    * target element *T*
+    * DOM property `textContent` (note: this is the default)
+    * both incoming and outgoing value are the value of the *count* property
+      on *C*
+* a watch with
+  * an event input with
+    * source component *B*
+    * event type `@pushed`
+    * both incoming and outgoing value are an event object *E*
+  * a property output with
+    * target component *C*
+    * incoming value *E*
+    * outgoing value *count* + 1
