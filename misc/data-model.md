@@ -1,4 +1,4 @@
-# The Bender Data Model
+# The Bender data model
 
 Bender describes Web applications through the combination of _components_.
 Running a Bender application requires a runtime, which renders the component
@@ -181,9 +181,11 @@ This XML document describes a component *C* with
       * identifier `button`
       * a prototype defined by the XML document at the URL `button.xml`
       * a view with
-        + no identifier
-        + **top** stacking mode
-        + a text node
+
+        * no identifier
+        * **top** stacking mode
+        * a text node
+
 * a watch with
   * a property input with
     * source component *C* (note: the parent component is the default
