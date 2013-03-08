@@ -163,7 +163,7 @@ This XML document describes a component *C* with
 
 * no identifier
 * no prototype
-* a property, which has
+* a property with
   * name `count`
   * value *0* (note: the `as` attribute of the `value` element defines how the
     attribute value, which in XML is always a string, should be parsed)
@@ -181,9 +181,9 @@ This XML document describes a component *C* with
       * identifier `button`
       * a prototype defined by the XML document at the URL `button.xml`
       * a view with
-        * no identifier
-        * **top** stacking mode
-        * a text node
+        + no identifier
+        + **top** stacking mode
+        + a text node
 * a watch with
   * a property input with
     * source component *C* (note: the parent component is the default
