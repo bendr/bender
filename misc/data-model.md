@@ -181,11 +181,9 @@ This XML document describes a component *C* with
       * identifier `button`
       * a prototype defined by the XML document at the URL `button.xml`
       * a view with
-
         * no identifier
         * **top** stacking mode
         * a text node
-
 * a watch with
   * a property input with
     * source component *C* (note: the parent component is the default
@@ -206,4 +204,5 @@ This XML document describes a component *C* with
   * a property output with
     * target component *C*
     * incoming value *E*
-    * outgoing value *count* + 1
+    * outgoing value *count* + 1, where *count* is the current value of the
+      property named `count` on component *C*.
