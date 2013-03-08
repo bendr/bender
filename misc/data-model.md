@@ -164,10 +164,12 @@ A simple example of a Bender component, using the XML serialization:
   * no prototype
   * a property, which has
     * name `count`
-    * value *0*[^as-footnote]
+    * value *0* (note: the `as` attribute of the `value` element defines how the
+      attribute value, which in XML is always a string, should be parsed)
   * a view with
     * no identifier
-    * **top** stacking mode[^stacking-footnote]
+    * **top** stacking mode (note: this is the default in the absence of a
+      `stack` attribute)
     * an HTML `p` element
       * a text node
       * a Bender `text` element *T* with
@@ -179,17 +181,18 @@ A simple example of a Bender component, using the XML serialization:
         * a prototype defined by the XML document at the URL `button.xml`
         * a view with
           * no identifier
-          * **top** stacking mode[^stacking-footnote]
+          * **top** stacking mode
           * a text node
   * a watch with
     * a property input with
-      * source component *C*[^component-footnote]
+      * source component *C* (note: the parent component is the default
+        component in the absence of a `component` attribute)
       * property name `count`
       * both incoming and outgoing value are the value of the *count* property
         on *C*
     * a DOM output with
       * target element *T*
-      * DOM property `textContent`[^property-footnote]
+      * DOM property `textContent` (note: this is the default)
       * both incoming and outgoing value are the value of the *count* property
         on *C*
   * a watch with
@@ -201,14 +204,3 @@ A simple example of a Bender component, using the XML serialization:
       * target component *C*[^component-footnote]
       * incoming value *E*
       * outgoing value *count* + 1
-
-[^as-footnote]: the `as` attribute of the `value` element defines how the
-attribute value, which in XML is always a string, should be parsed.
-
-[^stacking-footnote]: “top” is the default stacking in the absence of a `stack`
-attribute.
-
-[^component-footnote]: the parent component is the default component in the
-absence of a `component` attribute.
-
-[^property-footnote]: `textContent` is the default DOM property
