@@ -195,16 +195,16 @@ This XML document describes a component *C* with
           * a text node
 * a watch with
   * a property input with
-    * source component *C* (note: the parent component is the default
-      component in the absence of a `component` attribute)
-    * property name `count`
-    * both incoming and outgoing value are the value of the *count* property on
-      *C*
+      * source component *C* (note: the parent component is the default
+        component in the absence of a `component` attribute)
+      * property name `count`
+      * both incoming and outgoing value are the value of the *count* property
+        on *C*
   * a DOM output with
-    * target element *T*
-    * DOM property `textContent` (note: this is the default)
-    * both incoming and outgoing value are the value of the *count* property
-      on *C*
+      * target element *T*
+      * DOM property `textContent` (note: this is the default)
+      * both incoming and outgoing value are the value of the *count* property
+        on *C*
 * a watch with
   * an event input with
       * source component *B*
@@ -215,5 +215,3 @@ This XML document describes a component *C* with
       * incoming value *E*
       * outgoing value *count* + 1, where *count* is the current value of the
         property named `count` on component *C*.
-
-_Note: list indentation may be broken on Github_
