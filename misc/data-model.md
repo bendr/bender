@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 8 March 2013
+Bender v0.8, 11 March 2013
 
 Bender describes Web applications through the combination of _components_.
 Running a Bender application requires a runtime, which renders the component
@@ -17,6 +17,7 @@ A Bender **component** consists of:
 * zero or more links;
 * zero or more views;
 * zero or more properties;
+* zero or more property defaults;
 * zero or more watches.
 
 The identifier is a string.
@@ -35,6 +36,8 @@ any kind.)
 
 The properties of a component are *name* and *value* pairs that can parametrize
 the rendering and behavior of the component.
+
+The property defaults provide default values for some of the properties.
 
 The watches of a component are *inputs* and *outputs* pairs that define the
 behavior of a component with regards to the values of properties and the
@@ -83,8 +86,8 @@ A **content slot** consists of:
 A **property** consists of:
 
 * a name, which must be unique within the component;
-* an optional value, which can be any Javascript value (`undefined` if no value
-  is given for the property.)
+* a value, which can be any Javascript value (`undefined` if no value is given
+  for the property.)
 
 ### Watches
 
@@ -187,9 +190,9 @@ This XML document describes a component *C* with
       * identifier `button`
       * a prototype defined by the XML document at the URL `button.xml`
       * a view with
-        * no identifier
-        * **top** stacking mode
-        * a text node
+          * no identifier
+          * **top** stacking mode
+          * a text node
 * a watch with
   * a property input with
     * source component *C* (note: the parent component is the default
@@ -204,13 +207,13 @@ This XML document describes a component *C* with
       on *C*
 * a watch with
   * an event input with
-    * source component *B*
-    * event type `@pushed`
-    * both incoming and outgoing value are an event object *E*
+      * source component *B*
+      * event type `@pushed`
+      * both incoming and outgoing value are an event object *E*
   * a property output with
-    * target component *C*
-    * incoming value *E*
-    * outgoing value *count* + 1, where *count* is the current value of the
-      property named `count` on component *C*.
+      * target component *C*
+      * incoming value *E*
+      * outgoing value *count* + 1, where *count* is the current value of the
+        property named `count` on component *C*.
 
 _Note: list indentation may be broken on Github_
