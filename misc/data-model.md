@@ -185,14 +185,14 @@ This XML document describes a component *C* with
       * a Bender `text` element *T* with
           * identifier `clicks`
       * a text node
-  * an HTML `p` element
-    * a component element *B* with
-      * identifier `button`
-      * a prototype defined by the XML document at the URL `button.xml`
-      * a view with
-          * no identifier
-          * **top** stacking mode
-          * a text node
+  * an HTML `p` element with
+      * a component element *B* with
+          * identifier `button`
+          * a prototype defined by the XML document at the URL `button.xml`
+          * a view with
+              * no identifier
+              * **top** stacking mode
+              * a text node
 * a watch with
   * a property input with
       * source component *C* (note: the parent component is the default
