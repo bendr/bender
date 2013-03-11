@@ -1,14 +1,40 @@
 # The Bender processing model
 
-Bender v0.8, 8 March 2013
+Bender v0.8, 11 March 2013
+
+## Operational semantics of Bender
+
+We express the operational semantics of Bender using Haskell.
+
+### Runtime environment
+
+The runtime environment *E* is defined by:
+
+* ...
+
+
+### Combining views
+
+### Loading
+
+### Rendering
+
+---
+
+Everything below this point is unedited content.
+
+
+
+
+## Processing model
 
 A Bender component (see data model for the formal definition of a component) is
-processed by a _runtime_.
-In this document a DOM-based runtime is assumed where rendering is performed by
-outputting a DOM tree in a target element.
+processed by a *runtime*.
+In this document, a DOM-based runtime is assumed, where rendering is performed
+by outputting a DOM tree in a target element.
 Future versions of Bender will allow other types of rendering.
 
-## Component loading
+### Component loading
 
 Components can be referred to by an URI, which must be resolvable to an XML
 document containing the description of the component following the Bender XML
@@ -16,18 +42,75 @@ syntax as described by the Relax NG grammar.
 A component is loaded by loading the XML file corresponding to the URI.
 Loading finishes when the XML file has been loaded and parsed into the data
 model, *and* all child components that require loading have been loaded.
+The order in which the child components are loaded is not significant.
+Loading may thus proceed asynchronously.
+
+## Component rendering
+
+## Example
+
+Recall this previous example component:
+
+```xml
+<component xmlns="http://bender.igel.co.jp">
+  <property name="count" as="number" value="0"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      Number of clicks: <text id="clicks"/>
+    </html:p>
+    <html:p>
+      <component href="button.xml" id="button">
+        <view>
+          +1
+        </view>
+      </component>
+    </html:p>
+  </view>
+  <watch>
+    <get property="count"/>
+    <set elem="clicks"/>
+  </watch>
+  <watch>
+    <get component="button" event="@pushed"/>
+    <set property="count" value="count + 1"/>
+  </watch>
+</component>
+```
+
+This component *C* can be rendered by a DOM-based runtime into a target element
+*G*. First off, the child component *B* at URL `button.xml` must be loaded. When
+*B* has finished loading, *C* finishes loading as well.
+
+The single property *P* of *C* is rendered by creating a new property object
+named “count” with initial value *0*.
+
+*C* is rendered into *G* by rendering the contents of its single view:
+
+* the first HTML `p` element is rendered into an HTML `p` element in *G*, with
+  children
+    * a text node with the text “Number of clicks:”,
+    * an initially empty text node *T*, and
+    * a text node with only whitespace;
+* the first HTML `p` element is rendered into an HTML `p` element in *G*, with
+  children
+    * elements created by the view of *B*,
+        * including a text node with content “+1” in place of the `content`
+          element in the view of *B*, if any.
+
+The first watch of *C* is rendered by adding a setter on the property *P* which
+sets the `textContent` property of the rendered text node *T* to the value of
+*P*. After initialization, the text content of *T* will be “0.” Note that *T* is
+a text node in the 
+
+The second watch of *C* is rendered by attaching an event handler on the
+component *B*, listening to events of type “@pushed.” The handler for this event 
+consists in setting the property *P* to the its new value.
+
+## API
 
 
----
-
-Everything below this point needs reviewing.
 
 
-Components are loaded asynchronously.
-Loading a component starts when it is referred to through the `href` attribute
-of a `component` element.
-This prototype component finishes loading once the resources that describes it
-is loaded, and all components in its view have finished loading.
 
 ## Rendering and mutations
 

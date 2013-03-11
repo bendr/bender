@@ -1,48 +1,35 @@
 (function (bender) {
+  "use strict";
 
-  // Disabled during development
-  // "use strict";
-
-  var A = Array.prototype;
+  var forEach = Array.prototype.forEach;
+  var push = Array.prototype.push;
+  var slice = Array.prototype.slice;
 
   // The Bender namespace, also adding the "bender" namespace prefix for
   // flexo.create_element
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  // Extend this with custom instances, &c.
-  bender.$ = {};
 
-
+  // Bender rendering context
   bender.context = {};
-
-  // Initialize the context for the given host document (this.document); keep
-  // track of instance tree roots (this.instance) and loaded URIs (this.loaded)
-  bender.context.init = function (host) {
-    this.document = host;
-    this.loaded = {};
-    // These are mostly for debugging purposes
-    this.components = [];
-    this.instances = [];
-    this.invalidated = [];
-    this.request_update_delay = 0;
-    return this;
-  };
-
-  bender.context.rendered = function () {};
 
   // Create a new Bender context for the given host document (window.document by
   // default.)
   bender.create_context = function (host) {
-    return Object.create(bender.context).init(host || window.document);
+    var context = Object.create(bender.context);
+    context.document = host || window.document;
+    context.loaded = {};
+    return context;
   };
 
   // Wrap new elements
   bender.context.$ = function (name, attrs) {
     var contents;
-    if (typeof attrs === "object" && !(attrs instanceof Node)) {
-      contents = A.slice.call(arguments, 2);
+    if (typeof attrs === "object" && !(attrs instanceof Node) &&
+        !Array.isArray(attrs)) {
+      contents = slice.call(arguments, 2);
     } else {
-      contents = A.slice.call(arguments, 1);
+      contents = slice.call(arguments, 1);
       attrs = {};
     }
     var classes = name.trim().split(".");
@@ -125,7 +112,7 @@
       if (is_bender_element(n, "component")) {
         n.uri = uri;
       }
-      A.forEach.call(node.attributes, function (attr) {
+      forEach.call(node.attributes, function (attr) {
         if (attr.namespaceURI) {
           if (attr.namespaceURI === flexo.ns.xmlns &&
               attr.localName !== "xmlns") {
@@ -138,7 +125,7 @@
           n.setAttribute(attr.localName, attr.nodeValue);
         }
       });
-      A.forEach.call(node.childNodes, function (ch) {
+      forEach.call(node.childNodes, function (ch) {
         var ch_ = this.import_node(ch, uri);
         if (ch_) {
           n.appendChild(ch_);
@@ -333,7 +320,7 @@
 
   bender.instance.render_children = function (node, target) {
     var roots = [];
-    A.forEach.call(Array.isArray(node) ? node : node.childNodes, function (ch) {
+    forEach.call(Array.isArray(node) ? node : node.childNodes, function (ch) {
       var r = this.render_node(ch, target);
       if (r) {
         roots.push(r);
@@ -394,7 +381,7 @@
     var d = target.appendChild(
         this.component.context.document.createElementNS(elem.namespaceURI,
           elem.localName));
-    A.forEach.call(elem.attributes, function (attr) {
+    forEach.call(elem.attributes, function (attr) {
       var val = attr.value;
       if ((attr.namespaceURI === flexo.ns.xml || !attr.namespaceURI) &&
         attr.localName === "id") {
@@ -410,7 +397,7 @@
           flexo.format.call(this, val, this.properties));
       }
     }, this);
-    A.forEach.call(elem.childNodes, function (ch) {
+    forEach.call(elem.childNodes, function (ch) {
       this.render_node(ch, d);
     }, this);
     return d;
@@ -726,7 +713,7 @@
           return content;
         } else {
           var c = (this.prototype && this.prototype.content) || [];
-          A.forEach.call(this.childNodes, function (ch) {
+          forEach.call(this.childNodes, function (ch) {
             if (ch.nodeType === window.Node.ELEMENT_NODE) {
               if (ch.namespaceURI === bender.ns) {
                 if (ch.localName === "component") {
@@ -995,7 +982,7 @@
       var placeholder = this.__placeholder;
       var f = function () {
         var parent = placeholder.parentElement;
-        A.slice.call(placeholder.childNodes).forEach(function (ch) {
+        slice.call(placeholder.childNodes).forEach(function (ch) {
           parent.insertBefore(ch, placeholder);
         });
         parent.removeChild(placeholder);
@@ -1309,7 +1296,7 @@
       console.error("Component already has a view", this);
     } else {
       if (this.__pending && update.child.__pending) {
-        A.push.apply(this.__pending, update.child.__pending);
+        push.apply(this.__pending, update.child.__pending);
         delete update.child.__pending;
       }
       this._set_view(update.child);
@@ -1394,7 +1381,7 @@
     if (ch.nodeType === window.Node.ELEMENT_NODE) {
       if (ch.namespaceURI !== bender.ns) {
         this.context.wrap_element(ch, prototypes.view);
-        A.forEach.call(ch.childNodes, ch.inserted.bind(ch));
+        forEach.call(ch.childNodes, ch.inserted.bind(ch));
       }
     }
     for (var e = this; e.parentElement && !e.__pending; e = e.parentElement);
@@ -1402,7 +1389,7 @@
       if (is_bender_element(ch, "component")) {
         e.__pending.push(ch);
       } else if (ch.__pending) {
-        A.push.apply(e.__pending, ch.__pending);
+        push.apply(e.__pending, ch.__pending);
         ch.__pending = [];
       }
     }
@@ -1595,7 +1582,7 @@
             set.instance.properties[set.property] = v;
           } else {
             set.instance.set_property[set.property](v);
-            A.push.apply(edges, set.instance.edges.filter(function (e) {
+            push.apply(edges, set.instance.edges.filter(function (e) {
               return e.property === set.property && edges.indexOf(e) < 0;
             }));
           }
