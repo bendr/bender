@@ -1,25 +1,34 @@
--- Bender operational semantics using Haskell
+import Data.List;
 
-data Context = Context [Component]
+data Component = Component
+  (Maybe String) (Maybe Component) [Link] [View] [Property] [Property] [Watch]
 
-data Component =
-  Component String (Maybe Component) [Link] [View] [Property] [Property] [Watch]
-
-data Link = Link String Rel
+data Link = Link Uri Rel deriving Eq
+data Uri = String deriving Eq
 data Rel = Script | Stylesheet
+
+instance Eq Rel where
+  Script == Script = True
+  Stylesheet == Stylesheet = True
+  _ == _ = False
 
 data View = View (Maybe String) Stacking [ViewNode]
 data Stacking = Top | Bottom | Replace
 
 data ViewNode = DOMTextNode String
-              | DOMElement String String [DOMAttribute] [ViewNode]
+              | DOMElement Uri String [DOMAttribute] [ViewNode]
               | ComponentElement Component
               | ContentElement (Maybe String) [ViewNode]
               | TextElement String String
 
 data DOMAttribute = DOMAttribute String String String
 
-data Property = Property String Anything  -- Property name value
+data Property = Property String AnyValue
+data AnyValue = AnyValue
+
+instance Eq Property where
+  (Property n _) == (Property m _) = n == m
+
 
 data Watch = Watch [Get] [Set]
 data Get = GetProperty Component String String
@@ -34,62 +43,81 @@ data Set = SetProperty Component String String
 data Action = Append | Prepend | Remove
 data Position = Before | After | Instead
 
-data Event = Event Component String [Anything]
+data Event = Event Component String [AnyValue]
 
-data Anything = Anything
+-- TODO Env has components/view nodes, and listeners are added directly on those
+data Env = Env [Link] [Listener]
+
+data Listener = PropertyListener Component String
+              | DOMEventListener ViewNode String
+              | EventListener Component String
+
+{-
+
+render_component :: Component -> ViewNode -> Env -> (ViewNode, Env)
+render_component c n e =
+  let c' = render_properties c
+      e' = render_links c' e
+      (e'', n') = render_views c' e' n
+  in render_watches c n' e''
+
+-}
+
+-- Render properties by setting the default values
+render_properties :: Component -> Component
+render_properties (Component i k ls vs ps ds ws) =
+  let ps' = set_defaults ds ps
+  in Component i k ls vs ps' ds ws
+
+set_defaults :: [Property] -> [Property] -> [Property]
+set_defaults [] ps = ps
+set_defaults (d@(Property n _):ds) ps =
+  d : (set_defaults ds (filter (/= d) ps))
 
 
-get_views :: Component -> [View]
-get_views (Component _ None _ vs _ _ _) = vs
-get_views (Component _ (Just k) _ vs _ _ _) = combine_views (get_views k) vs
+-- A link must be rendered only once in the same environment
+render_links :: Component -> Env -> Env
+render_links (Component _ _ ls _ _ _ _) e = foldl render_link e ls
 
-combine_views :: [View] -> [View] -> [View]
-combine_views vs [] = vs
-combine_views [] ws = ws
-combine_views (v:vs) ws@((View _ Bottom _):_) =
-  let (v', ws') = stack_view v ws in v' : (combine_views vs ws')
-combine_views (v:vs) (w:ws) =
-  let (w', vs') = stack_view w vs in w' : (combine_views vs' ws)
+render_link :: Env -> Link -> Env
+render_link e@(Env ls _) l@(Link u r)
+  | elem l ls = e
+  | otherwise = case r of Script -> render_script e l
+                          Stylesheet -> render_stylesheet e l
 
-stack_view :: View -> [View] -> (View, [View])
-stack_view v@(View None _ _) w@(View None _ _):[] =
-  (stack_single_view v w, [])
+-- Rendering scripts is implementation dependent
+render_script :: Env -> Link -> Env
+render_script (Env ls hs) l = Env (l:ls) hs
 
-stack_single_view :: View -> View -> View
-stack_single_view _ w@(View _ Replace _) = w
-stack_single_view (View _ _ ns) (View i Top ns') =
-  (View i Top (fill_content ns' ns))
-stack_single_view (View _ _ ns) (View i Bottom ns') =
-  (View i Bottom (fill_content ns ns'))
+-- Rendering stylesheets is implementation dependent
+render_stylesheet :: Env -> Link -> Env
+render_stylesheet (Env ls hs) l = Env (l:ls) hs
+
+
+-- Render the views of the component in the target node
+render_views :: Component -> Env -> ViewNode -> ViewNode
+render_views (Component _ k _ vs _ _ _) (DOMElement u n a cs) =
+  let rs = map render_node (get_views k vs)
+  in DOMElement u n a (cs ++ rs)
+
+render_node :: ViewNode -> ViewNode
+render_node (DOMTextNode s) = DOMTextNode s
+render_node (DOMElement u n as vs) =
+  DOMElement u n (filter (\a -> not (is_id a)) as) (map render_node vs)
+render_node (ComponentElement c) = render_component
 
 data ViewNode = DOMTextNode String
-              | DOMElement String String [DOMAttribute] [ViewNode]
+              | DOMElement Uri String [DOMAttribute] [ViewNode]
               | ComponentElement Component
               | ContentElement (Maybe String) [ViewNode]
               | TextElement String String
 
-fill_content :: [ViewNode] -> [ViewNode] -> [ViewNode]
-fill_content [] _ = []
-fill_content (ComponentElement c):ns ms = ...
-fill_content (ContentElement _ _):ns ms = ms ++ ns
-fill_content n:ns ms = n : (fill_content n ms)
+get_views :: Maybe Component -> [View] -> [View]
+get_views Nothing ws = ws
+get_views (Just (Component _ k _ vs _ _ _)) ws =
+  combine_views (get_views k vs) ws
 
-get_content :: View -> (Maybe String) -> (Maybe Content)
-get_content (View _ _ ns) id = get_content' ns id
-
-get_content' :: [ViewNode] -> (Maybe String) -> (Maybe Content)
-get_content' [] _ = None
-get_content' n:ns id =
-  let c = get_content'' n id in
-    case c of
-      None -> get_content' n id
-      otherwise -> c
-
-get_content'' :: ViewNode -> (Maybe String) -> (Maybe Content)
-get_content'' (DOMTextNode _ _) _ -> None
-get_content'' (DOMElement _ _ _ ns) id -> get_content' ns id
-get_content'' (ComponentElement _) id -> None
-get_content'' c@(ContentElement None _) None -> c
-get_content'' c@(ContentElement (Just i) _) (Just i) -> c
-get_content'' (ContentElement _ _) _ -> None
-get_content'' (TextElement _ _) _ -> None
+-- Combine prototype views with component views
+combine_views :: [View] -> [View] -> [View]
+combine_views [] ws = ws
+combine_views vs (w@(View i Top ns):ws) = 
