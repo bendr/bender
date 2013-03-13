@@ -1,10 +1,12 @@
 import Data.List;
 
 data Component = Component
-  (Maybe String) (Maybe Component) [Link] [View] [Property] [Property] [Watch]
+  (Maybe Id) (Maybe Component) [Link] [View] [Property] [Watch]
+
+type Id = String
 
 data Link = Link Uri Rel deriving Eq
-data Uri = String deriving Eq
+type Uri = String
 data Rel = Script | Stylesheet
 
 instance Eq Rel where
@@ -12,7 +14,7 @@ instance Eq Rel where
   Stylesheet == Stylesheet = True
   _ == _ = False
 
-data View = View (Maybe String) Stacking [ViewNode]
+data View = View (Maybe Id) Stacking [ViewNode]
 data Stacking = Top | Bottom | Replace
 
 data ViewNode = DOMTextNode String
@@ -52,32 +54,16 @@ data Listener = PropertyListener Component String
               | DOMEventListener ViewNode String
               | EventListener Component String
 
-{-
-
 render_component :: Component -> ViewNode -> Env -> (ViewNode, Env)
 render_component c n e =
-  let c' = render_properties c
-      e' = render_links c' e
-      (e'', n') = render_views c' e' n
+  let e' = render_links c e
+      (e'', n') = render_views c e' n
   in render_watches c n' e''
-
--}
-
--- Render properties by setting the default values
-render_properties :: Component -> Component
-render_properties (Component i k ls vs ps ds ws) =
-  let ps' = set_defaults ds ps
-  in Component i k ls vs ps' ds ws
-
-set_defaults :: [Property] -> [Property] -> [Property]
-set_defaults [] ps = ps
-set_defaults (d@(Property n _):ds) ps =
-  d : (set_defaults ds (filter (/= d) ps))
 
 
 -- A link must be rendered only once in the same environment
 render_links :: Component -> Env -> Env
-render_links (Component _ _ ls _ _ _ _) e = foldl render_link e ls
+render_links (Component _ _ ls _ _ _) e = foldl render_link e ls
 
 render_link :: Env -> Link -> Env
 render_link e@(Env ls _) l@(Link u r)
@@ -120,4 +106,4 @@ get_views (Just (Component _ k _ vs _ _ _)) ws =
 -- Combine prototype views with component views
 combine_views :: [View] -> [View] -> [View]
 combine_views [] ws = ws
-combine_views vs (w@(View i Top ns):ws) = 
+--combine_views vs (w@(View i Top ns):ws) = 

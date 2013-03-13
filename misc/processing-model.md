@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 12 March 2013
+Bender v0.8, 13 March 2013
 
 ## An informal sketch of the operational semantics of Bender
 

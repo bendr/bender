@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 11 March 2013
+Bender v0.8, 13 March 2013
 
 Bender describes Web applications through the combination of _components_.
 Running a Bender application requires a runtime, which renders the component
@@ -17,7 +17,6 @@ A Bender **component** consists of:
 * zero or more links;
 * zero or more views;
 * zero or more properties;
-* zero or more property defaults;
 * zero or more watches.
 
 The identifier is a string.
@@ -36,8 +35,6 @@ any kind.)
 
 The properties of a component are *name* and *value* pairs that can parametrize
 the rendering and behavior of the component.
-
-The property defaults provide default values for some of the properties.
 
 The watches of a component are *inputs* and *outputs* pairs that define the
 behavior of a component with regards to the values of properties and the
@@ -62,7 +59,6 @@ A **view** consists of:
 * a stacking mode, which can be one of “top”, “bottom” or “replace”;
 * a forest of DOM nodes, where a DOM can be one of:
   * an text node;
-  * a CDATA section node;
   * a foreign element (not in the Bender namespace);
   * a Bender `component` element;
   * a Bender `text` element;
