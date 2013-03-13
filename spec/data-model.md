@@ -176,19 +176,19 @@ This XML document describes a component *C* with
   * no identifier
   * **top** stacking mode (note: this is the default in the absence of a
     `stack` attribute)
-  * an HTML `p` element with
-      * a text node
-      * a Bender `text` element *T* with
-          * identifier `clicks`
-      * a text node
-  * an HTML `p` element with
-      * a component element *B* with
-          * identifier `button`
-          * a prototype defined by the XML document at the URL `button.xml`
-          * a view with
-              * no identifier
-              * **top** stacking mode
-              * a text node
+  * two content nodes (note: whitespace-only text nodes have been omitted)
+      * an HTML `p` element with
+          * a text node
+          * a Bender `text` element *T* with
+              * identifier `clicks`
+      * an HTML `p` element with
+          * a component element *B* with
+              * identifier `button`
+              * a prototype defined by the XML document at the URL `button.xml`
+              * a view with
+                  * no identifier
+                  * **top** stacking mode
+                  * a text node
 * a watch with
   * a property input with
       * source component *C* (note: the parent component is the default
