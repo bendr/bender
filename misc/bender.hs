@@ -39,11 +39,11 @@ data Get = GetProperty Component String String
 data Set = SetProperty Component String String
          | SetEvent String String
          | SetDOMAttribute ViewNode String String
-         | SetDOMPoperty ViewNode String String
+         | SetDOMProperty ViewNode String String
          | SetAction ViewNode Action String
          | SetInsert ViewNode Position String
 data Action = Append | Prepend | Remove
-data Position = Before | After | Instead
+data Position = Before | After | Replace
 
 data Event = Event Component String [AnyValue]
 

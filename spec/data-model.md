@@ -57,20 +57,23 @@ A **view** consists of:
 
 * an optional identifier string, which must be unique within the component;
 * a stacking mode, which can be one of “top”, “bottom” or “replace”;
-* a forest of DOM nodes, where a DOM can be one of:
-  * an text node;
-  * a foreign element (not in the Bender namespace);
-  * a Bender `component` element;
-  * a Bender `text` element;
-  * a Bender `content` element.
+* a list of children, which may each be one of:
+  * an DOM text node;
+  * a DOM element that is not in the Bender XML namespace;
+  * a component
+  * a Bender text node;
+  * a content slot.
 
-Component elements are XML representations of components as described above.
 There is a parent-child relationship between the component and components that
 are referred to within the view.
 
-Text elements are placeholders for text nodes that can referred to by their id.
+A **Bender text node** consists of:
 
-Content elements are XML representations of content slots.
+* an optional;
+* a text string.
+
+Bender text nodes are placeholders for DOM text nodes that can referred to by
+their id (text nodes in the DOM do not have an id.)
 
 A **content slot** consists of:
 
@@ -183,17 +186,17 @@ This XML document describes a component *C* with
     `stack` attribute)
   * two content nodes (note: whitespace-only text nodes have been omitted)
       * an HTML `p` element with
-          * a text node
-          * a Bender `text` element *T* with
+          * a DOM text node
+          * a Bender `text` node *T* with
               * identifier `clicks`
       * an HTML `p` element with
-          * a component element *B* with
+          * a component *B* with
               * identifier `button`
               * a prototype defined by the XML document at the URL `button.xml`
               * a view with
                   * no identifier
                   * **top** stacking mode
-                  * a text node
+                  * a DOM text node
 * a watch with
   * a property input with
       * source component *C* (note: the parent component is the default

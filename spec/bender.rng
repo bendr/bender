@@ -42,7 +42,7 @@
   </define>
 
   <define name="foreign-view-content">
-    <element a:name="foreign view content">
+    <element>
       <anyName>
         <except>
           <nsName/>
@@ -64,8 +64,31 @@
         <ref name="get-dom-event"/>
         <ref name="get-event"/>
       </choice>
+      <optional>
+        <ref name="value"/>
+      </optional>
     </element>
   </define>
+
+  <define name="get-property">
+    <optional>
+      <ref name="component-ref"/>
+    </optional>
+    <ref name="property-ref"/>
+  </define>
+
+  <define name="get-dom-event">
+    <ref name="view-ref"/>
+    <ref name="dom-event"/>
+  </define>
+
+  <define name="get-event">
+    <optional>
+      <ref name="component-ref"/>
+    </optional>
+    <ref name="event"/>
+  </define>
+
 
   <define name="link">
     <element name="link">
@@ -83,6 +106,57 @@
       </optional>
     </element>
   </define>
+
+  <define name="set">
+    <element name="set">
+      <choice>
+        <ref name="set-property"/>
+        <ref name="set-event"/>
+        <ref name="set-dom-attribute"/>
+        <ref name="set-dom-property"/>
+        <ref name="set-action"/>
+        <ref name="set-insert"/>
+      </choice>
+      <optional>
+        <ref name="value"/>
+      </optional>
+    </element>
+  </define>
+
+  <define name="set-property">
+    <optional>
+      <ref name="component-ref"/>
+    </optional>
+    <ref name="property-ref"/>
+  </define>
+
+  <define name="set-event">
+    <ref name="event"/>
+  </define>
+
+  <define name="set-dom-attribute">
+    <ref name="view-ref"/>
+    <ref name="attr"/>
+  </define>
+
+  <define name="set-dom-property">
+    <ref name="view-ref"/>
+    <optional>
+      <ref name="property-dom-ref"/>
+    </optional>
+  </define>
+
+  <define name="set-action">
+    <ref name="view-ref"/>
+    <ref name="action"/>
+  </define>
+
+  <define name="set-insert">
+    <ref name="view-ref"/>
+    <ref name="insert"/>
+  </define>
+
+
 
   <define name="text">
     <element name="text">
@@ -113,7 +187,7 @@
         </zeroOrMore>
         <zeroOrMore>
           <ref name="content"/>
-        </optional>
+        </zeroOrMore>
       </mixed>
     </element>
   </define>
@@ -148,6 +222,16 @@
 
 
 
+  <define name="action">
+    <attribute name="action">
+      <choice>
+        <value>append</value>
+        <value>prepend</value>
+        <value>remove</value>
+      </choice>
+    </attribute>
+  </define>
+
   <define name="as">
     <attribute name="as">
       <choice>
@@ -157,6 +241,30 @@
         <value>number</value>
         <value>string</value>
       </choice>
+    </attribute>
+  </define>
+
+  <define name="attr">
+    <attribute name="attr">
+      <data type="token"/>
+    </attribute>
+  </define>
+
+  <define name="component-ref">
+    <attribute name="component">
+      <data type="token"/>
+    </attribute>
+  </define>
+
+  <define name="dom-event">
+    <attribute name="dom-event">
+      <data type="token"/>
+    </attribute>
+  </define>
+
+  <define name="event">
+    <attribute name="event">
+      <data type="token"/>
     </attribute>
   </define>
 
@@ -178,8 +286,26 @@
     </attribute>
   </define>
 
+  <define name="insert">
+    <attribute name="insert">
+      <choice>
+        <value>before</value>
+        <value>after</value>
+        <value>replace</value>
+      </choice>
+    </attribute>
+  </define>
+
   <define name="property-name">
     <attribute name="name"/>
+  </define>
+
+  <define name="property-ref">
+    <attribute name="property"/>
+  </define>
+
+  <define name="property-dom-ref">
+    <attribute name="property"/>
   </define>
 
   <define name="rel">
@@ -203,6 +329,12 @@
 
   <define name="value">
     <attribute name="value"/>
+  </define>
+
+  <define name="view-ref">
+    <attribute name="elem">
+      <data type="token"/>
+    </attribute>
   </define>
 
 </grammar>
