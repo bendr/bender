@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 13 March 2013
+Bender v0.8, 14 March 2013
 
 Bender describes Web applications through the combination of _components_.
 Running a Bender application requires a runtime, which renders the component
@@ -110,20 +110,25 @@ There are three kinds of inputs:
    * a source component;
    * an event type.
 
-There are three kinds of outputs:
+There are six kinds of outputs:
 
 1. a **property output** consists of:
    * a target component;
    * a property name;
 2. an **event output** consists of:
    * an event type;
-3. a **DOM output** consists of:
+3. a **DOM attribute output** consists of:
    * a target element;
-   * one of:
-     * an attribute name;
-     * an DOM property name;
-     * an action, which can be one of “append”, “prepend” or “remove”;
-     * an insertion point, which can be one of “before”, “after” or “instead.”
+   * an attribute name;
+4. a **DOM property output** consists of:
+   * a target element;
+   * an DOM property name;
+5. an **action output** consists of:
+   * a target element;
+   * an action, which is one of “append”, “prepend” or “remove”;
+6. an **insertion point output** consists of:
+   * a target element;
+   * an insertion point, which is one of “before”, “after” or “replace.”
 
 ### Events
 
@@ -159,7 +164,7 @@ A simple example of a Bender component, using the XML serialization:
   </watch>
   <watch>
     <get component="button" event="@pushed"/>
-    <set property="count" value="count + 1"/>
+    <set property="count" value="this.properties.count + 1"/>
   </watch>
 </component>
 ```
@@ -196,7 +201,7 @@ This XML document describes a component *C* with
       * property name `count`
       * both incoming and outgoing value are the value of the *count* property
         on *C*
-  * a DOM output with
+  * a DOM property output with
       * target element *T*
       * DOM property `textContent` (note: this is the default)
       * both incoming and outgoing value are the value of the *count* property
