@@ -196,8 +196,143 @@
     var gets = [];
     var sets = [];
     foreach.call(elem.childNodes, function (ch) {
-
+      var d = bender.deserialize(ch);
+      if (d) {
+        if (flexo.instance_of(d, bender.Get)) {
+          gets.push(d);
+        } else if (flexo.instance_of(d, bender.Set)) {
+          sets.push(d);
+        }
+      }
     });
+  };
+
+  bender.Get = {};
+  bender.GetProperty = Object.create(bender.Get);
+  bender.GetDOMEvent = Object.create(bender.Get);
+  bender.GetEvent = Object.create(bender.Get);
+
+  bender.init_get_property = function (property, source, value) {
+    var g = Object.create(bender.GetProperty);
+    g.property = property;
+    g.source = source || "$self";
+    g.value = value;
+    return g;
+  };
+
+  bender.init_get_dom_event = function (event, source, value) {
+    var g = Object.create(bender.GetDOMEvent);
+    g.event = event;
+    g.source = source;
+    g.value = value;
+    return g;
+  };
+
+  bender.init_get_event = function (event, source, value) {
+    var g = Object.create(bender.GetEvent);
+    g.event = event;
+    g.source = source || "$self";
+    g.value = value;
+    return g;
+  };
+
+  bender.deserialize.get = function (elem) {
+    if (elem.hasAttribute("property")) {
+      return bender.init_get_property(elem.getAttribute("property"),
+          elem.getAttribute("component"), elem.getAttribute("value"));
+    } else if (elem.hasAttribute("dom-event")) {
+      return bender.init_get_dom_event(elem.getAttribute("dom-event"),
+          elem.getAttribute("elem"), elem.getAttribute("value"));
+    } else if (elem.hasAttribute("event")) {
+      return bender.init_get_event(elem.getAttribute("event"),
+          elem.getAttribute("component"), elem.getAttribute("value"));
+    }
+  };
+
+  bender.Set = {};
+  bender.SetProperty = Object.create(bender.Set);
+  bender.SetEvent = Object.create(bender.Set);
+  bender.SetDOMAttribute = Object.create(bender.Set);
+  bender.SetDOMProperty = Object.create(bender.Set);
+  bender.SetAction = Object.create(bender.Set);
+  bender.SetInsert = Object.create(bender.Set);
+
+  bender.init_set_property = function (property, target, value) {
+    var s = Object.create(bender.SetProperty);
+    s.property = property;
+    s.target = target || "$self";
+    s.value = value;
+    return s;
+  };
+
+  bender.init_set_event = function (event, target, value) {
+    var s = Object.create(bender.SetEvent);
+    s.event = event;
+    s.target = target || "$self";
+    s.value = value;
+    return s;
+  };
+
+  bender.init_set_dom_attribute = function (attr, target, value) {
+    var s = Object.create(bender.SetDOMAttribute);
+    s.attr = attr;
+    s.target = target;
+    s.value = value;
+    return s;
+  };
+
+  bender.init_set_dom_property = function (property, target, value) {
+    var s = Object.create(bender.SetDOMProperty);
+    s.property = property || "textContent";
+    s.target = target;
+    s.value = value;
+    return s;
+  };
+
+  bender.init_set_action = function (action, target, value) {
+    var a = (action || "").trim().toLowerCase();
+    if (a === "append" || a === "prepend" || a === "remove") {
+      var s = Object.create(bender.SetAction);
+      s.action = a;
+      s.target = target;
+      s.value = value;
+      return s;
+    }
+  };
+
+  bender.init_set_insert = function (insert, target, value) {
+    var i = (insert || "").trim().toLowerCase();
+    if (i === "before" || i === "after" || i === "replace") {
+      var s = Object.create(bender.SetInsert);
+      s.insert = i;
+      s.target = target;
+      s.value = value;
+      return s;
+    }
+  };
+
+  bender.deserialize.set = function (elem) {
+    if (elem.hasAttribute("elem")) {
+      if (elem.hasAttribute("attr")) {
+        return bender.init_set_dom_attribute(elem.getAttribute("attr"),
+            elem.getAttribute("elem"), elem.getAttribute("value"));
+      } else if (elem.hasAttribute("action")) {
+        return bender.init_set_action(elem.getAttribute("action"),
+            elem.getAttribute("elem"), elem.getAttribute("value"));
+      } else if (elem.hasAttribute("insert")) {
+        return bender.init_set_insert(elem.getAttribute("insert"),
+            elem.getAttribute("elem"), elem.getAttribute("value"));
+      } else {
+        return bender.init_set_dom_property(elem.getAttribute("property"),
+            elem.getAttribute("elem"), elem.getAttribute("value"));
+      }
+    } else if (elem.hasAttribute("property")) {
+      return bender.init_set_property(elem.getAttribute("property"),
+          elem.getAttribute("component"), elem.getAttribute("value"));
+    } else if (elem.hasAttribute("event")) {
+      return bender.init_set_event(elem.getAttribute("event"),
+          elem.getAttribute("component"), elem.getAttribute("value"));
+    }
   };
 
 

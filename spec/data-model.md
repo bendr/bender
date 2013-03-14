@@ -78,7 +78,7 @@ their id (text nodes in the DOM do not have an id.)
 A **content slot** consists of:
 
 * an optional identifier string, which must be unique within the component;
-* a forest of DOM dones, following the same specification as the view.
+* a list of child DOM dones, following the same specification as the view.
 
 ### Properties
 
@@ -119,6 +119,7 @@ There are six kinds of outputs:
    * a target component;
    * a property name;
 2. an **event output** consists of:
+   * a target component;
    * an event type;
 3. a **DOM attribute output** consists of:
    * a target element;

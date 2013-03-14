@@ -131,6 +131,9 @@
   </define>
 
   <define name="set-event">
+    <optional>
+      <ref name="component-ref"/>
+    </optional>
     <ref name="event"/>
   </define>
 
