@@ -11,6 +11,16 @@
     return e;
   };
 
+  bender.deserialize = function (node) {
+    if (node.nodeType === window.Node.ELEMENT_NODE &&
+        node.namespaceURI === bender.ns) {
+      var f = bender.deserialize[node.localName];
+      if (typeof f === "function") {
+        return f(node);
+      }
+    }
+  };
+
 
   bender.Component = {};
 
@@ -337,16 +347,6 @@
 
 
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
-
-  bender.deserialize = function (node) {
-    if (node.nodeType === window.Node.ELEMENT_NODE &&
-        node.namespaceURI === bender.ns) {
-      var f = bender.deserialize[node.localName];
-      if (typeof f === "function") {
-        return f(node);
-      }
-    }
-  };
 
   bender.load_component = function (environment, href, k) {
     flexo.ez_xhr(href, { responseType: "document" }, function (req) {
