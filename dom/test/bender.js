@@ -13,29 +13,45 @@
     });
   });
 
+  var env = bender.init_environment();
+  var hello, sample;
+
   describe("Deserialization", function () {
     describe("hello.xml", function () {
-      var env = bender.init_environment();
-      var component;
       it("is deserialized into a component", function (done) {
         env.load_component("hello.xml", function (d) {
           assert.isObject(d);
-          component = d;
+          hello = d;
           done();
         });
-      });
-      it("is rendered correctly", function () {
-        var div = document.createElement("div");
-        env.render_component(component, div);
-        assert.strictEqual(div.textContent.trim(), "Hello, world!");
       });
     });
     describe("sample.xml", function () {
       it("is deserialized into a component", function (done) {
-        bender.init_environment().load_component("sample.xml", function (d) {
+        env.load_component("sample.xml", function (d) {
           assert.isObject(d);
+          sample = d;
           done();
         });
+      });
+    });
+  });
+
+  describe("Rendering", function () {
+    describe("hello.xml", function () {
+      it("is rendered correctly", function () {
+        var div = document.createElement("div");
+        env.render_component(hello, div);
+        assert.strictEqual(div.textContent.trim(), "Hello, world!");
+        console.log(div);
+      });
+    });
+    describe("sample.xml", function () {
+      it("is rendered correctly", function () {
+        var div = document.createElement("div");
+        env.render_component(sample, div);
+        assert.strictEqual(div.textContent.trim(), "Hello, world!");
+        console.log("Sample:", div);
       });
     });
   });

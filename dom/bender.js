@@ -15,7 +15,7 @@
 
   // Render `component` in the target element
   bender.Environment.render_component = function (component, target) {
-    component.render_views(target);
+    component.render(target);
   };
 
   // Load a component at the given URL and call k with the loaded component (or
@@ -259,6 +259,10 @@
     return c;
   };
 
+  bender.Component.render = function (target) {
+    this.render_views(target);
+  };
+
   bender.Component.render_views = function (target) {
     var views = this.prototype ?
       this.merge_views(this.prototype.views, this.views) : this.views;
@@ -274,6 +278,7 @@
     if (views.length === 0) {
       return prototype_views;
     }
+    return views;
   };
 
 
