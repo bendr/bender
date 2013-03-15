@@ -13,12 +13,20 @@
     return e;
   };
 
-  bender.Environment.load_component = function (href, k) {
-    flexo.ez_xhr(href, { responseType: "document" }, function (req) {
+  // Render `component` in the target element
+  bender.Environment.render_component = function (component, target) {
+    component.render_views(target);
+  };
+
+  // Load a component at the given URL and call k with the loaded component (or
+  // an error object [TODO])
+  // TODO load components only once
+  bender.Environment.load_component = function (url, k) {
+    flexo.ez_xhr(url, { responseType: "document" }, function (req) {
       if (req.response) {
         this.deserialize(req.response.documentElement, function (d) {
           if (d && flexo.instance_of(d, bender.Component)) {
-            this.loaded[href] = d;
+            this.loaded[url] = d;
             k(d);
           } else {
             k();
@@ -58,7 +66,7 @@
               } else if (flexo.instance_of(d, bender.Property)) {
                 component.properties[d.name] = d.value;
               } else if (flexo.instance_of(d, bender.View)) {
-                component.views[d.id] = d;
+                component.views.push(d);
               } else if (flexo.instance_of(d, bender.Watch)) {
                 component.watches.push(d);
               }
@@ -139,7 +147,7 @@
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
         seq.add(function (k_) {
-          nodes.push(ch.textContent);
+          nodes.push(bender.init_dom_text_node(ch.textContent));
           k_();
         });
       }
@@ -241,15 +249,38 @@
     c.id = id || "";
     c.prototype = proto;
     c.links = links || [];
-    c.views = views || {};
+    c.views = views || [];
     c.properties = props || {};
     c.watches = watches || [];
+    c._views_by_id = {};
+    c.views.forEach(function (view) {
+      this._views_by_id[view.id] = view;
+    }, this)
     return c;
+  };
+
+  bender.Component.render_views = function (target) {
+    var views = this.prototype ?
+      this.merge_views(this.prototype.views, this.views) : this.views;
+    views.forEach(function (view) {
+      view.render(target);
+    });
+  };
+
+  bender.Component.merge_views = function (prototype_views, views) {
+    if (prototype_views.length === 0) {
+      return views;
+    }
+    if (views.length === 0) {
+      return prototype_views;
+    }
   };
 
 
   bender.Link = {};
 
+  // A runtime should overload this so that links can be handled accordingly.
+  // TODO scoped stylesheets (render style links then)
   bender.init_link = function (uri, rel) {
     var r = (rel || "").trim().toLowerCase();
     if (r === "script" || r === "stylesheet") {
@@ -259,7 +290,6 @@
       return l;
     }
   };
-
 
   bender.Property = {};
 
@@ -273,6 +303,12 @@
 
   bender.View = {};
 
+  bender.View.render = function (target) {
+    this.nodes.forEach(function (n) {
+      n.render(target);
+    });
+  };
+
   bender.init_view = function (id, stack, nodes) {
     var s = (stack || "").trim().toLowerCase();
     var v = Object.create(bender.View);
@@ -285,6 +321,8 @@
 
   bender.Content = {};
 
+  bender.Content.render = bender.View.render;
+
   bender.init_content = function (id, nodes) {
     var c = Object.create(bender.Content);
     c.id = id || "";
@@ -294,6 +332,11 @@
 
 
   bender.Text = {};
+
+  // TODO handle id
+  bender.Text.render = function (target) {
+    target.appendChild(target.ownerDocument.createTextNode(this.text));
+  };
 
   bender.init_text = function (id, text) {
     var t = Object.create(bender.Text);
@@ -305,6 +348,21 @@
 
   bender.Element = {};
 
+  // TODO handle id
+  bender.Element.render = function (target) {
+    var e = target.appendChild(
+      target.ownerDocument.createElementNS(this.nsuri, this.name)
+    );
+    for (var nsuri in this.attrs) {
+      for (var attr in this.attrs[nsuri]) {
+        e.setAttributeNS(nsuri, attr, this.attrs[nsuri][attr]);
+      }
+    }
+    this.children.forEach(function (ch) {
+      ch.render(e);
+    });
+  };
+
   bender.init_element = function (nsuri, name, attrs, children) {
     var e = Object.create(bender.Element);
     e.nsuri = nsuri;
@@ -312,6 +370,19 @@
     e.attrs = attrs || {};
     e.children = children || [];
     return e;
+  };
+
+
+  bender.DOMTextNode = {};
+
+  bender.DOMTextNode.render = function (target) {
+    target.appendChild(target.ownerDocument.createTextNode(this.text));
+  };
+
+  bender.init_dom_text_node = function (text) {
+    var t = Object.create(bender.DOMTextNode);
+    t.text = text;
+    return t;
   };
 
 

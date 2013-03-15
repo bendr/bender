@@ -15,19 +15,25 @@
 
   describe("Deserialization", function () {
     describe("hello.xml", function () {
+      var env = bender.init_environment();
+      var component;
       it("is deserialized into a component", function (done) {
-        bender.init_environment().load_component("hello.xml", function (d) {
+        env.load_component("hello.xml", function (d) {
           assert.isObject(d);
-          console.log(d);
+          component = d;
           done();
         });
+      });
+      it("is rendered correctly", function () {
+        var div = document.createElement("div");
+        env.render_component(component, div);
+        assert.strictEqual(div.textContent.trim(), "Hello, world!");
       });
     });
     describe("sample.xml", function () {
       it("is deserialized into a component", function (done) {
         bender.init_environment().load_component("sample.xml", function (d) {
           assert.isObject(d);
-          console.log(d);
           done();
         });
       });
