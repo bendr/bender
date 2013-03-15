@@ -463,7 +463,7 @@
       }
     },
 
-    add: function(f) {
+    add: function (f) {
       this._queue.push(f);
       if (!this._flushing) {
         this._flushing = true;

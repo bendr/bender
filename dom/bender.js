@@ -3,6 +3,8 @@
 
   var foreach = Array.prototype.forEach;
 
+  bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
+
   bender.Environment = {};
 
   bender.init_environment = function () {
@@ -11,13 +13,223 @@
     return e;
   };
 
-  bender.deserialize = function (node) {
+  bender.Environment.load_component = function (href, k) {
+    flexo.ez_xhr(href, { responseType: "document" }, function (req) {
+      if (req.response) {
+        this.deserialize(req.response.documentElement, function (d) {
+          if (d && flexo.instance_of(d, bender.Component)) {
+            this.loaded[href] = d;
+            k(d);
+          } else {
+            k();
+          }
+        }.bind(this));
+      } else {
+        k();
+      }
+    }.bind(this));
+  };
+
+  // Deserialize `node` in the environment; upon completion, call k with the
+  // created object (if any)
+  bender.Environment.deserialize = function (node, k) {
     if (node.nodeType === window.Node.ELEMENT_NODE &&
         node.namespaceURI === bender.ns) {
-      var f = bender.deserialize[node.localName];
+      var f = bender.Environment.deserialize[node.localName];
       if (typeof f === "function") {
-        return f(node);
+        return f.call(this, node, k);
       }
+    }
+    // TODO error handling
+    // TODO find Bender elements in the document
+    k();
+  };
+
+  bender.Environment.deserialize.component = function (elem, k) {
+    var init_component = function (env, prototype) {
+      var component = bender.init_component(elem.id, prototype);
+      var seq = flexo.seq();
+      foreach.call(elem.childNodes, function (ch) {
+        seq.add(function (k_) {
+          env.deserialize(ch, function (d) {
+            if (d) {
+              if (flexo.instance_of(d, bender.Link)) {
+                component.links.push(d);
+              } else if (flexo.instance_of(d, bender.Property)) {
+                component.properties[d.name] = d.value;
+              } else if (flexo.instance_of(d, bender.View)) {
+                component.views[d.id] = d;
+              } else if (flexo.instance_of(d, bender.Watch)) {
+                component.watches.push(d);
+              }
+            }
+            k_();
+          });
+        });
+      });
+      seq.add(function () {
+        k(component);
+      });
+    };
+    if (elem.hasAttribute("href")) {
+      this.load_component(
+        flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")),
+        function (d) {
+          init_component(this, d);
+        }.bind(this)
+      );
+    } else {
+      init_component(this);
+    }
+  };
+
+  bender.Environment.deserialize.link = function (elem, k) {
+    k(bender.init_link(elem.getAttribute("href"), elem.getAttribute("rel")));
+  };
+
+  bender.Environment.deserialize.property = function (elem, k) {
+    var value = elem.getAttribute("value");
+    var as = (elem.getAttribute("as") || "").trim().toLowerCase();
+    if (as === "boolean") {
+      value = flexo.is_true(value);
+    } else if (as === "dynamic") {
+      value = eval(value);
+    } else if (as === "json") {
+      try {
+        value = JSON.parse(value);
+      } catch (e) {
+      }
+    } else if (as === "number") {
+      value = parseFloat(value);
+    }
+    k(bender.init_property(elem.getAttribute("name"), value));
+  };
+
+  bender.Environment.deserialize.view = function (elem, k) {
+    this.deserialize_view_content(elem, function (d) {
+      k(bender.init_view(elem.id, elem.getAttribute("stack"), d));
+    });
+  };
+
+  bender.Environment.deserialize_view_content = function (elem, k) {
+    var nodes = [];
+    var seq = flexo.seq();
+    foreach.call(elem.childNodes, function (ch) {
+      if (ch.nodeType === window.Node.ELEMENT_NODE) {
+        if (ch.namespaceURI === bender.ns) {
+          if (ch.localName === "component" ||
+            ch.localName === "content" ||
+            ch.localName === "text") {
+            seq.add(function (k_) {
+              bender.Environment.deserialize[ch.localName].call(this, ch,
+                function (d) {
+                  nodes.push(d);
+                  k_();
+                });
+            }.bind(this));
+          }
+        } else {
+          seq.add(function (k_) {
+            this.deserialize_element(ch, function(d) {
+              nodes.push(d);
+              k_();
+            });
+          }.bind(this));
+        }
+      } else if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+        seq.add(function (k_) {
+          nodes.push(ch.textContent);
+          k_();
+        });
+      }
+    }, this);
+    seq.add(function () {
+      k(nodes);
+    });
+  };
+
+  bender.Environment.deserialize_element = function (elem, k) {
+    this.deserialize_view_content(elem, function (d) {
+      var attrs = {};
+      foreach.call(elem.attributes, function (attr) {
+        var nsuri = attr.namespaceURI || "";
+        if (!(nsuri in attrs)) {
+          attrs[nsuri] = {};
+        }
+        attrs[nsuri][attr.localName] = attr.value;
+      });
+      k(bender.init_element(elem.namespaceURI, elem.localName, attrs, d));
+    });
+  };
+
+  bender.Environment.deserialize.content = function (elem, k) {
+    this.deserialize_view_content(elem, function (d) {
+      k(bender.init_content(elem.id, d));
+    });
+  };
+
+  bender.Environment.deserialize.text = function (elem, k) {
+    k(bender.init_text(elem.id, elem.textContent));
+  };
+
+  bender.Environment.deserialize.watch = function (elem, k) {
+    var gets = [];
+    var sets = [];
+    var seq = flexo.seq();
+    foreach.call(elem.childNodes, function (ch) {
+      seq.add(function (k_) {
+        this.deserialize(ch, function (d) {
+          if (d) {
+            if (flexo.instance_of(d, bender.Get)) {
+              gets.push(d);
+            } else if (flexo.instance_of(d, bender.Set)) {
+              sets.push(d);
+            }
+          }
+          k_();
+        });
+      }.bind(this));
+    }, this);
+    seq.add(function () {
+      k(bender.init_watch(gets, sets));
+    });
+  };
+
+  bender.Environment.deserialize.get = function (elem, k) {
+    if (elem.hasAttribute("property")) {
+      k(bender.init_get_property(elem.getAttribute("property"),
+          elem.getAttribute("component"), elem.getAttribute("value")));
+    } else if (elem.hasAttribute("dom-event")) {
+      k(bender.init_get_dom_event(elem.getAttribute("dom-event"),
+          elem.getAttribute("elem"), elem.getAttribute("value")));
+    } else if (elem.hasAttribute("event")) {
+      k(bender.init_get_event(elem.getAttribute("event"),
+          elem.getAttribute("component"), elem.getAttribute("value")));
+    }
+  };
+
+  bender.Environment.deserialize.set = function (elem, k) {
+    if (elem.hasAttribute("elem")) {
+      if (elem.hasAttribute("attr")) {
+        k(bender.init_set_dom_attribute(elem.getAttribute("attr"),
+            elem.getAttribute("elem"), elem.getAttribute("value")));
+      } else if (elem.hasAttribute("action")) {
+        k(bender.init_set_action(elem.getAttribute("action"),
+            elem.getAttribute("elem"), elem.getAttribute("value")));
+      } else if (elem.hasAttribute("insert")) {
+        k(bender.init_set_insert(elem.getAttribute("insert"),
+            elem.getAttribute("elem"), elem.getAttribute("value")));
+      } else {
+        k(bender.init_set_dom_property(elem.getAttribute("property"),
+            elem.getAttribute("elem"), elem.getAttribute("value")));
+      }
+    } else if (elem.hasAttribute("property")) {
+      k(bender.init_set_property(elem.getAttribute("property"),
+          elem.getAttribute("component"), elem.getAttribute("value")));
+    } else if (elem.hasAttribute("event")) {
+      k(bender.init_set_event(elem.getAttribute("event"),
+          elem.getAttribute("component"), elem.getAttribute("value")));
     }
   };
 
@@ -35,42 +247,17 @@
     return c;
   };
 
-  bender.deserialize.component = function (elem) {
-    var component = bender.init_component(elem.id);
-    // TODO handle href -> require environment here
-    foreach.call(elem.childNodes, function (ch) {
-      var d = bender.deserialize(ch);
-      if (d) {
-        if (flexo.instance_of(d, bender.Link)) {
-          component.links.push(d);
-        } else if (flexo.instance_of(d, bender.Property)) {
-          component.properties[d.name] = d.value;
-        } else if (flexo.instance_of(d, bender.View)) {
-          component.views[d.id] = d;
-        } else if (flexo.instance_of(d, bender.Watch)) {
-          component.watches.push(d);
-        }
-      }
-    });
-    return component;
-  };
-
 
   bender.Link = {};
 
   bender.init_link = function (uri, rel) {
-    var r = rel.trim().toLowerCase();
+    var r = (rel || "").trim().toLowerCase();
     if (r === "script" || r === "stylesheet") {
       var l = Object.create(bender.Link);
       l.uri = uri;
       l.rel = r;
       return l;
     }
-  };
-
-  bender.deserialize.link = function (elem) {
-    return bender.init_link(elem.getAttribute("href"),
-        elem.getAttribute("rel"));
   };
 
 
@@ -83,60 +270,16 @@
     return property;
   };
 
-  bender.deserialize.property = function (elem) {
-    var value = elem.getAttribute("value");
-    var as = (elem.getAttribute("as") || "").trim().toLowerCase();
-    if (as === "boolean") {
-      value = flexo.is_true(value);
-    } else if (as === "dynamic") {
-      value = eval(value);
-    } else if (as === "json") {
-      try {
-        value = JSON.parse(value);
-      } catch (e) {
-      }
-    } else if (as === "number") {
-      value = parseFloat(value);
-    }
-    return bender.init_property(elem.getAttribute("name"), value);
-  };
-
 
   bender.View = {};
 
   bender.init_view = function (id, stack, nodes) {
-    var s = stack.trim().toLowerCase();
+    var s = (stack || "").trim().toLowerCase();
     var v = Object.create(bender.View);
     v.id = id || "";
     v.stack = s === "top" || s === "bottom" || s === "replace" ? s : "top";
     v.nodes = nodes || [];
     return v;
-  };
-
-  bender.deserialize.view = function (elem) {
-    return bender.init_view(elem.id, elem.getAttribute("stack"),
-        bender.deserialize_view_content(elem));
-  };
-
-  bender.deserialize_view_content = function (elem) {
-    var nodes = [];
-    foreach.call(elem.childNodes, function (ch) {
-      if (ch.nodeType === window.Node.ELEMENT_NODE) {
-        if (ch.namespaceURI === bender.ns) {
-          if (ch.localName === "component" ||
-            ch.localName === "content" ||
-            ch.localName === "text") {
-            nodes.push(bender.deserialize[ch.localName](ch));
-          }
-        } else {
-          nodes.push(bender.deserialize_element(ch));
-        }
-      } else if (ch.nodeType === window.Node.TEXT_NODE ||
-        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-        nodes.push(ch.textContent);
-      }
-    });
-    return nodes;
   };
 
 
@@ -149,10 +292,6 @@
     return c;
   };
 
-  bender.deserialize.content = function (elem) {
-    return bender.init_content(elem.id, bender.deserialize_view_content(elem));
-  };
-
 
   bender.Text = {};
 
@@ -161,10 +300,6 @@
     t.id = id || "";
     t.text = text || "";
     return t;
-  };
-
-  bender.deserialize_text = function (elem) {
-    return bender.init_text(elem.id, elem.textContent);
   };
 
 
@@ -179,19 +314,6 @@
     return e;
   };
 
-  bender.deserialize_element = function (elem) {
-    var attrs = {};
-    foreach.call(elem.attributes, function (attr) {
-      var nsuri = attr.namespaceURI || "";
-      if (!(nsuri in attrs)) {
-        attrs[nsuri] = {};
-      }
-      attrs[nsuri][attr.localName] = attr.value;
-    });
-    return bender.init_element(elem.namespaceURI, elem.localName, attrs,
-        bender.deserialize_view_content(elem));
-  };
-
 
   bender.Watch = {};
 
@@ -200,21 +322,6 @@
     w.gets = gets || [];
     w.sets = sets || [];
     return w;
-  };
-
-  bender.deserialize.watch = function (elem) {
-    var gets = [];
-    var sets = [];
-    foreach.call(elem.childNodes, function (ch) {
-      var d = bender.deserialize(ch);
-      if (d) {
-        if (flexo.instance_of(d, bender.Get)) {
-          gets.push(d);
-        } else if (flexo.instance_of(d, bender.Set)) {
-          sets.push(d);
-        }
-      }
-    });
   };
 
   bender.Get = {};
@@ -244,19 +351,6 @@
     g.source = source || "$self";
     g.value = value;
     return g;
-  };
-
-  bender.deserialize.get = function (elem) {
-    if (elem.hasAttribute("property")) {
-      return bender.init_get_property(elem.getAttribute("property"),
-          elem.getAttribute("component"), elem.getAttribute("value"));
-    } else if (elem.hasAttribute("dom-event")) {
-      return bender.init_get_dom_event(elem.getAttribute("dom-event"),
-          elem.getAttribute("elem"), elem.getAttribute("value"));
-    } else if (elem.hasAttribute("event")) {
-      return bender.init_get_event(elem.getAttribute("event"),
-          elem.getAttribute("component"), elem.getAttribute("value"));
-    }
   };
 
   bender.Set = {};
@@ -321,44 +415,5 @@
     }
   };
 
-  bender.deserialize.set = function (elem) {
-    if (elem.hasAttribute("elem")) {
-      if (elem.hasAttribute("attr")) {
-        return bender.init_set_dom_attribute(elem.getAttribute("attr"),
-            elem.getAttribute("elem"), elem.getAttribute("value"));
-      } else if (elem.hasAttribute("action")) {
-        return bender.init_set_action(elem.getAttribute("action"),
-            elem.getAttribute("elem"), elem.getAttribute("value"));
-      } else if (elem.hasAttribute("insert")) {
-        return bender.init_set_insert(elem.getAttribute("insert"),
-            elem.getAttribute("elem"), elem.getAttribute("value"));
-      } else {
-        return bender.init_set_dom_property(elem.getAttribute("property"),
-            elem.getAttribute("elem"), elem.getAttribute("value"));
-      }
-    } else if (elem.hasAttribute("property")) {
-      return bender.init_set_property(elem.getAttribute("property"),
-          elem.getAttribute("component"), elem.getAttribute("value"));
-    } else if (elem.hasAttribute("event")) {
-      return bender.init_set_event(elem.getAttribute("event"),
-          elem.getAttribute("component"), elem.getAttribute("value"));
-    }
-  };
-
-
-  bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
-
-  bender.load_component = function (environment, href, k) {
-    flexo.ez_xhr(href, { responseType: "document" }, function (req) {
-      if (req.response) {
-        var d = bender.deserialize(req.response.documentElement);
-        if (d && flexo.instance_of(d, bender.Component)) {
-          environment.loaded[href] = d;
-          return k(d);
-        }
-      }
-      k();
-    });
-  };
 
 }(this.bender = {}));

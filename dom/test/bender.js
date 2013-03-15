@@ -13,4 +13,25 @@
     });
   });
 
+  describe("Deserialization", function () {
+    describe("hello.xml", function () {
+      it("is deserialized into a component", function (done) {
+        bender.init_environment().load_component("hello.xml", function (d) {
+          assert.isObject(d);
+          console.log(d);
+          done();
+        });
+      });
+    });
+    describe("sample.xml", function () {
+      it("is deserialized into a component", function (done) {
+        bender.init_environment().load_component("sample.xml", function (d) {
+          assert.isObject(d);
+          console.log(d);
+          done();
+        });
+      });
+    });
+  });
+
 }());
