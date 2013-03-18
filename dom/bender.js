@@ -56,7 +56,7 @@
 
   bender.Environment.deserialize.component = function (elem, k) {
     var init_component = function (env, prototype) {
-      var component = bender.init_component(elem.id, prototype);
+      var component = bender.init_component(elem.getAttribute("id"), prototype);
       var seq = flexo.seq();
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {
@@ -116,7 +116,8 @@
 
   bender.Environment.deserialize.view = function (elem, k) {
     this.deserialize_view_content(elem, function (d) {
-      k(bender.init_view(elem.id, elem.getAttribute("stack"), d));
+      k(bender.init_view(elem.getAttribute("id"), elem.getAttribute("stack"),
+          d));
     });
   };
 
@@ -174,12 +175,12 @@
 
   bender.Environment.deserialize.content = function (elem, k) {
     this.deserialize_view_content(elem, function (d) {
-      k(bender.init_content(elem.id, d));
+      k(bender.init_content(elem.getAttribute("id"), d));
     });
   };
 
   bender.Environment.deserialize.text = function (elem, k) {
-    k(bender.init_text(elem.id, elem.textContent));
+    k(bender.init_text(elem.getAttribute("id"), elem.textContent));
   };
 
   bender.Environment.deserialize.watch = function (elem, k) {
@@ -312,7 +313,7 @@
     var s = (stack || "").trim().toLowerCase();
     var v = Object.create(bender.View);
     v.id = id || "";
-    v.stack = s === "top" || s === "bottom" || s === "replace" ? s : "top";
+    v.stack = s === "top" || s === "bottom" ? s : "top";
     v.children = children || [];
     return v;
   };

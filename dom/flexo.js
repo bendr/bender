@@ -501,7 +501,7 @@
   flexo.html_tag = function (tag) {
     var out = "<" + tag;
     var contents = A.slice.call(arguments, 1);
-    if (typeof contents[0] === "object") {
+    if (typeof contents[0] === "object" && !Array.isArray(contents[0])) {
       var attrs = contents.shift();
       for (var a in attrs) {
         if (attrs.hasOwnProperty(a)) {

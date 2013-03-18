@@ -49,7 +49,6 @@
       it("is rendered correctly", function () {
         var div = document.createElement("div");
         env.render_component(sample, div);
-        console.log("Sample:", div);
         assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
           "Number of clicks: +1");
       });

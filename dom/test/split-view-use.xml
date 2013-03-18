@@ -1,0 +1,13 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <view>
+    <component href="split-view.xml">
+      <view id="right">
+        <html:p>Right</html:p>
+      </view>
+      <view id="left">
+        <html:p>Left</html:p>
+      </view>
+    </component>
+  </view>
+</component>

@@ -1,0 +1,11 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view xmlns:html="http://www.w3.org/1999/xhtml" stack="bottom">
+    <html:div class="frame">
+      <component href="button.xml">
+        <view>
+          Cancel
+        </view>
+      </component>
+    </html:div>
+  </view>
+</component>
