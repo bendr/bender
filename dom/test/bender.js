@@ -43,16 +43,16 @@
         var div = document.createElement("div");
         env.render_component(hello, div);
         assert.strictEqual(div.textContent.trim(), "Hello, world!");
-        console.log(div);
       });
     });
     describe("sample.xml", function () {
-      it("is rendered correctly"/*, function () {
+      it("is rendered correctly", function () {
         var div = document.createElement("div");
         env.render_component(sample, div);
-        assert.strictEqual(div.textContent.trim(), "Hello, world!");
         console.log("Sample:", div);
-      }*/);
+        assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
+          "Number of clicks: +1");
+      });
     });
   });
 

@@ -2,6 +2,7 @@
   "use strict";
 
   var foreach = Array.prototype.forEach;
+  var push = Array.prototype.push;
 
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
@@ -66,7 +67,7 @@
               } else if (flexo.instance_of(d, bender.Property)) {
                 component.properties[d.name] = d.value;
               } else if (flexo.instance_of(d, bender.View)) {
-                component.views.push(d);
+                component.views[d.id] = d;
               } else if (flexo.instance_of(d, bender.Watch)) {
                 component.watches.push(d);
               }
@@ -120,7 +121,7 @@
   };
 
   bender.Environment.deserialize_view_content = function (elem, k) {
-    var nodes = [];
+    var children = [];
     var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE) {
@@ -131,7 +132,7 @@
             seq.add(function (k_) {
               bender.Environment.deserialize[ch.localName].call(this, ch,
                 function (d) {
-                  nodes.push(d);
+                  children.push(d);
                   k_();
                 });
             }.bind(this));
@@ -139,7 +140,7 @@
         } else {
           seq.add(function (k_) {
             this.deserialize_element(ch, function(d) {
-              nodes.push(d);
+              children.push(d);
               k_();
             });
           }.bind(this));
@@ -147,13 +148,13 @@
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
         seq.add(function (k_) {
-          nodes.push(bender.init_dom_text_node(ch.textContent));
+          children.push(bender.init_dom_text_node(ch.textContent));
           k_();
         });
       }
     }, this);
     seq.add(function () {
-      k(nodes);
+      k(children);
     });
   };
 
@@ -249,36 +250,29 @@
     c.id = id || "";
     c.prototype = proto;
     c.links = links || [];
-    c.views = views || [];
+    c.views = views || {};
     c.properties = props || {};
     c.watches = watches || [];
-    c._views_by_id = {};
-    c.views.forEach(function (view) {
-      this._views_by_id[view.id] = view;
-    }, this)
     return c;
   };
 
   bender.Component.render = function (target) {
-    this.render_views(target);
-  };
-
-  bender.Component.render_views = function (target) {
-    var views = this.prototype ?
-      this.merge_views(this.prototype.views, this.views) : this.views;
-    views.forEach(function (view) {
-      view.render(target);
-    });
-  };
-
-  bender.Component.merge_views = function (prototype_views, views) {
-    if (prototype_views.length === 0) {
-      return views;
+    for (var stack = [], c = this; c; c = c.prototype) {
+      stack.push(c);
     }
-    if (views.length === 0) {
-      return prototype_views;
+    stack.direction = -1;
+    for (var i = 0, n = stack.length; i < n; ++i) {
+      if (stack[i].views[""]) {
+        stack.i = i;
+        if (stack[i].views[""] === "bottom") {
+          stack.direction = 1;
+          break;
+        }
+      }
     }
-    return views;
+    if (stack.i >= 0) {
+      stack[stack.i].views[""].render(target, stack);
+    }
   };
 
 
@@ -308,30 +302,42 @@
 
   bender.View = {};
 
-  bender.View.render = function (target) {
-    this.nodes.forEach(function (n) {
-      n.render(target);
+  bender.View.render = function (target, stack) {
+    this.children.forEach(function (ch) {
+      ch.render(target, stack);
     });
   };
 
-  bender.init_view = function (id, stack, nodes) {
+  bender.init_view = function (id, stack, children) {
     var s = (stack || "").trim().toLowerCase();
     var v = Object.create(bender.View);
     v.id = id || "";
     v.stack = s === "top" || s === "bottom" || s === "replace" ? s : "top";
-    v.nodes = nodes || [];
+    v.children = children || [];
     return v;
   };
 
 
   bender.Content = {};
 
-  bender.Content.render = bender.View.render;
+  bender.Content.render = function (target, stack) {
+    for (var i = stack.i + stack.direction, n = stack.length; i >= 0 && i < n;
+        i += stack.direction) {
+      if (stack[i].views[this.id]) {
+        var j = stack.i;
+        stack.i = i;
+        stack[i].views[this.id].render(target, stack);
+        stack.i = j;
+        return;
+      }
+    }
+    bender.View.render.call(this, target, stack);
+  };
 
-  bender.init_content = function (id, nodes) {
+  bender.init_content = function (id, children) {
     var c = Object.create(bender.Content);
     c.id = id || "";
-    c.nodes = nodes || [];
+    c.children = children || [];
     return c;
   };
 
@@ -354,7 +360,7 @@
   bender.Element = {};
 
   // TODO handle id
-  bender.Element.render = function (target) {
+  bender.Element.render = function (target, stack) {
     var e = target.appendChild(
       target.ownerDocument.createElementNS(this.nsuri, this.name)
     );
@@ -364,7 +370,7 @@
       }
     }
     this.children.forEach(function (ch) {
-      ch.render(e);
+      ch.render(e, stack);
     });
   };
 
