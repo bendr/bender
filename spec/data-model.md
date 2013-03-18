@@ -1,10 +1,10 @@
 # The Bender data model
 
-Bender v0.8, 14 March 2013
+Bender v0.8, 18 March 2013
 
-Bender describes Web applications through the combination of _components_.
+Bender describes Web applications through the combination of *components*.
 Running a Bender application requires a runtime, which renders the component
-describing the application, and runs the event loop for user interaction.
+describing the application, and runs an event loop for user interactions.
 
 ## Data model specification
 
@@ -12,14 +12,16 @@ describing the application, and runs the event loop for user interaction.
 
 A Bender **component** consists of:
 
-* an optional identifier string (a component may be anonymous);
+* an optional identifier string;
 * an optional prototype component;
 * zero or more links;
-* zero or more views;
 * zero or more properties;
+* an optional view;
+* zero ore more content views;
 * zero or more watches.
 
 The identifier is a string.
+A component may be anonymous.
 
 The prototype of a component, if defined, is another component.
 There can be no cycle in the graph of prototypes: a component may not inherit
@@ -28,13 +30,18 @@ The graph of components, where nodes are components and edges are directed and
 represent prototype to component relationships, constitutes a *forest*.
 A component that has a prototype *derives* from that prototype.
 
-The view of a component describes how it is rendered.
-Despite the name “view,” the rendering of a component is not necessarily visual
-(this could be audio, or simply contain data in memory with no representation of
-any kind.)
+Additional resources may be linked to a component.
 
 The properties of a component are *name* and *value* pairs that can parametrize
 the rendering and behavior of the component.
+
+The view of a component, along with its content views, describe how the
+component is rendered.
+The actual rendering of the component will depend on its own view, as well as
+the view of its prototype (if any.)
+Despite the name “view,” the rendering of a component is not necessarily visual
+(this could be audio, or simply contain data in memory with no representation of
+any kind.)
 
 The watches of a component are *inputs* and *outputs* pairs that define the
 behavior of a component with regards to the values of properties and the
@@ -51,21 +58,23 @@ A **link** consists of:
 A link establishes a relationship between a component and an external script
 or stylesheet.
 
-### Views and content slots
+### Views, content slots and content views
 
 A **view** consists of:
 
-* an optional identifier string, which must be unique within the component;
-* a stacking mode, which can be one of “top”, “bottom” or “replace”;
+* a stacking mode, which can be either “top” or “bottom”;
 * a list of children, which may each be one of:
   * an DOM text node;
   * a DOM element that is not in the Bender XML namespace;
-  * a component
+  * a component;
   * a Bender text node;
   * a content slot.
 
-There is a parent-child relationship between the component and components that
-are referred to within the view.
+A **content view** is defined just like a view, with the addition of an
+identifier string, which must be unique within the component.
+
+There is a parent-child relationship between the component of a view or content
+view and components that appear within the view.
 
 A **Bender text node** consists of:
 
@@ -182,7 +191,6 @@ This XML document describes a component *C* with
   * value *0* (note: the `as` attribute of the `value` element defines how the
     attribute value, which in XML is always a string, should be parsed)
 * a view with
-  * no identifier
   * **top** stacking mode (note: this is the default in the absence of a
     `stack` attribute)
   * two content nodes (note: whitespace-only text nodes have been omitted)

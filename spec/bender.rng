@@ -324,7 +324,6 @@
     <attribute name="stack">
       <choice>
         <value>bottom</value>
-        <value>replace</value>
         <value>top</value>
       </choice>
     </attribute>
