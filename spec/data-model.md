@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 18 March 2013
+Bender v0.8, 19 March 2013
 
 Bender describes Web applications through the combination of *components*.
 Running a Bender application requires a runtime, which renders the component
@@ -62,7 +62,7 @@ or stylesheet.
 
 A **view** consists of:
 
-* a stacking mode, which can be either “top” or “bottom”;
+* a stacking mode, which can be one of “top”, “bottom” or “replace”;
 * a list of children, which may each be one of:
   * an DOM text node;
   * a DOM element that is not in the Bender XML namespace;

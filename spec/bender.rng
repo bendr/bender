@@ -323,8 +323,9 @@
   <define name="stack">
     <attribute name="stack">
       <choice>
-        <value>bottom</value>
         <value>top</value>
+        <value>bottom</value>
+        <value>replace</value>
       </choice>
     </attribute>
   </define>
