@@ -37,7 +37,8 @@ property takes precedence.
 
 ### Links rendering
 
-Links are rendered in order. For every link *L* of *C*:
+If *C* has a prototype *P*, then the links of the prototype *P* are rendered.
+Then, for every link *L* of *C*:
 
 * if the link was already loaded in *E*, do nothing;
 * otherwise, load the resource identified by the URI of *L*.

@@ -1,5 +1,10 @@
 "use strict";
 
+bender.Link.render.stylesheet = function (target) {
+  target.ownerDocument.head.appendChild(flexo.$link({ rel: this.rel,
+    href: this.uri }));
+}
+
 var env = bender.init_environment();
 var args = flexo.get_args();
 if (args.href) {

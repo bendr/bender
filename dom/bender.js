@@ -93,7 +93,8 @@
   };
 
   bender.Environment.deserialize.link = function (elem, k) {
-    k(bender.init_link(elem.getAttribute("href"), elem.getAttribute("rel")));
+    var uri = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
+    k(bender.init_link(uri, elem.getAttribute("rel")));
   };
 
   bender.Environment.deserialize.property = function (elem, k) {
@@ -259,23 +260,30 @@
 
   function view_stack(component) {
     if (component) {
-      var mode = component.views[""] ? component.views[""].stack : "top";
-      if (mode === "replace") {
-        return [component];
-      }
-      var stack = view_stack(component.prototype) || [];
-      if (mode === "top") {
-        stack.push(component);
-      } else {
-        stack.unshift(component);
-      }
-      return stack;
     }
   }
 
   bender.Component.render = function (target) {
-    var stack = view_stack(this);
+    for (var queue = [], c = this; c; c = c.prototype) {
+      queue.push(c);
+    }
+    for (var stack = []; queue.length > 0;) {
+      var c = queue.pop();
+      c.links.forEach(function (link) {
+        link.render(target);
+      });
+      var mode = c.views[""] ? c.views[""].stack : "top";
+      if (mode === "replace") {
+        stack = [c];
+      } else if (mode === "top") {
+        stack.push(c);
+      } else {
+        stack.unshift(c);
+      }
+    }
     stack.i = 0;
+    stack.component = this;
+    this.rendered = {};
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
@@ -285,6 +293,17 @@
 
 
   bender.Link = {};
+
+  bender.Link.render = function (target) {
+    if (this.rendered) {
+      return;
+    }
+    this.rendered = true;
+    var f = bender.Link.render[this.rel];
+    if (typeof f === "function") {
+      f.call(this, target);
+    }
+  }
 
   // A runtime should overload this so that links can be handled accordingly.
   // TODO scoped stylesheets (render style links then)
@@ -351,9 +370,11 @@
 
   bender.Text = {};
 
-  // TODO handle id
-  bender.Text.render = function (target) {
-    target.appendChild(target.ownerDocument.createTextNode(this.text));
+  bender.Text.render = function (target, stack) {
+    var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
+    if (this.id) {
+      stack.component.rendered[this.id] = e;
+    }
   };
 
   bender.init_text = function (id, text) {
@@ -373,7 +394,11 @@
     );
     for (var nsuri in this.attrs) {
       for (var attr in this.attrs[nsuri]) {
-        e.setAttributeNS(nsuri, attr, this.attrs[nsuri][attr]);
+        if (nsuri === "" && attr === "id") {
+          stack.component.rendered[this.attrs[""].id] = e;
+        } else {
+          e.setAttributeNS(nsuri, attr, this.attrs[nsuri][attr]);
+        }
       }
     }
     this.children.forEach(function (ch) {
