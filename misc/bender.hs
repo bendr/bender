@@ -1,7 +1,7 @@
 import Data.List;
 
 data Component = Component
-  (Maybe Id) (Maybe Component) [Link] [View] [Property] [Watch]
+  Id (Maybe Component) [Link] [View] [Property] [Watch]
 
 type Id = String
 
@@ -14,13 +14,13 @@ instance Eq Rel where
   Stylesheet == Stylesheet = True
   _ == _ = False
 
-data View = View (Maybe Id) Stacking [ViewNode]
+data View = View Id Stacking [ViewNode]
 data Stacking = Top | Bottom | Replace
 
 data ViewNode = DOMTextNode String
               | DOMElement Uri String [DOMAttribute] [ViewNode]
               | ComponentElement Component
-              | ContentElement (Maybe String) [ViewNode]
+              | ContentElement Id [ViewNode]
               | TextElement String String
 
 data DOMAttribute = DOMAttribute String String String
@@ -65,13 +65,28 @@ stack_views c@(Component _ p _ vs _ _) =
                 Nothing -> []
                 Just p' -> stack_views p'
   in case v of
-       Nothing -> stack
-       Just (View _ Top _) -> stack ++ [c]
        Just (View _ Bottom _) -> c:stack
        Just (View _ Replace _) -> [c]
+       otherwise -> stack ++ [c]
     
-view_for_id :: [View] -> Maybe String -> Maybe View
+view_for_id :: [View] -> Id -> Maybe View
 view_for_id [] _ = Nothing
 view_for_id (v@(View i _ _):vs) j
   | i == j = Just v
   | otherwise = view_for_id vs j
+
+render_stack :: [Component] -> ViewNode -> ViewNode
+render_stack [] n -> n
+render_stack [(Component _ _ _ vs _ _):cs] n =
+  let v = view_for_id vs Nothing
+  in case v of
+       Nothing -> render_stack cs n
+       Just (View _ _ ns) -> foldl (render_view_node cs) n ns
+
+append_child :: ViewNode -> ViewNode -> ViewNode
+append_child (DOMElement u n as ns) m -> (DOMElement u n as (ns ++ m))
+
+render_view_node :: [Component] -> ViewNode -> ViewNode -> ViewNode
+render_view_node _ n m@(DOMTextNode _) -> append_child n m
+render_view_node cs n m@(DOMElement u n as ns) ->
+  append_child n (DOMElement u n as (map (render_view_node cs 

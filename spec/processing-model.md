@@ -37,12 +37,9 @@ Links are rendered in order. For every link *L* of *C*:
 
 ### View rendering
 
-Rendering the view of *C* is done by:
-
-1. creating the *view stack* of *C*, depending on the view of *C* and the view
-   stack of its prototype;
-2. matching content slots and content views in the view stack;
-3. rendering the result stack in the environment *E*.
+Rendering the view of *C* is done by creating the *view stack* of *C*,
+depending on *C* and the view stack of its prototype, and then rendering the
+result stack in *E*, matching content slots and content views in the process.
 
 #### The view stack
 
@@ -50,32 +47,40 @@ The view stack of *C* is constructed by the following steps:
 
 1. Get the view stack *S* of the prototype *P* of *C*. If *C* has no prototype,
    then the stack *S* is empty.
-2. If *C* has a view, add it to the stack *S*, taking into account its stacking
-   mode:
-     * if *C* has the “top” stacking mode, then add it at the end of *S*;
-     * if *C* has the “bottom” stacking mode, then add it at the beginning of
-       *S*;
-     * if *C* has the “replace” stacking mode, then replace the contents of the
-       stack with *C*.
+2. add *C* to the stack *S*, taking into account the stacking mode of its view:
+     * if *C* has no view, or its view has the “top” stacking mode, then add it
+       at the end of *S*;
+     * if the view of *C* has the “bottom” stacking mode, then add *C* at the
+       beginning of *S*;
+     * if the view of *C* has the “replace” stacking mode, then replace the
+       contents of the stack with *C*.
 
-```haskell
-stack_views :: Component -> [Component]
-stack_views c@(Component _ p _ vs _ _) =
-  let v = view_for_id vs Nothing
-      stack = case p of
-                Nothing -> []
-                Just p' -> stack_views p'
-  in case v of
-       Nothing -> stack
-       Just (View _ Top _) -> stack ++ [c]
-       Just (View _ Bottom _) -> c:stack
-       Just (View _ Replace _) -> [c]
-    
-view_for_id :: [View] -> Maybe String -> Maybe View
-view_for_id [] _ = Nothing
-view_for_id (v@(View i _ _):vs) j
-  | i == j = Just v
-  | otherwise = view_for_id vs j
-```
+#### Rendering the view stack
+
+Let *i* be the index of the first component in the view stack such that the
+component *C<sub>i</sub>* has a view *V<sub>i</sub>* with an empty identifier.
+This view is rendered into *E* by rendering its children in order in *E*.
+
+* A DOM text node *T* is rendered by appending a new text node with the text
+  content of *T* to the target element *E*.
+* A DOM element node *N* is rendered by appending a new DOM element *N’* with
+  the same namespace URI and local name as *E*. The attributes of *E’* are the
+  same as *E*, with the exception of the `id` attribute which is not rendered.
+  The children of *E* are then rendered into *E’*.
+* A child component is rendered by the component rendering rule.
+* A Bender text node *T* is rendered by appending a new text node with the text
+  content of *T* to the target element *E*. This differs from a regular text
+  node only in the fact that a Bender text node may have an identifier so that
+  it can be referred to by watches, as described below.
+* A content slot *S* with identifier *I* is rendered according to the contents
+  of the view stack. Let *j* be the index of the first component in the view
+  stack such that *j* > *i* and component *C<sub>j</sub>* has a view
+  *V<sub>j</sub>* with identifier *I*.
+    * If such a *j* exists, then render the children of *V<sub>j</sub>* in *E*.
+    * Otherwise, render the children of *S*.
+
+**TODO** describe main scenarios for using views: framing, spit view, &c.
 
 ### Watches rendering
+
+

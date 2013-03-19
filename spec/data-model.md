@@ -12,7 +12,7 @@ describing the application, and runs an event loop for user interactions.
 
 A Bender **component** consists of:
 
-* an optional identifier string;
+* an identifier string;
 * an optional prototype component;
 * zero or more links;
 * zero or more properties;
@@ -20,8 +20,7 @@ A Bender **component** consists of:
 * zero ore more content views;
 * zero or more watches.
 
-The identifier is a string.
-A component may be anonymous.
+The identifier is a string, possibly empty (a component may be anonymous.)
 
 The prototype of a component, if defined, is another component.
 There can be no cycle in the graph of prototypes: a component may not inherit
@@ -78,7 +77,8 @@ view and components that appear within the view.
 
 A **Bender text node** consists of:
 
-* an optional;
+* an identifier string, which may be empty and must be unique within the
+  component;
 * a text string.
 
 Bender text nodes are placeholders for DOM text nodes that can referred to by
@@ -86,7 +86,8 @@ their id (text nodes in the DOM do not have an id.)
 
 A **content slot** consists of:
 
-* an optional identifier string, which must be unique within the component;
+* an identifier string, which may be empty and must be unique within the
+  component;
 * a list of child DOM dones, following the same specification as the view.
 
 ### Properties
@@ -184,8 +185,6 @@ A simple example of a Bender component, using the XML serialization:
 
 This XML document describes a component *C* with
 
-* no identifier
-* no prototype
 * a property with
   * name `count`
   * value *0* (note: the `as` attribute of the `value` element defines how the

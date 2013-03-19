@@ -257,22 +257,29 @@
     return c;
   };
 
-  bender.Component.render = function (target) {
-    for (var stack = [], c = this; c; c = c.prototype) {
-      stack.push(c);
-    }
-    stack.direction = -1;
-    for (var i = 0, n = stack.length; i < n; ++i) {
-      if (stack[i].views[""]) {
-        stack.i = i;
-        if (stack[i].views[""] === "bottom") {
-          stack.direction = 1;
-          break;
-        }
+  function view_stack(component) {
+    if (component) {
+      var mode = component.views[""] ? component.views[""].stack : "top";
+      if (mode === "replace") {
+        return [component];
       }
+      var stack = view_stack(component.prototype) || [];
+      if (mode === "top") {
+        stack.push(component);
+      } else {
+        stack.unshift(component);
+      }
+      return stack;
     }
-    if (stack.i >= 0) {
-      stack[stack.i].views[""].render(target, stack);
+  }
+
+  bender.Component.render = function (target) {
+    var stack = view_stack(this);
+    stack.i = 0;
+    for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
+        ++stack.i);
+    if (stack.i < n && stack[stack.i].views[""]) {
+      stack[stack.i++].views[""].render(target, stack);
     }
   };
 
@@ -313,7 +320,7 @@
     var s = (stack || "").trim().toLowerCase();
     var v = Object.create(bender.View);
     v.id = id || "";
-    v.stack = s === "top" || s === "bottom" ? s : "top";
+    v.stack = s === "top" || s === "bottom" || s === "replace" ? s : "top";
     v.children = children || [];
     return v;
   };
@@ -322,8 +329,7 @@
   bender.Content = {};
 
   bender.Content.render = function (target, stack) {
-    for (var i = stack.i + stack.direction, n = stack.length; i >= 0 && i < n;
-        i += stack.direction) {
+    for (var i = stack.i, n = stack.length; i <n; ++i) {
       if (stack[i].views[this.id]) {
         var j = stack.i;
         stack.i = i;
