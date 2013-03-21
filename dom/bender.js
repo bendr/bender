@@ -263,12 +263,13 @@
     if (typeof stack === "function") {
       k = stack;
     }
+    stack = [];
     for (var queue = [], c = this; c; c = c.prototype) {
       queue.push(c);
     }
     var seq = flexo.seq();
-    for (var stack = []; queue.length > 0;) {
-      var c = queue.pop();
+    for (var i = queue.length; i > 0; --i) {
+      var c = queue[i - 1];
       c.links.forEach(function (link) {
         seq.add(function (k_) {
           link.render(target, k_);
@@ -291,6 +292,15 @@
     if (stack.i < n && stack[stack.i].views[""]) {
       seq.add(function (k_) {
         stack[stack.i++].views[""].render(target, stack, k_);
+      });
+    }
+    var component = this;
+    for (var i = queue.length; i > 0; --i) {
+      queue[i - 1].watches.forEach(function (watch) {
+        seq.add(function (k_) {
+          watch.render(component);
+          k_();
+        });
       });
     }
     seq.add(k);
@@ -449,6 +459,15 @@
 
   bender.Watch = {};
 
+  bender.Watch.render = function (component) {
+    this.gets.forEach(function (get) {
+      get.render(component, this);
+    });
+    this.sets.forEach(function (set) {
+      set.render(component, this);
+    });
+  };
+
   bender.init_watch = function (gets, sets) {
     var w = Object.create(bender.Watch);
     w.gets = gets || [];
@@ -456,10 +475,17 @@
     return w;
   };
 
+
   bender.Get = {};
   bender.GetProperty = Object.create(bender.Get);
   bender.GetDOMEvent = Object.create(bender.Get);
   bender.GetEvent = Object.create(bender.Get);
+
+  bender.GetProperty.render = function (component, watch) {
+  };
+
+  bender.GetEvent.render = function (component, watch) {
+  };
 
   bender.init_get_property = function (property, source, value) {
     var g = Object.create(bender.GetProperty);
@@ -467,6 +493,12 @@
     g.source = source || "$self";
     g.value = value;
     return g;
+  };
+
+  bender.GetDOMEvent.render = function (component, watch) {
+    component.rendered[this.source].addEventListener(this.event, function (e) {
+      console.log(e);
+    }, false);
   };
 
   bender.init_get_dom_event = function (event, source, value) {
@@ -492,6 +524,24 @@
   bender.SetDOMProperty = Object.create(bender.Set);
   bender.SetAction = Object.create(bender.Set);
   bender.SetInsert = Object.create(bender.Set);
+
+  bender.SetProperty.render = function (component, watch) {
+  };
+
+  bender.SetEvent.render = function (component, watch) {
+  };
+
+  bender.SetDOMAttribute.render = function (component, watch) {
+  };
+
+  bender.SetDOMProperty.render = function (component, watch) {
+  };
+
+  bender.SetAction.render = function (component, watch) {
+  };
+
+  bender.SetInsert.render = function (component, watch) {
+  };
 
   bender.init_set_property = function (property, target, value) {
     var s = Object.create(bender.SetProperty);
