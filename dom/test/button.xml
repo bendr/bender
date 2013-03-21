@@ -8,7 +8,7 @@
     </html:div>
   </view>
   <watch>
-    <get elem="div" dom-event="mouseclick"/>
+    <get elem="div" dom-event="click"/>
     <set event="@pushed"/>
   </watch>
 </component>
