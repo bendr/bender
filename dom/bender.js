@@ -6,6 +6,7 @@
 
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+
   bender.Environment = {};
 
   bender.init_environment = function () {
@@ -55,6 +56,20 @@
     k();
   };
 
+  function add_property(component, property) {
+    Object.defineProperty(component.properties, property.name, {
+      enumarable: true,
+      configurable: true,
+      get: function () {
+        return property.value;
+      },
+      set: function (v) {
+        property.value = v;
+        flexo.notify(component, "@property", { name: property.name, value: v });
+      }
+    });
+  }
+
   bender.Environment.deserialize.component = function (elem, k) {
     var init_component = function (env, prototype) {
       var component = bender.init_component(elem.getAttribute("id"), prototype);
@@ -66,7 +81,7 @@
               if (flexo.instance_of(d, bender.Link)) {
                 component.links.push(d);
               } else if (flexo.instance_of(d, bender.Property)) {
-                component.properties[d.name] = d.value;
+                add_property(component, d);
               } else if (flexo.instance_of(d, bender.View)) {
                 component.views[d.id] = d;
               } else if (flexo.instance_of(d, bender.Watch)) {
@@ -256,6 +271,7 @@
     c.views = views || {};
     c.properties = props || {};
     c.watches = watches || [];
+    c.components = { $self: c };
     return c;
   };
 
@@ -462,10 +478,20 @@
   bender.Watch.render = function (component) {
     this.gets.forEach(function (get) {
       get.render(component, this);
-    });
-    this.sets.forEach(function (set) {
-      set.render(component, this);
-    });
+    }, this);
+  };
+
+  bender.Watch.activate = function (component) {
+    if (this.active) {
+      return;
+    }
+    this.active = true;
+    window.setTimeout(function () {
+      this.sets.forEach(function (set) {
+        set.activate(component, this);
+      }, this);
+      this.active = false;
+    }.bind(this), 0);
   };
 
   bender.init_watch = function (gets, sets) {
@@ -482,6 +508,17 @@
   bender.GetEvent = Object.create(bender.Get);
 
   bender.GetProperty.render = function (component, watch) {
+    flexo.listen(component.components[this.source], "@property", function (e) {
+      if (e.name === this.property) {
+        watch.activate(component);
+      }
+    }.bind(this));
+  };
+
+  bender.GetDOMEvent.render = function (component, watch) {
+    component.rendered[this.source].addEventListener(this.event, function (e) {
+      watch.activate(component);
+    }, false);
   };
 
   bender.GetEvent.render = function (component, watch) {
@@ -493,12 +530,6 @@
     g.source = source || "$self";
     g.value = value;
     return g;
-  };
-
-  bender.GetDOMEvent.render = function (component, watch) {
-    component.rendered[this.source].addEventListener(this.event, function (e) {
-      console.log(e);
-    }, false);
   };
 
   bender.init_get_dom_event = function (event, source, value) {
@@ -525,22 +556,22 @@
   bender.SetAction = Object.create(bender.Set);
   bender.SetInsert = Object.create(bender.Set);
 
-  bender.SetProperty.render = function (component, watch) {
+  bender.SetProperty.activate = function (component, watch) {
   };
 
-  bender.SetEvent.render = function (component, watch) {
+  bender.SetEvent.activate = function (component, watch) {
   };
 
-  bender.SetDOMAttribute.render = function (component, watch) {
+  bender.SetDOMAttribute.activate = function (component, watch) {
   };
 
-  bender.SetDOMProperty.render = function (component, watch) {
+  bender.SetDOMProperty.activate = function (component, watch) {
   };
 
-  bender.SetAction.render = function (component, watch) {
+  bender.SetAction.activate = function (component, watch) {
   };
 
-  bender.SetInsert.render = function (component, watch) {
+  bender.SetInsert.activate = function (component, watch) {
   };
 
   bender.init_set_property = function (property, target, value) {
@@ -596,6 +627,5 @@
       return s;
     }
   };
-
 
 }(this.bender = {}));

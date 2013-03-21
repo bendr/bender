@@ -14,9 +14,11 @@ bender.Link.render.script = function (target, k) {
 
 var env = bender.init_environment();
 var args = flexo.get_args();
+var $;
 if (args.href) {
   var url = flexo.absolute_uri(window.document.baseURI, args.href);
   env.load_component(url, function (component) {
+    $ = component;
     console.log("Component at %0 loaded OK".fmt(url));
     env.render_component(component, document.body, function () {
       console.log("Component rendered OK", component);
