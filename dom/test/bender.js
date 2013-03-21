@@ -39,18 +39,22 @@
 
   describe("Rendering", function () {
     describe("hello.xml", function () {
-      it("is rendered correctly", function () {
+      it("is rendered correctly", function (done) {
         var div = document.createElement("div");
-        env.render_component(hello, div);
-        assert.strictEqual(div.textContent.trim(), "Hello, world!");
+        env.render_component(hello, div, function () {
+          assert.strictEqual(div.textContent.trim(), "Hello, world!");
+          done();
+        });
       });
     });
     describe("sample.xml", function () {
-      it("is rendered correctly", function () {
+      it("is rendered correctly", function (done) {
         var div = document.createElement("div");
-        env.render_component(sample, div);
-        assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
-          "Number of clicks: +1");
+        env.render_component(sample, div, function () {
+          assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
+            "Number of clicks: +1");
+          done();
+        });
       });
     });
   });

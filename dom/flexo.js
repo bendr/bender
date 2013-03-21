@@ -445,36 +445,35 @@
   // Identity function
   flexo.id = function (x) { return x; };
 
+
   // Seq object for chaining asynchronous calls
-  var seq = {
-    _init: function () {
-      this._queue = [];
-      this._flushing = false;
-      return this;
-    },
+  flexo.Seq = {};
 
-    _flush: function () {
-      var f = this._queue.shift();
-      if (f) {
-        f(this._flush.bind(this));
-      } else {
-        this._flushing = false;
-        flexo.notify(this, "@done");
-      }
-    },
-
-    add: function (f) {
-      this._queue.push(f);
-      if (!this._flushing) {
-        this._flushing = true;
-        this._flush();
+  flexo.Seq.add = function (f) {
+    if (typeof f === "function") {
+      this.queue.push(f);
+      if (!this.flushing) {
+        this.flushing = true;
+        setTimeout(this.flush.bind(this), 0);
       }
     }
   };
 
-  flexo.seq = function () {
-    return Object.create(seq)._init();
+  flexo.Seq.flush = function () {
+    var f = this.queue.shift();
+    if (f) {
+      f(this.flush.bind(this));
+    } else {
+      delete this.flushing;
+    }
   };
+
+  flexo.seq = function () {
+    var seq = Object.create(flexo.Seq);
+    seq.queue = [];
+    return seq;
+  };
+
 
   if (browser) {
     flexo.request_animation_frame = (window.requestAnimationFrame ||

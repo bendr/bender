@@ -14,9 +14,10 @@
     return e;
   };
 
-  // Render `component` in the target element
-  bender.Environment.render_component = function (component, target) {
-    component.render(target);
+  // Render `component` in the target element and call the continuation `k` when
+  // finished.
+  bender.Environment.render_component = function (component, target, k) {
+    component.render(target, k);
   };
 
   // Load a component at the given URL and call k with the loaded component (or
@@ -258,19 +259,20 @@
     return c;
   };
 
-  function view_stack(component) {
-    if (component) {
+  bender.Component.render = function (target, stack, k) {
+    if (typeof stack === "function") {
+      k = stack;
     }
-  }
-
-  bender.Component.render = function (target) {
     for (var queue = [], c = this; c; c = c.prototype) {
       queue.push(c);
     }
+    var seq = flexo.seq();
     for (var stack = []; queue.length > 0;) {
       var c = queue.pop();
       c.links.forEach(function (link) {
-        link.render(target);
+        seq.add(function (k_) {
+          link.render(target, k_);
+        });
       });
       var mode = c.views[""] ? c.views[""].stack : "top";
       if (mode === "replace") {
@@ -287,21 +289,25 @@
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
-      stack[stack.i++].views[""].render(target, stack);
+      seq.add(function (k_) {
+        stack[stack.i++].views[""].render(target, stack, k_);
+      });
     }
+    seq.add(k);
   };
 
 
   bender.Link = {};
 
-  bender.Link.render = function (target) {
+  bender.Link.render = function (target, k) {
     if (this.rendered) {
-      return;
-    }
-    this.rendered = true;
-    var f = bender.Link.render[this.rel];
-    if (typeof f === "function") {
-      f.call(this, target);
+      k();
+    } else {
+      this.rendered = true;
+      var f = bender.Link.render[this.rel];
+      if (typeof f === "function") {
+        f.call(this, target, k);
+      }
     }
   }
 
@@ -317,6 +323,7 @@
     }
   };
 
+
   bender.Property = {};
 
   bender.init_property = function (name, value) {
@@ -329,10 +336,14 @@
 
   bender.View = {};
 
-  bender.View.render = function (target, stack) {
+  bender.View.render = function (target, stack, k) {
+    var seq = flexo.seq();
     this.children.forEach(function (ch) {
-      ch.render(target, stack);
+      seq.add(function (k_) {
+        ch.render(target, stack, k_);
+      });
     });
+    seq.add(k);
   };
 
   bender.init_view = function (id, stack, children) {
@@ -347,17 +358,19 @@
 
   bender.Content = {};
 
-  bender.Content.render = function (target, stack) {
+  bender.Content.render = function (target, stack, k) {
     for (var i = stack.i, n = stack.length; i <n; ++i) {
       if (stack[i].views[this.id]) {
         var j = stack.i;
         stack.i = i;
-        stack[i].views[this.id].render(target, stack);
-        stack.i = j;
+        stack[i].views[this.id].render(target, stack, function () {
+          stack.i = j;
+          k();
+        });
         return;
       }
     }
-    bender.View.render.call(this, target, stack);
+    bender.View.render.call(this, target, stack, k);
   };
 
   bender.init_content = function (id, children) {
@@ -370,11 +383,12 @@
 
   bender.Text = {};
 
-  bender.Text.render = function (target, stack) {
+  bender.Text.render = function (target, stack, k) {
     var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
     if (this.id) {
       stack.component.rendered[this.id] = e;
     }
+    k();
   };
 
   bender.init_text = function (id, text) {
@@ -387,8 +401,7 @@
 
   bender.Element = {};
 
-  // TODO handle id
-  bender.Element.render = function (target, stack) {
+  bender.Element.render = function (target, stack, k) {
     var e = target.appendChild(
       target.ownerDocument.createElementNS(this.nsuri, this.name)
     );
@@ -401,9 +414,13 @@
         }
       }
     }
+    var seq = flexo.seq();
     this.children.forEach(function (ch) {
-      ch.render(e, stack);
+      seq.add(function (k_) {
+        ch.render(e, stack, k_);
+      });
     });
+    seq.add(k);
   };
 
   bender.init_element = function (nsuri, name, attrs, children) {
@@ -418,8 +435,9 @@
 
   bender.DOMTextNode = {};
 
-  bender.DOMTextNode.render = function (target) {
+  bender.DOMTextNode.render = function (target, stack, k) {
     target.appendChild(target.ownerDocument.createTextNode(this.text));
+    k();
   };
 
   bender.init_dom_text_node = function (text) {
