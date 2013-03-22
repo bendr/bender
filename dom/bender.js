@@ -32,11 +32,11 @@
             this.loaded[url] = d;
             k(d);
           } else {
-            k();
+            k("not a component");
           }
         }.bind(this));
       } else {
-        k();
+        k(req.status);
       }
     }.bind(this));
   };
@@ -522,6 +522,9 @@
   };
 
   bender.GetEvent.render = function (component, watch) {
+    flexo.listen(component.components[this.source], this.event, function (e) {
+      watch.activate(component);
+    });
   };
 
   bender.init_get_property = function (property, source, value) {

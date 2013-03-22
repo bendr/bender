@@ -21,7 +21,7 @@
   // Test whether x is an instance of y (i.e. y is the prototype of x, or the
   // prototype of its prototype, or...)
   flexo.instance_of = function (x, y) {
-    var proto = Object.getPrototypeOf(x);
+    var proto = typeof x === "object" && Object.getPrototypeOf(x);
     return !!proto && (proto === y || flexo.instance_of(proto, y));
   };
 
