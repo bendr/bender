@@ -443,7 +443,9 @@
   // Functions and Asynchronicity
 
   // Identity function
-  flexo.id = function (x) { return x; };
+  flexo.id = function (x) {
+    return x;
+  };
 
 
   // Seq object for chaining asynchronous calls

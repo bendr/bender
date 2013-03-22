@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 19 March 2013
+Bender v0.8, 22 March 2013
 
 Bender describes Web applications through the combination of *components*.
 Running a Bender application requires a runtime, which renders the component
@@ -133,6 +133,7 @@ There are six kinds of outputs:
    * an event type;
 3. a **DOM attribute output** consists of:
    * a target element;
+   * an attribute namespace;
    * an attribute name;
 4. a **DOM property output** consists of:
    * a target element;

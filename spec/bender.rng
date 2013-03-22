@@ -139,6 +139,7 @@
 
   <define name="set-dom-attribute">
     <ref name="view-ref"/>
+    <ref name="ns"/>
     <ref name="attr"/>
   </define>
 
