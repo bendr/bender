@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 19 March 2013
+Bender v0.8, 23 March 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -80,10 +80,16 @@ This view is rendered into *E* by rendering its children in order in *E*.
   same as *E*, with the exception of the `id` attribute which is not rendered.
   The children of *E* are then rendered into *E’*.
 * A child component is rendered by the component rendering rule.
+* A Bender attribute node *A* is rendered by setting an attribute on the target
+  element *E*. The local name and namespace URI of the attributes are given by
+  the corresponding properties of *A*. The value of the attribute is a
+  concatenation of the renderings of the child nodes.
 * A Bender text node *T* is rendered by appending a new text node with the text
   content of *T* to the target element *E*. This differs from a regular text
   node only in the fact that a Bender text node may have an identifier so that
-  it can be referred to by watches, as described below.
+  it can be referred to by watches, as described below. Note that if *T* is a
+  child of a Bender attribute node *A*, then instead of a DOM text node, a
+  string is built.
 * A content slot *S* with identifier *I* is rendered according to the contents
   of the view stack. Let *j* be the index of the first component in the view
   stack such that *j* > *i* and component *C<sub>j</sub>* has a view

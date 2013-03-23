@@ -7,6 +7,23 @@
     <ref name="component"/>
   </start>
 
+  <define name="attribute">
+    <element name="attribute">
+      <optional>
+        <ref name="id"/>
+      </optional>
+      <optional>
+        <ref name="ns"/>
+      </optional>
+      <ref name="name"/>
+      <mixed>
+        <zeroOrMore>
+          <ref name="text"/>
+        </zeroOrMore>
+      </mixed>
+    </element>
+  </define>
+
   <define name="component">
     <element name="component">
       <optional>
@@ -160,8 +177,6 @@
     <ref name="insert"/>
   </define>
 
-
-
   <define name="text">
     <element name="text">
       <optional>
@@ -198,6 +213,9 @@
 
   <define name="view-content">
     <mixed>
+      <zeroOrMore>
+        <ref name="attribute"/>
+      </zeroOrMore>
       <zeroOrMore>
         <ref name="component"/>
       </zeroOrMore>
@@ -297,6 +315,18 @@
         <value>after</value>
         <value>replace</value>
       </choice>
+    </attribute>
+  </define>
+
+  <define name="name">
+    <attribute name="name">
+      <data type="token"/>
+    </attribute>
+  </define>
+
+  <define name="ns">
+    <attribute name="ns">
+      <data type="anyURI"/>
     </attribute>
   </define>
 

@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 22 March 2013
+Bender v0.8, 23 March 2013
 
 Bender describes Web applications through the combination of *components*.
 Running a Bender application requires a runtime, which renders the component
@@ -66,6 +66,8 @@ A **view** consists of:
   * an DOM text node;
   * a DOM element that is not in the Bender XML namespace;
   * a component;
+  * **TODO**: a Bender element node;
+  * a Bender attribute node;
   * a Bender text node;
   * a content slot.
 
@@ -74,6 +76,17 @@ identifier string, which must be unique within the component.
 
 There is a parent-child relationship between the component of a view or content
 view and components that appear within the view.
+
+A **Bender attribute node** consists of:
+
+* an identifier string, which may be empty and must be unique within the
+  component;
+* an optional namespace URI;
+* a name;
+* a list of child nodes, which may be DOM text nodes or Bender text nodes.
+
+Bender attribute nodes are placeholders for attributes on elements that can be
+referred to by their id (attribute nodes in the DOM do not have an id.)
 
 A **Bender text node** consists of:
 
@@ -88,7 +101,7 @@ A **content slot** consists of:
 
 * an identifier string, which may be empty and must be unique within the
   component;
-* a list of child DOM dones, following the same specification as the view.
+* a list of child DOM nodes, following the same specification as the view.
 
 ### Properties
 
