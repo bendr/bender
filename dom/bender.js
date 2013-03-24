@@ -150,6 +150,7 @@
         if (ch.namespaceURI === bender.ns) {
           if (ch.localName === "component" ||
             ch.localName === "content" ||
+            ch.localName === "attribute" ||
             ch.localName === "text") {
             seq.add(function (k_) {
               bender.Environment.deserialize[ch.localName].call(this, ch,
@@ -158,6 +159,9 @@
                   k_();
                 });
             }.bind(this));
+          } else {
+            console.warn("Unexpected Bender element <%0> in view"
+              .fmt(ch.localName));
           }
         } else {
           seq.add(function (k_) {
@@ -197,6 +201,32 @@
   bender.Environment.deserialize.content = function (elem, k) {
     this.deserialize_view_content(elem, function (d) {
       k(bender.init_content(elem.getAttribute("id"), d));
+    });
+  };
+
+  bender.Environment.deserialize.attribute = function (elem, k) {
+    var attr = bender.init_attribute(elem.getAttribute("id"),
+        elem.getAttribute("ns"), elem.getAttribute("name"));
+    var seq = flexo.seq();
+    foreach.call(elem.childNodes, function (ch) {
+      if (ch.nodeType === window.Node.ELEMENT_NODE &&
+        ch.namespaceURI === bender.ns && ch.localName === "text") {
+        seq.add(function (k_) {
+          bender.Environment.deserialize.text.call(this, ch, function (d) {
+            attr.children.push(d);
+            k_();
+          });
+        }.bind(this));
+      } else if (ch.nodeType === window.Node.TEXT_NODE ||
+        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+        seq.add(function (k_) {
+          attr.children.push(bender.init_dom_text_node(ch.textContent));
+          k_();
+        });
+      }
+    }, this);
+    seq.add(function () {
+      k(attr);
     });
   };
 
@@ -343,6 +373,14 @@
         });
       });
     }
+    for (var i = queue.length; i > 0; --i) {
+      queue[i - 1].watches.forEach(function (watch) {
+        seq.add(function (k_) {
+          watch.activate(stack.component);
+          k_();
+        });
+      });
+    }
     seq.add(k);
   };
 
@@ -431,6 +469,35 @@
   };
 
 
+  bender.Attribute = {};
+
+  bender.Attribute.render = function (target, stack, k) {
+    var value = "";
+    this.children.forEach(function (ch) {
+      if (flexo.instance_of(ch, bender.Text)) {
+        if (ch.id) {
+          stack.component.rendered[ch.id] = target;
+        }
+        value += ch.text;
+      } else if (ch instanceof window.Node &&
+        (ch.nodeType === window.Node.TEXT_NODE ||
+         ch.nodeType === window.Node.CDATA_SECTION_NODE)) {
+        value += ch.textContent;
+      }
+    });
+    target.setAttributeNS(this.ns, this.name, value);
+  };
+
+  bender.init_attribute = function (id, ns, name, children) {
+    var a = Object.create(bender.Attribute);
+    a.id = id || "";
+    a.ns = ns || "";
+    a.name = name;
+    a.children = children || [];
+    return a;
+  };
+
+
   bender.Text = {};
 
   bender.Text.render = function (target, stack, k) {
@@ -486,13 +553,29 @@
   bender.DOMTextNode = {};
 
   bender.DOMTextNode.render = function (target, stack, k) {
-    target.appendChild(target.ownerDocument.createTextNode(this.text));
+    var d = target.ownerDocument.createTextNode(this.text);
+    target.appendChild(d);
+    this.rendered.push(d);
     k();
   };
 
   bender.init_dom_text_node = function (text) {
     var t = Object.create(bender.DOMTextNode);
-    t.text = text;
+    Object.defineProperty(t, "text", { enumerable: true,
+      get: function () {
+        return text;
+      },
+      set: function (new_text) {
+        new_text = new_text != null && new_text.toString() || "";
+        if (new_text !== text) {
+          text = new_text;
+          this.rendered.forEach(function (d) {
+            d.textContent = new_text;
+          });
+        }
+      }
+    });
+    t.rendered = [];
     return t;
   };
 
@@ -608,7 +691,7 @@
         this.value.call(component, values));
   };
 
-  bender.SetDOMAttribute.activate = function (component, watch) {
+  bender.SetDOMAttribute.activate = function (component, watch, values) {
     component.rendered[this.target].setAttributeNS(this.ns, this.attr,
       this.value.call(component, values));
   };

@@ -1,14 +1,26 @@
 <component xmlns="http://bender.igel.co.jp">
   <link rel="stylesheet" href="button.css"/>
+  <property name="down" as="boolean" value="false"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div id="div" class="button">
+    <html:div id="div">
+      <attribute name="class">
+        button <text id="class"/>
+      </attribute>
       <content>
         OK
       </content>
     </html:div>
   </view>
   <watch>
-    <get elem="div" dom-event="click"/>
-    <set event="@pushed"/>
+    <get property="down" value="$$ ? 'down' : ''"/>
+    <set elem="class"/>
+  </watch>
+  <watch>
+    <get elem="div" dom-event="mousedown"/>
+    <set property="down" value="true"/>
+  </watch>
+  <watch>
+    <get elem="div" dom-event="mouseup"/>
+    <set property="down" value="false"/>
   </watch>
 </component>
