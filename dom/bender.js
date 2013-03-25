@@ -391,7 +391,7 @@
     this.components = { $self: this };
     stack.i = 0;
     stack.component = this;
-    this.rendered = {};
+    this.rendered = { $document: target.ownerDocument };
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {

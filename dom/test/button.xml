@@ -20,7 +20,7 @@
     <set property="down" value="true"/>
   </watch>
   <watch>
-    <get elem="div" dom-event="mouseup"/>
+    <get elem="$document" dom-event="mouseup"/>
     <set property="down" value="false"/>
   </watch>
 </component>
