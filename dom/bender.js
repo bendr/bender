@@ -30,7 +30,7 @@
         var ks = this.loaded[url];
         if (req.response) {
           this.deserialize(req.response.documentElement, function (d) {
-            if (d && flexo.instance_of(d, bender.Component)) {
+            if (flexo.instance_of(d, bender.Component)) {
               this.loaded[url] = d;
             } else {
               this.loaded[url] = "not a component";
@@ -359,9 +359,7 @@
   }
 
   bender.Component.set_property = function (name, value) {
-    if (this.properties.hasOwnProperty(name)) {
-      this.properties[name] = value;
-    } else {
+    if (!this.properties.hasOwnProperty(name)) {
       var c = find_component_with_property(this, name);
       if (c) {
         var component = this;
@@ -374,6 +372,7 @@
         });
       }
     }
+    this.properties[name] = value;
   };
 
   bender.Component.render = function (target, stack, k) {
