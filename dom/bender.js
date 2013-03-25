@@ -325,6 +325,42 @@
     }
   };
 
+  bender.Component.get_property = function (name) {
+    if (this.properties.hasOwnProperty(name)) {
+      return this.properties[name];
+    }
+    if (this.prototype) {
+      return this.prototype.get_property(name);
+    }
+  };
+
+  function find_component_with_property(component, name) {
+    if (component.properties.hasOwnProperty(name)) {
+      return component;
+    }
+    if (component.prototype) {
+      return find_component_with_property(component.prototype, name);
+    }
+  }
+
+  bender.Component.set_property = function (name, value) {
+    if (this.properties.hasOwnProperty(name)) {
+      this.properties[name] = value;
+    } else {
+      var c = find_component_with_property(this, name);
+      if (c) {
+        var component = this;
+        Object.defineProperty(this.properties, name, { enumerable: true,
+          get: function () { return value; },
+          set: function (v) {
+            value = v;
+            flexo.notify(component, "@set-property", { name: name, value: v });
+          }
+        });
+      }
+    }
+  };
+
   bender.Component.render = function (target, stack, k) {
     if (typeof stack === "function") {
       k = stack;
@@ -618,7 +654,7 @@
     if (gets.length > 0) {
       gets.forEach(function (get) {
         get.activation_value = get.value.call(component,
-          component.properties[get.property]);
+          component.get_property(get.property));
       });
       this.activate(component);
     }
@@ -657,13 +693,16 @@
   bender.GetEvent = Object.create(bender.Get);
 
   bender.GetProperty.render = function (component, watch) {
-    flexo.listen(component.components[this.source], "@set-property", function (e) {
-      if (e.name === this.property) {
-        this.activation_value = this.value.call(component,
-          e.source.properties[e.name]);
-        watch.activate(component);
-      }
-    }.bind(this));
+    var c = component.components[this.source];
+    if (typeof c === "object") {
+      flexo.listen(c, "@set-property", function (e) {
+        if (e.name === this.property) {
+          this.activation_value = this.value.call(component,
+            e.source.get_property(e.name));
+          watch.activate(component);
+        }
+      }.bind(this));
+    }
   };
 
   bender.GetDOMEvent.render = function (component, watch) {
@@ -718,8 +757,10 @@
   bender.SetInsert = Object.create(bender.Set);
 
   bender.SetProperty.activate = function (component, watch, values) {
-    component.components[this.target].properties[this.property] =
-      this.value.call(component, values);
+    var c = component.components[this.target];
+    if (c) {
+      c.set_property(this.property, this.value.call(component, values));
+    }
   };
 
   bender.SetEvent.activate = function (component, watch, values) {
