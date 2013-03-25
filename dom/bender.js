@@ -56,20 +56,6 @@
     k();
   };
 
-  function add_property(component, property) {
-    Object.defineProperty(component.properties, property.name, {
-      enumarable: true,
-      configurable: true,
-      get: function () {
-        return property.value;
-      },
-      set: function (v) {
-        property.value = v;
-        flexo.notify(component, "@property", { name: property.name, value: v });
-      }
-    });
-  }
-
   bender.Environment.deserialize.component = function (elem, k) {
     var init_component = function (env, prototype) {
       var component = bender.init_component();
@@ -81,17 +67,7 @@
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {
           env.deserialize(ch, function (d) {
-            if (d) {
-              if (flexo.instance_of(d, bender.Link)) {
-                component.links.push(d);
-              } else if (flexo.instance_of(d, bender.Property)) {
-                add_property(component, d);
-              } else if (flexo.instance_of(d, bender.View)) {
-                component.views[d.id] = d;
-              } else if (flexo.instance_of(d, bender.Watch)) {
-                component.watches.push(d);
-              }
-            }
+            component.append_child(d);
             k_();
           });
         });
@@ -213,14 +189,14 @@
         ch.namespaceURI === bender.ns && ch.localName === "text") {
         seq.add(function (k_) {
           bender.Environment.deserialize.text.call(this, ch, function (d) {
-            attr.children.push(d);
+            attr.append_child(d);
             k_();
           });
         }.bind(this));
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
         seq.add(function (k_) {
-          attr.children.push(bender.init_dom_text_node(ch.textContent));
+          attr.append_child(bender.init_dom_text_node(ch.textContent));
           k_();
         });
       }
@@ -327,6 +303,28 @@
     return c;
   };
 
+  bender.Component.append_child = function (ch) {
+    if (ch) {
+      if (flexo.instance_of(ch, bender.Link)) {
+        this.links.push(ch);
+      } else if (flexo.instance_of(ch, bender.Property)) {
+        var component = this;
+        Object.defineProperty(this.properties, ch.name, { enumerable: true,
+          get: function () { return ch.value; },
+          set: function (v) {
+            ch.value = v;
+            flexo.notify(component, "@set-property",
+              { name: ch.name, value: v });
+          }
+        });
+      } else if (flexo.instance_of(ch, bender.View)) {
+        this.views[ch.id] = ch;
+      } else if (flexo.instance_of(ch, bender.Watch)) {
+        this.watches.push(ch);
+      }
+    }
+  };
+
   bender.Component.render = function (target, stack, k) {
     if (typeof stack === "function") {
       k = stack;
@@ -376,7 +374,7 @@
     for (var i = queue.length; i > 0; --i) {
       queue[i - 1].watches.forEach(function (watch) {
         seq.add(function (k_) {
-          watch.activate(stack.component);
+          watch.init(stack.component);
           k_();
         });
       });
@@ -471,21 +469,46 @@
 
   bender.Attribute = {};
 
+  bender.Attribute.append_child = function (ch) {
+    if (flexo.instance_of(ch, bender.Text)) {
+      this.children.push(ch);
+      ch.parent = this;
+    } else if (flexo.instance_of(ch, bender.DOMTextNode)) {
+      this.children.push(ch);
+    }
+  };
+
+  function set_attribute_value(target) {
+    target.setAttributeNS(this.ns, this.name,
+        this.children.reduce(function (acc, ch) { return acc + ch.text; }, "")
+        .trim());
+  }
+
   bender.Attribute.render = function (target, stack, k) {
-    var value = "";
-    this.children.forEach(function (ch) {
-      if (flexo.instance_of(ch, bender.Text)) {
-        if (ch.id) {
-          stack.component.rendered[ch.id] = target;
+    if (this.id) {
+      stack.component.rendered[this.id] = {};
+      Object.defineProperty(stack.component.rendered[this.id], "textContent", {
+        enumerable: true,
+        set: function (t) {
+          this.remove_children();
         }
-        value += ch.text;
-      } else if (ch instanceof window.Node &&
-        (ch.nodeType === window.Node.TEXT_NODE ||
-         ch.nodeType === window.Node.CDATA_SECTION_NODE)) {
-        value += ch.textContent;
+      });
+    }
+    var attr = this;
+    this.children.forEach(function (ch) {
+      if (flexo.instance_of(ch, bender.Text) && ch.id) {
+        stack.component.rendered[ch.id] = {};
+        Object.defineProperty(stack.component.rendered[ch.id], "textContent", {
+          enumerable: true,
+          set: function (t) {
+            ch.text = t;
+            set_attribute_value.call(attr, target);
+          }
+        });
       }
     });
-    target.setAttributeNS(this.ns, this.name, value);
+    set_attribute_value.call(this, target);
+    k();
   };
 
   bender.init_attribute = function (id, ns, name, children) {
@@ -588,6 +611,19 @@
     }, this);
   };
 
+  bender.Watch.init = function (component) {
+    var gets = this.gets.filter(function (get) {
+      return flexo.instance_of(get, bender.GetProperty);
+    });
+    if (gets.length > 0) {
+      gets.forEach(function (get) {
+        get.activation_value = get.value.call(component,
+          component.properties[get.property]);
+      });
+      this.activate(component);
+    }
+  };
+
   bender.Watch.activate = function (component) {
     if (this.active) {
       return;
@@ -621,7 +657,7 @@
   bender.GetEvent = Object.create(bender.Get);
 
   bender.GetProperty.render = function (component, watch) {
-    flexo.listen(component.components[this.source], "@property", function (e) {
+    flexo.listen(component.components[this.source], "@set-property", function (e) {
       if (e.name === this.property) {
         this.activation_value = this.value.call(component,
           e.source.properties[e.name]);
@@ -697,6 +733,8 @@
   };
 
   bender.SetDOMProperty.activate = function (component, watch, values) {
+    var target = component.rendered[this.target];
+
     component.rendered[this.target][this.property] =
       this.value.call(component, values);
   };
