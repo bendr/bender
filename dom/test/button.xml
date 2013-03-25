@@ -16,11 +16,19 @@
     <set elem="class"/>
   </watch>
   <watch>
-    <get elem="div" dom-event="mousedown"/>
-    <set property="down" value="true"/>
+    <get elem="div" dom-event="mousedown">
+      $$.preventDefault();
+      return true;
+    </get>
+    <set property="down"/>
   </watch>
   <watch>
     <get elem="$document" dom-event="mouseup"/>
-    <set property="down" value="false"/>
+    <set property="down">
+      if (this.get_property("down")) {
+        flexo.notify(this, "@pushed");
+      }
+      return false;
+    </set>
   </watch>
 </component>

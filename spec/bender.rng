@@ -82,7 +82,10 @@
         <ref name="get-event"/>
       </choice>
       <optional>
-        <ref name="value"/>
+        <choice>
+          <ref name="value"/>
+          <text/>
+        </choice>
       </optional>
     </element>
   </define>
@@ -135,7 +138,10 @@
         <ref name="set-insert"/>
       </choice>
       <optional>
-        <ref name="value"/>
+        <choice>
+          <ref name="value"/>
+          <text/>
+        </choice>
       </optional>
     </element>
   </define>

@@ -234,40 +234,43 @@
   };
 
   bender.Environment.deserialize.get = function (elem, k) {
+    var value = elem.hasAttribute("value") ?
+      "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("property")) {
       k(bender.init_get_property(elem.getAttribute("property"),
-          elem.getAttribute("component"), elem.getAttribute("value")));
+          elem.getAttribute("component"), value));
     } else if (elem.hasAttribute("dom-event")) {
       k(bender.init_get_dom_event(elem.getAttribute("dom-event"),
-          elem.getAttribute("elem"), elem.getAttribute("value")));
+          elem.getAttribute("elem"), value));
     } else if (elem.hasAttribute("event")) {
       k(bender.init_get_event(elem.getAttribute("event"),
-          elem.getAttribute("component"), elem.getAttribute("value")));
+          elem.getAttribute("component"), value));
     }
   };
 
   bender.Environment.deserialize.set = function (elem, k) {
+    var value = elem.hasAttribute("value") ?
+      "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("elem")) {
       if (elem.hasAttribute("attr")) {
         k(bender.init_set_dom_attribute(elem.getAttribute("ns"),
-              elem.getAttribute("attr"), elem.getAttribute("elem"),
-              elem.getAttribute("value")));
+              elem.getAttribute("attr"), elem.getAttribute("elem"), value));
       } else if (elem.hasAttribute("action")) {
         k(bender.init_set_action(elem.getAttribute("action"),
-            elem.getAttribute("elem"), elem.getAttribute("value")));
+            elem.getAttribute("elem"), value));
       } else if (elem.hasAttribute("insert")) {
         k(bender.init_set_insert(elem.getAttribute("insert"),
-            elem.getAttribute("elem"), elem.getAttribute("value")));
+            elem.getAttribute("elem"), value));
       } else {
         k(bender.init_set_dom_property(elem.getAttribute("property"),
-            elem.getAttribute("elem"), elem.getAttribute("value")));
+            elem.getAttribute("elem"), value));
       }
     } else if (elem.hasAttribute("property")) {
       k(bender.init_set_property(elem.getAttribute("property"),
-          elem.getAttribute("component"), elem.getAttribute("value")));
+          elem.getAttribute("component"), value));
     } else if (elem.hasAttribute("event")) {
       k(bender.init_set_event(elem.getAttribute("event"),
-          elem.getAttribute("component"), elem.getAttribute("value")));
+          elem.getAttribute("component"), value));
     }
   };
 
@@ -669,7 +672,7 @@
       var vals = this.gets.map(function (get) {
         return get.activation_value;
       });
-      if (vals < 2) {
+      if (vals.length < 2) {
         vals = vals[0];
       }
       this.sets.forEach(function (set) {
@@ -721,7 +724,7 @@
 
   function init_get_value(value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("$$", "return " + value) : flexo.id;
+      new Function ("$$", value) : flexo.id;
   }
 
   bender.init_get_property = function (property, source, value) {
@@ -790,7 +793,7 @@
 
   function init_set_value(value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("$", "return " + value) : flexo.id;
+      new Function ("$$", value) : flexo.id;
   }
 
   bender.init_set_property = function (property, target, value) {

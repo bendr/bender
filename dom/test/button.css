@@ -5,10 +5,16 @@
   text-align: center;
   padding: 0.5em;
   border-radius: 0.5em;
+  cursor: pointer;
   -webkit-transform: scale(1);
+  -moz-transform: scale(1);
+  -ms-transform: scale(1);
+  -o-transform: scale(1);
 }
 
 .button.down {
-  opacity: 0.5;
   -webkit-transform: scale(0.9);
+  -moz-transform: scale(0.9);
+  -ms-transform: scale(0.9);
+  -o-transform: scale(0.9);
 }
