@@ -1,0 +1,28 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <property name="placeholder" value=""/>
+  <property name="value"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:input id="input" aria-role="textbox"/>
+  </view>
+
+  <watch>
+    <get property="placeholder"/>
+    <set elem="input" attr="placeholder"/>
+  </watch>
+
+  <watch>
+    <get property="value"/>
+    <set elem="input" property="value"/>
+  </watch>
+
+  <watch>
+    <get elem="input" dom-event="change">
+      this.rendered.input.blur();
+      return this.rendered.input.value;
+    </get>
+    <set property="value"/>
+  </watch>
+
+</component>
