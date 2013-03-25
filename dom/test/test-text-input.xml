@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="first-name" value="John"/>
-  <property name="last-name" value="Doe"/>
+  <property name="first-name" value="Bender"/>
+  <property name="last-name" value="Rodriguez"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       <html:label>
@@ -8,14 +8,12 @@
         <component href="text-input.xml" id="first-input"/>
       </html:label>
     </html:p>
-    <!--
     <html:p>
       <html:label>
         Last name:
         <component href="text-input.xml" id="last-input"/>
       </html:label>
     </html:p>
-    -->
     <html:p>
       Full name: <text id="first"/> <text id="last"/>
     </html:p>
@@ -37,7 +35,6 @@
     <set elem="first"/>
   </watch>
 
-  <!--
   <watch>
     <get property="last-name"/>
     <set elem="last"/>
@@ -46,9 +43,8 @@
 
   <watch>
     <get component="last-input" property="value"/>
-    <set property="first-name"/>
+    <set property="last-name"/>
   </watch>
--->
 
   <watch>
     <get property="last-name"/>
