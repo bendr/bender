@@ -22,23 +22,35 @@
   };
 
   // Load a component at the given URL and call k with the loaded component (or
-  // an error object [TODO])
-  // TODO load components only once
+  // an error)
   bender.Environment.load_component = function (url, k) {
-    flexo.ez_xhr(url, { responseType: "document" }, function (req) {
-      if (req.response) {
-        this.deserialize(req.response.documentElement, function (d) {
-          if (d && flexo.instance_of(d, bender.Component)) {
-            this.loaded[url] = d;
-            k(d);
-          } else {
-            k("not a component");
-          }
-        }.bind(this));
-      } else {
-        k(req.status);
-      }
-    }.bind(this));
+    if (!this.loaded.hasOwnProperty(url)) {
+      this.loaded[url] = [k];
+      flexo.ez_xhr(url, { responseType: "document" }, function (req) {
+        var ks = this.loaded[url];
+        if (req.response) {
+          this.deserialize(req.response.documentElement, function (d) {
+            if (d && flexo.instance_of(d, bender.Component)) {
+              this.loaded[url] = d;
+            } else {
+              this.loaded[url] = "not a component";
+            }
+            ks.forEach(function (k_) {
+              k_(this.loaded[url]);
+            }, this);
+          }.bind(this));
+        } else {
+          this.loaded[url] = req.status;
+          ks.forEach(function (k_) {
+            k_(this.loaded[url]);
+          }, this);
+        }
+      }.bind(this));
+    } else if (Array.isArray(this.loaded[url])) {
+      this.loaded[url].push(k);
+    } else {
+      k(this.loaded[url]);
+    }
   };
 
   // Deserialize `node` in the environment; upon completion, call k with the
