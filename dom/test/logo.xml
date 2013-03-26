@@ -34,10 +34,15 @@
   <watch>
     <get property="palette"/>
     <set property="bgcolor"
-      value="this.properties.bgcolor || flexo.random_element($$)"/>
-    <set property="fgcolor"
-      value="this.properties.fgcolor || flexo.random_element($$,
-        flexo.remove_from_array($$, this.get_property('bgcolor')))"/>
+      value="this.get_property('bgcolor') || flexo.random_element($$)"/>
+    <set property="fgcolor">
+      if (this.get_property("fgcolor")) {
+        return this.get_property("fgcolor");
+      }
+      var p = $$.slice();
+      flexo.remove_from_array(p, this.get_property("bgcolor"));
+      return flexo.random_element(p);
+    </set>
   </watch>
 
   <watch>
