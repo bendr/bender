@@ -533,8 +533,7 @@
 
   function set_attribute_value(target) {
     target.setAttributeNS(this.ns, this.name,
-        this.children.reduce(function (acc, ch) { return acc + ch.text; }, "")
-        .trim());
+        this.children.reduce(function (acc, ch) { return acc + ch.text; }, ""));
   }
 
   bender.Attribute.render = function (target, stack, k) {

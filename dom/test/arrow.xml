@@ -1,0 +1,59 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="angle"/>
+  <property name="v"/>
+  <property name="r" as="number" value="20"/>
+  <property name="white-bg" as="boolean" value="false"/>
+  <property name="color"
+    value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, {v}%)"/>
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:svg viewBox="-10 -10 20 20">
+      <svg:g>
+        <attribute name="transform">
+          rotate(<text id="rotate"/>)
+        </attribute>
+        <svg:line x1="-8" x2="4" stroke-linecap="round" id="line"/>
+        <svg:path d="M8,0 L3,-2.5 L3,2.5 Z" stroke="none" id="marker"/>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+  <watch>
+    <get event="@rendered"/>
+    <set property="angle" value="flexo.random_int(360)"/>
+    <set property="v" value="flexo.random_int(50)"/>
+  </watch>
+
+  <watch>
+    <get property="angle"/>
+    <get property="v"/>
+    <set property="color" value="'hsl(%0, 100%, %1%)'
+      .fmt(Math.floor(180 - $$[0]) + 360 % 360, $$[1])"/>
+  </watch>
+
+  <watch>
+    <get elem="$document" dom-event="mousemove"
+      value="flexo.event_svg_point($$)"/>
+    <set property="angle" value="flexo.remap(Math.atan2($$.y, $$.x),
+      -Math.PI, Math.PI, -180, 180)"/>
+    <set property="v">
+      var d = Math.sqrt($$.x * $$.x + $$.y * $$.y);
+      var diff = this.get_property("r") - d;
+      var v = flexo.clamp(diff / this.get_property("r"), 0, 1);
+      return this.get_property("white-bg") ?
+        50 + Math.round(50 * (1 - v)) : Math.round(50 * v);
+    </set>
+  </watch>
+
+  <watch>
+    <get property="angle"/>
+    <set elem="rotate"/>
+  </watch>
+
+  <watch>
+    <get property="color"/>
+    <set elem="line" attr="stroke"/>
+    <set elem="marker" attr="fill"/>
+  </watch>
+
+</component>
