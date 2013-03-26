@@ -2,12 +2,12 @@
   <property name="angle"/>
   <property name="v"/>
   <property name="r" as="number" value="20"/>
-  <property name="white-bg" as="boolean" value="false"/>
+  <property name="white-bg" as="boolean" value="true"/>
   <property name="color"
     value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, {v}%)"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:svg viewBox="-10 -10 20 20">
+    <svg:svg viewBox="-10 -10 20 20" id="svg">
       <svg:g>
         <attribute name="transform">
           rotate(<text id="rotate"/>)
@@ -33,7 +33,7 @@
 
   <watch>
     <get elem="$document" dom-event="mousemove"
-      value="flexo.event_svg_point($$)"/>
+      value="flexo.event_svg_point($$, this.rendered.svg)"/>
     <set property="angle" value="flexo.remap(Math.atan2($$.y, $$.x),
       -Math.PI, Math.PI, -180, 180)"/>
     <set property="v">
