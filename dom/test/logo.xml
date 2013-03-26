@@ -2,8 +2,8 @@
 
   <property name="palette" as="json" value='["#ff6a4d", "#0b486b", "#5eb26b",
     "#774f38","#f8ca00","#9e0b46","#a61416", "#ffffff", "#000000"]'/>
-  <property name="fgcolor"/>
   <property name="bgcolor"/>
+  <property name="fgcolor"/>
   <property name="sides"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
@@ -27,11 +27,17 @@
   </view>
 
   <watch>
-    <get property="palette"/>
-    <set property="bgcolor" value="flexo.random_element($$)"/>
-    <set property="fgcolor" value="flexo.random_element($$,
-      flexo.remove_from_array($$, this.get_property('bgcolor')))"/>
+    <get event="@rendered"/>
     <set property="sides" value="flexo.random_int(5, 9)"/>
+  </watch>
+
+  <watch>
+    <get property="palette"/>
+    <set property="bgcolor"
+      value="this.properties.bgcolor || flexo.random_element($$)"/>
+    <set property="fgcolor"
+      value="this.properties.fgcolor || flexo.random_element($$,
+        flexo.remove_from_array($$, this.get_property('bgcolor')))"/>
   </watch>
 
   <watch>

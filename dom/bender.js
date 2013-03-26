@@ -429,6 +429,9 @@
         });
       });
     }
+    seq.add(function (k_) {
+      flexo.notify(this, "@rendered");
+    }.bind(this));
     seq.add(k);
   };
 
