@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 23 March 2013
+Bender v0.8, 26 March 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -20,20 +20,11 @@ components in an element node of this document.
 The steps of rendering a component *C* in the environment *E* in an element node
 *N* are:
 
-1. setup the properties of *C*;
-2. render the links of *C*;
-3. render the view of *C*;
-4. render the watches of *C*.
-
-### Properties setup
-
-The set of properties of a component is the union of the component’s own
-properties and the set of properties of its prototype (or the empty set if the
-component has no prototype.)
-
-If a property with the same name appears in both sets, then the component’s own
-property takes precedence.
-
+1. render the links of *C*;
+2. render the view of *C*;
+3. setup the properties of *C*;
+4. render the watches of *C*;
+5. send a `@rendered` event notification.
 
 ### Links rendering
 
@@ -98,6 +89,17 @@ This view is rendered into *E* by rendering its children in order in *E*.
     * Otherwise, render the children of *S* in *E*.
 
 **TODO** describe main scenarios for using views: framing, spit view, &c.
+
+
+### Properties setup
+
+The set of properties of a component is the union of the component’s own
+properties and the set of properties of its prototype (or the empty set if the
+component has no prototype.)
+
+If a property with the same name appears in both sets, then the component’s own
+property takes precedence.
+
 
 ### Watches rendering
 
@@ -176,11 +178,9 @@ of the outputs are as follows:
 * for an event output, a new event notification with type *L* and additional
   arguments given by *v* is sent by the destination component;
 * for a DOM attribute output, the attribute name *L* of the destination DOM
-  element is set to value *v*;
-* for an action output, **TODO**
-* for an insertion point output, **TODO**
+  element is set to value *v*.
 
-**TODO** transform values
+Transforming values is dependent on the runtime and is not covered here.
 
 After an outgoing edge *E* to vertex *V* has been activated, new edges from *V*
 to some watch *W* may be activated, leading to new watch activations, and so on.

@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 23 March 2013
+Bender v0.8, 26 March 2013
 
 Bender describes Web applications through the combination of *components*.
 Running a Bender application requires a runtime, which renders the component
@@ -136,7 +136,7 @@ There are three kinds of inputs:
    * a source component;
    * an event type.
 
-There are six kinds of outputs:
+There are four kinds of outputs:
 
 1. a **property output** consists of:
    * a target component;
@@ -151,12 +151,6 @@ There are six kinds of outputs:
 4. a **DOM property output** consists of:
    * a target element;
    * an DOM property name;
-5. an **action output** consists of:
-   * a target element;
-   * an action, which is one of “append”, “prepend” or “remove”;
-6. an **insertion point output** consists of:
-   * a target element;
-   * an insertion point, which is one of “before”, “after” or “replace.”
 
 ### Events
 

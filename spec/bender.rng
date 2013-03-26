@@ -134,8 +134,6 @@
         <ref name="set-event"/>
         <ref name="set-dom-attribute"/>
         <ref name="set-dom-property"/>
-        <ref name="set-action"/>
-        <ref name="set-insert"/>
       </choice>
       <optional>
         <choice>
@@ -171,16 +169,6 @@
     <optional>
       <ref name="property-dom-ref"/>
     </optional>
-  </define>
-
-  <define name="set-action">
-    <ref name="view-ref"/>
-    <ref name="action"/>
-  </define>
-
-  <define name="set-insert">
-    <ref name="view-ref"/>
-    <ref name="insert"/>
   </define>
 
   <define name="text">
@@ -250,16 +238,6 @@
 
 
 
-  <define name="action">
-    <attribute name="action">
-      <choice>
-        <value>append</value>
-        <value>prepend</value>
-        <value>remove</value>
-      </choice>
-    </attribute>
-  </define>
-
   <define name="as">
     <attribute name="as">
       <choice>
@@ -311,16 +289,6 @@
   <define name="id">
     <attribute name="id">
       <data type="ID"/>
-    </attribute>
-  </define>
-
-  <define name="insert">
-    <attribute name="insert">
-      <choice>
-        <value>before</value>
-        <value>after</value>
-        <value>replace</value>
-      </choice>
     </attribute>
   </define>
 

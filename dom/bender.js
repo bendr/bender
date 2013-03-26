@@ -267,12 +267,6 @@
       if (elem.hasAttribute("attr")) {
         k(bender.init_set_dom_attribute(elem.getAttribute("ns"),
               elem.getAttribute("attr"), elem.getAttribute("elem"), value));
-      } else if (elem.hasAttribute("action")) {
-        k(bender.init_set_action(elem.getAttribute("action"),
-            elem.getAttribute("elem"), value));
-      } else if (elem.hasAttribute("insert")) {
-        k(bender.init_set_insert(elem.getAttribute("insert"),
-            elem.getAttribute("elem"), value));
       } else {
         k(bender.init_set_dom_property(elem.getAttribute("property"),
             elem.getAttribute("elem"), value));
@@ -769,8 +763,6 @@
   bender.SetEvent = Object.create(bender.Set);
   bender.SetDOMAttribute = Object.create(bender.Set);
   bender.SetDOMProperty = Object.create(bender.Set);
-  bender.SetAction = Object.create(bender.Set);
-  bender.SetInsert = Object.create(bender.Set);
 
   bender.SetProperty.activate = function (component, watch, values) {
     var c = component.components[this.target];
@@ -794,14 +786,6 @@
 
     component.rendered[this.target][this.property] =
       this.value.call(component, values);
-  };
-
-  bender.SetAction.activate = function (component, watch) {
-    // TODO
-  };
-
-  bender.SetInsert.activate = function (component, watch) {
-    // TODO
   };
 
   function init_set_value(value) {
@@ -840,28 +824,6 @@
     s.target = target;
     s.value = init_set_value(value);
     return s;
-  };
-
-  bender.init_set_action = function (action, target, value) {
-    var a = (action || "").trim().toLowerCase();
-    if (a === "append" || a === "prepend" || a === "remove") {
-      var s = Object.create(bender.SetAction);
-      s.action = a;
-      s.target = target;
-      s.value = init_set_value(value);
-      return s;
-    }
-  };
-
-  bender.init_set_insert = function (insert, target, value) {
-    var i = (insert || "").trim().toLowerCase();
-    if (i === "before" || i === "after" || i === "replace") {
-      var s = Object.create(bender.SetInsert);
-      s.insert = i;
-      s.target = target;
-      s.value = init_set_value(value);
-      return s;
-    }
   };
 
 }(this.bender = {}));
