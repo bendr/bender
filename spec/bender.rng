@@ -129,12 +129,14 @@
 
   <define name="set">
     <element name="set">
-      <choice>
-        <ref name="set-property"/>
-        <ref name="set-event"/>
-        <ref name="set-dom-attribute"/>
-        <ref name="set-dom-property"/>
-      </choice>
+      <optional>
+        <choice>
+          <ref name="set-property"/>
+          <ref name="set-event"/>
+          <ref name="set-dom-attribute"/>
+          <ref name="set-dom-property"/>
+        </choice>
+      </optional>
       <optional>
         <choice>
           <ref name="value"/>

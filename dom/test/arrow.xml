@@ -3,8 +3,7 @@
   <property name="v"/>
   <property name="r" as="number" value="20"/>
   <property name="white-bg" as="boolean" value="true"/>
-  <property name="color"
-    value="hsl({ Math.floor(180 - {angle}) + 360 % 360 }, 100%, {v}%)"/>
+  <property name="color"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="-10 -10 20 20" id="svg">
@@ -28,16 +27,16 @@
     <get property="angle"/>
     <get property="v"/>
     <set property="color" value="'hsl(%0, 100%, %1%)'
-      .fmt(Math.floor(180 - $$[0]) + 360 % 360, $$[1])"/>
+      .fmt(Math.floor(180 - input[0]) + 360 % 360, input[1])"/>
   </watch>
 
   <watch>
     <get elem="$document" dom-event="mousemove"
-      value="flexo.event_svg_point($$, this.rendered.svg)"/>
-    <set property="angle" value="flexo.remap(Math.atan2($$.y, $$.x),
+      value="flexo.event_svg_point(event, this.rendered.svg)"/>
+    <set property="angle" value="flexo.remap(Math.atan2(input.y, input.x),
       -Math.PI, Math.PI, -180, 180)"/>
     <set property="v">
-      var d = Math.sqrt($$.x * $$.x + $$.y * $$.y);
+      var d = Math.sqrt(input.x * input.x + input.y * input.y);
       var diff = this.get_property("r") - d;
       var v = flexo.clamp(diff / this.get_property("r"), 0, 1);
       return this.get_property("white-bg") ?

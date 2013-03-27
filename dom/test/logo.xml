@@ -34,12 +34,12 @@
   <watch>
     <get property="palette"/>
     <set property="bgcolor"
-      value="this.get_property('bgcolor') || flexo.random_element($$)"/>
+      value="this.get_property('bgcolor') || flexo.random_element(property)"/>
     <set property="fgcolor">
       if (this.get_property("fgcolor")) {
         return this.get_property("fgcolor");
       }
-      var p = $$.slice();
+      var p = input.slice();
       flexo.remove_from_array(p, this.get_property("bgcolor"));
       return flexo.random_element(p);
     </set>
@@ -54,7 +54,7 @@
   <watch>
     <get property="sides"/>
     <set elem="polygon" attr="points"
-      value="flexo.poly_points($$, 42, flexo.random_int(0, 360))"/>
+      value="flexo.poly_points(input, 42, flexo.random_int(0, 360))"/>
   </watch>
 
   <watch>

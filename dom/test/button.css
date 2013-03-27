@@ -1,7 +1,11 @@
 .button {
-  background-color: #ff4040;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: #08f;
+  font-family: Futura, Optima, sans-serif;
   color: white;
-  width: 4em;
+  width: 5em;
   text-align: center;
   padding: 0.5em;
   border-radius: 0.5em;
@@ -13,6 +17,7 @@
 }
 
 .button.down {
+  opacity: 0.9;
   -webkit-transform: scale(0.9);
   -moz-transform: scale(0.9);
   -ms-transform: scale(0.9);

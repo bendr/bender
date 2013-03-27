@@ -18,11 +18,9 @@
   </watch>
 
   <watch>
-    <get elem="input" dom-event="change">
-      this.rendered.input.blur();
-      return this.rendered.input.value;
-    </get>
-    <set property="value"/>
+    <get elem="input" dom-event="change"/>
+    <get elem="input" dom-event="blur"/>
+    <set property="value" value="this.rendered.input.value"/>
   </watch>
 
 </component>

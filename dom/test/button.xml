@@ -12,12 +12,12 @@
     </html:div>
   </view>
   <watch>
-    <get property="down" value="$$ ? 'down' : ''"/>
-    <set elem="class"/>
+    <get property="down"/>
+    <set elem="class" value="input ? 'down' : ''"/>
   </watch>
   <watch>
     <get elem="div" dom-event="mousedown">
-      $$.preventDefault();
+      event.preventDefault();
       return true;
     </get>
     <set property="down"/>

@@ -12,6 +12,7 @@
   bender.init_environment = function () {
     var e = Object.create(bender.Environment);
     e.loaded = {};
+    e.activation_queue = [];
     return e;
   };
 
@@ -19,6 +20,44 @@
   // finished.
   bender.Environment.render_component = function (component, target, k) {
     component.render(target, k);
+  };
+
+  function dequeue() {
+    for (var i = 0; i < this.activation_queue.length; ++i) {
+      var edge = this.activation_queue[i];
+      if (edge.hasOwnProperty("__value")) {
+        // input edge: activate its watch
+        if (!edge.watch.__activated) {
+          edge.watch.__activated = true;
+          push.apply(this.activation_queue, edge.watch.sets);
+        }
+      } else {
+        // output edge: execute it from the activation values
+        var vals = edge.watch.gets.map(function (g) {
+          return g.__value;
+        });
+        edge.activate(vals.length < 2 ? vals[0] : vals);
+      }
+    }
+    this.activation_queue.forEach(function (edge) {
+      delete edge.__value;
+      delete edge.watch.__activated;
+    });
+    this.activation_queue = [];
+  }
+
+  // Activate an edge in the watch graph; in a sort of breadth-first traversal.
+  // Set the activation value on the edge as well; if it was already set, then
+  // the edge was already activated once so do nothing except update the
+  // activation value.
+  bender.Environment.activate = function (edge, value) {
+    if (!edge.hasOwnProperty("__value")) {
+      this.activation_queue.push(edge);
+      if (!this.activation_queue.timer) {
+        this.activation_queue.timer = window.setTimeout(dequeue.bind(this), 0);
+      }
+    }
+    edge.__value = value;
   };
 
   // Load a component at the given URL and call k with the loaded component (or
@@ -105,6 +144,7 @@
     k(bender.init_link(uri, elem.getAttribute("rel")));
   };
 
+  // TODO delay evaluation of the value to *after* rendering!
   bender.Environment.deserialize.property = function (elem, k) {
     var value = elem.getAttribute("value");
     var as = (elem.getAttribute("as") || "").trim().toLowerCase();
@@ -223,17 +263,16 @@
   };
 
   bender.Environment.deserialize.watch = function (elem, k) {
-    var gets = [];
-    var sets = [];
+    var watch = bender.init_watch(this);
     var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
       seq.add(function (k_) {
         this.deserialize(ch, function (d) {
           if (d) {
             if (flexo.instance_of(d, bender.Get)) {
-              gets.push(d);
+              watch.append_get(d);
             } else if (flexo.instance_of(d, bender.Set)) {
-              sets.push(d);
+              watch.append_set(d);
             }
           }
           k_();
@@ -241,8 +280,8 @@
       }.bind(this));
     }, this);
     seq.add(function () {
-      k(bender.init_watch(gets, sets));
-    });
+      k(watch);
+    }.bind(this));
   };
 
   bender.Environment.deserialize.get = function (elem, k) {
@@ -257,6 +296,8 @@
     } else if (elem.hasAttribute("event")) {
       k(bender.init_get_event(elem.getAttribute("event"),
           elem.getAttribute("component"), value));
+    } else {
+      k();
     }
   };
 
@@ -277,6 +318,8 @@
     } else if (elem.hasAttribute("event")) {
       k(bender.init_set_event(elem.getAttribute("event"),
           elem.getAttribute("component"), value));
+    } else {
+      k(bender.init_set(value));
     }
   };
 
@@ -327,8 +370,10 @@
           }
         });
       } else if (flexo.instance_of(ch, bender.View)) {
+        ch.component = this;
         this.views[ch.id] = ch;
       } else if (flexo.instance_of(ch, bender.Watch)) {
+        ch.component = this;
         this.watches.push(ch);
       }
     }
@@ -410,7 +455,10 @@
     for (var i = queue.length; i > 0; --i) {
       queue[i - 1].watches.forEach(function (watch) {
         seq.add(function (k_) {
-          watch.render(stack.component);
+          var w = watch.render(stack.component);
+          if (w) {
+            stack.component.watches.push(w);
+          }
           k_();
         });
       });
@@ -418,15 +466,15 @@
     for (var i = queue.length; i > 0; --i) {
       queue[i - 1].watches.forEach(function (watch) {
         seq.add(function (k_) {
-          watch.init(stack.component);
+          watch.init();
           k_();
         });
       });
     }
-    seq.add(function (k_) {
+    seq.add(function () {
       flexo.notify(this, "@rendered");
+      k();
     }.bind(this));
-    seq.add(k);
   };
 
 
@@ -651,94 +699,142 @@
 
   bender.Watch = {};
 
-  bender.Watch.render = function (component) {
+  bender.Watch.init = function () {
     this.gets.forEach(function (get) {
-      get.render(component, this);
-    }, this);
-  };
-
-  bender.Watch.init = function (component) {
-    var gets = this.gets.filter(function (get) {
-      return flexo.instance_of(get, bender.GetProperty);
+      get.activate();
     });
-    if (gets.length > 0) {
-      gets.forEach(function (get) {
-        get.activation_value = get.value.call(component,
-          component.get_property(get.property));
-      });
-      this.activate(component);
-    }
   };
 
-  bender.Watch.activate = function (component) {
-    if (this.active) {
-      return;
-    }
-    this.active = true;
-    window.setTimeout(function () {
-      var vals = this.gets.map(function (get) {
-        return get.activation_value;
+  bender.Watch.append_get = function (get) {
+    this.gets.push(get);
+    get.watch = this;
+  };
+
+  bender.Watch.append_set = function (set) {
+    this.sets.push(set);
+    set.watch = this;
+  };
+
+  bender.Watch.render = function (component) {
+    if (component !== this.component) {
+      var w = Object.create(this);
+      w.component = component;
+      w.gets = this.gets.map(function (get) {
+        return get.render(w);
       });
-      if (vals.length < 2) {
-        vals = vals[0];
-      }
-      this.sets.forEach(function (set) {
-        set.activate(component, this, vals);
+      w.sets = this.sets.map(function (set) {
+        var set = Object.create(set);
+        set.watch = w;
+        return set;
+      });
+      return w;
+    } else {
+      this.gets.forEach(function (get) {
+        get.render(this);
       }, this);
-      this.active = false;
-    }.bind(this), 0);
+    }
   };
 
-  bender.init_watch = function (gets, sets) {
+  bender.init_watch = function (environment) {
     var w = Object.create(bender.Watch);
-    w.gets = gets || [];
-    w.sets = sets || [];
+    w.environment = environment;
+    w.gets = [];
+    w.sets = [];
     return w;
   };
 
 
+  // Watch inputs (three different kinds)
   bender.Get = {};
   bender.GetProperty = Object.create(bender.Get);
   bender.GetDOMEvent = Object.create(bender.Get);
   bender.GetEvent = Object.create(bender.Get);
 
-  bender.GetProperty.render = function (component, watch) {
-    var c = component.components[this.source];
-    if (typeof c === "object") {
-      flexo.listen(c, "@set-property", function (e) {
-        if (e.name === this.property) {
-          this.activation_value = this.value.call(component,
-            e.source.get_property(e.name));
-          watch.activate(component);
-        }
-      }.bind(this));
+  bender.Get.activate = function () {};
+
+  bender.GetProperty.activate = function () {
+    if (this.source_component) {
+      this.watch.environment.activate(this,
+          this.value.call(this.watch.component,
+            this.source_component.get_property(this.property)));
     }
   };
 
-  bender.GetDOMEvent.render = function (component, watch) {
-    component.rendered[this.source].addEventListener(this.event, function (e) {
-      this.activation_value = this.value.call(component, e);
-      watch.activate(component);
-    }.bind(this), false);
+  // Render the get element in the given watch, if it differs from its
+  // prototypal parent
+  function render_get(get, watch) {
+    if (get.watch !== watch) {
+      get = Object.create(get);
+      get.watch = watch;
+    }
+    return get;
+  }
+
+  // Render a property input: listen for @set-property events from the source
+  // component and activate the edge if it matches the property name. The input
+  // value is the value of the property.
+  bender.GetProperty.render = function (watch) {
+    var get = render_get(this, watch);
+    get.source_component = get.watch.component.components[get.source];
+    if (typeof get.source_component === "object") {
+      flexo.listen(get.source_component, "@set-property", function (e) {
+        if (e.name === get.property) {
+          get.watch.environment.activate(get,
+            get.value.call(get.watch.component,
+              e.source.get_property(e.name)));
+        }
+      });
+    } else {
+      delete get.source_component;
+      console.warn("No component “%0” for get/property “%1”"
+          .fmt(get.source, get.property));
+    }
+    return get;
   };
 
-  bender.GetEvent.render = function (component, watch) {
-    flexo.listen(component.components[this.source], this.event, function (e) {
-      this.activation_value = this.value.call(component, e);
-      watch.activate(component);
-    }.bind(this));
+  // Render a DOM event input: listen for the event on the source element.
+  bender.GetDOMEvent.render = function (watch) {
+    var get = render_get(this, watch);
+    var r = get.watch.component.rendered[get.source];
+    if (r) {
+      r.addEventListener(get.event, function (e) {
+        get.watch.environment.activate(get,
+          get.value.call(get.watch.component, e));
+      }, false);
+    } else {
+      console.warn("No element “%0” for get/dom-event “%1”"
+          .fmt(get.source, get.event));
+    }
+    return get;
   };
 
-  function init_get_value(value) {
+  // Render an event input: listen for the event on the source component
+  bender.GetEvent.render = function (watch) {
+    var get = render_get(this, watch);
+    var c = get.watch.component.components[get.source];
+    if (c) {
+      flexo.listen(c, get.event, function (e) {
+        get.watch.environment.activate(get,
+          get.value.call(get.watch.component, e));
+      });
+    } else {
+      console.warn("No component “%0” for get/event “%1”"
+          .fmt(get.source, get.event));
+    }
+    return get;
+  };
+
+  // Compile a function for the value of the input, or use the id function
+  function init_get_value(name, value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("$$", value) : flexo.id;
+      new Function(name, value) : flexo.id;
   }
 
   bender.init_get_property = function (property, source, value) {
     var g = Object.create(bender.GetProperty);
     g.property = property;
     g.source = source || "$self";
-    g.value = init_get_value(value);
+    g.value = init_get_value("property", value);
     return g;
   };
 
@@ -746,7 +842,7 @@
     var g = Object.create(bender.GetDOMEvent);
     g.event = event;
     g.source = source;
-    g.value = init_get_value(value);
+    g.value = init_get_value("event", value);
     return g;
   };
 
@@ -754,7 +850,7 @@
     var g = Object.create(bender.GetEvent);
     g.event = event;
     g.source = source || "$self";
-    g.value = init_get_value(value);
+    g.value = init_get_value("event", value);
     return g;
   };
 
@@ -764,34 +860,65 @@
   bender.SetDOMAttribute = Object.create(bender.Set);
   bender.SetDOMProperty = Object.create(bender.Set);
 
-  bender.SetProperty.activate = function (component, watch, values) {
-    var c = component.components[this.target];
+  // Just execute the value function
+  bender.Set.activate = function (v) {
+    this.value.call(this.watch.component, v);
+  };
+
+  // Set a property on a component
+  bender.SetProperty.activate = function (v) {
+    var c = this.watch.component.components[this.target];
     if (c) {
-      c.set_property(this.property, this.value.call(component, values));
+      c.set_property(this.property, this.value.call(this.watch.component, v));
+    } else {
+      console.warn("No component “%0” for set/property “%1”"
+          .fmt(this.target, this.property));
     }
   };
 
-  bender.SetEvent.activate = function (component, watch, values) {
-    flexo.notify(component.components[this.target], this.event,
-        this.value.call(component, values));
+  // Send an event notification
+  bender.SetEvent.activate = function (v) {
+    var c = this.watch.component.components[this.target];
+    if (c) {
+      flexo.notify(c, this.event, this.value.call(this.watch.component, v));
+    } else {
+      console.warn("No component “%0” for set/event “%1”"
+          .fmt(this.target, this.event));
+    }
   };
 
-  bender.SetDOMAttribute.activate = function (component, watch, values) {
-    component.rendered[this.target].setAttributeNS(this.ns, this.attr,
-      this.value.call(component, values));
+  // Set a DOM attribute on a rendered element
+  bender.SetDOMAttribute.activate = function (v) {
+    var r = this.watch.component.rendered[this.target];
+    if (r) {
+      r.setAttributeNS(this.ns, this.attr,
+          this.value.call(this.watch.component, v));
+    } else {
+      console.warn("No element “%0” for set/dom-attribute “{%1}%2”"
+          .fmt(this.target, this.ns, this.attr));
+    }
   };
 
-  bender.SetDOMProperty.activate = function (component, watch, values) {
-    var target = component.rendered[this.target];
-
-    component.rendered[this.target][this.property] =
-      this.value.call(component, values);
+  bender.SetDOMProperty.activate = function (v) {
+    var r = this.watch.component.rendered[this.target];
+    if (r) {
+      r[this.property] = this.value.call(this.watch.component, v);
+    } else {
+      console.warn("No element “%0” for set/dom-property “%1”"
+          .fmt(this.target, this.property));
+    }
   };
 
   function init_set_value(value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("$$", value) : flexo.id;
+      new Function ("input", value) : flexo.id;
   }
+
+  bender.init_set = function (value) {
+    var s = Object.create(bender.Set);
+    s.value = init_set_value(value);
+    return s;
+  };
 
   bender.init_set_property = function (property, target, value) {
     var s = Object.create(bender.SetProperty);

@@ -10,6 +10,11 @@
           +1
         </view>
       </component>
+      <component href="button.xml" id="button-minus">
+        <view>
+          -1
+        </view>
+      </component>
     </html:p>
   </view>
   <watch>
@@ -18,6 +23,10 @@
   </watch>
   <watch>
     <get component="button" event="@pushed"/>
-    <set property="count" value="this.properties.count + 1"/>
+    <set property="count" value="this.get_property('count') + 1"/>
+  </watch>
+  <watch>
+    <get component="button-minus" event="@pushed"/>
+    <set property="count" value="this.get_property('count') - 1"/>
   </watch>
 </component>
