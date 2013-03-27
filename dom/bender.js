@@ -27,6 +27,7 @@
       var edge = this.activation_queue[i];
       if (edge.hasOwnProperty("__value")) {
         // input edge: activate its watch
+        console.log("! activate %0 = “%1”".fmt(edge, edge.__value));
         if (!edge.watch.__activated) {
           edge.watch.__activated = true;
           push.apply(this.activation_queue, edge.watch.sets);
@@ -36,6 +37,7 @@
         var vals = edge.watch.gets.map(function (g) {
           return g.__value;
         });
+        console.log("! activate %0 = %1".fmt(edge, vals));
         edge.activate(vals.length < 2 ? vals[0] : vals);
       }
     }
@@ -43,6 +45,7 @@
       delete edge.__value;
       delete edge.watch.__activated;
     });
+    console.log("! clear activation queue");
     this.activation_queue = [];
   }
 
@@ -51,6 +54,7 @@
   // the edge was already activated once so do nothing except update the
   // activation value.
   bender.Environment.activate = function (edge, value) {
+    console.log("! enqueue %0".fmt(edge));
     if (!edge.hasOwnProperty("__value")) {
       this.activation_queue.push(edge);
       if (!this.activation_queue.timer) {
@@ -147,20 +151,30 @@
   // TODO delay evaluation of the value to *after* rendering!
   bender.Environment.deserialize.property = function (elem, k) {
     var value = elem.getAttribute("value");
+    var v;
     var as = (elem.getAttribute("as") || "").trim().toLowerCase();
     if (as === "boolean") {
-      value = flexo.is_true(value);
+      v = function () {
+        return flexo.is_true(value);
+      };
     } else if (as === "dynamic") {
-      value = eval(value);
+      v = function () {
+        return eval(value);
+      };
     } else if (as === "json") {
-      try {
-        value = JSON.parse(value);
-      } catch (e) {
-      }
+      v = function () {
+        try {
+          return JSON.parse(value);
+        } catch (e) {
+          console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
+        }
+      };
     } else if (as === "number") {
-      value = parseFloat(value);
+      v = function () {
+        return parseFloat(value);
+      };
     }
-    k(bender.init_property(elem.getAttribute("name"), value));
+    k(bender.init_property(elem.getAttribute("name"), v));
   };
 
   bender.Environment.deserialize.view = function (elem, k) {
@@ -350,7 +364,7 @@
     });
     c.links = [];
     c.views = {};
-    c.properties = {};
+    c.properties = [];
     c.watches = [];
     return c;
   };
@@ -360,15 +374,8 @@
       if (flexo.instance_of(ch, bender.Link)) {
         this.links.push(ch);
       } else if (flexo.instance_of(ch, bender.Property)) {
-        var component = this;
-        Object.defineProperty(this.properties, ch.name, { enumerable: true,
-          get: function () { return ch.value; },
-          set: function (v) {
-            ch.value = v;
-            flexo.notify(component, "@set-property",
-              { name: ch.name, value: v });
-          }
-        });
+        ch.component = this;
+        this.properties.push(ch);
       } else if (flexo.instance_of(ch, bender.View)) {
         ch.component = this;
         this.views[ch.id] = ch;
@@ -463,14 +470,13 @@
         });
       });
     }
-    for (var i = queue.length; i > 0; --i) {
-      queue[i - 1].watches.forEach(function (watch) {
-        seq.add(function (k_) {
-          watch.init();
-          k_();
-        });
+    // TODO handle properties from prototype queue
+    this.properties.forEach(function (property) {
+      seq.add(function (k_) {
+        property.render();
+        k_();
       });
-    }
+    });
     seq.add(function () {
       flexo.notify(this, "@rendered");
       k();
@@ -507,10 +513,28 @@
 
   bender.Property = {};
 
+  bender.Property.render = function () {
+    var p = this;
+    console.log("= Render property %0".fmt(p.name));
+    Object.defineProperty(p.component.properties, p.name, { enumerable: true,
+      get: function () { return p.value; },
+      set: function (v) {
+        p.value = v;
+        console.log("= set %0 to %1".fmt(p.name, v));
+        flexo.notify(p.component, "@set-property", { name: p.name, value: v });
+      }
+    });
+    if (p.__value) {
+      p.component.properties[p.name] = p.__value();
+      delete p.__value;
+    }
+  };
+
   bender.init_property = function (name, value) {
     var property = Object.create(bender.Property);
     property.name = name;
-    property.value = value;
+    property.__value = value;
+    property.__unininitialized = true;
     return property;
   };
 
@@ -699,12 +723,6 @@
 
   bender.Watch = {};
 
-  bender.Watch.init = function () {
-    this.gets.forEach(function (get) {
-      get.activate();
-    });
-  };
-
   bender.Watch.append_get = function (get) {
     this.gets.push(get);
     get.watch = this;
@@ -750,16 +768,6 @@
   bender.GetDOMEvent = Object.create(bender.Get);
   bender.GetEvent = Object.create(bender.Get);
 
-  bender.Get.activate = function () {};
-
-  bender.GetProperty.activate = function () {
-    if (this.source_component) {
-      this.watch.environment.activate(this,
-          this.value.call(this.watch.component,
-            this.source_component.get_property(this.property)));
-    }
-  };
-
   // Render the get element in the given watch, if it differs from its
   // prototypal parent
   function render_get(get, watch) {
@@ -786,10 +794,13 @@
       });
     } else {
       delete get.source_component;
-      console.warn("No component “%0” for get/property “%1”"
-          .fmt(get.source, get.property));
+      console.warn("No component for %0".fmt(get));
     }
     return get;
+  };
+
+  bender.GetProperty.toString = function () {
+    return "get/property(%0, %1)".fmt(this.source, this.property);
   };
 
   // Render a DOM event input: listen for the event on the source element.
@@ -802,10 +813,13 @@
           get.value.call(get.watch.component, e));
       }, false);
     } else {
-      console.warn("No element “%0” for get/dom-event “%1”"
-          .fmt(get.source, get.event));
+      console.warn("No element for %0".fmt(get));
     }
     return get;
+  };
+
+  bender.GetDOMEvent.toString = function () {
+    return "get/dom-event(%0, %1)".fmt(this.source, this.event);
   };
 
   // Render an event input: listen for the event on the source component
@@ -818,10 +832,13 @@
           get.value.call(get.watch.component, e));
       });
     } else {
-      console.warn("No component “%0” for get/event “%1”"
-          .fmt(get.source, get.event));
+      console.warn("No component for %0".fmt(get));
     }
     return get;
+  };
+
+  bender.GetEvent.toString = function () {
+    return "get/event(%0, %1)".fmt(this.source, this.event);
   };
 
   // Compile a function for the value of the input, or use the id function
@@ -865,15 +882,22 @@
     this.value.call(this.watch.component, v);
   };
 
+  bender.Set.toString = function () {
+    return "set/sink";
+  };
+
   // Set a property on a component
   bender.SetProperty.activate = function (v) {
     var c = this.watch.component.components[this.target];
     if (c) {
       c.set_property(this.property, this.value.call(this.watch.component, v));
     } else {
-      console.warn("No component “%0” for set/property “%1”"
-          .fmt(this.target, this.property));
+      console.warn("No component for %0".fmt(this));
     }
+  };
+
+  bender.SetProperty.toString = function () {
+    return "set/property(%0, %1)".fmt(this.target, this.property);
   };
 
   // Send an event notification
@@ -882,9 +906,12 @@
     if (c) {
       flexo.notify(c, this.event, this.value.call(this.watch.component, v));
     } else {
-      console.warn("No component “%0” for set/event “%1”"
-          .fmt(this.target, this.event));
+      console.warn("No component for %0".fmt(this));
     }
+  };
+
+  bender.SetProperty.toString = function () {
+    return "set/property(%0, %1)".fmt(this.target, this.property);
   };
 
   // Set a DOM attribute on a rendered element
@@ -894,9 +921,12 @@
       r.setAttributeNS(this.ns, this.attr,
           this.value.call(this.watch.component, v));
     } else {
-      console.warn("No element “%0” for set/dom-attribute “{%1}%2”"
-          .fmt(this.target, this.ns, this.attr));
+      console.warn("No element for %0".fmt(this));
     }
+  };
+
+  bender.SetDOMAttribute.toString = function () {
+    return "set/dom-attribute(%0, {%1}%2)".fmt(this.target, this.ns, this.name);
   };
 
   bender.SetDOMProperty.activate = function (v) {
@@ -904,9 +934,12 @@
     if (r) {
       r[this.property] = this.value.call(this.watch.component, v);
     } else {
-      console.warn("No element “%0” for set/dom-property “%1”"
-          .fmt(this.target, this.property));
+      console.warn("No element for %0".fmt(this));
     }
+  };
+
+  bender.SetDOMProperty.toString = function () {
+    return "set/dom-property(%0, %1)".fmt(this.target, this.property);
   };
 
   function init_set_value(value) {

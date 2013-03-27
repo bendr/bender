@@ -8,7 +8,7 @@
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 128 128">
-      <svg:rect id="rect" width="128" height="128" rx="16" ry="16"/>
+      <svg:rect id="rect" x="4" y="4" width="120" height="120" rx="16" ry="16"/>
       <svg:g transform="translate(64, 64)" stroke-width="16"
         stroke-linejoin="round">
         <svg:polygon id="polygon">
@@ -34,7 +34,7 @@
   <watch>
     <get property="palette"/>
     <set property="bgcolor"
-      value="this.get_property('bgcolor') || flexo.random_element(property)"/>
+      value="this.get_property('bgcolor') || flexo.random_element(input)"/>
     <set property="fgcolor">
       if (this.get_property("fgcolor")) {
         return this.get_property("fgcolor");
