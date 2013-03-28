@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 26 March 2013
+Bender v0.8, 28 March 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -22,8 +22,8 @@ The steps of rendering a component *C* in the environment *E* in an element node
 
 1. render the links of *C*;
 2. render the view of *C*;
-3. setup the properties of *C*;
-4. render the watches of *C*;
+3. render the watches of *C*;
+4. render the properties of *C*;
 5. send a `@rendered` event notification.
 
 ### Links rendering
@@ -89,16 +89,6 @@ This view is rendered into *E* by rendering its children in order in *E*.
     * Otherwise, render the children of *S* in *E*.
 
 **TODO** describe main scenarios for using views: framing, spit view, &c.
-
-
-### Properties setup
-
-The set of properties of a component is the union of the component’s own
-properties and the set of properties of its prototype (or the empty set if the
-component has no prototype.)
-
-If a property with the same name appears in both sets, then the component’s own
-property takes precedence.
 
 
 ### Watches rendering
@@ -188,3 +178,13 @@ to some watch *W* may be activated, leading to new watch activations, and so on.
 
 When no new activation happens, all activated edges and watches are reset to a
 non-activated state.
+
+
+### Properties rendering
+
+The set of properties of a component is the union of the component’s own
+properties and the set of properties of its prototype (or the empty set if the
+component has no prototype.)
+
+If a property with the same name appears in both sets, then the component’s own
+property takes precedence.
