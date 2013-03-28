@@ -510,8 +510,9 @@
       enumerable: true,
       get: function () { return p.value; },
       set: function (v) {
+        delete p.__unset;
         p.value = v;
-        console.log("= set %0 to %1".fmt(p.name, v));
+        console.log("= set %0 to %1 on %2".fmt(p.name, v, p.component.id));
         flexo.notify(p.component, "@set-property", { name: p.name, value: v });
       }
     });
@@ -530,12 +531,14 @@
 
   bender.Property.render_for_prototype = function (component) {
     var p = this;
+    console.log("~ Render property %0 on “%1”".fmt(p.name, component.id));
+    console.log("+ Listen to %0/@set-property for %1"
+        .fmt(p.component.id, p.name));
     var listener = flexo.listen(p.component, "@set-property", function (e) {
       if (e.name === p.name) {
         flexo.notify(component, "@set-property", e);
       }
     });
-    console.log("~ Render property %0 on “%1”".fmt(p.name, component.id));
     Object.defineProperty(component.properties, p.name, {
       enumerable: true,
       configurable: true,
@@ -548,12 +551,16 @@
         component.properties[p_.name] = v;
       }
     });
+    if (!p.__unset) {
+      listener({ name: p.name, value: p.value });
+    }
   };
 
   bender.init_property = function (name, value) {
     var property = Object.create(bender.Property);
     property.name = name;
     property.__value = value;
+    property.__unset = true;
     return property;
   };
 

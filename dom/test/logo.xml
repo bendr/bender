@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="logo">
 
   <property name="palette" as="json" value='["#ff6a4d", "#0b486b", "#5eb26b",
     "#774f38","#f8ca00","#9e0b46","#a61416", "#ffffff", "#000000"]'/>
