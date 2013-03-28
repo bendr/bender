@@ -37,9 +37,9 @@
       -Math.PI, Math.PI, -180, 180)"/>
     <set property="v">
       var d = Math.sqrt(input.x * input.x + input.y * input.y);
-      var diff = this.get_property("r") - d;
-      var v = flexo.clamp(diff / this.get_property("r"), 0, 1);
-      return this.get_property("white-bg") ?
+      var diff = this.properties.r - d;
+      var v = flexo.clamp(diff / this.properties.r, 0, 1);
+      return this.properties["white-bg"] ?
         50 + Math.round(50 * (1 - v)) : Math.round(50 * v);
     </set>
   </watch>

@@ -35,6 +35,11 @@ var ENV = bender.init_environment();
       if (flexo.instance_of(component, bender.Component)) {
         console.log("Component at %0 loaded OK".fmt(url));
         env.render_component(component, document.documentElement, function () {
+          for (var p in args) {
+            if (p !== "href") {
+              component.properties[p] = args[p];
+            }
+          }
           console.log("Component rendered OK", component);
         });
       } else {

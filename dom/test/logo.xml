@@ -34,13 +34,13 @@
   <watch>
     <get property="palette"/>
     <set property="bgcolor"
-      value="this.get_property('bgcolor') || flexo.random_element(input)"/>
+      value="this.properties.bgcolor || flexo.random_element(input)"/>
     <set property="fgcolor">
-      if (this.get_property("fgcolor")) {
-        return this.get_property("fgcolor");
+      if (this.properties.fgcolor) {
+        return this.properties.fgcolor;
       }
       var p = input.slice();
-      flexo.remove_from_array(p, this.get_property("bgcolor"));
+      flexo.remove_from_array(p, this.properties.bgcolor);
       return flexo.random_element(p);
     </set>
   </watch>

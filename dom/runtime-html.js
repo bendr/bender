@@ -38,7 +38,7 @@ var ENV = bender.init_environment();
         env.render_component(component, document.body, function () {
           for (var p in args) {
             if (p !== "href") {
-              component.set_property(p, args[p]);
+              component.properties[p] = args[p];
             }
           }
           console.log("Component rendered OK", component);

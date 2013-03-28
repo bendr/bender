@@ -25,7 +25,7 @@
   <watch>
     <get elem="$document" dom-event="mouseup"/>
     <set property="down">
-      if (this.get_property("down")) {
+      if (this.properties.down) {
         flexo.notify(this, "@pushed");
       }
       return false;

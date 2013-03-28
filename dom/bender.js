@@ -152,27 +152,33 @@
   bender.Environment.deserialize.property = function (elem, k) {
     var value = elem.getAttribute("value");
     var v;
-    var as = (elem.getAttribute("as") || "").trim().toLowerCase();
-    if (as === "boolean") {
-      v = function () {
-        return flexo.is_true(value);
-      };
-    } else if (as === "dynamic") {
-      v = function () {
-        return eval(value);
-      };
-    } else if (as === "json") {
-      v = function () {
-        try {
-          return JSON.parse(value);
-        } catch (e) {
-          console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
-        }
-      };
-    } else if (as === "number") {
-      v = function () {
-        return parseFloat(value);
-      };
+    if (value !== null) {
+      var as = (elem.getAttribute("as") || "").trim().toLowerCase();
+      if (as === "boolean") {
+        v = function () {
+          return flexo.is_true(value);
+        };
+      } else if (as === "dynamic") {
+        v = function () {
+          return eval(value);
+        };
+      } else if (as === "json") {
+        v = function () {
+          try {
+            return JSON.parse(value);
+          } catch (e) {
+            console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
+          }
+        };
+      } else if (as === "number") {
+        v = function () {
+          return parseFloat(value);
+        };
+      } else {
+        v = function () {
+          return value;
+        };
+      }
     }
     k(bender.init_property(elem.getAttribute("name"), v));
   };
@@ -364,7 +370,7 @@
     });
     c.links = [];
     c.views = {};
-    c.properties = [];
+    c.own_properties = [];
     c.watches = [];
     return c;
   };
@@ -375,7 +381,7 @@
         this.links.push(ch);
       } else if (flexo.instance_of(ch, bender.Property)) {
         ch.component = this;
-        this.properties.push(ch);
+        this.own_properties.push(ch);
       } else if (flexo.instance_of(ch, bender.View)) {
         ch.component = this;
         this.views[ch.id] = ch;
@@ -386,17 +392,8 @@
     }
   };
 
-  bender.Component.get_property = function (name) {
-    if (this.properties.hasOwnProperty(name)) {
-      return this.properties[name];
-    }
-    if (this.prototype) {
-      return this.prototype.get_property(name);
-    }
-  };
-
   function find_component_with_property(component, name) {
-    if (component.properties.hasOwnProperty(name)) {
+    if (component.own_properties.hasOwnProperty(name)) {
       return component;
     }
     if (component.prototype) {
@@ -404,22 +401,32 @@
     }
   }
 
-  bender.Component.set_property = function (name, value) {
-    if (!this.properties.hasOwnProperty(name)) {
-      var c = find_component_with_property(this, name);
-      if (c) {
-        var component = this;
-        Object.defineProperty(this.properties, name, { enumerable: true,
-          get: function () { return value; },
-          set: function (v) {
-            value = v;
-            flexo.notify(component, "@set-property", { name: name, value: v });
-          }
+  function render_watches(queue) {
+    var component = queue[0];
+    for (var i = queue.length; i > 0; --i) {
+      queue[i - 1].watches.forEach(function (watch) {
+        watch.render(component);
+      });
+    }
+  }
+
+  function render_properties(queue) {
+    var component = queue[0];
+    for (var n = queue.length, i = 0; i < n; ++i) {
+      var c = queue[i];
+      if (!c.hasOwnProperty("properties")) {
+        c.properties = {};
+        c.own_properties.forEach(function (property) {
+          property.render(component);
         });
       }
+      c.own_properties.forEach(function (property) {
+        if (!component.properties.hasOwnProperty(property.name)) {
+          property.render_for_prototype(component);
+        }
+      });
     }
-    this.properties[name] = value;
-  };
+  }
 
   bender.Component.render = function (target, stack, k) {
     if (typeof stack === "function") {
@@ -459,25 +466,9 @@
         stack[stack.i++].views[""].render(target, stack, k_);
       });
     }
-    for (var i = queue.length; i > 0; --i) {
-      queue[i - 1].watches.forEach(function (watch) {
-        seq.add(function (k_) {
-          var w = watch.render(stack.component);
-          if (w) {
-            stack.component.watches.push(w);
-          }
-          k_();
-        });
-      });
-    }
-    // TODO handle properties from prototype queue
-    this.properties.forEach(function (property) {
-      seq.add(function (k_) {
-        property.render();
-        k_();
-      });
-    });
     seq.add(function () {
+      render_watches(queue);
+      render_properties(queue);
       flexo.notify(this, "@rendered");
       k();
     }.bind(this));
@@ -513,10 +504,10 @@
 
   bender.Property = {};
 
-  bender.Property.render = function () {
-    var p = this;
-    console.log("= Render property %0".fmt(p.name));
-    Object.defineProperty(p.component.properties, p.name, { enumerable: true,
+  function define_property(p) {
+    console.log("= Render own property %0 on “%1”".fmt(p.name, p.component.id));
+    Object.defineProperty(p.component.properties, p.name, {
+      enumerable: true,
       get: function () { return p.value; },
       set: function (v) {
         p.value = v;
@@ -524,17 +515,45 @@
         flexo.notify(p.component, "@set-property", { name: p.name, value: v });
       }
     });
-    if (p.__value) {
-      p.component.properties[p.name] = p.__value();
-      delete p.__value;
+  }
+
+  bender.Property.render = function () {
+    define_property(this);
+    if (this.__value) {
+      var v = this.__value();
+      console.log("= set initial value %0=“%1”".fmt(this.name, v));
+      this.component.properties[this.name] = v;
+      // this.component.properties[this.name] = this.__value();
+      delete this.__value;
     }
+  };
+
+  bender.Property.render_for_prototype = function (component) {
+    var p = this;
+    var listener = flexo.listen(p.component, "@set-property", function (e) {
+      if (e.name === p.name) {
+        flexo.notify(component, "@set-property", e);
+      }
+    });
+    console.log("~ Render property %0 on “%1”".fmt(p.name, component.id));
+    Object.defineProperty(component.properties, p.name, {
+      enumerable: true,
+      configurable: true,
+      get: function () { return p.value; },
+      set: function (v) {
+        flexo.unlisten(p.component, "@set-property", listener);
+        var p_ = Object.create(p);
+        p_.component = component;
+        define_property(p_);
+        component.properties[p_.name] = v;
+      }
+    });
   };
 
   bender.init_property = function (name, value) {
     var property = Object.create(bender.Property);
     property.name = name;
     property.__value = value;
-    property.__unininitialized = true;
     return property;
   };
 
@@ -788,8 +807,7 @@
       flexo.listen(get.source_component, "@set-property", function (e) {
         if (e.name === get.property) {
           get.watch.environment.activate(get,
-            get.value.call(get.watch.component,
-              e.source.get_property(e.name)));
+            get.value.call(get.watch.component, e.source.properties[e.name]));
         }
       });
     } else {
@@ -890,7 +908,7 @@
   bender.SetProperty.activate = function (v) {
     var c = this.watch.component.components[this.target];
     if (c) {
-      c.set_property(this.property, this.value.call(this.watch.component, v));
+      c.properties[this.property] = this.value.call(this.watch.component, v);
     } else {
       console.warn("No component for %0".fmt(this));
     }
@@ -926,7 +944,7 @@
   };
 
   bender.SetDOMAttribute.toString = function () {
-    return "set/dom-attribute(%0, {%1}%2)".fmt(this.target, this.ns, this.name);
+    return "set/dom-attribute(%0, {%1}%2)".fmt(this.target, this.ns, this.attr);
   };
 
   bender.SetDOMProperty.activate = function (v) {
