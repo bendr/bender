@@ -634,7 +634,8 @@
       Object.defineProperty(stack.component.rendered[this.id], "textContent", {
         enumerable: true,
         set: function (t) {
-          this.remove_children();
+          flexo.remove_children(this);
+          // TODO what else?!
         }
       });
     }
