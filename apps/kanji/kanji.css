@@ -1,0 +1,53 @@
+html {
+  height: 100%;
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  position: relative;
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+
+.expand {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+svg {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+
+.bar {
+  padding: 0.5em;
+}
+
+.top.bar {
+  border-bottom: dashed thin black;
+}
+
+.bottom.bar {
+  border-top: dashed thin black;
+}
+
+.paused {
+  position: absolute;
+  right: 0;
+  color: white;
+  background-color: #ff4040;
+  padding: 0.2em;
+}
+
+.hidden {
+  display: none;
+}

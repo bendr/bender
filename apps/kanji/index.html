@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Kanji animation</title>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <script src="../../dom/flexo.js"></script>
+    <script src="../../dom/bender.js"></script>
+    <script>
+
+"use strict"
+
+var ENV = bender.init_environment();
+var args = flexo.get_args({ app: "app.xml" });
+var url = flexo.absolute_uri(window.document.baseURI, args.app);
+ENV.load_component(url, function (component) {
+  if (flexo.instance_of(component, bender.Component)) {
+    console.log("Component at %0 loaded OK".fmt(url), component);
+    ENV.render_component(component, document.body, function () {
+      for (var p in args) {
+        if (p !== "arg") {
+          component.properties[p] = args[p];
+        }
+      }
+      console.log("Component rendered OK", component);
+    });
+  } else {
+    console.log("Error loading", url);
+  }
+});
+
+    </script>
+  </body>
+</html>
+
