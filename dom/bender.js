@@ -148,7 +148,6 @@
     k(bender.init_link(uri, elem.getAttribute("rel")));
   };
 
-  // TODO delay evaluation of the value to *after* rendering!
   bender.Environment.deserialize.property = function (elem, k) {
     var value = elem.getAttribute("value");
     var v;
@@ -483,6 +482,9 @@
       var f = bender.Link.render[this.rel];
       if (typeof f === "function") {
         f.call(this, target, k);
+      } else {
+        console.warn("Cannot render “%0” link".fmt(this.rel));
+        k();
       }
     }
   }
@@ -621,6 +623,15 @@
     }
   };
 
+  bender.Attribute.remove_children = function () {
+    this.children.forEach(function (ch) {
+      if (flexo.instance_of(ch, bender.Text)) {
+        delete ch.parent;
+      }
+    });
+    this.children = [];
+  };
+
   function set_attribute_value(target) {
     target.setAttributeNS(this.ns, this.name,
         this.children.reduce(function (acc, ch) { return acc + ch.text; }, ""));
@@ -633,7 +644,9 @@
       Object.defineProperty(stack.component.rendered[this.id], "textContent", {
         enumerable: true,
         set: function (t) {
-
+          attr.remove_children();
+          attr.append_child(bender.init_dom_text_node(t));
+          set_attribute_value.call(attr, target);
         }
       });
     }

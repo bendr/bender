@@ -52,7 +52,7 @@
         var div = document.createElement("div");
         env.render_component(sample, div, function () {
           assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
-            "Number of clicks: +1");
+            "Number of clicks: +1 -1");
           done();
         });
       });
