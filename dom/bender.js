@@ -489,6 +489,32 @@
     }
   }
 
+  bender.Link.render.script = function (target, k) {
+    if (target.ownerDocument.documentElement.namspaceURI === flexo.ns.svg) {
+      var script = flexo.$("svg:script", { "xlink:href": this.uri });
+      script.addEventListener("load", k, false);
+      target.ownerDocument.documentElement.appendChild(script);
+    } else
+      if (target.ownerDocument.documentElement.namespaceURI === flexo.ns.html) {
+      var script = flexo.$script({ src: this.uri });
+      script.addEventListener("load", k, false);
+      target.ownerDocument.head.appendChild(script);
+    } else {
+      console.warn("Cannot render “%0” link".fmt(this.rel));
+      k();
+    }
+  };
+
+  bender.Link.render.stylesheet = function (target, k) {
+    if (target.ownerDocument.documentElement.namespaceURI === flexo.ns.html) {
+      target.ownerDocument.head.appendChild(flexo.$link({ rel: this.rel,
+        href: this.uri }));
+    } else {
+      console.warn("Cannot render “%0” link".fmt(this.rel));
+    }
+    k();
+  };
+
   // A runtime should overload this so that links can be handled accordingly.
   // TODO scoped stylesheets (render style links then)
   bender.init_link = function (uri, rel) {

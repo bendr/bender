@@ -2,17 +2,6 @@
 
 if (window.document.documentElement.namespaceURI === flexo.ns.svg) {
 
-  bender.Link.render.stylesheet = function (target, k) {
-    console.warn("Loading stylesheets is not supported in SVG yet");
-    k();
-  };
-
-  bender.Link.render.script = function (target, k) {
-    var script = flexo.$("svg:script", { "xlink:href": this.uri });
-    script.addEventListener("load", k, false);
-    target.ownerDocument.documentElement.appendChild(script);
-  };
-
   var no_href = function () {
     console.warn("Nothing to run. Please specify a Bender component to load " +
         "with the `href` URL parameter.");
@@ -25,18 +14,6 @@ if (window.document.documentElement.namespaceURI === flexo.ns.svg) {
   var target = window.document.documentElement;
 
 } else {
-
-  bender.Link.render.stylesheet = function (target, k) {
-    target.ownerDocument.head.appendChild(flexo.$link({ rel: this.rel,
-      href: this.uri }));
-    k();
-  };
-
-  bender.Link.render.script = function (target, k) {
-    var script = flexo.$script({ src: this.uri });
-    script.addEventListener("load", k, false);
-    target.ownerDocument.head.appendChild(script);
-  };
 
   var no_href = function () {
     document.body.appendChild(flexo.$("p.bender--runtime-message",

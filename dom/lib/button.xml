@@ -1,10 +1,11 @@
 <component xmlns="http://bender.igel.co.jp">
   <link rel="stylesheet" href="lib.css"/>
   <property name="down" as="boolean" value="false"/>
+  <property name="enabled" as="boolean" value="true"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div id="div">
       <attribute name="class">
-        button <text id="class"/>
+        button <text id="down-class"/> <text id="enabled-class"/>
       </attribute>
       <content>
         OK
@@ -13,12 +14,16 @@
   </view>
   <watch>
     <get property="down"/>
-    <set elem="class" value="input ? 'down' : ''"/>
+    <set elem="down-class" value="input ? 'down' : ''"/>
+  </watch>
+  <watch>
+    <get property="enabled"/>
+    <set elem="enabled-class" value="input ? '' : 'disabled'"/>
   </watch>
   <watch>
     <get elem="div" dom-event="mousedown">
       event.preventDefault();
-      return true;
+      return this.properties.enabled;
     </get>
     <set property="down"/>
   </watch>

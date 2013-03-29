@@ -24,6 +24,10 @@
   -o-transform: scale(0.9);
 }
 
+.button.disabled {
+  background-color: #888;
+}
+
 .text-input {
   font-family: Futura, Optima, sans-serif;
   font-size: 100%;
