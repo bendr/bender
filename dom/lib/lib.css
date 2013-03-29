@@ -28,6 +28,10 @@
   background-color: #888;
 }
 
+.button.red {
+  background-color: #ff4040;
+}
+
 .text-input {
   font-family: Futura, Optima, sans-serif;
   font-size: 100%;
