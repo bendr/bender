@@ -1,6 +1,6 @@
 # Bender; or, a declarative Web application framework.
 
-Copyright © 2011, 2012 [IGEL Co., Ltd.](http://www.igel.co.jp/bender/)
+Copyright © 2011-2013 [IGEL Co., Ltd.](http://www.igel.co.jp/bender/)
 
 Bender is an experimental, declarative Web application authoring framework based
 on XML, Javascript and Web technologies, and with a focus on rich graphical user
@@ -19,3 +19,4 @@ Bender runtime, and running in a host application; typically, a Web browser. The
 runtime is written in pure Javascript and has no dependency.
 
 Learn more about Bender at [http://bendr.github.com/](http://bendr.github.com/).
+This page will be updated soon with Bender v0.8!
