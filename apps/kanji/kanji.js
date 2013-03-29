@@ -73,6 +73,20 @@ function play_pause() {
   }
 }
 
+function stop() {
+  if (kanji) {
+    delete kanji.paused;
+    kanji.path = 0;
+    if (kanji.frame) {
+      cancelAnimationFrame(kanji.frame);
+    }
+    kanji.paths.forEach(function (p) {
+      p.setAttribute("stroke-opacity", 0);
+    });
+    component.properties.status = "stopped";
+  }
+}
+
 function get_kanji(response) {
   if (response && response.data && response.data.content) {
     var parser = new DOMParser();
@@ -86,6 +100,9 @@ function get_kanji(response) {
       component.rendered.strokes.appendChild(p);
     });
     component.properties.status = "stopped";
+    component.properties.strokes = kanji.paths.length;
+  } else {
+    component.properties.status = "none";
   }
 }
 

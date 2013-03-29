@@ -3,6 +3,7 @@
   <link rel="script" href="kanji.js"/>
 
   <property name="kanji"/>
+  <property name="strokes"/>
   <property name="status" value="none"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg"
@@ -25,6 +26,7 @@
         src: "https://api.github.com/repos/KanjiVG/kanjivg/contents/kanji/%0.svg?callback=get_kanji"
         .fmt(flexo.pad(property.charCodeAt(0).toString(16), 5)) }));
     </get>
+    <set property="status" value="'loading'"/>
   </watch>
 
 </component>
