@@ -1,8 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div>
-      <component href="p.xml"/>
-      <component href="p.xml">Hello*</component>
-    </html:div>
-  </view>
-</component>

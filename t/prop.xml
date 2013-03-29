@@ -1,7 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <property name="x" as="number" value="1"/>
-  <property name="y" value="{{x} + 1}"/>
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>x = {x}, y = {y}</html:p>
-  </view>
-</component>

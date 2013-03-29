@@ -1,9 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" prototype="bender.$.c">
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:span>
-      C (
-      <content>*c*</content>
-      )
-    </html:span>
-  </view>
-</component>

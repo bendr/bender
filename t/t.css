@@ -1,9 +1,0 @@
-@import url("../bender.css");
-
-.t {
-  margin: 1em;
-  padding: 1em;
-  display: inline-block;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 1em;
-}

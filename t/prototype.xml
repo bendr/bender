@@ -1,6 +1,0 @@
-<component xmlns="http://bender.igel.co.jp"
-  prototype="bender.$.custom_instance">
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>Custom instance</html:p>
-  </view>
-</component>

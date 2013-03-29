@@ -1,6 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <view>
-    <component href="x.xml"/>
-    Y
-  </view>
-</component>
