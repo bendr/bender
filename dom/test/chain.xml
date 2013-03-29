@@ -6,7 +6,7 @@
       Number of clicks: <text id="clicks"/> (next: <text id="clicks-next"/>)
     </html:p>
     <html:p>
-      <component href="button.xml" id="button">
+      <component href="../lib/button.xml" id="button">
         <view>
           +1
         </view>
@@ -20,7 +20,7 @@
   <watch>
     <get property="count"/>
     <set elem="clicks"/>
-    <set property="next" value="$ + 1"/>
+    <set property="next" value="input + 1"/>
   </watch>
   <watch>
     <get component="button" event="@pushed"/>

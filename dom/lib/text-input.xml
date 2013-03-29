@@ -1,10 +1,11 @@
 <component xmlns="http://bender.igel.co.jp">
+  <link rel="stylesheet" href="lib.css"/>
 
   <property name="placeholder"/>
   <property name="value"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:input id="input" aria-role="textbox"/>
+    <html:input id="input" aria-role="textbox" class="text-input"/>
   </view>
 
   <watch>

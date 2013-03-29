@@ -159,9 +159,7 @@
           return flexo.is_true(value);
         };
       } else if (as === "dynamic") {
-        v = function () {
-          return eval(value);
-        };
+        v = new Function ("return " + value);
       } else if (as === "json") {
         v = function () {
           try {
@@ -468,8 +466,8 @@
     }
     seq.add(function () {
       render_watches(queue);
-      render_properties(queue);
       flexo.notify(this, "@rendered");
+      render_properties(queue);
       k();
     }.bind(this));
   };
@@ -521,7 +519,7 @@
   bender.Property.render = function () {
     define_property(this);
     if (this.__value) {
-      var v = this.__value();
+      var v = this.__value.call(this.component);
       console.log("= set initial value %0=“%1”".fmt(this.name, v));
       this.component.properties[this.name] = v;
       // this.component.properties[this.name] = this.__value();
@@ -629,17 +627,16 @@
   }
 
   bender.Attribute.render = function (target, stack, k) {
+    var attr = this;
     if (this.id) {
       stack.component.rendered[this.id] = {};
       Object.defineProperty(stack.component.rendered[this.id], "textContent", {
         enumerable: true,
         set: function (t) {
-          flexo.remove_children(this);
-          // TODO what else?!
+
         }
       });
     }
-    var attr = this;
     this.children.forEach(function (ch) {
       if (flexo.instance_of(ch, bender.Text) && ch.id) {
         stack.component.rendered[ch.id] = {};

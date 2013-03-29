@@ -5,12 +5,12 @@
       Number of clicks: <text id="clicks"/>
     </html:p>
     <html:p>
-      <component href="button.xml" id="button">
+      <component href="../lib/button.xml" id="button">
         <view>
           +1
         </view>
       </component>
-      <component href="button.xml" id="button-minus">
+      <component href="../lib/button.xml" id="button-minus">
         <view>
           -1
         </view>

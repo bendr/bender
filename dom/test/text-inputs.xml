@@ -1,21 +1,30 @@
 <component xmlns="http://bender.igel.co.jp">
+
   <property name="first-name" value="Bender"/>
-  <property name="last-name" value="Rodriguez"/>
+  <property name="middle-name" value="Bending"/>
+  <property name="last-name" value="Rodríguez"/>
+
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       <html:label>
         First name:
-        <component href="text-input.xml" id="first-input"/>
+        <component href="../lib/text-input.xml" id="first-input"/>
+      </html:label>
+    </html:p>
+    <html:p>
+      <html:label>
+        Middle name:
+        <component href="../lib/text-input.xml" id="middle-input"/>
       </html:label>
     </html:p>
     <html:p>
       <html:label>
         Last name:
-        <component href="text-input.xml" id="last-input"/>
+        <component href="../lib/text-input.xml" id="last-input"/>
       </html:label>
     </html:p>
     <html:p>
-      Full name: <text id="first"/> <text id="last"/>
+      Full name: <text id="first"/> <text id="middle"/> <text id="last"/>
     </html:p>
   </view>
 
@@ -28,6 +37,25 @@
   <watch>
     <get component="first-input" property="value"/>
     <set property="first-name"/>
+  </watch>
+
+  <watch>
+    <get property="first-name"/>
+    <set elem="first"/>
+  </watch>
+
+  <watch>
+    <get property="middle-name"/>
+    <set elem="middle">
+      var m = input.match(/\b(\w)/);
+      return m ? m[0] + "." : "";
+    </set>
+    <set component="middle-input" property="value"/>
+  </watch>
+
+  <watch>
+    <get component="middle-input" property="value"/>
+    <set property="middle-name"/>
   </watch>
 
   <watch>

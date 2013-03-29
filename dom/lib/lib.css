@@ -23,3 +23,11 @@
   -ms-transform: scale(0.9);
   -o-transform: scale(0.9);
 }
+
+.text-input {
+  font-family: Futura, Optima, sans-serif;
+  font-size: 100%;
+  border: none;
+  background-color: #ffd;
+  padding: 0.2em;
+}
