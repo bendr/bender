@@ -3,5 +3,5 @@
   <title>⚑ Bender Runtime | SVG</title>
   <script xlink:href="flexo.js"/>
   <script xlink:href="bender.js"/>
-  <script xlink:href="runtime-svg.js"/>
+  <script xlink:href="runtime.js"/>
 </svg>
