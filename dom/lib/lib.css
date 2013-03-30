@@ -25,7 +25,12 @@
 }
 
 .button.disabled {
-  background-color: #888;
+  background-color: #888 !important;
+  cursor: default;
+}
+
+.button.red {
+  background-color: #ff4040;
 }
 
 .text-input {

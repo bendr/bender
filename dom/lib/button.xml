@@ -1,21 +1,31 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="button-prototype">
   <link rel="stylesheet" href="lib.css"/>
+  <!--
+  <property name="class"/>
+  -->
   <property name="down" as="boolean" value="false"/>
   <property name="enabled" as="boolean" value="true"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div id="div">
       <attribute name="class">
-        button <text id="down-class"/> <text id="enabled-class"/>
+        button <text id="class-class"/>
+        <text id="down-class"/> <text id="enabled-class"/>
       </attribute>
       <content>
         OK
       </content>
     </html:div>
   </view>
+  <!--
+  <watch>
+    <get property="class"/>
+    <set elem="class-class"/>
+  </watch>
   <watch>
     <get property="down"/>
     <set elem="down-class" value="input ? 'down' : ''"/>
   </watch>
+  -->
   <watch>
     <get property="enabled"/>
     <set elem="enabled-class" value="input ? '' : 'disabled'"/>
@@ -28,7 +38,7 @@
     <set property="down"/>
   </watch>
   <watch>
-    <get elem="$document" dom-event="mouseup"/>
+    <get elem="div" dom-event="mouseup"/>
     <set property="down">
       if (this.properties.down) {
         flexo.notify(this, "@pushed");
