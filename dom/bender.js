@@ -56,7 +56,14 @@
     for (var i = 0; i < queue.length; ++i) {
       console.log("q doing item %0/%1".fmt(i + 1, queue.length));
       var edge = queue[i];
-      if (edge.hasOwnProperty("__value")) {
+      if (typeof edge.activate === "function") {
+        // output edge: execute it from the activation values
+        var vals = edge.watch.gets.map(function (g) {
+          return g.__value;
+        });
+        console.log("q > activate %0 = %1".fmt(edge, vals));
+        edge.activate(vals.length < 2 ? vals[0] : vals);
+      } else {
         // input edge: activate its watch
         console.log("q < activate %0 = “%1”".fmt(edge, edge.__value));
         if (!edge.watch.__activated) {
@@ -64,13 +71,6 @@
           console.log("  added sets: %0".fmt(edge.watch.sets.length));
           push.apply(queue, edge.watch.sets);
         }
-      } else {
-        // output edge: execute it from the activation values
-        var vals = edge.watch.gets.map(function (g) {
-          return g.__value;
-        });
-        console.log("q > activate %0 = %1".fmt(edge, vals));
-        edge.activate(vals.length < 2 ? vals[0] : vals);
       }
     }
     queue.forEach(function (edge) {
@@ -85,7 +85,8 @@
   // activation value.
   bender.Environment.activate = function (edge, value) {
     console.log("! enqueue %0? %1".fmt(edge, !edge.hasOwnProperty("__value")));
-    if (!edge.hasOwnProperty("__value")) {
+    if(!edge.hasOwnProperty("value")) {
+    // if (edge.__value !== value) {
       this.activation_queue.push(edge);
       console.log("q #items in queue: %0".fmt(this.activation_queue.length));
       if (!this.activation_queue.timer) {

@@ -1,8 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="button-prototype">
   <link rel="stylesheet" href="lib.css"/>
-  <!--
   <property name="class"/>
-  -->
   <property name="down" as="boolean" value="false"/>
   <property name="enabled" as="boolean" value="true"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
@@ -16,7 +14,6 @@
       </content>
     </html:div>
   </view>
-  <!--
   <watch>
     <get property="class"/>
     <set elem="class-class"/>
@@ -25,7 +22,6 @@
     <get property="down"/>
     <set elem="down-class" value="input ? 'down' : ''"/>
   </watch>
-  -->
   <watch>
     <get property="enabled"/>
     <set elem="enabled-class" value="input ? '' : 'disabled'"/>
