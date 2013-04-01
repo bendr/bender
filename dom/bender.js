@@ -16,6 +16,33 @@
     return e;
   };
 
+  bender.load_app = function (target, defaults, k) {
+    var env = bender.init_environment();
+    var args = flexo.get_args(defaults || { href: "app.xml" });
+    if (args.href) {
+      var url = flexo.absolute_uri(window.document.baseURI, args.href);
+      env.load_component(url, function (component) {
+        if (flexo.instance_of(component, bender.Component)) {
+          console.log("* component at %0 loaded OK".fmt(url));
+          env.render_component(component, target, function () {
+            for (var p in args) {
+              if (p !== "arg") {
+                component.properties[p] = args[p];
+              }
+            }
+            console.log("* component rendered OK");
+            k(component);
+          });
+        } else {
+          k(url);
+        }
+      });
+    } else {
+      k();
+    }
+    return env;
+  };
+
   // Render `component` in the target element and call the continuation `k` when
   // finished.
   bender.Environment.render_component = function (component, target, k) {
@@ -23,30 +50,33 @@
   };
 
   function dequeue() {
-    for (var i = 0; i < this.activation_queue.length; ++i) {
-      var edge = this.activation_queue[i];
-      if (edge.hasOwnProperty("__value")) {
-        // input edge: activate its watch
-        console.log("! activate %0 = “%1”".fmt(edge, edge.__value));
-        if (!edge.watch.__activated) {
-          edge.watch.__activated = true;
-          push.apply(this.activation_queue, edge.watch.sets);
-        }
-      } else {
+    console.log("q [] dequeue and clear activation queue");
+    var queue = this.activation_queue.slice();
+    this.activation_queue = [];
+    for (var i = 0; i < queue.length; ++i) {
+      console.log("q doing item %0/%1".fmt(i + 1, queue.length));
+      var edge = queue[i];
+      if (typeof edge.activate === "function") {
         // output edge: execute it from the activation values
         var vals = edge.watch.gets.map(function (g) {
           return g.__value;
         });
-        console.log("! activate %0 = %1".fmt(edge, vals));
+        console.log("q > activate %0 = %1".fmt(edge, vals));
         edge.activate(vals.length < 2 ? vals[0] : vals);
+      } else {
+        // input edge: activate its watch
+        console.log("q < activate %0 = “%1”".fmt(edge, edge.__value));
+        if (!edge.watch.__activated) {
+          edge.watch.__activated = true;
+          console.log("  added sets: %0".fmt(edge.watch.sets.length));
+          push.apply(queue, edge.watch.sets);
+        }
       }
     }
-    this.activation_queue.forEach(function (edge) {
+    queue.forEach(function (edge) {
       delete edge.__value;
       delete edge.watch.__activated;
     });
-    console.log("! clear activation queue");
-    this.activation_queue = [];
   }
 
   // Activate an edge in the watch graph; in a sort of breadth-first traversal.
@@ -54,9 +84,11 @@
   // the edge was already activated once so do nothing except update the
   // activation value.
   bender.Environment.activate = function (edge, value) {
-    console.log("! enqueue %0".fmt(edge));
-    if (!edge.hasOwnProperty("__value")) {
+    console.log("! enqueue %0? %1".fmt(edge, !edge.hasOwnProperty("__value")));
+    if(!edge.hasOwnProperty("value")) {
+    // if (edge.__value !== value) {
       this.activation_queue.push(edge);
+      console.log("q #items in queue: %0".fmt(this.activation_queue.length));
       if (!this.activation_queue.timer) {
         this.activation_queue.timer = window.setTimeout(dequeue.bind(this), 0);
       }
@@ -452,6 +484,9 @@
         stack.unshift(c);
       }
     }
+    // TODO distinguish between $self/$prototype (or something else) for setters
+    // $self sets the own property; $prototype sets the prototype property (and
+    // thus all derived); $self remains the default
     this.components = { $self: this };
     stack.i = 0;
     stack.component = this;
@@ -558,8 +593,8 @@
   bender.Property.render_for_prototype = function (component) {
     var p = this;
     console.log("~ Render property %0 on “%1”".fmt(p.name, component.id));
-    console.log("+ Listen to %0/@set-property for %1"
-        .fmt(p.component.id, p.name));
+    console.log("+ Listen to %0[>%1]/@set-property for %2"
+        .fmt(p.component.id, component.id, p.name));
     var listener = flexo.listen(p.component, "@set-property", function (e) {
       if (e.name === p.name) {
         flexo.notify(component, "@set-property", e);
@@ -798,6 +833,8 @@
 
   bender.Watch.render = function (component) {
     if (component !== this.component) {
+      console.log("w new watch for %0 < %1"
+          .fmt(component.id, this.component.id));
       var w = Object.create(this);
       w.component = component;
       w.gets = this.gets.map(function (get) {
@@ -848,6 +885,8 @@
     var get = render_get(this, watch);
     get.source_component = get.watch.component.components[get.source];
     if (typeof get.source_component === "object") {
+      console.log("g listen to %0@set-property for %1 (sets: %2)"
+          .fmt(get.source_component.id, get, watch.sets.length));
       flexo.listen(get.source_component, "@set-property", function (e) {
         if (e.name === get.property) {
           get.watch.environment.activate(get,
@@ -862,7 +901,8 @@
   };
 
   bender.GetProperty.toString = function () {
-    return "get/property(%0, %1)".fmt(this.source, this.property);
+    return "get/property(%0=%1, %2)".fmt(this.source, this.source_component.id,
+        this.property);
   };
 
   // Render a DOM event input: listen for the event on the source element.
