@@ -24,13 +24,27 @@
       env.load_component(url, function (component) {
         if (flexo.instance_of(component, bender.Component)) {
           console.log("* component at %0 loaded OK".fmt(url));
-          env.render_component(component, target, function () {
+          var props = component.own_properties.filter(function (p) {
+            return args.hasOwnProperty(p.name);
+          }).map(function (p) {
+            return bender.init_property(p.name, p.as, args[p.name]);
+          });
+          if (props.length > 0) {
+            var d = bender.init_component();
+            d.prototype = component;
+            props.forEach(function (p) {
+              d.own_properties.push(p);
+              p.component = d;
+            });
+            component = d;
+          }
+          component.render(target, function () {
             for (var p in args) {
-              if (p !== "arg") {
+              if (p !== "href") {
                 component.properties[p] = args[p];
               }
             }
-            console.log("* component rendered OK");
+            console.log("* component rendered OK", component);
             k(component);
           });
         } else {
@@ -182,34 +196,8 @@
 
   bender.Environment.deserialize.property = function (elem, k) {
     var value = elem.getAttribute("value");
-    var v;
-    if (value !== null) {
-      var as = (elem.getAttribute("as") || "").trim().toLowerCase();
-      if (as === "boolean") {
-        v = function () {
-          return flexo.is_true(value);
-        };
-      } else if (as === "dynamic") {
-        v = new Function ("return " + value);
-      } else if (as === "json") {
-        v = function () {
-          try {
-            return JSON.parse(value);
-          } catch (e) {
-            console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
-          }
-        };
-      } else if (as === "number") {
-        v = function () {
-          return parseFloat(value);
-        };
-      } else {
-        v = function () {
-          return value;
-        };
-      }
-    }
-    k(bender.init_property(elem.getAttribute("name"), v));
+    k(bender.init_property(elem.getAttribute("name"), elem.getAttribute("as"),
+          elem.getAttribute("value")));
   };
 
   bender.Environment.deserialize.view = function (elem, k) {
@@ -617,10 +605,36 @@
     }
   };
 
-  bender.init_property = function (name, value) {
+  bender.init_property = function (name, as, value) {
     var property = Object.create(bender.Property);
+    property.as = (as || "").trim().toLowerCase();
     property.name = name;
-    property.__value = value;
+    if (as === "boolean") {
+      property.__value = function () {
+        return flexo.is_true(value);
+      };
+    } else if (as === "number") {
+      property.__value = function () {
+        return parseFloat(value);
+      };
+    } else if (typeof value === "string") {
+      if (as === "dynamic") {
+        property.__value = new Function ("return " + value);
+      } else if (as === "json") {
+        property.__value = function () {
+          try {
+            return JSON.parse(value);
+          } catch (e) {
+            console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
+          }
+        };
+      }
+    }
+    if (!property.__value) {
+      property.__value = function () {
+        return value;
+      };
+    }
     property.__unset = true;
     return property;
   };
