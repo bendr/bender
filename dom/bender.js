@@ -57,14 +57,8 @@
     return env;
   };
 
-  // Render `component` in the target element and call the continuation `k` when
-  // finished.
-  bender.Environment.render_component = function (component, target, k) {
-    component.render(target, k);
-  };
-
   function dequeue() {
-    console.log("q [] dequeue and clear activation queue");
+    console.log("q dequeue and clear activation queue");
     var queue = this.activation_queue.slice();
     this.activation_queue = [];
     for (var i = 0; i < queue.length; ++i) {
@@ -83,7 +77,9 @@
         if (!edge.watch.__activated) {
           edge.watch.__activated = true;
           console.log("  added sets: %0".fmt(edge.watch.sets.length));
-          push.apply(queue, edge.watch.sets);
+          edge.watch.sets.forEach(function (edge, j) {
+            queue.splice(i + j + 1, 0, edge);
+          });
         }
       }
     }
@@ -98,9 +94,8 @@
   // the edge was already activated once so do nothing except update the
   // activation value.
   bender.Environment.activate = function (edge, value) {
-    console.log("! enqueue %0? %1".fmt(edge, !edge.hasOwnProperty("__value")));
-    if(!edge.hasOwnProperty("value")) {
-    // if (edge.__value !== value) {
+    console.log("q enqueue %0? %1".fmt(edge, !edge.hasOwnProperty("__value")));
+    if(!edge.hasOwnProperty("__value")) {
       this.activation_queue.push(edge);
       console.log("q #items in queue: %0".fmt(this.activation_queue.length));
       if (!this.activation_queue.timer) {
