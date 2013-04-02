@@ -59,50 +59,52 @@
 
   function dequeue() {
     console.log("q dequeue and clear activation queue");
-    var queue = this.activation_queue.slice();
-    this.activation_queue = [];
-    for (var i = 0; i < queue.length; ++i) {
-      console.log("q doing item %0/%1".fmt(i + 1, queue.length));
-      var edge = queue[i];
-      if (typeof edge.activate === "function") {
-        // output edge: execute it from the activation values
-        var vals = edge.watch.gets.map(function (g) {
-          return g.__value;
-        });
-        console.log("q > activate %0 = %1".fmt(edge, vals));
-        edge.activate(vals.length < 2 ? vals[0] : vals);
+    for (var i = 0; i < this.activation_queue.length && i < 100; ++i) {
+      var edge = this.activation_queue[i];
+      console.log("q doing item %0 of %1: %2=%3"
+          .fmt(i + 1, this.activation_queue.length, edge, edge.__value));
+      if (edge.hasOwnProperty("__done") && edge.__done === edge.__value) {
+        console.log("q done (%0 === %1)!".fmt(edge.__done, edge.__value));
       } else {
-        // input edge: activate its watch
-        console.log("q < activate %0 = “%1”".fmt(edge, edge.__value));
-        if (!edge.watch.__activated) {
-          edge.watch.__activated = true;
-          console.log("  added sets: %0".fmt(edge.watch.sets.length));
-          edge.watch.sets.forEach(function (edge, j) {
-            queue.splice(i + j + 1, 0, edge);
+        edge.__done = edge.__value;
+        console.log("q done (%9)!".fmt(edge.__done));
+        if (typeof edge.activate === "function") {
+          var vals = edge.watch.gets.map(function (g) {
+            return g.__value;
           });
+          console.log("q > activate %0 = %1".fmt(edge, vals));
+          edge.activate(vals.length < 2 ? vals[0] : vals);
+        } else {
+          console.log("q < activate %0 = “%1”".fmt(edge, edge.__value));
+          edge.watch.sets.forEach(function (edge, j) {
+            this.activation_queue.splice(i + j + 1, 0, edge);
+            console.log("q + queuing %0 at %1 of %2"
+              .fmt(edge, i + j + 2, this.activation_queue.length));
+          }, this);
         }
       }
     }
-    queue.forEach(function (edge) {
+    if (i < this.activation_queue.length) {
+      console.warn("q Terminated dequeuing prematurely");
+    } else {
+      console.log("q Finished, #items: %0".fmt(i));
+    }
+    this.activation_queue.forEach(function (edge) {
       delete edge.__value;
-      delete edge.watch.__activated;
+      delete edge.__done;
     });
+    this.activation_queue = [];
   }
 
-  // Activate an edge in the watch graph; in a sort of breadth-first traversal.
-  // Set the activation value on the edge as well; if it was already set, then
-  // the edge was already activated once so do nothing except update the
-  // activation value.
   bender.Environment.activate = function (edge, value) {
-    console.log("q enqueue %0? %1".fmt(edge, !edge.hasOwnProperty("__value")));
-    if(!edge.hasOwnProperty("__value")) {
-      this.activation_queue.push(edge);
-      console.log("q #items in queue: %0".fmt(this.activation_queue.length));
-      if (!this.activation_queue.timer) {
-        this.activation_queue.timer = window.setTimeout(dequeue.bind(this), 0);
-      }
-    }
     edge.__value = value;
+    this.activation_queue.push(edge);
+    console.log("q enqueue %0=%1 at %2 of %2%3"
+        .fmt(edge, value, this.activation_queue.length,
+          this.activation_queue.timer ? "" : "*"));
+    if (!this.activation_queue.timer) {
+      this.activation_queue.timer = window.setTimeout(dequeue.bind(this), 0);
+    }
   };
 
   // Load a component at the given URL and call k with the loaded component (or
@@ -623,12 +625,11 @@
             console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
           }
         };
+      } else {
+        property.__value = function () {
+          return value;
+        }
       }
-    }
-    if (!property.__value) {
-      property.__value = function () {
-        return value;
-      };
     }
     property.__unset = true;
     return property;

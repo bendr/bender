@@ -1,7 +1,8 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="text-input">
   <link rel="stylesheet" href="lib.css"/>
 
   <property name="placeholder"/>
+  <property name="enabled" as="boolean" value="true"/>
   <property name="value"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
@@ -14,14 +15,24 @@
   </watch>
 
   <watch>
+    <get property="enabled"/>
+    <set elem="input" property="readOnly" value="!input"/>
+  </watch>
+
+  <watch>
     <get property="value"/>
     <set elem="input" property="value"/>
   </watch>
 
   <watch>
-    <get elem="input" dom-event="change"/>
+    <get elem="input" dom-event="change">
+      event.target.blur();
+    </get>
+  </watch>
+
+  <watch>
     <get elem="input" dom-event="blur"/>
-    <set property="value" value="this.rendered.input.value"/>
+    <set property="value" value="input.target.value"/>
   </watch>
 
 </component>
