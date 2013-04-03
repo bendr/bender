@@ -98,7 +98,7 @@
   </define>
 
   <define name="get-dom-event">
-    <ref name="view-ref"/>
+    <ref name="elem"/>
     <ref name="dom-event"/>
   </define>
 
@@ -120,7 +120,9 @@
   <define name="property">
     <element name="property">
       <ref name="property-name"/>
-      <ref name="value"/>
+      <optional>
+        <ref name="value"/>
+      </optional>
       <optional>
         <ref name="as"/>
       </optional>
@@ -133,6 +135,7 @@
         <choice>
           <ref name="set-property"/>
           <ref name="set-event"/>
+          <ref name="set-dom-event"/>
           <ref name="set-dom-attribute"/>
           <ref name="set-dom-property"/>
         </choice>
@@ -160,14 +163,23 @@
     <ref name="event"/>
   </define>
 
+  <define name="set-dom-event">
+    <optional>
+      <ref name="elem"/>
+    </optional>
+    <ref name="dom-event"/>
+  </define>
+
   <define name="set-dom-attribute">
-    <ref name="view-ref"/>
-    <ref name="ns"/>
+    <ref name="elem"/>
+    <optional>
+      <ref name="ns"/>
+    </optional>
     <ref name="attr"/>
   </define>
 
   <define name="set-dom-property">
-    <ref name="view-ref"/>
+    <ref name="elem"/>
     <optional>
       <ref name="property-dom-ref"/>
     </optional>
@@ -270,6 +282,12 @@
     </attribute>
   </define>
 
+  <define name="elem">
+    <attribute name="elem">
+      <data type="token"/>
+    </attribute>
+  </define>
+
   <define name="event">
     <attribute name="event">
       <data type="token"/>
@@ -339,12 +357,6 @@
 
   <define name="value">
     <attribute name="value"/>
-  </define>
-
-  <define name="view-ref">
-    <attribute name="elem">
-      <data type="token"/>
-    </attribute>
   </define>
 
 </grammar>
