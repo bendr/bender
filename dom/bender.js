@@ -137,15 +137,17 @@
   // point. This function must be bound to an environment.
   function traverse_graph() {
     if (this.scheduled.length > 0) {
+      console.log("> start graph traversal");
       var queue = this.scheduled.slice();
       var visited = [];
       this.scheduled = [];
       while (queue.length) {
         var q = queue.shift();
         var vertex = q[0];
+        console.log("* visit %0 (value: %1)".fmt(q[0], q[1]));
         if (vertex.hasOwnProperty("__value")) {
           if (vertex.__value !== q[1]) {
-            this.schedule_visit(this, vertex, q[1]);
+            this.schedule_visit(vertex, q[1]);
           }
         } else {
           vertex.__value = q[1];
@@ -161,6 +163,8 @@
           });
         }
       }
+      console.log("< finished graph traversal (visited: %0)"
+          .fmt(visited.length));
       visited.forEach(function (v) {
         delete v.__value;
       });
@@ -186,9 +190,22 @@
   bender.Environment.add_vertex = function (v) {
     var v_ = flexo.find_first(this.vertices, function (w) {
       return v.match(w);
-    }) || v;
-    this.vertices.push(v_);
-    return v_;
+    });
+    if (v_) {
+      return v_;
+    }
+    this.vertices.push(v);
+    return v;
+  };
+
+  // Debugging: output the watch graph
+  bender.Environment.dump_graph = function () {
+    this.vertices.forEach(function (vertex) {
+      console.log(vertex.toString());
+      vertex.out_edges.forEach(function (edge) {
+        console.log("  - %0".fmt(edge));
+      });
+    });
   };
 
   bender.Environment.deserialize.component = function (elem, k) {
@@ -919,9 +936,18 @@
     return Object.getPrototypeOf(v) === bender.Vortex;
   };
 
+  bender.Vortex.toString = function () {
+    return "Vortex";
+  };
+
   bender.PropertyVertex.match = function (v) {
     return Object.getPrototypeOf(v) === bender.PropertyVertex &&
       v.component === this.component && v.property === this.property;
+  };
+
+  bender.PropertyVertex.toString = function () {
+    return "(PropertyVertex) %0.%1%2".fmt(this.component.id, this.property,
+        this.__value ? "=" + this.value : "");
   };
 
   bender.DOMEventVertex.match = function (v) {
@@ -929,9 +955,19 @@
       v.elem === this.elem && v.event === this.event;
   };
 
+  bender.DOMEventVertex.toString = function () {
+    return "(DOMEventVertex) %0!%1%2".fmt(this.elem.localName, this.event,
+        this.__value ? "=" + this.value : "");
+  };
+
   bender.EventVertex.match = function (v) {
     return Object.getPrototypeOf(v) === bender.EventVertex &&
       v.component === this.component && v.event === this.event;
+  };
+
+  bender.EventVertex.toString = function () {
+    return "(EventVertex) %0!%1%2".fmt(this.component.id, this.event,
+        this.__value ? "=" + this.value : "");
   };
 
   // A property input is rendered to a PropertyVertex, or nothing if the source
@@ -1098,7 +1134,11 @@
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (v) {
-    this.output(this.input(v, cancel), cancel);
+    return this.output(this.input(v, cancel), cancel);
+  };
+
+  bender.Edge.toString = function () {
+    return "(Edge) -> %0".fmt(this.dest);
   };
 
   // Set a property on a component
@@ -1108,6 +1148,7 @@
       var edge = make_edge(bender.PropertyEdge, vertex, get, this, component,
           init_vertex(bender.PropertyVertex,
             { component: c, property: this.property }));
+      edge.property = this.property;
       edge.component = c;
       return edge;
     } else {
@@ -1117,9 +1158,15 @@
   };
 
   // A PropertyEdge sets a property
-  // TODO check for spurious scheduling?
   bender.PropertyEdge.visit = function (v) {
-    this.component[this.property] = this.output(this.input(v, cancel), cancel);
+    var v = this.output(this.input(v, cancel), cancel);
+    this.component.properties[this.property] = v;
+    return v;
+  };
+
+  bender.PropertyEdge.toString = function () {
+    return "(PropertyEdge) %0.%1 -> %2".fmt(this.component.id, this.property,
+        this.dest);
   };
 
   bender.SetEvent.render = function (vertex, get, component) {
@@ -1129,6 +1176,7 @@
           init_vertex(bender.EventVertex,
             { component: c, event: this.event }));
       edge.component = c;
+      edge.event = this.event;
       return edge;
     } else {
       console.warn("No component “%0” for set event %1"
@@ -1139,8 +1187,14 @@
   // An EventEdge sends an event notification
   // TODO check for spurious scheduling?
   bender.EventEdge.visit = function (v) {
-    flexo.notify(this.component, this.event,
-        this.output(this.input(v, cancel), cancel));
+    var v = this.output(this.input(v, cancel), cancel);
+    flexo.notify(this.component, this.event, v);
+    return v;
+  };
+
+  bender.EventEdge.toString = function () {
+    return "(EventEdge) %0@%1 -> %2".fmt(this.component.id, this.event,
+        this.dest);
   };
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
@@ -1161,8 +1215,14 @@
 
   // A DOMAttribute edge sets an attribute, has no other effect.
   bender.DOMAttributeEdge.visit = function (v) {
-    this.target.setAttributeNS(this.ns, this.attr,
-        this.output(this.input(v, cancel), cancel));
+    var v = this.output(this.input(v, cancel), cancel);
+    this.target.setAttributeNS(this.ns, this.attr, v);
+    return v;
+  };
+
+  bender.DOMAttributeEdge.toString = function () {
+    return "(DOMAttributeEdge) %0{%1}%2 -> %3".fmt(this.target.localName,
+        this.ns, this.attr, this.dest);
   };
 
   // Set a DOM property: no further effect, so make an edge to the Vortex.
@@ -1182,9 +1242,16 @@
 
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (v) {
-    this.target[this.property] = this.output(this.input(v, cancel), cancel);
+    var v = this.output(this.input(v, cancel), cancel);
+    this.target[this.property] = v;
+    return v;
   };
 
+
+  bender.DOMPropertyEdge.toString = function () {
+    return "(DOMPropertyEdge) %0.%1 -> %2"
+      .fmt(this.target.localName || "text()", this.property, this.dest);
+  };
 
   bender.init_set = function (value) {
     var s = Object.create(bender.Set);
