@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 28 March 2013
+Bender v0.8, 3 April 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -23,8 +23,8 @@ The steps of rendering a component *C* in the environment *E* in an element node
 1. render the links of *C*;
 2. render the view of *C*;
 3. render the watches of *C*;
-4. render the properties of *C*;
-5. send a `@rendered` event notification.
+4. send a `@rendered` event notification;
+5. render the properties of *C*.
 
 ### Links rendering
 
@@ -93,91 +93,28 @@ This view is rendered into *E* by rendering its children in order in *E*.
 
 ### Watches rendering
 
-Bender renders watches for components as vertices in a *watch graph*. Other
-vertices in the watch graph are components and rendered DOM nodes. Edges in the
-graph correspond to watch inputs and outputs. Edges are directed and labeled.
+Bender renders watches as vertices and edges in a a *watch graph*. Informally,
+vertices are created for inputs and outputs of the watches, and every
+input/output pair in a watch is rendered as an oriented edge between two
+vertices. Edges are labeled with input and output actions. When an property is
+set on a component or an event occurs, a corresponding vertex in the watch graph
+is indentified, and graph traversal is initiated from this vertex, executing
+edge inputs and outputs along the way.
 
-#### Edges in the watch graph
+The set *W* of watches of a component *C* is defined recursively by the union
+of:
 
-A watch input is rendered as an incoming edge of its parent watch in the watch
-graph. The source vertex and label of the edge depend on the type of the input:
+* the set of watches *W<sub>P</sub>* of the prototype *P* of *C* (or the empty
+  set if *C* has no prototype), and
+* the set of the own watches of *C*, that is the watches defined for the
+  component *C* itself.
 
-* for a property input, the source vertex is the source component and the label
-  is the property name;
-* for a DOM event input, the source vertex is the element rendered in the target
-  document for the input DOM element, and the label is the DOM event type;
-* for an event input, the source vertex is the source component and the label is
-  the event type.
+There is a unique watch graph in the environment *E*, to which vertices and
+edges are added for the watches *W* of *C*.
 
-A watch output is rendered as an outgoing edge of its parent watch in the watch
-graph. The destination vertex and label of the edge depend on the type of the
-output:
+#### Rendering inputs
 
-* for a property output, the destination vertex is the target component, and the
-  label is the property name;
-* for an event output, the destination vertex is the target component, and the
-  label is the event type;
-* for a DOM attribute output, the destination vertex is the element rendered in
-  the target document for the target DOM element, and the label is the attribute
-  name;
-* for a DOM property output, the destination vertex is the element rendered in
-  the target document for the target DOM element, and the label is the property
-  name;
-* for an action output, the destination vertex is either the element rendered in
-  the target document for the target element if it is a DOM element or Bender
-  text element, and the target node otherwise; and the label is the action;
-* for an insertion point output, the destination vertex is either the element
-  rendered in the target document for the target element if it is a DOM element
-  or Bender text element, and the target node otherwise; and the label is the
-  insert point.
-
-#### Edge and watch activation
-
-Edges and watch vertices in this graph can be *activated* or not. Initially, all
-vertices and edges are non-activated. When an edge becomes activated, its
-*activation value* is set.
-
-An incoming edge *E* with label *L* from vertex *V* to watch vertex *W* becomes
-activated when it is not already activated, and its destination vertex *W* is
-not activated, and:
-
-* the property with the name *L* on component *V* changes, and the edge was
-  rendered from a property input: the activation value is the value of the
-  property;
-* the DOM element *V* sends an event notification of type *L*, and the edge was
-  rendered from a DOM event input: the activation value is the event as
-  described in the data model;
-* the component *V* sends an event notification of type *L*, and the edge was
-  rendered from an event input: the activation value is the event as described
-  in the data model.
-
-After the edge *E* becomes activated, the watch vertex *W* is activated itself.
-All of its outgoing edges are then activated. Two things happen when an outgoing
-edge is activated:
-
-1. the corresponding output takes effect;
-2. the outgoing edges of the destination vertex are activated.
-
-For an outgoing edege *E* with label *L* and activation value *v*, the effects
-of the outputs are as follows:
-
-* for a property output: let *P* be the property with name *L* of the target
-  component *C*. If *P* is the own property of *C*, then set its value to *v*.
-  If *P* is a property of the prototype of *C*, add a new property *P’* with
-  name *L* and value *v* to *C*. Otherwise, there is no effect;
-* for an event output, a new event notification with type *L* and additional
-  arguments given by *v* is sent by the destination component;
-* for a DOM attribute output, the attribute name *L* of the destination DOM
-  element is set to value *v*.
-
-Transforming values is dependent on the runtime and is not covered here.
-
-After an outgoing edge *E* to vertex *V* has been activated, new edges from *V*
-to some watch *W* may be activated, leading to new watch activations, and so on.
-(integrate this in the descriptions above.)
-
-When no new activation happens, all activated edges and watches are reset to a
-non-activated state.
+#### Rendering outputs
 
 
 ### Properties rendering
