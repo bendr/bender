@@ -42,10 +42,12 @@
   </watch>
 
   <watch>
-    <get elem="$document" dom-event="mouseup"
-      value="cancel(!this.properties.down)"/>
-    <set property="down" value="false"/>
+    <get elem="$document" dom-event="mouseup">
+      console.log("!mouseup for %0: %1".fmt(this.id, this.properties.down));
+      return cancel(!this.properties.down);
+    </get>
     <set event="@pushed"/>
+    <set property="down" value="false"/>
   </watch>
 
 </component>

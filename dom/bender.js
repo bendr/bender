@@ -158,6 +158,8 @@
             } catch (e) {
               if (e !== "cancel") {
                 throw e;
+              } else {
+                console.log("! cancel");
               }
             }
           });
@@ -1011,6 +1013,9 @@
       var v = component.environment.add_vertex(vertex);
       if (v === vertex) {
         elem.addEventListener(v.event, function (e) {
+          if (e.type === "mouseup") {
+            console.log("MOUSEUP");
+          }
           component.environment.schedule_visit(v, e);
         }, false);
       }
@@ -1138,7 +1143,9 @@
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (v) {
-    return this.output(this.input(v, cancel), cancel);
+    var v_ = this.output(this.input(v, cancel), cancel);
+    console.log("  - %0 = %1".fmt(this, v_));
+    return v_;
   };
 
   bender.Edge.toString = function () {
@@ -1163,9 +1170,10 @@
 
   // A PropertyEdge sets a property
   bender.PropertyEdge.visit = function (v) {
-    var v = this.output(this.input(v, cancel), cancel);
-    this.component.properties[this.property] = v;
-    return v;
+    var v_ = this.output(this.input(v, cancel), cancel);
+    this.component.properties[this.property] = v_;
+    console.log("  - %0 = %1".fmt(this, v_));
+    return v_;
   };
 
   bender.PropertyEdge.toString = function () {
@@ -1191,13 +1199,14 @@
   // An EventEdge sends an event notification
   // TODO check for spurious scheduling?
   bender.EventEdge.visit = function (v) {
-    var v = this.output(this.input(v, cancel), cancel);
-    flexo.notify(this.component, this.event, v);
-    return v;
+    var v_ = this.output(this.input(v, cancel), cancel);
+    flexo.notify(this.component, this.event, v_);
+    console.log("  - %0 = %1".fmt(this, v_));
+    return v_;
   };
 
   bender.EventEdge.toString = function () {
-    return "(EventEdge) %0@%1 -> %2".fmt(this.component.id, this.event,
+    return "(EventEdge) %0%1 -> %2".fmt(this.component.id, this.event,
         this.dest);
   };
 
@@ -1219,9 +1228,10 @@
 
   // A DOMAttribute edge sets an attribute, has no other effect.
   bender.DOMAttributeEdge.visit = function (v) {
-    var v = this.output(this.input(v, cancel), cancel);
-    this.target.setAttributeNS(this.ns, this.attr, v);
-    return v;
+    var v_ = this.output(this.input(v, cancel), cancel);
+    this.target.setAttributeNS(this.ns, this.attr, v_);
+    console.log("  - %0 = %1".fmt(this, v_));
+    return v_;
   };
 
   bender.DOMAttributeEdge.toString = function () {
@@ -1246,16 +1256,17 @@
 
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (v) {
-    var v = this.output(this.input(v, cancel), cancel);
-    this.target[this.property] = v;
-    return v;
+    var v_ = this.output(this.input(v, cancel), cancel);
+    this.target[this.property] = v_;
+    console.log("  - %0 = %1".fmt(this, v_));
+    return v_;
   };
-
 
   bender.DOMPropertyEdge.toString = function () {
     return "(DOMPropertyEdge) %0.%1 -> %2"
       .fmt(this.target.localName || "text()", this.property, this.dest);
   };
+
 
   bender.init_set = function (value) {
     var s = Object.create(bender.Set);
