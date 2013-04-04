@@ -208,6 +208,10 @@
     });
   };
 
+  bender.Environment.clear = function () {
+    this.scheduled = [];
+  };
+
   bender.Environment.deserialize.component = function (elem, k) {
     var init_component = function (env, prototype) {
       var component = bender.init_component(env);
