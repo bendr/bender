@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp" id="A">
+  <property name="x" as="number" value="100"/>
+  <property name="y"/>
+  <watch>
+    <get property="x"/>
+    <set property="y" value="flexo.random_int(input)"/>
+  </watch>
+</component>

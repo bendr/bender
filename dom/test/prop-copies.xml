@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <component href="prop-proto.xml" id="B"/>
+    <component href="prop-proto.xml" id="C"/>
+  </view>
+</component>

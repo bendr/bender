@@ -15,6 +15,7 @@
   bender.init_environment = function () {
     var e = Object.create(bender.Environment);
     e.loaded = {};
+    e.components = [];
     e.vertices = [];
     e.vortex = init_vertex(bender.Vortex);
     e.add_vertex(e.vortex);
@@ -458,6 +459,7 @@
       }
     });
     c.environment = environment;
+    environment.components.push(c);
     c.links = [];
     c.views = {};
     c.own_properties = {};
@@ -624,12 +626,14 @@
       enumerable: true,
       get: function () { return p.value; },
       set: function (v) {
+        delete p.__unset;
         p.value = v;
         p.vertices.forEach(function (vertex) {
           p.component.environment.schedule_visit(vertex, v);
         });
       }
     });
+    p.__unset = true;
   }
 
   bender.Property.render = function () {
@@ -662,6 +666,11 @@
         component.properties[p_.name] = v;
       }
     });
+    if (!p.__unset) {
+      p.vertices.forEach(function (vertex) {
+        p.component.environment.schedule_visit(vertex, p.value);
+      });
+    }
   };
 
   bender.init_property = function (name, as, value) {
@@ -1161,7 +1170,7 @@
 
   // Render a sink output edge to a regular Edge going to the Vortex.
   bender.Set.render = function (source, component) {
-    return make_edge(bender.Edge, vertex, component.environment.vortex,
+    return make_edge(bender.Edge, source, component.environment.vortex,
         this.value, component);
   };
 
