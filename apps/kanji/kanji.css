@@ -36,10 +36,6 @@ svg {
   border-bottom: dashed thin black;
 }
 
-.bottom.bar {
-  border-top: dashed thin black;
-}
-
 .paused {
   position: absolute;
   right: 0;

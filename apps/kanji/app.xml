@@ -27,7 +27,6 @@
     <html:div>
       <component href="kanji.xml" id="kanji-view"/>
     </html:div>
-    <html:div class="paused hidden">PAUSED</html:div>
   </view>
 
   <watch>
@@ -46,13 +45,17 @@
     <get component="kanji-view" property="status"/>
     <get component="kanji-view" property="strokes"/>
     <set component="play-button" property="enabled"
-      value="input[1] === 'stopped' || input[1] === 'paused'"/>
+      value="this.components['kanji-view'].properties.status === 'stopped' ||
+        this.components['kanji-view'].properties.status === 'paused'"/>
     <set component="pause-button" property="enabled"
-      value="input[1] === 'playing'"/>
+      value="this.components['kanji-view'].properties.status === 'playing'"/>
     <set component="stop-button" property="enabled"
-      value="input[1] === 'playing' || input[1] === 'paused'"/>
-    <set elem="kanji-status" value="input[1]"/>
-    <set elem="strokes" value="input[2]"/>
+      value="this.components['kanji-view'].properties.status === 'playing' ||
+      this.components['kanji-view'].properties.status === 'paused'"/>
+    <set elem="kanji-status"
+      value="this.components['kanji-view'].properties.status"/>
+    <set elem="strokes"
+      value="this.components['kanji-view'].properties.strokes"/>
   </watch>
 
 </component>

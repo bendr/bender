@@ -3,7 +3,7 @@
   <link rel="script" href="kanji.js"/>
 
   <property name="kanji"/>
-  <property name="strokes"/>
+  <property name="strokes" as="number" value="0"/>
   <property name="status" value="none"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg"
