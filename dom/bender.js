@@ -30,8 +30,15 @@
   // for the properties of the component, and can have a href property for the
   // URL of the application component. Call the continuation k with the
   // component when it has been rendered and initialized, or an error.
-  bender.load_app = function (target, defaults, k) {
-    var env = bender.init_environment();
+  bender.load_app = function (target, defaults, env, k) {
+    if (typeof env === "function") {
+      k = env;
+      env = undefined;
+    }
+    if (typeof k !== "function") {
+      k = flexo.nop;
+    }
+    env = env || bender.init_environment();
     var args = flexo.get_args(defaults || { href: "app.xml" });
     if (args.href) {
       var url = flexo.absolute_uri(window.document.baseURI, args.href);
@@ -140,13 +147,13 @@
   // point. This function must be bound to an environment.
   function traverse_graph() {
     if (this.scheduled.length > 0) {
-      console.log("> start graph traversal");
+      // console.log("> start graph traversal");
       this.__schedule_next = [];
       var visited = [];
       for (var i = 0; i < this.scheduled.length; ++i) {
         var q = this.scheduled[i];
         var vertex = q[0];
-        console.log("* visit %0 (value: %1)".fmt(q[0], q[1]));
+        // console.log("* visit %0 (value: %1)".fmt(q[0], q[1]));
         if (vertex.hasOwnProperty("__value")) {
           if (vertex.__value !== q[1]) {
             this.schedule_visit(vertex, q[1]);
@@ -165,8 +172,8 @@
           }, this);
         }
       }
-      console.log("< finished graph traversal (visited: %0)"
-          .fmt(visited.length));
+      // console.log("< finished graph traversal (visited: %0)"
+      //     .fmt(visited.length));
       visited.forEach(function (v) {
         delete v.__value;
       });
@@ -1178,7 +1185,7 @@
   // only.
   bender.Edge.visit = function (input) {
     var v = this.value.call(this.context, input, cancel);
-    console.log("  - %0 = %1".fmt(this, v));
+    // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1208,7 +1215,7 @@
   bender.PropertyEdge.visit = function (input) {
     var v = this.value.call(this.context, input, cancel);
     this.component.properties[this.property] = v;
-    console.log("  - %0 = %1".fmt(this, v));
+    // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1237,7 +1244,7 @@
   bender.EventEdge.visit = function (input) {
     var v = this.value.call(this.context, input, cancel);
     flexo.notify(this.component, this.event, v);
-    console.log("  - %0 = %1".fmt(this, v));
+    // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1266,7 +1273,7 @@
   bender.DOMAttributeEdge.visit = function (input) {
     var v = this.value.call(this.context, input, cancel);
     this.target.setAttributeNS(this.ns, this.attr, v);
-    console.log("  - %0 = %1".fmt(this, v));
+    // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1294,7 +1301,7 @@
   bender.DOMPropertyEdge.visit = function (input) {
     var v = this.value.call(this.context, input, cancel);
     this.target[this.property] = v;
-    console.log("  - %0 = %1".fmt(this, v));
+    // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
