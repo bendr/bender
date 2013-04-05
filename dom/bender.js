@@ -15,7 +15,9 @@
   bender.init_environment = function () {
     var e = Object.create(bender.Environment);
     e.loaded = {};
-    e.vertices = [init_vertex(bender.Vortex)];
+    e.vertices = [];
+    e.vortex = init_vertex(bender.Vortex);
+    e.add_vertex(e.vortex);
     e.scheduled = [];
     e.traverse_graph = traverse_graph.bind(e);
     e.traverse_graph();
@@ -154,12 +156,10 @@
           visited.push(vertex);
           vertex.out_edges.forEach(function (edge) {
             try {
-              queue.push([edge.dest, edge.visit(vertex.__value)]);
+              queue.push([edge.dest, edge.visit(q[1])]);
             } catch (e) {
               if (e !== "cancel") {
                 throw e;
-              } else {
-                console.log("! cancel");
               }
             }
           });
@@ -196,6 +196,7 @@
     if (v_) {
       return v_;
     }
+    v.index = this.vertices.length;
     this.vertices.push(v);
     return v;
   };
@@ -893,9 +894,11 @@
 
   bender.Watch.render = function (component) {
     this.gets.forEach(function (get) {
-      var vertex = get.render(component);
+      var v = get.render(component);
+      var w = component.environment.add_vertex(init_vertex(bender.Vertex));
+      make_edge(bender.Edge, v, w, get.value, component);
       this.sets.forEach(function (set) {
-        set.render(vertex, get, component);
+        set.render(w, component);
       }, this);
     }, this);
   };
@@ -915,13 +918,12 @@
   bender.GetEvent = Object.create(bender.Get);
 
   // Corresponding vertex objects for the watch graph. The Vortex should be
-  // unique in the graph and is a sink vertex with no outputs. It is used for
-  // edges that set DOM properties and values and thus cannot continue any
-  // further.
+  // unique in the graph and is a sink vertex with no outputs.
   bender.Vortex = {};
-  bender.PropertyVertex = Object.create(bender.Vortex);
-  bender.DOMEventVertex = Object.create(bender.Vortex);
-  bender.EventVertex = Object.create(bender.Vortex);
+  bender.Vertex = Object.create(bender.Vortex);
+  bender.PropertyVertex = Object.create(bender.Vertex);
+  bender.DOMEventVertex = Object.create(bender.Vertex);
+  bender.EventVertex = Object.create(bender.Vertex);
 
   // Initialize a vertex of the given prototype with the given arguments (e.g.
   // component/property for a property vertex, &c.)
@@ -943,7 +945,15 @@
   };
 
   bender.Vortex.toString = function () {
-    return "Vortex";
+    return "v%0 [Vortex]".fmt(this.index);
+  };
+
+  bender.Vertex.match = function (v) {
+    return false;
+  };
+
+  bender.Vertex.toString = function () {
+    return "v%0 [Vertex]".fmt(this.index);
   };
 
   bender.PropertyVertex.match = function (v) {
@@ -952,8 +962,8 @@
   };
 
   bender.PropertyVertex.toString = function () {
-    return "(PropertyVertex) %0.%1%2".fmt(this.component.id, this.property,
-        this.__value ? "=" + this.value : "");
+    return "v%0 [PropertyVertex] %1.%2%3".fmt(this.index, this.component.id,
+        this.property, this.__value ? "=" + this.value : "");
   };
 
   bender.DOMEventVertex.match = function (v) {
@@ -962,8 +972,8 @@
   };
 
   bender.DOMEventVertex.toString = function () {
-    return "(DOMEventVertex) %0!%1%2".fmt(this.elem.localName, this.event,
-        this.__value ? "=" + this.value : "");
+    return "v%0 [DOMEventVertex] %1!%2%3".fmt(this.index, this.elem.localName,
+        this.event, this.__value ? "=" + this.value : "");
   };
 
   bender.EventVertex.match = function (v) {
@@ -972,8 +982,8 @@
   };
 
   bender.EventVertex.toString = function () {
-    return "(EventVertex) %0!%1%2".fmt(this.component.id, this.event,
-        this.__value ? "=" + this.value : "");
+    return "v%0 [EventVertex] %1!%2%3".fmt(this.index, this.component.id,
+        this.event, this.__value ? "=" + this.value : "");
   };
 
   // A property input is rendered to a PropertyVertex, or nothing if the source
@@ -986,7 +996,7 @@
           k = k.prototype);
       if (k) {
         var vertex = init_vertex(bender.PropertyVertex,
-            { component: c, property: this.property });
+            { parent: component, component: c, property: this.property });
         var v = component.environment.add_vertex(vertex);
         if (v === vertex) {
           k.own_properties[this.property].vertices.push(vertex);
@@ -1008,14 +1018,11 @@
   bender.GetDOMEvent.render = function (component) {
     var elem = component.rendered[this.source];
     if (elem) {
-      var vertex = init_vertex(bender.DOMEventVertex, { elem: elem,
-        event: this.event });
+      var vertex = init_vertex(bender.DOMEventVertex, { parent: component,
+        elem: elem, event: this.event });
       var v = component.environment.add_vertex(vertex);
       if (v === vertex) {
         elem.addEventListener(v.event, function (e) {
-          if (e.type === "mouseup") {
-            console.log("MOUSEUP");
-          }
           component.environment.schedule_visit(v, e);
         }, false);
       }
@@ -1032,8 +1039,8 @@
   bender.GetEvent.render = function (component) {
     var c = component.components[this.source];
     if (c) {
-      var vertex = init_vertex(bender.EventVertex, { component: c,
-        event: this.event });
+      var vertex = init_vertex(bender.EventVertex, { parent: component,
+        component: c, event: this.event });
       var v = component.environment.add_vertex(vertex);
       if (v === vertex) {
         flexo.listen(c, this.event, function (e) {
@@ -1111,17 +1118,17 @@
     edge.dest = dest;
   }
 
-  // Create a set edge of the given prototype from an input vertex given the
+  // Create an edge of the given prototype between a source and a destination
+  // vertex with a value for its label.
   // original inputs and outputs (for their value), the parent component, and
   // the destination vertex (defaults to Vortex; otherwise, the destination is
   // added to the watch graph.)
-  function make_edge(prototype, vertex, get, set, component, dest) {
+  function make_edge(prototype, source, dest, value, component) {
     var edge = Object.create(prototype);
-    set_edge_source(edge, vertex);
-    set_edge_dest(edge,
-        component.environment.add_vertex(dest || bender.Vortex));
-    edge.input = get.value.bind(component);
-    edge.output = set.value.bind(component);
+    set_edge_source(edge, source);
+    set_edge_dest(edge, dest);
+    edge.value = value;
+    edge.context = component;
     return edge;
   }
 
@@ -1136,16 +1143,17 @@
   }
 
   // Render a sink output edge to a regular Edge going to the Vortex.
-  bender.Set.render = function (vertex, get, component) {
-    return make_edge(bender.Edge, vertex, get, this, component);
+  bender.Set.render = function (source, component) {
+    return make_edge(bender.Edge, vertex, component.environment.vortex,
+        this.value, component);
   };
 
   // A regular edge executes its input and output functions for the side effects
   // only.
-  bender.Edge.visit = function (v) {
-    var v_ = this.output(this.input(v, cancel), cancel);
-    console.log("  - %0 = %1".fmt(this, v_));
-    return v_;
+  bender.Edge.visit = function (input) {
+    var v = this.value.call(this.context, input, cancel);
+    console.log("  - %0 = %1".fmt(this, v));
+    return v;
   };
 
   bender.Edge.toString = function () {
@@ -1153,12 +1161,14 @@
   };
 
   // Set a property on a component
-  bender.SetProperty.render = function (vertex, get, component) {
+  bender.SetProperty.render = function (source, component) {
     var c = component.components[this.target];
     if (c) {
-      var edge = make_edge(bender.PropertyEdge, vertex, get, this, component,
+      var dest = component.environment.add_vertex(
           init_vertex(bender.PropertyVertex,
             { component: c, property: this.property }));
+      var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
+          component);
       edge.property = this.property;
       edge.component = c;
       return edge;
@@ -1169,11 +1179,11 @@
   };
 
   // A PropertyEdge sets a property
-  bender.PropertyEdge.visit = function (v) {
-    var v_ = this.output(this.input(v, cancel), cancel);
-    this.component.properties[this.property] = v_;
-    console.log("  - %0 = %1".fmt(this, v_));
-    return v_;
+  bender.PropertyEdge.visit = function (input) {
+    var v = this.value.call(this.context, input, cancel);
+    this.component.properties[this.property] = v;
+    console.log("  - %0 = %1".fmt(this, v));
+    return v;
   };
 
   bender.PropertyEdge.toString = function () {
@@ -1181,12 +1191,13 @@
         this.dest);
   };
 
-  bender.SetEvent.render = function (vertex, get, component) {
+  bender.SetEvent.render = function (source, component) {
     var c = component.components[this.target];
     if (c) {
-      var edge = make_edge(bender.EventEdge, vertex, get, this, component,
-          init_vertex(bender.EventVertex,
-            { component: c, event: this.event }));
+      var dest = component.environment.add_vertex(
+          init_vertex(bender.EventVertex, { component: c, event: this.event }));
+      var edge = make_edge(bender.EventEdge, source, dest, this.value,
+          component);
       edge.component = c;
       edge.event = this.event;
       return edge;
@@ -1197,12 +1208,11 @@
   };
 
   // An EventEdge sends an event notification
-  // TODO check for spurious scheduling?
-  bender.EventEdge.visit = function (v) {
-    var v_ = this.output(this.input(v, cancel), cancel);
-    flexo.notify(this.component, this.event, v_);
-    console.log("  - %0 = %1".fmt(this, v_));
-    return v_;
+  bender.EventEdge.visit = function (input) {
+    var v = this.value.call(this.context, input, cancel);
+    flexo.notify(this.component, this.event, v);
+    console.log("  - %0 = %1".fmt(this, v));
+    return v;
   };
 
   bender.EventEdge.toString = function () {
@@ -1211,11 +1221,11 @@
   };
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
-  bender.SetDOMAttribute.render = function (vertex, get, component) {
+  bender.SetDOMAttribute.render = function (source, component) {
     var r = component.rendered[this.target];
     if (r) {
-      var edge = make_edge(bender.DOMAttributeEdge, vertex, get, this,
-          component);
+      var edge = make_edge(bender.DOMAttributeEdge, source,
+          component.environment.vortex, this.value, component);
       edge.target = r;
       edge.ns = this.ns;
       edge.attr = this.attr;
@@ -1227,11 +1237,11 @@
   };
 
   // A DOMAttribute edge sets an attribute, has no other effect.
-  bender.DOMAttributeEdge.visit = function (v) {
-    var v_ = this.output(this.input(v, cancel), cancel);
-    this.target.setAttributeNS(this.ns, this.attr, v_);
-    console.log("  - %0 = %1".fmt(this, v_));
-    return v_;
+  bender.DOMAttributeEdge.visit = function (input) {
+    var v = this.value.call(this.context, input, cancel);
+    this.target.setAttributeNS(this.ns, this.attr, v);
+    console.log("  - %0 = %1".fmt(this, v));
+    return v;
   };
 
   bender.DOMAttributeEdge.toString = function () {
@@ -1240,11 +1250,11 @@
   };
 
   // Set a DOM property: no further effect, so make an edge to the Vortex.
-  bender.SetDOMProperty.render = function (vertex, get, component) {
+  bender.SetDOMProperty.render = function (source, component) {
     var r = component.rendered[this.target];
     if (r) {
-      var edge = make_edge(bender.DOMPropertyEdge, vertex, get, this,
-          component);
+      var edge = make_edge(bender.DOMPropertyEdge, source,
+          component.environment.vortex, this.value, component);
       edge.target = r;
       edge.property = this.property;
       return edge;
@@ -1255,11 +1265,11 @@
   };
 
   // A DOMAttribute edge sets a property, has no other effect.
-  bender.DOMPropertyEdge.visit = function (v) {
-    var v_ = this.output(this.input(v, cancel), cancel);
-    this.target[this.property] = v_;
-    console.log("  - %0 = %1".fmt(this, v_));
-    return v_;
+  bender.DOMPropertyEdge.visit = function (input) {
+    var v = this.value.call(this.context, input, cancel);
+    this.target[this.property] = v;
+    console.log("  - %0 = %1".fmt(this, v));
+    return v;
   };
 
   bender.DOMPropertyEdge.toString = function () {
