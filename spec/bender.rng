@@ -100,6 +100,12 @@
   <define name="get-dom-event">
     <ref name="elem"/>
     <ref name="dom-event"/>
+    <optional>
+      <ref name="prevent-default"/>
+    </optional>
+    <optional>
+      <ref name="stop-propagation"/>
+    </optional>
   </define>
 
   <define name="get-event">
@@ -324,6 +330,15 @@
     </attribute>
   </define>
 
+  <define name="prevent-default">
+    <attribute name="prevent-default">
+      <choice>
+        <value>true</value>
+        <value>false</value>
+      </choice>
+    </attribute>
+  </define>
+
   <define name="property-name">
     <attribute name="name"/>
   </define>
@@ -351,6 +366,15 @@
         <value>top</value>
         <value>bottom</value>
         <value>replace</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define name="stop-propagation">
+    <attribute name="stop-propagation">
+      <choice>
+        <value>true</value>
+        <value>false</value>
       </choice>
     </attribute>
   </define>

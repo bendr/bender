@@ -34,10 +34,8 @@
   </watch>
 
   <watch>
-    <get elem="div" dom-event="mousedown">
-      event.preventDefault();
-      return this.properties.enabled;
-    </get>
+    <get elem="div" dom-event="mousedown" prevent-default="true"
+      value="!cancel(!this.properties.enabled)"/>
     <set property="down"/>
   </watch>
 

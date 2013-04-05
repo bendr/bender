@@ -140,11 +140,10 @@
   function traverse_graph() {
     if (this.scheduled.length > 0) {
       console.log("> start graph traversal");
-      var queue = this.scheduled.slice();
+      this.__schedule_next = [];
       var visited = [];
-      this.scheduled = [];
-      while (queue.length) {
-        var q = queue.shift();
+      for (var i = 0; i < this.scheduled.length; ++i) {
+        var q = this.scheduled[i];
         var vertex = q[0];
         console.log("* visit %0 (value: %1)".fmt(q[0], q[1]));
         if (vertex.hasOwnProperty("__value")) {
@@ -156,13 +155,13 @@
           visited.push(vertex);
           vertex.out_edges.forEach(function (edge) {
             try {
-              queue.push([edge.dest, edge.visit(q[1])]);
+              this.scheduled.push([edge.dest, edge.visit(q[1])]);
             } catch (e) {
               if (e !== "cancel") {
                 throw e;
               }
             }
-          });
+          }, this);
         }
       }
       console.log("< finished graph traversal (visited: %0)"
@@ -170,8 +169,10 @@
       visited.forEach(function (v) {
         delete v.__value;
       });
+      this.scheduled = this.__schedule_next;
+      delete this.__schedule_next;
     }
-    requestAnimationFrame(this.traverse_graph);
+    flexo.request_animation_frame(this.traverse_graph);
   }
 
   // Schedule a visit of the vertex for a given value. If the same vertex is
@@ -181,7 +182,13 @@
       return q[0] === vertex;
     });
     if (q) {
-      q[1] = value;
+      if (q[0].hasOwnProperty("__value")) {
+        if (value !== q[0].__value) {
+          this.__schedule_next.push([vertex, value]);
+        }
+      } else {
+        q[1] = value;
+      }
     } else {
       this.scheduled.push([vertex, value]);
     }
@@ -386,8 +393,12 @@
       k(bender.init_get_property(elem.getAttribute("property"),
           elem.getAttribute("component"), value));
     } else if (elem.hasAttribute("dom-event")) {
-      k(bender.init_get_dom_event(elem.getAttribute("dom-event"),
-          elem.getAttribute("elem"), value));
+      var get = bender.init_get_dom_event(elem.getAttribute("dom-event"),
+          elem.getAttribute("elem"), value);
+      get.prevent_default = flexo.is_true(elem.getAttribute("prevent-default"));
+      get.stop_propagation =
+        flexo.is_true(elem.getAttribute("stop-propagation"));
+      k(get);
     } else if (elem.hasAttribute("event")) {
       k(bender.init_get_event(elem.getAttribute("event"),
           elem.getAttribute("component"), value));
@@ -1023,8 +1034,14 @@
       var v = component.environment.add_vertex(vertex);
       if (v === vertex) {
         elem.addEventListener(v.event, function (e) {
+          if (this.prevent_default) {
+            e.preventDefault();
+          }
+          if (this.stop_propagation) {
+            e.stopPropagation();
+          }
           component.environment.schedule_visit(v, e);
-        }, false);
+        }.bind(this), false);
       }
       return v;
     } else {
