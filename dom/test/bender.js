@@ -13,7 +13,7 @@
     });
   });
 
-  var env = bender.init_environment();
+  var env = bender.init_environment(document);
   var hello, sample;
 
   describe("Deserialization", function () {
@@ -39,22 +39,18 @@
 
   describe("Rendering", function () {
     describe("hello.xml", function () {
-      it("is rendered correctly", function (done) {
+      it("is rendered correctly", function () {
         var div = document.createElement("div");
-        env.render_component(hello, div, function () {
-          assert.strictEqual(div.textContent.trim(), "Hello, world!");
-          done();
-        });
+        hello.render(div);
+        assert.strictEqual(div.textContent.trim(), "Hello, world!");
       });
     });
     describe("sample.xml", function () {
-      it("is rendered correctly", function (done) {
+      it("is rendered correctly", function () {
         var div = document.createElement("div");
-        env.render_component(sample, div, function () {
-          assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
-            "Number of clicks: +1 -1");
-          done();
-        });
+        sample.render(div);
+        assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
+          "Number of clicks: +1 -1");
       });
     });
   });

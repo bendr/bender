@@ -1,18 +1,54 @@
 <component xmlns="http://bender.igel.co.jp">
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:svg viewBox="0 0 256 256">
-      <svg:g transform="scale(0.5)">
-        <component href="logo.xml" id="a"/>
+    <svg:svg viewBox="0 0 512 512">
+      <svg:g transform="scale(0.25)">
+        <component href="logo.xml"/>
       </svg:g>
-      <svg:g transform="translate(128) scale(0.5)">
-        <component href="logo.xml" id="b"/>
+      <svg:g transform="translate(128) scale(0.25)">
+        <component href="logo.xml"/>
       </svg:g>
-      <svg:g transform="translate(0, 128) scale(0.5)">
-        <component href="logo.xml" id="c"/>
+      <svg:g transform="translate(256) scale(0.25)">
+        <component href="logo.xml"/>
       </svg:g>
-      <svg:g transform="translate(128, 128) scale(0.5)">
-        <component href="logo.xml" id="d"/>
+      <svg:g transform="translate(384) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(0, 128) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(128, 128) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(256, 128) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(384, 128) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(0, 256) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(128, 256) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(256, 256) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(384, 256) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(0, 384) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(128, 384) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(256, 384) scale(0.25)">
+        <component href="logo.xml"/>
+      </svg:g>
+      <svg:g transform="translate(384, 384) scale(0.25)">
+        <component href="logo.xml"/>
       </svg:g>
     </svg:svg>
   </view>

@@ -8,12 +8,14 @@
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 
+  // Environment in which components run and the watch graph is built.
   bender.Environment = {};
 
   // Create a new environment with no loaded component and an empty watch graph
-  // (consisting only of a vortex), and start the graph scheduler.
-  bender.init_environment = function () {
+  // (consisting only of a vortex), then start the graph scheduler.
+  bender.init_environment = function (document) {
     var e = Object.create(bender.Environment);
+    e.document = document;
     e.loaded = {};
     e.components = [];
     e.vertices = [];
@@ -25,11 +27,11 @@
     return e;
   };
 
-  // Create a new environment and load an application from a component to be
-  // rendered in the given target. The defaults objects contains default values
-  // for the properties of the component, and can have a href property for the
-  // URL of the application component. Call the continuation k with the
-  // component when it has been rendered and initialized, or an error.
+  // Load an application from a component to be rendered in the given target.
+  // The defaults object contains default values for the properties of the
+  // component, and should have a `href` property for the URL of the application
+  // component. If no environent is given, a new one is created for the target
+  // element document. When done or in case of error, call the continuation k.
   bender.load_app = function (target, defaults, env, k) {
     if (typeof env === "function") {
       k = env;
@@ -38,7 +40,7 @@
     if (typeof k !== "function") {
       k = flexo.nop;
     }
-    env = env || bender.init_environment();
+    env = env || bender.init_environment(target.ownerDocument);
     var args = flexo.get_args(defaults || { href: "app.xml" });
     if (args.href) {
       var url = flexo.absolute_uri(window.document.baseURI, args.href);
@@ -61,21 +63,15 @@
             });
             component = d;
           }
-          component.render(target, function () {
-            for (var p in args) {
-              if (p !== "href") {
-                component.properties[p] = args[p];
-              }
-            }
-            console.log("* component rendered OK", component);
-            k(component);
-          });
+          var then = Date.now();
+          component.render(target);
+          console.log("* component rendered OK (%0)".fmt(Date.now() - then),
+            component);
+          return component;
         } else {
-          k(url);
+          return url;
         }
       });
-    } else {
-      k();
     }
     return env;
   };
@@ -264,7 +260,13 @@
 
   bender.Environment.deserialize.link = function (elem, k) {
     var uri = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
-    k(bender.init_link(uri, elem.getAttribute("rel")));
+    var link = bender.init_link(uri, elem.getAttribute("rel"));
+    if (!this.loaded[uri]) {
+      this.loaded[uri] = link;
+      link.render(this.document, k);
+    } else {
+      k(link);
+    }
   };
 
   bender.Environment.deserialize.property = function (elem, k) {
@@ -519,24 +521,16 @@
     }
   }
 
-  bender.Component.render = function (target, stack, k) {
-    if (typeof stack === "function") {
-      k = stack;
-    } else if (this.id) {
+  bender.Component.render = function (target, stack) {
+    if (stack && this.id) {
       stack.component.components[this.id] = this;
     }
     stack = [];
     for (var queue = [], c = this; c; c = c.prototype) {
       queue.push(c);
     }
-    var seq = flexo.seq();
     for (var i = queue.length; i > 0; --i) {
       var c = queue[i - 1];
-      c.links.forEach(function (link) {
-        seq.add(function (k_) {
-          link.render(target, k_);
-        });
-      });
       var mode = c.views[""] ? c.views[""].stack : "top";
       if (mode === "replace") {
         stack = [c];
@@ -556,60 +550,51 @@
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
-      seq.add(function (k_) {
-        stack[stack.i++].views[""].render(target, stack, k_);
-      });
+      stack[stack.i++].views[""].render(target, stack);
     }
-    seq.add(function () {
-      render_watches(queue);
-      flexo.notify(this, "@rendered");
-      render_properties(queue);
-      k();
-    }.bind(this));
+    render_watches(queue);
+    flexo.notify(this, "@rendered");
+    render_properties(queue);
   };
 
 
   bender.Link = {};
 
+  // Link rendering is called when deserializing the link; target is a document
   bender.Link.render = function (target, k) {
-    if (this.rendered) {
-      k();
+    var render = bender.Link.render[this.rel];
+    if (typeof render === "function") {
+      render.call(this, target, k);
     } else {
-      this.rendered = true;
-      var f = bender.Link.render[this.rel];
-      if (typeof f === "function") {
-        f.call(this, target, k);
-      } else {
-        console.warn("Cannot render “%0” link".fmt(this.rel));
-        k();
-      }
+      console.warn("Cannot render “%0” link".fmt(this.rel));
+      k(this);
     }
   }
 
   bender.Link.render.script = function (target, k) {
-    if (target.ownerDocument.documentElement.namspaceURI === flexo.ns.svg) {
+    if (target.documentElement.namspaceURI === flexo.ns.svg) {
       var script = flexo.$("svg:script", { "xlink:href": this.uri });
       script.addEventListener("load", k, false);
-      target.ownerDocument.documentElement.appendChild(script);
+      target.documentElement.appendChild(script);
     } else
-      if (target.ownerDocument.documentElement.namespaceURI === flexo.ns.html) {
+      if (target.documentElement.namespaceURI === flexo.ns.html) {
       var script = flexo.$script({ src: this.uri });
       script.addEventListener("load", k, false);
-      target.ownerDocument.head.appendChild(script);
+      target.head.appendChild(script);
     } else {
       console.warn("Cannot render “%0” link".fmt(this.rel));
-      k();
+      k(this);
     }
   };
 
   bender.Link.render.stylesheet = function (target, k) {
-    if (target.ownerDocument.documentElement.namespaceURI === flexo.ns.html) {
-      target.ownerDocument.head.appendChild(flexo.$link({ rel: this.rel,
+    if (target.documentElement.namespaceURI === flexo.ns.html) {
+      target.head.appendChild(flexo.$link({ rel: this.rel,
         href: this.uri }));
     } else {
       console.warn("Cannot render “%0” link".fmt(this.rel));
     }
-    k();
+    k(this);
   };
 
   // A runtime should overload this so that links can be handled accordingly.
@@ -716,14 +701,10 @@
 
   bender.View = {};
 
-  bender.View.render = function (target, stack, k) {
-    var seq = flexo.seq();
+  bender.View.render = function (target, stack) {
     this.children.forEach(function (ch) {
-      seq.add(function (k_) {
-        ch.render(target, stack, k_);
-      });
+      ch.render(target, stack);
     });
-    seq.add(k);
   };
 
   bender.init_view = function (id, stack, children) {
@@ -738,19 +719,17 @@
 
   bender.Content = {};
 
-  bender.Content.render = function (target, stack, k) {
+  bender.Content.render = function (target, stack) {
     for (var i = stack.i, n = stack.length; i <n; ++i) {
       if (stack[i].views[this.id]) {
         var j = stack.i;
         stack.i = i;
-        stack[i].views[this.id].render(target, stack, function () {
-          stack.i = j;
-          k();
-        });
+        stack[i].views[this.id].render(target, stack);
+        stack.i = j;
         return;
       }
     }
-    bender.View.render.call(this, target, stack, k);
+    bender.View.render.call(this, target, stack);
   };
 
   bender.init_content = function (id, children) {
@@ -782,11 +761,12 @@
   };
 
   function set_attribute_value(target) {
-    target.setAttributeNS(this.ns, this.name,
-        this.children.reduce(function (acc, ch) { return acc + ch.text; }, ""));
+    target.setAttributeNS(this.ns, this.name, this.children.map(function (ch) {
+      return ch.text;
+    }).join(""));
   }
 
-  bender.Attribute.render = function (target, stack, k) {
+  bender.Attribute.render = function (target, stack) {
     var attr = this;
     if (this.id) {
       stack.component.rendered[this.id] = {};
@@ -812,7 +792,6 @@
       }
     });
     set_attribute_value.call(this, target);
-    k();
   };
 
   bender.init_attribute = function (id, ns, name, children) {
@@ -827,12 +806,11 @@
 
   bender.Text = {};
 
-  bender.Text.render = function (target, stack, k) {
+  bender.Text.render = function (target, stack) {
     var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
     if (this.id) {
       stack.component.rendered[this.id] = e;
     }
-    k();
   };
 
   bender.init_text = function (id, text) {
@@ -845,7 +823,7 @@
 
   bender.Element = {};
 
-  bender.Element.render = function (target, stack, k) {
+  bender.Element.render = function (target, stack) {
     var e = target.appendChild(
       target.ownerDocument.createElementNS(this.nsuri, this.name)
     );
@@ -858,13 +836,9 @@
         }
       }
     }
-    var seq = flexo.seq();
     this.children.forEach(function (ch) {
-      seq.add(function (k_) {
-        ch.render(e, stack, k_);
-      });
+      ch.render(e, stack);
     });
-    seq.add(k);
   };
 
   bender.init_element = function (nsuri, name, attrs, children) {
@@ -879,11 +853,10 @@
 
   bender.DOMTextNode = {};
 
-  bender.DOMTextNode.render = function (target, stack, k) {
+  bender.DOMTextNode.render = function (target, stack) {
     var d = target.ownerDocument.createTextNode(this.text);
     target.appendChild(d);
     this.rendered.push(d);
-    k();
   };
 
   bender.init_dom_text_node = function (text) {
