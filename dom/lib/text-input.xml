@@ -1,12 +1,15 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="text-input">
 
+  <property name="base-class" value="text-input"/>
   <property name="placeholder"/>
   <property name="value"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:input id="input" aria-role="textbox">
       <attribute name="class">
-        text-input <text id="class-class"/> <text id="enabled-class"/>
+        <text id="base-class-class"/>
+        <text id="class-class"/>
+        <text id="enabled-class"/>
       </attribute>
     </html:input>
   </view>

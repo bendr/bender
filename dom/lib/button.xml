@@ -1,12 +1,13 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button">
 
+  <property name="base-class" value="button"/>
   <property name="down" as="boolean" value="false"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div id="div">
       <attribute name="class">
-        button <text id="class-class"/> <text id="enabled-class"/>
-        <text id="down-class"/>
+        <text id="base-class-class"/> <text id="class-class"/>
+        <text id="enabled-class"/> <text id="down-class"/>
       </attribute>
       <content>
         OK

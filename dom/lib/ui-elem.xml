@@ -2,8 +2,24 @@
 
   <link rel="stylesheet" href="lib.css"/>
 
+  <property name="base-class"/>
   <property name="class"/>
   <property name="enabled" as="boolean" value="true"/>
+
+  <!--
+  <view stack="bottom" id="class-attr">
+    <attribute name="class">
+      <text id="base-class-class"/>
+      <text id="class-class"/>
+      <text id="enabled-class"/>
+    </attribute>
+  </view>
+-->
+
+  <watch>
+    <get property="base-class"/>
+    <set elem="base-class-class"/>
+  </watch>
 
   <watch>
     <get property="class"/>
