@@ -43,7 +43,7 @@
     <get elem="$document" dom-event="mouseup"
       value="cancel(!this.properties.down)"/>
     <set property="down" value="false"/>
-    <set event="@pushed"/>
+    <set event="!pushed"/>
   </watch>
 
 </component>

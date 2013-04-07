@@ -463,7 +463,7 @@
           }
           var prev_id = id;
           id = new_id;
-          flexo.notify(this, "@id-change", { prev: prev_id });
+          flexo.notify(this, "!id-change", { prev: prev_id });
         }
       }
     });
@@ -553,7 +553,7 @@
       stack[stack.i++].views[""].render(target, stack);
     }
     render_watches(queue);
-    flexo.notify(this, "@rendered");
+    flexo.notify(this, "!rendered");
     render_properties(queue);
   };
 

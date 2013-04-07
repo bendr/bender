@@ -23,7 +23,7 @@
     <set property="next" value="input + 1"/>
   </watch>
   <watch>
-    <get component="button" event="@pushed"/>
+    <get component="button" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
 </component>

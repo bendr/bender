@@ -23,11 +23,11 @@
     <set component="button-minus" property="enabled" value="input &gt; 0"/>
   </watch>
   <watch>
-    <get component="button-plus" event="@pushed"/>
+    <get component="button-plus" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
   <watch>
-    <get component="button-minus" event="@pushed"/>
+    <get component="button-minus" event="!pushed"/>
     <set property="count" value="this.properties.count - 1"/>
   </watch>
 </component>
