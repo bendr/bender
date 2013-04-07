@@ -765,10 +765,6 @@
   };
 
   function set_attribute_value(target) {
-    console.log("set_attribute on %0 (%1)".fmt(this.component.id,
-          this.children.map(function (ch) {
-            return ch.k || "*";
-          }).join(",")));
     target.setAttributeNS(this.attr.ns, this.attr.name,
         this.children.map(function (ch) { return ch.text; }).join(""));
   }
@@ -779,17 +775,18 @@
     var rendered = { attr: this, component: stack.component };
     rendered.children = this.children.map(function (ch) {
       if (flexo.instance_of(ch, bender.Text)) {
-        var t = { k: k++ };
+        var ch_ = { k: k++, text: ch.text };
         if (ch.id) {
-          stack.component.rendered[ch.id] = t;
+          stack.component.rendered[ch.id] = ch_;
         }
-        Object.defineProperty(t, "textContent", {
+        Object.defineProperty(ch_, "textContent", {
           enumerable: true,
           set: function (t) {
-            ch.text = t;
+            ch_.text = t;
             set_attribute_value.call(rendered, target);
           }
         });
+        return ch_;
       }
       return ch;
     });
