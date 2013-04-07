@@ -233,9 +233,9 @@
       <zeroOrMore>
         <ref name="component"/>
       </zeroOrMore>
-      <optional>
+      <zeroOrMore>
         <ref name="content"/>
-      </optional>
+      </zeroOrMore>
       <zeroOrMore>
         <ref name="foreign-view-content"/>
       </zeroOrMore>

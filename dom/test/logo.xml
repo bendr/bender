@@ -1,10 +1,11 @@
 <component xmlns="http://bender.igel.co.jp" id="logo">
 
   <property name="palette" as="json" value='["#ff6a4d", "#0b486b", "#5eb26b",
-    "#774f38","#f8ca00","#9e0b46","#a61416", "#222222", "#f8f9f0"]'/>
+    "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
+    "#06491d", "#f94179"]'/>
+  <property name="sides" as="dynamic" value="flexo.random_int(5, 9)"/>
   <property name="bgcolor"/>
   <property name="fgcolor"/>
-  <property name="sides"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 128 128">
@@ -25,12 +26,6 @@
       </svg:g>
     </svg:svg>
   </view>
-
-  <watch>
-    <get event="@rendered"/>
-    <set property="sides"
-      value="this.properties.sides || flexo.random_int(5, 9)"/>
-  </watch>
 
   <watch>
     <get property="palette"/>

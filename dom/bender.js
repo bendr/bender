@@ -571,8 +571,10 @@
     }
   }
 
+  // Render script links for HTML and SVG documents; overload this function to
+  // handle other types of document. Scripts are handled synchronously.
   bender.Link.render.script = function (target, k) {
-    if (target.documentElement.namspaceURI === flexo.ns.svg) {
+    if (target.documentElement.namespaceURI === flexo.ns.svg) {
       var script = flexo.$("svg:script", { "xlink:href": this.uri });
       script.addEventListener("load", k, false);
       target.documentElement.appendChild(script);
@@ -587,6 +589,8 @@
     }
   };
 
+  // Render stylesheet links for HTML documents; overload this function to
+  // handle other types of document. Stylesheets are handled asynchronously.
   bender.Link.render.stylesheet = function (target, k) {
     if (target.documentElement.namespaceURI === flexo.ns.html) {
       target.head.appendChild(flexo.$link({ rel: this.rel,
@@ -761,37 +765,45 @@
   };
 
   function set_attribute_value(target) {
-    target.setAttributeNS(this.ns, this.name, this.children.map(function (ch) {
-      return ch.text;
-    }).join(""));
+    console.log("set_attribute on %0 (%1)".fmt(this.component.id,
+          this.children.map(function (ch) {
+            return ch.k || "*";
+          }).join(",")));
+    target.setAttributeNS(this.attr.ns, this.attr.name,
+        this.children.map(function (ch) { return ch.text; }).join(""));
   }
 
+  var k = 0;
+
   bender.Attribute.render = function (target, stack) {
-    var attr = this;
-    if (this.id) {
-      stack.component.rendered[this.id] = {};
-      Object.defineProperty(stack.component.rendered[this.id], "textContent", {
-        enumerable: true,
-        set: function (t) {
-          attr.remove_children();
-          attr.append_child(bender.init_dom_text_node(t));
-          set_attribute_value.call(attr, target);
+    var rendered = { attr: this, component: stack.component };
+    rendered.children = this.children.map(function (ch) {
+      if (flexo.instance_of(ch, bender.Text)) {
+        var t = { k: k++ };
+        if (ch.id) {
+          stack.component.rendered[ch.id] = t;
         }
-      });
-    }
-    this.children.forEach(function (ch) {
-      if (flexo.instance_of(ch, bender.Text) && ch.id) {
-        stack.component.rendered[ch.id] = {};
-        Object.defineProperty(stack.component.rendered[ch.id], "textContent", {
+        Object.defineProperty(t, "textContent", {
           enumerable: true,
           set: function (t) {
             ch.text = t;
-            set_attribute_value.call(attr, target);
+            set_attribute_value.call(rendered, target);
           }
         });
       }
+      return ch;
     });
-    set_attribute_value.call(this, target);
+    Object.defineProperty(rendered, "textContent", {
+      enumerable: true,
+      set: function (t) {
+        rendered.children = [bender.init_dom_text_node(t)];
+        set_attribute_value.call(rendered, target);
+      }
+    });
+    if (this.id) {
+      stack.component.rendered[this.id] = rendered;
+    }
+    set_attribute_value.call(rendered, target);
   };
 
   bender.init_attribute = function (id, ns, name, children) {
@@ -810,6 +822,8 @@
     var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
     if (this.id) {
       stack.component.rendered[this.id] = e;
+    } else {
+      console.warn("No id for Bender text node", this);
     }
   };
 
