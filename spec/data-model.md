@@ -1,6 +1,6 @@
 # The Bender data model
 
-Bender v0.8, 3 April 2013
+Bender v0.8, 7 April 2013
 
 Bender describes Web applications through the combination of *components*.
 Running a Bender application requires a runtime, which renders the component
@@ -189,7 +189,7 @@ A simple example of a Bender component, using the XML serialization:
     <set elem="clicks"/>
   </watch>
   <watch>
-    <get component="button" event="@pushed"/>
+    <get component="button" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
 </component>
@@ -232,7 +232,7 @@ This XML document describes a component *C* with
 * a watch with
   * an event input with
       * source component *B*
-      * event type `@pushed`
+      * event type `!pushed`
       * both incoming and outgoing value are an event object *E*
   * a property output with
       * target component *C*

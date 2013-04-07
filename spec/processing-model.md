@@ -23,7 +23,7 @@ The steps of rendering a component *C* in the environment *E* in an element node
 1. render the links of *C*;
 2. render the view of *C*;
 3. render the watches of *C*;
-4. send a `@rendered` event notification;
+4. send a `!rendered` event notification;
 5. render the properties of *C*.
 
 ### Links rendering
