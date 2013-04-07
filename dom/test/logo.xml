@@ -29,7 +29,8 @@
 
   <watch>
     <get event="!rendered"/>
-    <set property="sides" value="flexo.random_int(5, 9)"/>
+    <set property="sides"
+      value="this.properties.sides || flexo.random_int(5, 9)"/>
   </watch>
 
   <watch>
