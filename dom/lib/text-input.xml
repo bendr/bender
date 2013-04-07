@@ -1,12 +1,14 @@
-<component xmlns="http://bender.igel.co.jp" id="text-input">
-  <link rel="stylesheet" href="lib.css"/>
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="text-input">
 
-  <property name="enabled" as="boolean" value="true"/>
   <property name="placeholder"/>
   <property name="value"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:input id="input" aria-role="textbox" class="text-input"/>
+    <html:input id="input" aria-role="textbox">
+      <attribute name="class">
+        text-input <text id="class-class"/> <text id="enabled-class"/>
+      </attribute>
+    </html:input>
   </view>
 
   <watch>

@@ -769,13 +769,11 @@
         this.children.map(function (ch) { return ch.text; }).join(""));
   }
 
-  var k = 0;
-
   bender.Attribute.render = function (target, stack) {
     var rendered = { attr: this, component: stack.component };
     rendered.children = this.children.map(function (ch) {
       if (flexo.instance_of(ch, bender.Text)) {
-        var ch_ = { k: k++, text: ch.text };
+        var ch_ = { text: ch.text };
         if (ch.id) {
           stack.component.rendered[ch.id] = ch_;
         }

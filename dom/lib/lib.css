@@ -40,3 +40,7 @@
   background-color: #ffd;
   padding: 0.2em;
 }
+
+.text-input.disabled {
+  color: #888 !important;
+}

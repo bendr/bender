@@ -11,6 +11,7 @@
         </view>
       </component>
       <component href="../lib/button.xml" id="button-minus">
+        <property name="class" value="red"/>
         <view>
           -1
         </view>
