@@ -1,0 +1,66 @@
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="canvas">
+
+  <property name="base-class" value="canvas"/>
+  <property name="enabled" as="boolean" value="false"/>
+  <property name="width"/>
+  <property name="height"/>
+  <property name="stroke"/>
+  <property name="fill"/>
+  <property name="context" as="dynamic"
+    value="this.rendered.canvas.getContext('2d')"/>
+  <property name="down" as="boolean" value="false"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:canvas id="canvas">
+      <attribute name="class">
+        <text id="base-class-class"/>
+        <text id="class-class"/>
+        <text id="enabled-class"/>
+      </attribute>
+      <attribute name="width" id="width-attr"/>
+      <attribute name="height" id="height-attr"/>
+    </html:canvas>
+  </view>
+
+  <watch>
+    <get property="width"/>
+    <set elem="width-attr"/>
+  </watch>
+
+  <watch>
+    <get property="height"/>
+    <set elem="height-attr"/>
+  </watch>
+
+  <watch>
+    <get property="stroke">
+      cancel(!this.context);
+      this.context.strokeStyle = property;
+    </get>
+  </watch>
+
+  <watch>
+    <get property="fill">
+      cancel(!this.context);
+      this.context.fillStyle = property;
+    </get>
+  </watch>
+
+  <watch>
+    <get elem="canvas" dom-event="mousedown" prevent-default="true"
+      value="cancel(!this.properties.enabled) || event"/>
+    <set property="down">
+      this.properties.context.beginPath();
+      var p = flexo.event_offset_pos(input, this.rendered.canvas);
+      this.properties.context.moveTo(p.x, p.y);
+      console.log(p.x);
+      return true;
+    </set>
+  </watch>
+
+  <watch>
+    <get elem="$document" dom-event="mouseup"/>
+    <set property="down" value="'false'"/>
+  </watch>
+
+</component>
