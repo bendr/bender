@@ -91,6 +91,9 @@ simplified form, in the manner of the Relax NG simplification process.
 
 ## Bugs and optimizations
 
+* Pull initial property values as necessary during rendering to render with the
+  right values immediately.
+
 * `lib/button.xml` does not behave well if the mouseup/mousedown events are too
   close to one another.
 
