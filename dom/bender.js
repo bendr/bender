@@ -123,17 +123,6 @@
     k();
   };
 
-  // This function gets passed to input and output value functions so that the
-  // input or output can be cancelled. If called with no parameter or a single
-  // parameter evaluating to a truthy value, throw a cancel exception;
-  // otherwise, return false.
-  function cancel(p) {
-    if (p === undefined || !!p) {
-      throw "cancel";
-    }
-    return false;
-  }
-
   // Traverse the graph for all scheduled vertex/value pairs. The traversal is
   // breadth-first. If a vertex was already visited, check the old value with
   // the new value: when they are equal, just stop; otherwise, re-schedule the
@@ -1166,7 +1155,7 @@
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (input) {
-    var v = this.value.call(this.context, input, cancel);
+    var v = this.value.call(this.context, input, flexo.cancel);
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
@@ -1195,7 +1184,7 @@
 
   // A PropertyEdge sets a property
   bender.PropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, cancel);
+    var v = this.value.call(this.context, input, flexo.cancel);
     this.component.properties[this.property] = v;
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1224,7 +1213,7 @@
 
   // An EventEdge sends an event notification
   bender.EventEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, cancel);
+    var v = this.value.call(this.context, input, flexo.cancel);
     flexo.notify(this.component, this.event, v);
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1253,7 +1242,7 @@
 
   // A DOMAttribute edge sets an attribute, has no other effect.
   bender.DOMAttributeEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, cancel);
+    var v = this.value.call(this.context, input, flexo.cancel);
     this.target.setAttributeNS(this.ns, this.attr, v);
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1281,7 +1270,7 @@
 
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, cancel);
+    var v = this.value.call(this.context, input, flexo.cancel);
     this.target[this.property] = v;
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
