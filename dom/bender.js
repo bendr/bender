@@ -1,6 +1,8 @@
 (function (bender) {
   "use strict";
 
+  bender.VERSION = "0.8.1-pre";
+
   var foreach = Array.prototype.forEach;
   var push = Array.prototype.push;
 
@@ -47,13 +49,13 @@
       env.load_component(url, function (component) {
         if (flexo.instance_of(component, bender.Component)) {
           console.log("* component at %0 loaded OK".fmt(url));
-          var props = Object.keys(component.own_properties)
-            .filter(function (p) {
-              return args.hasOwnProperty(p);
-            }).map(function (p) {
-              var prop = component.own_properties[p];
-              return bender.init_property(prop.name, prop.as, args[prop.name]);
-            });
+          var defined = component.defined_properties;
+          var props = Object.keys(args).filter(function (p) {
+            return defined.hasOwnProperty(p);
+          }).map(function (p) {
+            var prop = defined[p];
+            return bender.init_property(prop.name, prop.as, args[prop.name]);
+          });
           if (props.length > 0) {
             var d = bender.init_component(env);
             d.prototype = component;
@@ -63,10 +65,8 @@
             });
             component = d;
           }
-          var then = Date.now();
           component.render(target);
-          console.log("* component rendered OK (%0)".fmt(Date.now() - then),
-            component);
+          console.log("* component rendered OK", component);
           return component;
         } else {
           return url;
@@ -438,6 +438,17 @@
   bender.init_component = function (environment) {
     var c = Object.create(bender.Component);
     var id = "";
+    flexo.make_readonly(c, "defined_properties", function () {
+      var properties = {};
+      for (var component = this; component; component = component.prototype) {
+        for (var p in component.own_properties) {
+          if (!properties.hasOwnProperty(p)) {
+            properties[p] = component.own_properties[p];
+          }
+        }
+      }
+      return properties;
+    });
     Object.defineProperty(c, "id", { enumerable: true,
       get: function () { return id; },
       set: function (new_id) {
