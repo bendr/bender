@@ -1,152 +1,101 @@
-# Bender extensions
+# TODO List
 
-## Very near future
+Bender v0.8, 8 April 2013
 
-### Property bindings
+## Semantic extensions
 
-Property bindings are a syntactic extension to Bender allowing to easily bind a
-text node or attribute with a property value.
+These extensions add actual features to Bender.
 
-For instance, the following:
+* Element replication: elements can be replicated zero or more times. This can
+  be used to instantiate multiple copies of a single element, or select whether
+  an element appears or not (by replicating zero or one time), even for
+  recursive elements (such as recursive drawing.) Replication can be controlled
+  by some number or a list of values.
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <property name="width"/>
-  <property name="height"/>
-  <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:svg id="svg"/>
-      ...
-    </svg:svg>
-  </view>
-  <watch>
-    <get property="x"/>
-    <get property="y"/>
-    <set view="svg">
-      return "0 0 %0 %1".fmt(x, y);
-    </set>
-  </watch>
-</component>
-```
+* Manipulating component *traits* with watches: traits are similar to attributes
+  and properties, and are features of the component tree itself, such as the
+  *prototype* of a component, the *id* of a view, &c. These need to be
+  accessible through watch inputs and outputs just like attributes and
+  properties.
 
-could be shortened to:
+* Manipulating tree structure with watches: adding, removing and replacing
+  nodes in the application tree. Structured values in watches and properties.
+  (Action output: append/prepend/remove; insertion point output:
+  before/after/replace.)
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <property name="width"/>
-  <property name="height"/>
-  <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:svg viewBox="0 0 #width #height"/>
-      ...
-    </svg:svg>
-  </view>
-</component>
-```
+* Watch composition and input pattern matching: enabling and disabling watch
+  depending on other watches (for instance: dragging.) Activating watches
+  conditionally using pattern matching. Pause propagation to solve the turtle
+  problem?
 
-There should be a difference between a *lexical binding*, where the value is
-simply inserted into a text string, and a *dynamic binding*, where the resulting
-text string is also evaluated.
-An example dynamic binding would be `$width * $height`, where the actual product
-of the two values is the desired result.
+* Inline scripts, API for re/de-rendering when scripts appear in a view.
 
-### Element replication
+* DSL for value transformation: use a special-purpose purely function DSL for
+  value transformations with (G)ADTs (or dependent types?) for pattern matching.
 
-Example (needs to be fleshed out):
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <property name="n"/>
-  <view>
-    <component id="box.xml">
-      <replicate count="#n">
-        <attribute name="x"/>
-      </replicate>
-    </component>
-  </view>
-</component>
-```
+## Syntactic sugar
 
-## Possible extensions
+These extensions do not change the semantics of Bender in any way but enhance
+the expressivity of the language by allowing complex constructs to be rendered
+more briefly. These can be implemented by transformations of the input to a
+simplified form, in the manner of the Relax NG simplification process.
 
-### Custom elements
+* Property bindings: simple syntax to access properties (prefixed with ^) and
+  rendered nodes (prefixed with #) within text contents of a document. When used
+  in property value attribute or withing a view, create watches to *bind* the
+  values together.
 
-Instead of:
+* `$prototype` pseudo-component, as opposed to `$self`. `$self` is always the
+  final component, whereas `$prototype` is the component currently defined.
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <view>
-    <component href="button.xml" enabled="true">
-      <view>
-        OK
-      </view>
-    </component>
-  </view>
-</component>
-```
+* Property getters and setters: similar to Javascript getter and setter.
 
-we have:
+* Default property values for components: attributes which are not `id` and
+  `href` should be treated as property values for properties with the name of
+  the attribute.
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <view>
-    <x:button enabled="true">OK</x:button>
-  </view>
-</component>
-```
+* Custom elements: give element names to components so that they can be referred
+  to by a custom element name. Their content is only view content; their
+  attribute only property values.
 
-### Multiple views and content slots
+* Javascript properties: allow `<set property="context.fillStroke" ...>` where
+  `context` is a Javascript object
 
-A component could have multiple views wit different ids.
-This would have two complementary purposes:
 
-1. a view could be enabled or disabled in order to adapt the rendering of the
-   component to different situations;
+## Meta features
 
-2. a view could also have multiple content slots with different ids.
-   Upon rendering, the content slot would select the view from the component to
-   be rendered on top that matches the id of the content.
+* Persistence: deserialize components and maintain their state so that it can be
+  retrieved from session to session.
 
-### Inline get
+* Inspector: inspect the tree at runtime. Allow editing as well.
 
-Allowing the `get` element inside a view could lead to clearer markup.
-For instance, the following:
+* Foreign content in Bender documents: the runtime does not care but the schema
+  does. Convetions for embedding documentation in components (or the other way
+  around, see below.)
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <property name="x" value="42"/>
-  <view>
-    The value of x is <text id="show-x"/>.
-  </view>
-  <watch>
-    <get property="x"/>
-    <set view="show-x"/>
-  </watch>
-</component>
-```
+* Bender in foreign content: Bender components should be embeddable in any XML
+  content. Multiple components can be contained in a single document, &c.
 
-would be rewritten as:
+* Literate Bender: allow Bender components to be split in different parts so
+  that they can be organized around their documentation, not the other way
+  around.
 
-```xml
-<component xmlns="http://bender.igel.co.jp">
-  <property name="x" value="42"/>
-  <view>
-    The value of x is <get property="x"/>
-  </view>
-</component>
-```
+* Metadata: more data about properties (e.g. private, read-only, &c.) and
+  general information about components.
 
-### Getters and setters for properties
+* Alternate renderers.
 
-Transform the value of a property when it is accessed or set.
 
-### Structured values in watches and properties
+## Bugs and optimizations
 
-Watch inputs and outputs could contain structured content, so that the DOM of
-the application could be manipulated more directly.
+* `lib/button.xml` does not behave well if the mouseup/mousedown events are too
+  close to one another.
 
-### Watch combinators
+* Class attribute view of `lib/ui-elem.xml` should render properly.
 
-Enable/disable watches, in order to implement things like drag and drop.
+* Simplify the watch graph: remove dead-ends, consolidate edges with id values,
+  &c. Precompute path?
 
-### Watch conditionals
-
-Activate watch inputs/outputs conditionally.
+* JIT compilation: compile rendering/graph directly to Javascript? Handle
+  changes in the graph.
