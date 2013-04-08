@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 3 April 2013
+Bender v0.8, 8 April 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -88,34 +88,17 @@ This view is rendered into *E* by rendering its children in order in *E*.
     * If such a *j* exists, then render the children of *V<sub>j</sub>* in *E*.
     * Otherwise, render the children of *S* in *E*.
 
-**TODO** describe main scenarios for using views: framing, spit view, &c.
+**TODO** describe main scenarios for using views: framing, split view, &c.
 
 
 ### Watches rendering
 
-Bender renders watches as vertices and edges in a a *watch graph*. Informally,
-vertices are created for inputs and outputs of the watches, and every
-input/output pair in a watch is rendered as an oriented edge between two
-vertices. Edges are labeled with input and output actions. When an property is
-set on a component or an event occurs, a corresponding vertex in the watch graph
-is indentified, and graph traversal is initiated from this vertex, executing
-edge inputs and outputs along the way.
-
-The set *W* of watches of a component *C* is defined recursively by the union
-of:
-
-* the set of watches *W<sub>P</sub>* of the prototype *P* of *C* (or the empty
-  set if *C* has no prototype), and
-* the set of the own watches of *C*, that is the watches defined for the
-  component *C* itself.
-
-There is a unique watch graph in the environment *E*, to which vertices and
-edges are added for the watches *W* of *C*.
+Watches of a component are rendered into the environment’s *watch graph*.
+Each watch is rendered into *vertices* and *edges* in this graph.
 
 #### Rendering inputs
 
 #### Rendering outputs
-
 
 ### Properties rendering
 
