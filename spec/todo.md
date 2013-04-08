@@ -48,6 +48,8 @@ simplified form, in the manner of the Relax NG simplification process.
 
 * `$prototype` pseudo-component, as opposed to `$self`. `$self` is always the
   final component, whereas `$prototype` is the component currently defined.
+  Also `own` attribute (or something similar) on properties to describe whether
+  a property is defined on the final component or the prototype.
 
 * Property getters and setters: similar to Javascript getter and setter.
 
