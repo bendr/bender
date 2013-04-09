@@ -488,8 +488,9 @@
 
   function render_watches(queue) {
     var component = queue[0];
-    for (var i = queue.length; i > 0; --i) {
-      queue[i - 1].watches.forEach(function (watch) {
+    for (var i = queue.length - 1; i >= 0; --i) {
+      queue[i].watches.forEach(function (watch) {
+        component.components.$that = queue[i];
         watch.render(component);
       });
     }
@@ -559,7 +560,7 @@
         stack.unshift(c);
       }
     }
-    this.components = { $self: this };
+    this.components = { $this: this };
     stack.i = 0;
     stack.component = this;
     this.rendered = { $document: target.ownerDocument };
@@ -1093,13 +1094,13 @@
   // the action if it is called with no parameter, or a falsy value)
   function init_get_value(name, value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function(name, "cancel", value) : flexo.id;
+      new Function(name, "cancel", "that", value) : flexo.id;
   }
 
   bender.init_get_property = function (property, source, value) {
     var g = Object.create(bender.GetProperty);
     g.property = property;
-    g.source = source || "$self";
+    g.source = source || "$this";
     g.value = init_get_value("property", value);
     return g;
   };
@@ -1115,7 +1116,7 @@
   bender.init_get_event = function (event, source, value) {
     var g = Object.create(bender.GetEvent);
     g.event = event;
-    g.source = source || "$self";
+    g.source = source || "$this";
     g.value = init_get_value("event", value);
     return g;
   };
@@ -1155,12 +1156,13 @@
   // original inputs and outputs (for their value), the parent component, and
   // the destination vertex (defaults to Vortex; otherwise, the destination is
   // added to the watch graph.)
-  function make_edge(prototype, source, dest, value, component) {
+  function make_edge(prototype, source, dest, value, component, that) {
     var edge = Object.create(prototype);
     set_edge_source(edge, source);
     set_edge_dest(edge, dest);
     edge.value = value;
     edge.context = component;
+    edge.that = that;
     return edge;
   }
 
@@ -1171,19 +1173,19 @@
   // falsy value)
   function init_set_value(value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("input", "cancel", value) : flexo.id;
+      new Function ("input", "cancel", "that", value) : flexo.id;
   }
 
   // Render a sink output edge to a regular Edge going to the Vortex.
   bender.Set.render = function (source, component) {
     return make_edge(bender.Edge, source, component.environment.vortex,
-        this.value, component);
+        this.value, component, this.watch.component);
   };
 
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel);
+    var v = this.value.call(this.context, input, flexo.cancel, this.that);
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
@@ -1200,7 +1202,7 @@
           init_vertex(bender.PropertyVertex,
             { component: c, property: this.property }));
       var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
-          component);
+          component, this.watch.component);
       edge.property = this.property;
       edge.component = c;
       return edge;
@@ -1212,7 +1214,7 @@
 
   // A PropertyEdge sets a property
   bender.PropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel);
+    var v = this.value.call(this.context, input, flexo.cancel, this.that);
     this.component.properties[this.property] = v;
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1229,7 +1231,7 @@
       var dest = component.environment.add_vertex(
           init_vertex(bender.EventVertex, { component: c, event: this.event }));
       var edge = make_edge(bender.EventEdge, source, dest, this.value,
-          component);
+          component, this.watch.component);
       edge.component = c;
       edge.event = this.event;
       return edge;
@@ -1241,7 +1243,7 @@
 
   // An EventEdge sends an event notification
   bender.EventEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel);
+    var v = this.value.call(this.context, input, flexo.cancel, this.that);
     flexo.notify(this.component, this.event, v);
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1257,7 +1259,8 @@
     var r = component.rendered[this.target];
     if (r) {
       var edge = make_edge(bender.DOMAttributeEdge, source,
-          component.environment.vortex, this.value, component);
+          component.environment.vortex, this.value, component,
+          this.watch.component);
       edge.target = r;
       edge.ns = this.ns;
       edge.attr = this.attr;
@@ -1271,7 +1274,7 @@
   // A DOMAttribute edge sets an attribute, has no other effect.
   // If the value is null, the attribute is not set but removed.
   bender.DOMAttributeEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel);
+    var v = this.value.call(this.context, input, flexo.cancel, this.that);
     if (v === null) {
       this.target.removeAttributeNS(this.ns, this.attr);
     } else {
@@ -1291,7 +1294,8 @@
     var r = component.rendered[this.target];
     if (r) {
       var edge = make_edge(bender.DOMPropertyEdge, source,
-          component.environment.vortex, this.value, component);
+          component.environment.vortex, this.value, component,
+          this.watch.component);
       edge.target = r;
       edge.property = this.property;
       return edge;
@@ -1303,7 +1307,7 @@
 
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel);
+    var v = this.value.call(this.context, input, flexo.cancel, this.that);
     this.target[this.property] = v;
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1324,7 +1328,7 @@
   bender.init_set_property = function (property, target, value) {
     var s = Object.create(bender.SetProperty);
     s.property = property;
-    s.target = target || "$self";
+    s.target = target || "$this";
     s.value = init_set_value(value);
     return s;
   };
@@ -1332,7 +1336,7 @@
   bender.init_set_event = function (event, target, value) {
     var s = Object.create(bender.SetEvent);
     s.event = event;
-    s.target = target || "$self";
+    s.target = target || "$this";
     s.value = init_set_value(value);
     return s;
   };

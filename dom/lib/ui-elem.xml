@@ -16,8 +16,8 @@
 -->
 
   <watch>
-    <get event="!rendered"/>
-    <set elem="base-class-class" value="this.id"/>
+    <get property="base-class"/>
+    <set elem="base-class-class"/>
   </watch>
 
   <watch>

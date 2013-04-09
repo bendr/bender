@@ -46,10 +46,11 @@ simplified form, in the manner of the Relax NG simplification process.
   in property value attribute or withing a view, create watches to *bind* the
   values together.
 
-* `$prototype` pseudo-component, as opposed to `$self`. `$self` is always the
-  final component, whereas `$prototype` is the component currently defined.
-  Also `own` attribute (or something similar) on properties to describe whether
-  a property is defined on the final component or the prototype.
+* --`$prototype` pseudo-component, as opposed to `$self`. `$self` is always the
+  final component, whereas `$prototype` is the component currently defined.--
+  (Changed to **$this** and **$that**.) Also **own** attribute (or something
+  similar) on properties to describe whether a property is defined on the final
+  component or the prototype.
 
 * Property getters and setters: similar to Javascript getter and setter.
 
@@ -92,8 +93,6 @@ simplified form, in the manner of the Relax NG simplification process.
 ## Bugs and optimizations
 
 * Scope of id for nested views: the element is stored in the wrong component.
-
-* See also button styling!
 
 * Error handling for ill-formed components.
 

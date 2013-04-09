@@ -1,5 +1,8 @@
 ### Changes in v0.8.1 (forthcoming)
 
+* renamed **$self** to **$this**, and added **$that** for a lexical binding of
+  the parent component (versus dynamic binding.) Also **that** in value
+  transforms.
 * lib/check-box.xml: check box component.
 * Setting a DOM attribute to null removes it.
 * Improved deserialization by calling seq.flush() immediately.

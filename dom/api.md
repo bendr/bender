@@ -81,9 +81,12 @@ additional arguments:
 * `set` elements have an `input` argument that is the value of the previous
   `get`.
 
-In all cases, a `cancel` argument also gets passed. It is a function that can be
-called with either no argument or a true value to cancel the execution of the
-value function altogether.
+In all cases, two other arguments get also passed:
+
+1. `cancel` is a function that can be called with either no argument or a true
+   value to cancel the execution of the value function altogether;
+2. `that` is a pointer to the component *in which the watch was defined*, which
+   which may be different from this.
 
 When the value of a `get` or `set` element is specified as the text content of
 the element, then no implicit return is added.
