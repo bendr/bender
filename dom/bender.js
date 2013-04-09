@@ -343,28 +343,18 @@
   bender.Environment.deserialize.attribute = function (elem, k) {
     var attr = bender.init_attribute(elem.getAttribute("id"),
         elem.getAttribute("ns"), elem.getAttribute("name"));
-    var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE &&
         ch.namespaceURI === bender.ns && ch.localName === "text") {
-        seq.add(function (k_) {
-          bender.Environment.deserialize.text.call(this, ch, function (d) {
-            attr.append_child(d);
-            k_();
-          });
-        }.bind(this));
+        bender.Environment.deserialize.text.call(this, ch, function (d) {
+          attr.append_child(d);
+        });
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
-        seq.add(function (k_) {
-          attr.append_child(bender.init_dom_text_node(ch.textContent));
-          k_();
-        });
+        attr.append_child(bender.init_dom_text_node(ch.textContent));
       }
     }, this);
-    seq.add(function () {
-      k(attr);
-    });
-    seq.flush();
+    k(attr);
   };
 
   bender.Environment.deserialize.text = function (elem, k) {
@@ -373,25 +363,18 @@
 
   bender.Environment.deserialize.watch = function (elem, k) {
     var watch = bender.init_watch();
-    var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
-      seq.add(function (k_) {
-        this.deserialize(ch, function (d) {
-          if (d) {
-            if (flexo.instance_of(d, bender.Get)) {
-              watch.append_get(d);
-            } else if (flexo.instance_of(d, bender.Set)) {
-              watch.append_set(d);
-            }
+      this.deserialize(ch, function (d) {
+        if (d) {
+          if (flexo.instance_of(d, bender.Get)) {
+            watch.append_get(d);
+          } else if (flexo.instance_of(d, bender.Set)) {
+            watch.append_set(d);
           }
-          k_();
-        });
-      }.bind(this));
+        }
+      });
     }, this);
-    seq.add(function () {
-      k(watch);
-    });
-    seq.flush();
+    k(watch);
   };
 
   bender.Environment.deserialize.get = function (elem, k) {
