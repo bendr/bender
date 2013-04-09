@@ -18,5 +18,5 @@ Bender application is run by loading or building its main component in the
 Bender runtime, and running in a host application; typically, a Web browser. The
 runtime is written in pure Javascript and has no dependency.
 
-Learn more about Bender at [http://bendr.github.com/](http://bendr.github.com/).
-This page will be updated soon with Bender v0.8!
+Learn more about Bender at
+[http://bender.igel.co.jp/](http://bender.igel.co.jp/).

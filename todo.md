@@ -91,8 +91,6 @@ simplified form, in the manner of the Relax NG simplification process.
 
 ## Bugs and optimizations
 
-* Fix argument passing in `bender.load_app`
-
 * Pull initial property values as necessary during rendering to render with the
   right values immediately.
 

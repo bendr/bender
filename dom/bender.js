@@ -72,6 +72,8 @@
           return url;
         }
       });
+    } else {
+      k();
     }
     return env;
   };
