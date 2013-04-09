@@ -67,9 +67,9 @@
           }
           component.render(target);
           console.log("* component rendered OK", component);
-          return component;
+          k(component);
         } else {
-          return url;
+          k(url);
         }
       });
     } else {
