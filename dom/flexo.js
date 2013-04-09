@@ -220,6 +220,22 @@
     return a[flexo.random_int(a.length - 1)];
   };
 
+  flexo.Urn = {
+    random_element: function () {
+      if (!this.remaining || this.remaining.length === 0) {
+        this.remaining = slice.call(this.array);
+      }
+      var i = flexo.random_int(this.remaining.length - 1);
+      return this.remaining.splice(i, 1)[0];
+    }
+  };
+
+  flexo.urn = function (a) {
+    var urn = Object.create(flexo.Urn);
+    urn.array = a;
+    return urn;
+  };
+
   // Remove an item from an array
   flexo.remove_from_array = function (array, item) {
     if (array && item != null) {

@@ -1,8 +1,9 @@
 <component xmlns="http://bender.igel.co.jp" id="logo">
 
-  <property name="palette" as="json" value='["#ff6a4d", "#0b486b", "#5eb26b",
-    "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
-    "#06491d", "#f94179"]'/>
+  <property name="palette" as="dynamic"
+    value='flexo.urn(["#ff6a4d", "#0b486b", "#5eb26b", "#774f38", "#f8ca00",
+    "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9", "#06491d",
+    "#f94179"])'/>
   <property name="sides"/>
   <property name="bgcolor"/>
   <property name="fgcolor"/>
@@ -38,15 +39,9 @@
   <watch>
     <get property="palette"/>
     <set property="bgcolor"
-      value="this.properties.bgcolor || flexo.random_element(input)"/>
-    <set property="fgcolor">
-      if (this.properties.fgcolor) {
-        return this.properties.fgcolor;
-      }
-      var p = input.slice();
-      flexo.remove_from_array(p, this.properties.bgcolor);
-      return flexo.random_element(p);
-    </set>
+      value="this.properties.bgcolor || input.random_element()"/>
+    <set property="fgcolor"
+      value="this.properties.fgcolor || input.random_element()"/>
   </watch>
 
   <watch>
