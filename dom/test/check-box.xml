@@ -1,0 +1,36 @@
+<component xmlns="http://bender.igel.co.jp" id="test">
+
+  <property name="ok" as="boolean" value="true"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <component href="../lib/check-box.xml" id="ch">
+        <view>
+          Check me out!
+        </view>
+      </component>
+    </html:p>
+    <html:p>
+      Am I checked? <text id="selected"/>
+    </html:p>
+    <html:p>
+      <component href="../lib/button.xml" id="b">
+        <view>
+          Toggle
+        </view>
+      </component>
+    </html:p>
+  </view>
+
+  <watch>
+    <get component="ch" property="checked"/>
+    <set elem="selected" value="input ? 'yes' : 'no'"/>
+  </watch>
+
+  <watch>
+    <get component="b" event="!pushed"/>
+    <set component="ch" property="checked"
+      value="!this.components.ch.properties.checked"/>
+  </watch>
+
+</component>

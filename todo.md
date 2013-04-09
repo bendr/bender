@@ -91,6 +91,10 @@ simplified form, in the manner of the Relax NG simplification process.
 
 ## Bugs and optimizations
 
+* Scope of id for nested views: the element is stored in the wrong component.
+
+* See also button styling!
+
 * Error handling for ill-formed components.
 
 * **on-render** only takes a function and should be able to take an object with

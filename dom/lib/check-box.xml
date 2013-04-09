@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="check-box">
 
-  <property name="checked" as="boolean" value="false"/>
+  <property name="checked" as="boolean" value="true"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:label>
@@ -19,7 +19,7 @@
   </watch>
 
   <watch>
-    <get elem="checkbox" dom-event="checked"/>
+    <get elem="checkbox" dom-event="change"/>
     <set property="checked" value="input.target.checked"/>
   </watch>
 
