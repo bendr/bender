@@ -1,6 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="text-input">
 
-  <property name="base-class" value="text-input"/>
   <property name="placeholder"/>
   <property name="value"/>
 

@@ -1,6 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button">
 
-  <property name="base-class" value="button"/>
   <property name="down" as="boolean" value="false"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">

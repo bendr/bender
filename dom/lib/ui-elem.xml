@@ -2,7 +2,6 @@
 
   <link rel="stylesheet" href="lib.css"/>
 
-  <property name="base-class"/>
   <property name="class"/>
   <property name="enabled" as="boolean" value="true"/>
 
@@ -17,8 +16,8 @@
 -->
 
   <watch>
-    <get property="base-class"/>
-    <set elem="base-class-class"/>
+    <get event="!rendered"/>
+    <set elem="base-class-class" value="this.id"/>
   </watch>
 
   <watch>

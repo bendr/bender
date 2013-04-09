@@ -1,5 +1,7 @@
 ### Changes in v0.8.1 (forthcoming)
 
+* lib/check-box.xml: check box component.
+* Setting a DOM attribute to null removes it.
 * Improved deserialization by calling seq.flush() immediately.
 * **on-render** attribute for **component** (see JS API.)
 * Fixed warning when no `href` parameter is given in the runtime.

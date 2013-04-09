@@ -1,6 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="canvas">
 
-  <property name="base-class" value="canvas"/>
   <property name="enabled" as="boolean" value="false"/>
   <property name="width"/>
   <property name="height"/>
