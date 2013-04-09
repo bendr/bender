@@ -82,6 +82,7 @@
   // an error)
   bender.Environment.load_component = function (url, k) {
     if (!this.loaded.hasOwnProperty(url)) {
+      var now = Date.now();
       this.loaded[url] = [k];
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
         var ks = this.loaded[url];
@@ -89,6 +90,7 @@
           this.deserialize(req.response.documentElement, function (d) {
             if (flexo.instance_of(d, bender.Component)) {
               this.loaded[url] = d;
+              console.log("load_component: %0 (%1)".fmt(url, Date.now() - now));
             } else {
               this.loaded[url] = "not a component";
             }
@@ -221,6 +223,9 @@
     var init_component = function (env, prototype) {
       var component = bender.init_component(env);
       component.id = elem.getAttribute("id");
+      if (elem.hasAttribute("on-render")) {
+        component.on.__render = elem.getAttribute("on-render");
+      }
       if (prototype) {
         component.prototype = prototype;
       }
@@ -475,6 +480,7 @@
     c.views = {};
     c.own_properties = {};
     c.watches = [];
+    c.on = {};
     return c;
   };
 
@@ -523,6 +529,29 @@
     }
   }
 
+  function on_render(queue) {
+    var self = queue[0];
+    queue.forEach(function (c) {
+      if (c.on.hasOwnProperty("__render")) {
+        try {
+          c.on.render = eval(c.on.__render);
+        } catch (e) {
+          console.error("Eval error for on-render=\"%0\""
+            .fmt(c.on.__render, e));
+        }
+        delete c.on.__render;
+      }
+    });
+    var on = queue.filter(function (c) {
+      return typeof c.on.render === "function";
+    }).map(function (c) {
+      return c.on.render;
+    });
+    if (on.length > 0) {
+      on[0].call(self, (on[1] || flexo.nop).bind(self));
+    }
+  }
+
   bender.Component.render = function (target, stack) {
     if (stack && this.id) {
       stack.component.components[this.id] = this;
@@ -557,6 +586,7 @@
     render_watches(queue);
     flexo.notify(this, "!rendered");
     render_properties(queue);
+    on_render(queue);
   };
 
 

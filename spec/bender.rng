@@ -3,6 +3,8 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
+  <!-- Bender v0.8.1, 9 April 2013 -->
+
   <start>
     <ref name="component"/>
   </start>
@@ -32,6 +34,9 @@
       <optional>
         <ref name="href-component"/>
       </optional>
+      <zeroOrMore>
+        <ref name="on-render"/>
+      </zeroOrMore>
       <interleave>
         <zeroOrMore>
           <ref name="link"/>
@@ -328,6 +333,10 @@
     <attribute name="ns">
       <data type="anyURI"/>
     </attribute>
+  </define>
+
+  <define name="on-render">
+    <attribute name="on-render"/>
   </define>
 
   <define name="prevent-default">

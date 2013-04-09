@@ -1,6 +1,6 @@
 # The Bender Javascript API
 
-Bender v0.8, 8 April 2013
+Bender v0.8.1, 9 April 2013
 
 ## Using the standard runtime
 
@@ -14,7 +14,7 @@ The runtime documents are located in the repository in `dom/runtime.html` and
 To run a Bender component in a browser, open either document.
 The component to run is specified with the `href` attribute, for instance:
 
-  dom/runtime.html?href=test/sample.xml
+    dom/runtime.html?href=test/sample.xml
 
 will load the component at URL `test/sample.xml`, relative to the location of
 `runtime.html`.
@@ -25,7 +25,7 @@ Custom values can be set for the properties of the top-level component by
 passing additional parameters in the URL.
 For instance:
 
-  dom/runtime.html?href=test/sample.xml&count=5
+    dom/runtime.html?href=test/sample.xml&count=5
 
 will set the `count` property of the component described in `sample.xml` to 5.
 Arguments other than `href` that do not map to defined properties are ignored.
@@ -38,7 +38,8 @@ Bender component may include Javascript code that is interpreted by the runtime.
 Javascript code may appear in:
 
 * `value` attribute of `property`, `get` or `set` elements;
-* text content of `get` or `set` elements.
+* text content of `get` or `set` elements;
+* `on-render` attribute of `component`.
 
 ### Property values
 
@@ -90,6 +91,18 @@ More complex functions with multiple statements can then be specified, which
 must be careful to return a value.
 
 **TODO** Example
+
+### `on-render`
+
+This attribute is defined on the component element and defines a function to be
+called when the component is completely rendered (after the initial propagation
+of properties.) The function is called with `this` set to the current component.
+Only the function of the nearest component in the prototype chain is called, but
+it also receives a `$super` parameter (note: this can be named to anything as
+long as it is the first parameter of the function; also note that `super` is a
+reserved word in Javascript) which is the next such function in the prototype
+chain, already bound to the current component so that it can be simply called by
+`$super()`.
 
 ## Bender API Reference
 
