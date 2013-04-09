@@ -547,8 +547,11 @@
     }).map(function (c) {
       return c.on.render;
     });
+    for (var i = on.length - 1; i >= 0; --i) {
+      on[i] = on[i].bind(self, on[i + 1] || flexo.id);
+    }
     if (on.length > 0) {
-      on[0].call(self, (on[1] || flexo.nop).bind(self));
+      on[0]();
     }
   }
 

@@ -93,9 +93,8 @@ simplified form, in the manner of the Relax NG simplification process.
 
 * Error handling for ill-formed components.
 
-* **on-render** can only call super once: its super cannot call its super. Also,
-  it only takes a function and should be able to take an object with a
-  `handleEvent` method.
+* **on-render** only takes a function and should be able to take an object with
+  a `handleEvent` method.
 
 * Pull initial property values as necessary during rendering to render with the
   right values immediately.

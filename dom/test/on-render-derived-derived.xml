@@ -1,0 +1,2 @@
+<component xmlns="http://bender.igel.co.jp"
+  href="on-render-derived.xml" on-render="rendered_derived_derived"/>
