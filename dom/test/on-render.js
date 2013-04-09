@@ -1,4 +1,5 @@
-function rendered() {
+function rendered($super) {
+  $super();
   this.rendered.t.textContent = this.properties.message;
 }
 
