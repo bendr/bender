@@ -559,9 +559,6 @@
         stack.unshift(c);
       }
     }
-    // TODO distinguish between $self/$prototype (or something else) for setters
-    // $self sets the own property; $prototype sets the prototype property (and
-    // thus all derived); $self remains the default
     this.components = { $self: this };
     stack.i = 0;
     stack.component = this;
@@ -1272,9 +1269,14 @@
   };
 
   // A DOMAttribute edge sets an attribute, has no other effect.
+  // If the value is null, the attribute is not set but removed.
   bender.DOMAttributeEdge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel);
-    this.target.setAttributeNS(this.ns, this.attr, v);
+    if (v === null) {
+      this.target.removeAttributeNS(this.ns, this.attr);
+    } else {
+      this.target.setAttributeNS(this.ns, this.attr, v);
+    }
     // console.log("  - %0 = %1".fmt(this, v));
     return v;
   };

@@ -1,0 +1,27 @@
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="check-box">
+
+  <property name="base-class" value="check-box"/>
+  <property name="checked" as="boolean" value="false"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:label>
+      <attribute name="class">
+        <text id="base-class-class"/> <text id="class-class"/>
+        <text id="enabled-class"/>
+      </attribute>
+      <html:input type="checkbox" id="checkbox"/>
+      <content/>
+    </html:label>
+  </view>
+
+  <watch>
+    <get property="checked"/>
+    <set elem="checkbox" property="checked"/>
+  </watch>
+
+  <watch>
+    <get elem="checkbox" dom-event="checked"/>
+    <set property="checked" value="input.target.checked"/>
+  </watch>
+
+</component>
