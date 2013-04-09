@@ -109,5 +109,3 @@ simplified form, in the manner of the Relax NG simplification process.
 
 * JIT compilation: compile rendering/graph directly to Javascript? Handle
   changes in the graph.
-
-* (Flexo) start Seq object rather than wait for timeout

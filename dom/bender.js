@@ -82,7 +82,6 @@
   // an error)
   bender.Environment.load_component = function (url, k) {
     if (!this.loaded.hasOwnProperty(url)) {
-      var now = Date.now();
       this.loaded[url] = [k];
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
         var ks = this.loaded[url];
@@ -90,7 +89,6 @@
           this.deserialize(req.response.documentElement, function (d) {
             if (flexo.instance_of(d, bender.Component)) {
               this.loaded[url] = d;
-              console.log("load_component: %0 (%1)".fmt(url, Date.now() - now));
             } else {
               this.loaded[url] = "not a component";
             }
@@ -241,6 +239,7 @@
       seq.add(function () {
         k(component);
       });
+      seq.flush();
     };
     if (elem.hasAttribute("href")) {
       this.load_component(
@@ -318,6 +317,7 @@
     seq.add(function () {
       k(children);
     });
+    seq.flush();
   };
 
   bender.Environment.deserialize_element = function (elem, k) {
@@ -364,6 +364,7 @@
     seq.add(function () {
       k(attr);
     });
+    seq.flush();
   };
 
   bender.Environment.deserialize.text = function (elem, k) {
@@ -389,7 +390,8 @@
     }, this);
     seq.add(function () {
       k(watch);
-    }.bind(this));
+    });
+    seq.flush();
   };
 
   bender.Environment.deserialize.get = function (elem, k) {
@@ -759,7 +761,7 @@
   bender.Content = {};
 
   bender.Content.render = function (target, stack) {
-    for (var i = stack.i, n = stack.length; i <n; ++i) {
+    for (var i = stack.i, n = stack.length; i < n; ++i) {
       if (stack[i].views[this.id]) {
         var j = stack.i;
         stack.i = i;

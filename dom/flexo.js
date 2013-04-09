@@ -495,12 +495,16 @@
       this.queue.push(f);
       if (!this.flushing) {
         this.flushing = true;
-        setTimeout(this.flush.bind(this), 0);
+        this.timeout = setTimeout(this.flush.bind(this), 0);
       }
     }
   };
 
   flexo.Seq.flush = function () {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      delete this.timeout;
+    }
     var f = this.queue.shift();
     if (f) {
       f(this.flush.bind(this));
