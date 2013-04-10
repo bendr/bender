@@ -1,6 +1,13 @@
 # TODO List
 
-Bender v0.8.1, 9 April 2013
+Bender v0.8.1, 10 April 2013
+
+## High priority items
+
+* Feature: property bindings
+* Bug: scope of ids in views
+* Bug: fix dom/lib/button.xml; investigate possible issue in watch graph
+* Bug: rendering on views with id
 
 ## Semantic extensions
 
@@ -32,6 +39,10 @@ These extensions add actual features to Bender.
 
 * DSL for value transformation: use a special-purpose purely function DSL for
   value transformations with (G)ADTs (or dependent types?) for pattern matching.
+
+* Refer to unrendered components (see for instance dom/test/logos.xml: we have
+  components that inherit from logo, but how can we set the palette globally for
+  all logos?)
 
 
 ## Syntactic sugar
@@ -88,6 +99,10 @@ simplified form, in the manner of the Relax NG simplification process.
   general information about components.
 
 * Alternate renderers.
+
+* Use xml:id for ids that should be preserved on rendering; mark target as being
+  renderable only once. This is useful for svg:defs for instance (we might even
+  have a rel="defs" or something like that?)
 
 
 ## Bugs and optimizations
