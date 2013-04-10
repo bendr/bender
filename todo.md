@@ -8,6 +8,7 @@ Bender v0.8.1, 10 April 2013
 * Bug: scope of ids in views
 * Bug: fix dom/lib/button.xml; investigate possible issue in watch graph
 * Bug: rendering on views with id
+* Bug: content loop
 
 ## Semantic extensions
 
@@ -107,6 +108,8 @@ simplified form, in the manner of the Relax NG simplification process.
 
 ## Bugs and optimizations
 
+* Bug: loops in prototype chain are not detected.
+
 * Scope of id for nested views: the element is stored in the wrong component.
 
 * Error handling for ill-formed components.
@@ -127,3 +130,5 @@ simplified form, in the manner of the Relax NG simplification process.
 
 * JIT compilation: compile rendering/graph directly to Javascript? Handle
   changes in the graph.
+
+* Source maps to debug inline Javascript code.

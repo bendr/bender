@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp" href="content-a.xml">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div style="padding:1em;background-color:#5eb26b">
+      B
+      <content/>
+    </html:div>
+  </view>
+</component>
