@@ -32,6 +32,33 @@ Arguments other than `href` that do not map to defined properties are ignored.
 Values are parsed as specified by the `as` parameter of the property (see
 below.)
 
+## Javascript objects
+
+### Components
+
+A Bender component is represented by a **bender.Component** object.
+
+**TODO** properties and methods
+
+A *rendered* component has the following additional properties:
+
+* **rendered** is a dictionary of concrete DOM nodes, indexed by the id of
+  their counterpart in the view of the component (including text and attribute
+  nodes.) There are three meta-ids: **$root** is the first concrete DOM element
+  for the view in document order; **$document** is the host document;
+  **$target** is the target in which the component was rendered (and thus should
+  be the parent of **$root**.) There ids are the same that are used in the
+  **elem** attribute of watches.
+* **components** is a dictionary of components in scope, indexed by their id.
+  Only components with a non-empty id are listed. There are two meta-ids,
+  **$this** and **$that** which are defined to be respectively dynamic and
+  lexical references to the component. These ids are the same that are used in
+  the **component** attribute of watches.
+* **children** is the list of all child components, including those that do not
+  have an id.
+* **parent** is the parent component (if any.)
+* **properties** is a dictionary of properties for the component.
+
 ## Javascript in Bender components
 
 Bender component may include Javascript code that is interpreted by the runtime.

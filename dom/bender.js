@@ -542,8 +542,11 @@
   }
 
   bender.Component.render = function (target, stack) {
-    if (stack && this.id) {
-      stack.component.components[this.id] = this;
+    if (stack) {
+      stack.component.children.push(this);
+      if (this.id) {
+        stack.component.components[this.id] = this;
+      }
     }
     stack = [];
     for (var queue = [], c = this; c; c = c.prototype) {
@@ -560,6 +563,7 @@
         stack.unshift(c);
       }
     }
+    this.children = [];
     this.components = { $this: this };
     stack.i = 0;
     stack.component = this;
