@@ -1,0 +1,15 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <view>
+    <component href="../lib/timer.xml" id="timer">
+      <property name="rate-ms" as="number" value="1000"/>
+    </component>
+  </view>
+
+  <watch>
+    <get component="timer" event="!tick">
+      console.log("Tick! %0".fmt(event.time));
+    </get>
+  </watch>
+
+</component>

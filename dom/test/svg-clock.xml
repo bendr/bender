@@ -1,0 +1,40 @@
+<component xmlns="http://bender.igel.co.jp" href="clock.xml">
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:svg viewBox="-200 -200 400 400">
+      <svg:g id="n" fill="white" stroke="black" stroke-linecap="round">
+        <svg:circle r="180"/>
+      </svg:g>
+      <svg:g stroke-linecap="round" stroke="black" transform="rotate(-90)">
+        <svg:line x1="80" id="h"/>
+        <svg:line x1="160" id="m"/>
+        <svg:line x1="160" id="s" stroke-dasharray="10 10"/>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+  <watch>
+    <get event="!rendered"><![CDATA[
+      for (var i = 0; i < 60; ++i) {
+        this.rendered.n.appendChild(flexo.$line({ y1: 170, y2: i % 5 === 0 ? 150 : 160,
+          transform: "rotate(%0)".fmt(i * 6) }));
+      }
+    ]]></get>
+  </watch>
+
+  <watch>
+    <get property="h"/>
+    <set elem="h" attr="transform" value="'rotate(%0)'.fmt(input * 30)"/>
+  </watch>
+
+  <watch>
+    <get property="m"/>
+    <set elem="m" attr="transform" value="'rotate(%0)'.fmt(input * 6)"/>
+  </watch>
+
+  <watch>
+    <get property="s"/>
+    <set elem="s" attr="transform" value="'rotate(%0)'.fmt(input * 6)"/>
+  </watch>
+
+</component>

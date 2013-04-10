@@ -1,0 +1,16 @@
+/* Digital 7 font by http://www.styleseven.com/ */
+
+@font-face {
+  font-family: "Digital 7 Mono";
+  src: url("digital7mono.ttf") format("truetype");
+}
+
+.clock {
+  font-family: "Digital 7 Mono", monospace;
+  font-size: 200px;
+  text-align: center;
+}
+
+.hidden {
+  visibility: hidden;
+}

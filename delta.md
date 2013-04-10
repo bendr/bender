@@ -1,10 +1,11 @@
 ### Changes in v0.8.1 (forthcoming)
 
-* add classes from the id of components to the $root element automatically (in
+* Components have a **children** property to access all child components.
+* Add classes from the id of components to the $root element automatically (in
   the HTML runtime only.)
-* set **$root** pseudo-id for the first element rendered for a component (if
+* Set **$root** pseudo-id for the first element rendered for a component (if
   any.)
-* renamed **$self** to **$this**, and added **$that** for a lexical binding of
+* Renamed **$self** to **$this**, and added **$that** for a lexical binding of
   the parent component (versus dynamic binding.) Also **that** in value
   transforms.
 * lib/check-box.xml: check box component.

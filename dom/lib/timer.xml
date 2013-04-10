@@ -1,0 +1,27 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="rate-ms" as="number" value="0"/>
+  <watch>
+    <get property="rate-ms"><![CDATA[
+      if (this.__timeout) {
+        window.clearTimeout(this.__timeout);
+        delete this.__timeout;
+      } else if (this.__frame) {
+        flexo.cancel_animation_frame(this.__frame);
+        delete this.__frame;
+      }
+      var tick;
+      if (typeof property !== "number" || isNaN(property) || property <= 0) {
+        tick = function () {
+          flexo.notify(this, "!tick", { time: Date.now() });
+          flexo.request_animation_frame(tick);
+        }.bind(this);
+      } else {
+        tick = function () {
+          flexo.notify(this, "!tick", { time: Date.now() });
+          this.__timeout = window.setTimeout(tick, property);
+        }.bind(this);
+      }
+      tick();
+    ]]></get>
+  </watch>
+</component>

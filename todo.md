@@ -105,6 +105,7 @@ simplified form, in the manner of the Relax NG simplification process.
   renderable only once. This is useful for svg:defs for instance (we might even
   have a rel="defs" or something like that?)
 
+* Get tick event from Bender’s loop (with environment as a meta component?)
 
 ## Bugs and optimizations
 

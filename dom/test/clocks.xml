@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <view>
+    <component href="digital-clock.xml"/>
+    <component href="svg-clock.xml"/>
+  </view>
+
+</component>

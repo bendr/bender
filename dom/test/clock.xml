@@ -1,0 +1,21 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <property name="offset" as="dynamic"
+    value="(new Date()).getTimezoneOffset() / 60"/>
+  <property name="h"/>
+  <property name="m"/>
+  <property name="s"/>
+
+  <view>
+    <component href="../lib/timer.xml" id="timer"/>
+    <content/>
+  </view>
+
+  <watch>
+    <get component="timer" event="!tick" value="Date.now()"/>
+    <set property="h" value="(input / 3600000) % 24 - this.properties.offset"/>
+    <set property="m" value="(input / 60000) % 60"/>
+    <set property="s" value="(input / 1000) % 60"/>
+  </watch>
+
+</component>

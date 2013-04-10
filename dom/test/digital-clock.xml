@@ -1,0 +1,26 @@
+<component xmlns="http://bender.igel.co.jp" href="clock.xml">
+
+  <link rel="stylesheet" href="digital-clock.css"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p class="clock">
+      <text id="h"/>:<text id="m"/>:<text id="s"/>
+    </html:p>
+  </view>
+
+  <watch>
+    <get property="h"/>
+    <set elem="h" value="flexo.pad(input | 0, 2)"/>
+  </watch>
+
+  <watch>
+    <get property="m"/>
+    <set elem="m" value="flexo.pad(input | 0, 2)"/>
+  </watch>
+
+  <watch>
+    <get property="s"/>
+    <set elem="s" value="flexo.pad(input | 0, 2)"/>
+  </watch>
+
+</component>

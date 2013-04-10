@@ -1,6 +1,6 @@
 # The Bender Javascript API
 
-Bender v0.8.1, 9 April 2013
+Bender v0.8.1, 10 April 2013
 
 ## Using the standard runtime
 
