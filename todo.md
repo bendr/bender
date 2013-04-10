@@ -9,6 +9,7 @@ Bender v0.8.1, 10 April 2013
 * Bug: fix dom/lib/button.xml; investigate possible issue in watch graph
 * Bug: rendering on views with id
 * Bug: content loop
+* Bug: leaked state between components, cf. dom/test/panels.xml
 
 ## Semantic extensions
 
@@ -65,10 +66,6 @@ simplified form, in the manner of the Relax NG simplification process.
   component or the prototype.
 
 * Property getters and setters: similar to Javascript getter and setter.
-
-* Default property values for components: attributes which are not `id` and
-  `href` should be treated as property values for properties with the name of
-  the attribute.
 
 * Custom elements: give element names to components so that they can be referred
   to by a custom element name. Their content is only view content; their

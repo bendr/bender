@@ -1,0 +1,34 @@
+<component xmlns="http://bender.igel.co.jp" id="panel">
+  <property name="count" as="number" value="0"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div style="border:solid thin #08f;display:inline-block;padding:1em">
+      <html:p>
+        <component href="../lib/button.xml" id="button-plus">
+          <view>
+            +1
+          </view>
+        </component>
+      </html:p>
+      <html:p id="clicks" style="text-align:center;font-size:300%"/>
+      <html:p>
+        <component href="../lib/button.xml" id="button-minus">
+          <view>
+            -1
+          </view>
+        </component>
+      </html:p>
+    </html:div>
+  </view>
+  <watch>
+    <get property="count"/>
+    <set elem="clicks"/>
+  </watch>
+  <watch>
+    <get component="button-plus" event="!pushed"/>
+    <set property="count" value="this.properties.count + 1"/>
+  </watch>
+  <watch>
+    <get component="button-minus" event="!pushed"/>
+    <set property="count" value="this.properties.count - 1"/>
+  </watch>
+</component>

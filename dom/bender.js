@@ -521,7 +521,7 @@
       if (!c.hasOwnProperty("properties")) {
         c.properties = {};
         properties.forEach(function (property) {
-          property.render(component);
+          property.render();
         });
       }
       properties.forEach(function (property) {

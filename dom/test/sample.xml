@@ -10,8 +10,7 @@
           +1
         </view>
       </component>
-      <component href="../lib/button.xml" id="button-minus">
-        <property name="class" value="red"/>
+      <component href="../lib/button.xml" id="button-minus" class="red">
         <view>
           -1
         </view>
