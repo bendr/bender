@@ -563,7 +563,7 @@
     this.components = { $this: this };
     stack.i = 0;
     stack.component = this;
-    this.rendered = { $document: target.ownerDocument };
+    this.rendered = { $document: target.ownerDocument, $target: target };
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
@@ -866,6 +866,10 @@
     this.children.forEach(function (ch) {
       ch.render(e, stack);
     });
+    if (!stack.component.rendered.hasOwnProperty("$root") &&
+        target === stack.component.rendered.$target) {
+      stack.component.rendered.$root = e;
+    }
   };
 
   bender.init_element = function (nsuri, name, attrs, children) {
