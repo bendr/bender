@@ -1,10 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" id="disabled">
-  <property name="count" as="number" value="0"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <component href="../lib/button.xml" id="button-disabled"/>
+    <component href="../lib/button.xml" enabled="false"/>
   </view>
-  <watch>
-    <get property="count"/>
-    <set component="button-disabled" property="enabled" value="input &gt; 0"/>
-  </watch>
 </component>

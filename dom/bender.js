@@ -3,6 +3,7 @@
 
   bender.VERSION = "0.8.1-pre";
 
+  var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
   var push = Array.prototype.push;
 
@@ -217,6 +218,21 @@
     this.scheduled = [];
   };
 
+  function set_property_defaults(elem, component) {
+    var defined = component.defined_properties;
+    filter.call(elem.attributes, function (a) {
+      return defined.hasOwnProperty(a.localName) && a.namespaceURI === null &&
+        a.localName !== "href" && a.localName !== "id" &&
+      !/^on-/.test(a.localName)
+    }).map(function (a) {
+      var prop = defined[a.localName];
+      return bender.init_property(prop.name, prop.as, a.value);
+    }).forEach(function (p) {
+      component.own_properties[p.name] = p;
+      p.component = component;
+    });
+  }
+
   bender.Environment.deserialize.component = function (elem, k) {
     var init_component = function (env, prototype) {
       var component = bender.init_component(env);
@@ -227,6 +243,7 @@
       if (prototype) {
         component.prototype = prototype;
       }
+      set_property_defaults(elem, component);
       var seq = flexo.seq();
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {

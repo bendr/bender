@@ -1,5 +1,6 @@
 ### Changes in v0.8.1 (forthcoming)
 
+* Attributes of **component** to set property defaults.
 * Components have a **children** property to access all child components.
 * Add classes from the id of components to the $root element automatically (in
   the HTML runtime only.)
