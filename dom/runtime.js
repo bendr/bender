@@ -7,8 +7,8 @@
       console.warn("Nothing to run. Please specify a Bender component to load " +
           "with the `href` URL parameter.");
     };
-    var error_loading = function (url) {
-      console.error("Could not load component at " + url);
+    var error_loading = function (err) {
+      console.error(err);
     };
     var target = window.document.documentElement;
   } else {
@@ -17,9 +17,8 @@
           "Nothing to run. Please specify a Bender component to load with the ",
           flexo.$code("href"), " URL parameter."));
     };
-    var error_loading = function (url) {
-      document.body.appendChild(flexo.$("p.bender--runtime-error",
-            "Could not load component at ", flexo.$code(url)));
+    var error_loading = function (err) {
+      document.body.appendChild(flexo.$("p.bender--runtime-error", err));
     };
     var target = window.document.body;
 

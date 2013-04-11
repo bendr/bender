@@ -70,7 +70,7 @@
           console.log("* component rendered OK", component);
           k(component);
         } else {
-          k(url);
+          k(component);
         }
       });
     } else {
@@ -88,20 +88,25 @@
         var ks = this.loaded[url];
         if (req.response) {
           this.deserialize(req.response.documentElement, function (d) {
-            if (flexo.instance_of(d, bender.Component)) {
+            if (flexo.instance_of(d, bender.Component) ||
+              typeof d === "string") {
               this.loaded[url] = d;
             } else {
-              this.loaded[url] = "not a component";
+              this.loaded[url] = "could not get a Bender component at %0"
+                .fmt(url);
             }
-            ks.forEach(function (k_) {
-              k_(this.loaded[url]);
-            }, this);
+            if (typeof this.loaded[url] === "string") {
+              k(this.loaded[url]);
+            } else {
+              ks.forEach(function (k_) {
+                k_(this.loaded[url]);
+              }, this);
+            }
           }.bind(this));
         } else {
-          this.loaded[url] = req.status;
-          ks.forEach(function (k_) {
-            k_(this.loaded[url]);
-          }, this);
+          this.loaded[url] = "Got error %0 while loading %1"
+            .fmt(req.status, url);
+          k(this.loaded[url]);
         }
       }.bind(this));
     } else if (Array.isArray(this.loaded[url])) {
@@ -114,16 +119,28 @@
   // Deserialize `node` in the environment; upon completion, call k with the
   // created object (if any)
   bender.Environment.deserialize = function (node, k) {
-    if (node.nodeType === window.Node.ELEMENT_NODE &&
-        node.namespaceURI === bender.ns) {
-      var f = bender.Environment.deserialize[node.localName];
-      if (typeof f === "function") {
-        return f.call(this, node, k);
+    if (node instanceof window.Node &&
+        node.nodeType === window.Node.ELEMENT_NODE) {
+      if (node.namespaceURI === bender.ns) {
+        var f = bender.Environment.deserialize[node.localName];
+        if (typeof f === "function") {
+          f.call(this, node, k);
+        } else {
+          k("Unknown Bender element “%0” in %1"
+              .fmt(node.localName, node.baseURI))
+        }
+      } else {
+        var suggestion =
+          bender.Environment.deserialize.hasOwnProperty(node.localName) ?
+          "reminder: Bender’s namespace is %0".fmt(bender.ns) :
+          "a Bender element was expected";
+        k("Unknown element “%0” in %1 (%2)"
+            .fmt(node.localName, node.baseURI, suggestion));
       }
+    } else {
+      k("Expected an element at URL %0: probably not well-formed XML"
+          .fmt(node && node.baseURI || "unknown"));
     }
-    // TODO error handling
-    // TODO find Bender elements in the document
-    k();
   };
 
   // Traverse the graph for all scheduled vertex/value pairs. The traversal is
@@ -248,8 +265,12 @@
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {
           env.deserialize(ch, function (d) {
-            component.append_child(d);
-            k_();
+            if (typeof d === "object") {
+              component.append_child(d);
+              k_();
+            } else {
+              k(d);
+            }
           });
         });
       });
@@ -380,18 +401,21 @@
 
   bender.Environment.deserialize.watch = function (elem, k) {
     var watch = bender.init_watch();
+    var error = false;
     foreach.call(elem.childNodes, function (ch) {
       this.deserialize(ch, function (d) {
-        if (d) {
+        if (typeof d === "object") {
           if (flexo.instance_of(d, bender.Get)) {
             watch.append_get(d);
           } else if (flexo.instance_of(d, bender.Set)) {
             watch.append_set(d);
           }
+        } else if (!error) {
+          error = d;
         }
       });
     }, this);
-    k(watch);
+    k(error || watch);
   };
 
   bender.Environment.deserialize.get = function (elem, k) {
@@ -947,11 +971,13 @@
   bender.Watch.render = function (component) {
     this.gets.forEach(function (get) {
       var v = get.render(component);
-      var w = component.environment.add_vertex(init_vertex(bender.Vertex));
-      make_edge(bender.Edge, v, w, get.value, component);
-      this.sets.forEach(function (set) {
-        set.render(w, component);
-      }, this);
+      if (v) {
+        var w = component.environment.add_vertex(init_vertex(bender.Vertex));
+        make_edge(bender.Edge, v, w, get.value, component);
+        this.sets.forEach(function (set) {
+          set.render(w, component);
+        }, this);
+      }
     }, this);
   };
 

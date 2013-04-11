@@ -1,0 +1,33 @@
+<component xmlns="http://bender.igel.co.jp" id="no-id">
+  <property name="count" as="number" value="0"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      Number of clicks: <text id="clicks"/>
+    </html:p>
+    <html:p>
+      <component href="../lib/button.xml" id="button-plus">
+        <view>
+          +1
+        </view>
+      </component>
+      <component href="../lib/button.xml" id="button-minus" class="red">
+        <view>
+          -1
+        </view>
+      </component>
+    </html:p>
+  </view>
+  <watch>
+    <get property="kount"/>
+    <set elem="clicks" value="flexo.to_roman(input).toUpperCase()"/>
+    <set component="button-minus" property="enabled" value="input &gt; 0"/>
+  </watch>
+  <watch>
+    <get component="button-plus" event="!pushed"/>
+    <set property="count" value="this.properties.count + 1"/>
+  </watch>
+  <watch>
+    <get component="button-minus" event="!pushed"/>
+    <set property="count" value="this.properties.count - 1"/>
+  </watch>
+</component>

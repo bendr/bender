@@ -1,0 +1,5 @@
+<component xmlns="http://bender.igel.co.jp" id="include-ill-formed">
+  <view>
+    <component href="ill-formed.xml"/>
+  </view>
+</component>
