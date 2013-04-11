@@ -27,10 +27,20 @@
   </watch>
 
   <watch>
-    <get elem="$document" dom-event="mouseup"
-      value="cancel(!this.properties.down)"/>
+    <get elem="$document" dom-event="mouseup">
+      console.log("Up? %0 * Target? %1 * Disabled? %2 * So: %3"
+        .fmt(!this.properties.down,
+          event.target !== this.rendered.div,
+          !this.properties.enabled,
+          !this.properties.down &amp;&amp;
+            (event.target !== this.rendered.div || !this.properties.enabled)));
+      cancel(!this.properties.down &amp;&amp;
+        (event.target !== this.rendered.div || !this.properties.enabled))
+    </get>
     <set property="down" value="false"/>
-    <set event="!pushed"/>
+    <set event="!pushed">
+      console.log("!pushed");
+    </set>
   </watch>
 
 </component>

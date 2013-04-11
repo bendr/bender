@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp" id="sample">
+<component xmlns="http://bender.igel.co.jp" id="chain">
   <property name="count" as="number" value="0"/>
   <property name="next"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
