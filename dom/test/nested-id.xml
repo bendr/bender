@@ -1,0 +1,14 @@
+<component xmlns="http://bender.igel.co.jp" id="nested-id">
+  <property name="message" value="Hello, nested!"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <component id="dummy.xml">
+      <view>
+        <html:p id="message"/>
+      </view>
+    </component>
+  </view>
+  <watch>
+    <get property="message"/>
+    <set elem="message"/>
+  </watch>
+</component>
