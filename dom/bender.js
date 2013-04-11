@@ -117,25 +117,28 @@
   };
 
   // Deserialize `node` in the environment; upon completion, call k with the
-  // created object (if any)
+  // created object (if any) or an error message
   bender.Environment.deserialize = function (node, k) {
-    if (node instanceof window.Node &&
-        node.nodeType === window.Node.ELEMENT_NODE) {
-      if (node.namespaceURI === bender.ns) {
-        var f = bender.Environment.deserialize[node.localName];
-        if (typeof f === "function") {
-          f.call(this, node, k);
+    if (node instanceof window.Node) {
+      if (node.nodeType === window.Node.ELEMENT_NODE) {
+        if (node.namespaceURI === bender.ns) {
+          var f = bender.Environment.deserialize[node.localName];
+          if (typeof f === "function") {
+            f.call(this, node, k);
+          } else {
+            k("Unknown Bender element “%0” in %1"
+                .fmt(node.localName, node.baseURI))
+          }
         } else {
-          k("Unknown Bender element “%0” in %1"
-              .fmt(node.localName, node.baseURI))
+          var suggestion =
+            bender.Environment.deserialize.hasOwnProperty(node.localName) ?
+            "reminder: Bender’s namespace is %0".fmt(bender.ns) :
+            "a Bender element was expected";
+          k("Unknown element “%0” in %1 (%2)"
+              .fmt(node.localName, node.baseURI, suggestion));
         }
       } else {
-        var suggestion =
-          bender.Environment.deserialize.hasOwnProperty(node.localName) ?
-          "reminder: Bender’s namespace is %0".fmt(bender.ns) :
-          "a Bender element was expected";
-        k("Unknown element “%0” in %1 (%2)"
-            .fmt(node.localName, node.baseURI, suggestion));
+        k();
       }
     } else {
       k("Expected an element at URL %0: probably not well-formed XML"
@@ -265,11 +268,11 @@
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {
           env.deserialize(ch, function (d) {
-            if (typeof d === "object") {
+            if (typeof d === "string") {
+              k(d);
+            } else {
               component.append_child(d);
               k_();
-            } else {
-              k(d);
             }
           });
         });
@@ -283,7 +286,11 @@
       this.load_component(
         flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")),
         function (d) {
-          init_component(this, d);
+          if (typeof d === "string") {
+            k(d);
+          } else {
+            init_component(this, d);
+          }
         }.bind(this)
       );
     } else {
@@ -310,7 +317,8 @@
 
   bender.Environment.deserialize.view = function (elem, k) {
     this.deserialize_view_content(elem, function (d) {
-      k(bender.init_view(elem.getAttribute("id"), elem.getAttribute("stack"),
+      k(typeof d === "string" ? d :
+        bender.init_view(elem.getAttribute("id"), elem.getAttribute("stack"),
           d));
     });
   };
@@ -328,19 +336,27 @@
             seq.add(function (k_) {
               bender.Environment.deserialize[ch.localName].call(this, ch,
                 function (d) {
-                  children.push(d);
-                  k_();
+                  if (typeof d === "string") {
+                    k(d);
+                  } else {
+                    children.push(d);
+                    k_();
+                  }
                 });
             }.bind(this));
           } else {
-            console.warn("Unexpected Bender element <%0> in view"
+            console.warn("Unexpected Bender element “%0” in view"
               .fmt(ch.localName));
           }
         } else {
           seq.add(function (k_) {
             this.deserialize_element(ch, function(d) {
-              children.push(d);
-              k_();
+              if (typeof d === "string") {
+                k(d);
+              } else {
+                children.push(d);
+                k_();
+              }
             });
           }.bind(this));
         }
@@ -360,21 +376,26 @@
 
   bender.Environment.deserialize_element = function (elem, k) {
     this.deserialize_view_content(elem, function (d) {
-      var attrs = {};
-      foreach.call(elem.attributes, function (attr) {
-        var nsuri = attr.namespaceURI || "";
-        if (!(nsuri in attrs)) {
-          attrs[nsuri] = {};
-        }
-        attrs[nsuri][attr.localName] = attr.value;
-      });
-      k(bender.init_element(elem.namespaceURI, elem.localName, attrs, d));
+      if (typeof d === "string") {
+        k(d);
+      } else {
+        var attrs = {};
+        foreach.call(elem.attributes, function (attr) {
+          var nsuri = attr.namespaceURI || "";
+          if (!(nsuri in attrs)) {
+            attrs[nsuri] = {};
+          }
+          attrs[nsuri][attr.localName] = attr.value;
+        });
+        k(bender.init_element(elem.namespaceURI, elem.localName, attrs, d));
+      }
     });
   };
 
   bender.Environment.deserialize.content = function (elem, k) {
     this.deserialize_view_content(elem, function (d) {
-      k(bender.init_content(elem.getAttribute("id"), d));
+      k(typeof d === "string" ? d :
+        bender.init_content(elem.getAttribute("id"), d));
     });
   };
 
