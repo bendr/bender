@@ -1,12 +1,18 @@
 <component xmlns="http://bender.igel.co.jp" id="nested-id">
+  <property name="prelude" value="Prelude..."/>
   <property name="message" value="Hello, nested!"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p id="prelude"/>
     <component id="dummy.xml">
       <view>
         <html:p id="message"/>
       </view>
     </component>
   </view>
+  <watch>
+    <get property="prelude"/>
+    <set elem="prelude"/>
+  </watch>
   <watch>
     <get property="message"/>
     <set elem="message"/>
