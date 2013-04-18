@@ -1,7 +1,7 @@
 (function (bender) {
   "use strict";
 
-  bender.VERSION = "0.8.1-pre";
+  bender.VERSION = "0.8.1";
 
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
