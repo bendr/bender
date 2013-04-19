@@ -565,6 +565,7 @@
       var properties = flexo.values(c.own_properties);
       if (!c.hasOwnProperty("properties")) {
         c.properties = {};
+        c.property_vertices = {};
         properties.forEach(function (property) {
           property.render();
         });
@@ -573,6 +574,15 @@
         if (!component.properties.hasOwnProperty(property.name)) {
           property.render_for_prototype(component);
         }
+      });
+    }
+  }
+
+  function init_properties(queue) {
+    for (var n = queue.length, i = 0; i < n; ++i) {
+      var c = queue[i];
+      flexo.values(c.own_properties).forEach(function (p) {
+        p.init();
       });
     }
   }
@@ -635,9 +645,10 @@
     if (stack.i < n && stack[stack.i].views[""]) {
       stack[stack.i++].views[""].render(target, stack);
     }
+    render_properties(queue);
     render_watches(queue);
     flexo.notify(this, "!rendered");
-    render_properties(queue);
+    init_properties(queue);
     on_render(queue);
   };
 
@@ -700,56 +711,70 @@
 
   bender.Property = {};
 
-  // Define own property p
-  function define_property(p) {
-    Object.defineProperty(p.component.properties, p.name, {
+  // Define the getter/setter for a component’s own property named `name` with
+  // a previously created vertex.
+  function define_property(component, name, vertex) {
+    Object.defineProperty(component.properties, name, {
       enumerable: true,
-      get: function () { return p.value; },
+      get: function () {
+        return vertex.value;
+      },
       set: function (v) {
-        delete p.__unset;
-        p.value = v;
-        p.vertices.forEach(function (vertex) {
-          p.component.environment.schedule_visit(vertex, v);
-        });
+        vertex.value = v;
+        component.environment.schedule_visit(vertex, v);
       }
     });
-    p.__unset = true;
   }
 
+  // Render the property for its parent component; this is its *own* property
   bender.Property.render = function () {
-    define_property(this);
+    var component = this.component;
+    var vertex = init_vertex(bender.PropertyVertex, { parent: component,
+      component: component, property: this.name });
+    component.property_vertices[this.name] = vertex;
+    component.environment.add_vertex(vertex);
+    define_property(component, this.name, vertex);
+  };
+
+  // Render a “pending” property vertex; it returns the value of the protovertex
+  // (i.e., the vertex for the property defined on the prototype) until it is
+  // set; then the outgoing edges of the protovertex that were meant for this
+  // vertex are redirected and the vertex becomes acutually used.
+  bender.Property.render_for_prototype = function (component) {
+    var property = this;
+    var prototype = this.component;
+    var vertex = init_vertex(bender.PropertyVertex, { parent: component,
+      component: component, property: this.name,
+      protovertex: prototype.property_vertices[this.name] });
+    component.property_vertices[this.name] = vertex;
+    component.environment.add_vertex(vertex);
+    Object.defineProperty(component.properties, this.name, {
+      enumerable: true,
+      configurable: true,
+      get: function () {
+        return vertex.protovertex.value;
+      },
+      set: function (v) {
+        var edges = flexo.partition(vertex.protovertex.out_edges, function (edge) {
+          return edge.__source === vertex;
+        });
+        edges[0].forEach(function (edge) {
+          edge.source === vertex;
+          delete edge.__source;
+          vertex.out_edges.push(edge);
+        });
+        vertex.protovertex.out_edges = edges[1];
+        delete vertex.protovertex;
+        define_property(component, property.name, vertex);
+        component.properties[property.name] = v;
+      }
+    });
+  };
+
+  bender.Property.init = function () {
     if (this.__value) {
       this.component.properties[this.name] = this.__value.call(this.component);
       delete this.__value;
-    }
-  };
-
-  bender.Property.render_for_prototype = function (component) {
-    var p = this;
-    Object.defineProperty(component.properties, p.name, {
-      enumerable: true,
-      configurable: true,
-      get: function () { return p.value; },
-      set: function (v) {
-        var p_ = Object.create(p);
-        var vertex = flexo.find_first(p.vertices, function (w) {
-          return w.component === component;
-        });
-        if (vertex) {
-          flexo.remove_from_array(p.vertices, vertex);
-          p_.vertices = [vertex];
-        } else {
-          p_.vertices = [];
-        }
-        p_.component = component;
-        define_property(p_);
-        component.properties[p_.name] = v;
-      }
-    });
-    if (!p.__unset) {
-      p.vertices.forEach(function (vertex) {
-        p.component.environment.schedule_visit(vertex, p.value);
-      });
     }
   };
 
@@ -1085,26 +1110,17 @@
         this.event, this.__value ? "=" + this.value : "");
   };
 
-  // A property input is rendered to a PropertyVertex, or nothing if the source
-  // component could not be found. The component keeps track of the vertex so
-  // that it can be visited when the property is set.
+  // The vertex for a property was already rendered when the vertex was
+  // rendered.
   bender.GetProperty.render = function (component) {
     var c = component.components[this.source];
     if (c) {
-      for (var k = c; k && !k.own_properties.hasOwnProperty(this.property);
-          k = k.prototype);
-      if (k) {
-        var vertex = init_vertex(bender.PropertyVertex,
-            { parent: component, component: c, property: this.property });
-        var v = component.environment.add_vertex(vertex);
-        if (v === vertex) {
-          k.own_properties[this.property].vertices.push(vertex);
-        }
-        return v;
-      } else {
-        console.warn("No property “%0” on component %1 for get property"
-            .fmt(this.property, this.source));
+      var vertex = c.property_vertices[this.property];
+      if (vertex) {
+        return vertex;
       }
+      console.warn("No property “%0” on component %1 for get property"
+          .fmt(this.property, this.source));
     } else {
       console.warn("No component “%0” for get property %1"
           .fmt(this.source, this.property));
@@ -1230,7 +1246,12 @@
   // added to the watch graph.)
   function make_edge(prototype, source, dest, value, component, that) {
     var edge = Object.create(prototype);
-    set_edge_source(edge, source);
+    if (source.protovertex) {
+      set_edge_source(edge, source.protovertex);
+      edge.__source = source;
+    } else {
+      set_edge_source(edge, source);
+    }
     set_edge_dest(edge, dest);
     edge.value = value;
     edge.context = component;
@@ -1270,14 +1291,16 @@
   bender.SetProperty.render = function (source, component) {
     var c = component.components[this.target];
     if (c) {
-      var dest = component.environment.add_vertex(
-          init_vertex(bender.PropertyVertex,
-            { component: c, property: this.property }));
-      var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
-          component, this.watch.component);
-      edge.property = this.property;
-      edge.component = c;
-      return edge;
+      var dest = c.property_vertices[this.property];
+      if (dest) {
+        var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
+            component, this.watch.component);
+        edge.property = this.property;
+        edge.component = c;
+        return edge;
+      }
+      console.warn("No property “%0” to set on component “%1”"
+          .fmt(this.target, this.property));
     } else {
       console.warn("No component “%0” for set property %1"
           .fmt(this.target, this.property));
