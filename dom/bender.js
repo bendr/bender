@@ -66,7 +66,8 @@
             });
             component = d;
           }
-          component.render(target);
+          component.render({ $target: target,
+            $document: target.ownerDocument });
           console.log("* component rendered OK", component);
           k(component);
         } else {
@@ -88,8 +89,10 @@
         var ks = this.loaded[url];
         if (req.response) {
           this.deserialize(req.response.documentElement, function (d) {
-            if (flexo.instance_of(d, bender.Component) ||
-              typeof d === "string") {
+            if (flexo.instance_of(d, bender.Component)) {
+              d.new_scope = true;
+              this.loaded[url] = d;
+            } else if (typeof d === "string") {
               this.loaded[url] = d;
             } else {
               this.loaded[url] = "could not get a Bender component at %0"
@@ -232,10 +235,6 @@
         console.log("  - %0".fmt(edge));
       });
     });
-  };
-
-  bender.Environment.clear = function () {
-    this.scheduled = [];
   };
 
   function set_property_defaults(elem, component) {
@@ -503,24 +502,6 @@
       }
       return properties;
     });
-    Object.defineProperty(c, "id", { enumerable: true,
-      get: function () { return id; },
-      set: function (new_id) {
-        if (new_id !== id) {
-          if (this.parent) {
-            if (id) {
-              delete this.parent.components[id];
-            }
-            if (new_id) {
-              this.parent.components[new_id] = this;
-            }
-          }
-          var prev_id = id;
-          id = new_id;
-          flexo.notify(this, "!id-change", { prev: prev_id });
-        }
-      }
-    });
     c.environment = environment;
     environment.components.push(c);
     c.links = [];
@@ -548,17 +529,19 @@
     }
   };
 
-  function render_watches(queue) {
+  function render_watches(queue, scope) {
     var component = queue[0];
+    scope.$this = component;
     for (var i = queue.length - 1; i >= 0; --i) {
       queue[i].watches.forEach(function (watch) {
-        component.components.$that = queue[i];
-        watch.render(component);
+        scope.$that = queue[i];
+        watch.render(component, scope);
       });
     }
   }
 
   function render_properties(queue) {
+    console.log("+++ Render properties for #%0".fmt(queue[0].id));
     var component = queue[0];
     for (var n = queue.length, i = 0; i < n; ++i) {
       var c = queue[i];
@@ -567,11 +550,15 @@
         c.properties = {};
         c.property_vertices = {};
         properties.forEach(function (property) {
+          console.log("Render own property %0 for #%1"
+            .fmt(property.name, c.id));
           property.render();
         });
       }
       properties.forEach(function (property) {
         if (!component.properties.hasOwnProperty(property.name)) {
+          console.log("Render pending property %0 for #%1"
+            .fmt(property.name, component.id));
           property.render_for_prototype(component);
         }
       });
@@ -613,12 +600,9 @@
     }
   }
 
-  bender.Component.render = function (target, stack) {
-    if (stack) {
-      stack.component.children.push(this);
-      if (this.id) {
-        stack.component.components[this.id] = this;
-      }
+  bender.Component.render = function (scope, stack) {
+    if (scope.$this) {
+      scope.$this.children.push(this);
     }
     stack = [];
     for (var queue = [], c = this; c; c = c.prototype) {
@@ -636,20 +620,28 @@
       }
     }
     this.children = [];
-    this.components = { $this: this };
     stack.i = 0;
-    stack.component = this;
-    this.rendered = { $document: target.ownerDocument, $target: target };
+    var root = scope.$root;
+    var scope_ = this.new_scope ?
+      { $target: scope.$target, $document: scope.$document } : scope;
+    delete scope_.$root;
+    scope_.$this = this;
+    if (this.id) {
+      scope_[this.id] = this;
+    }
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
-      stack[stack.i++].views[""].render(target, stack);
+      stack[stack.i++].views[""].render(scope_, stack);
     }
     render_properties(queue);
-    render_watches(queue);
+    render_watches(queue, scope_);
     flexo.notify(this, "!rendered");
     init_properties(queue);
     on_render(queue);
+    if (root) {
+      scope.$root = root;
+    }
   };
 
 
@@ -755,9 +747,10 @@
         return vertex.protovertex.value;
       },
       set: function (v) {
-        var edges = flexo.partition(vertex.protovertex.out_edges, function (edge) {
-          return edge.__source === vertex;
-        });
+        var edges = flexo.partition(vertex.protovertex.out_edges,
+          function (edge) {
+            return edge.__source === vertex;
+          });
         edges[0].forEach(function (edge) {
           edge.source === vertex;
           delete edge.__source;
@@ -780,7 +773,6 @@
 
   bender.init_property = function (name, as, value) {
     var property = Object.create(bender.Property);
-    property.vertices = [];
     property.as = (as || "").trim().toLowerCase();
     property.name = name;
     if (as === "boolean") {
@@ -814,9 +806,9 @@
 
   bender.View = {};
 
-  bender.View.render = function (target, stack) {
+  bender.View.render = function (scope, stack) {
     this.children.forEach(function (ch) {
-      ch.render(target, stack);
+      ch.render(scope, stack);
     });
   };
 
@@ -832,17 +824,17 @@
 
   bender.Content = {};
 
-  bender.Content.render = function (target, stack) {
+  bender.Content.render = function (scope, stack) {
     for (var i = stack.i, n = stack.length; i < n; ++i) {
       if (stack[i].views[this.id]) {
         var j = stack.i;
         stack.i = i;
-        stack[i].views[this.id].render(target, stack);
+        stack[i].views[this.id].render(scope, stack);
         stack.i = j;
         return;
       }
     }
-    bender.View.render.call(this, target, stack);
+    bender.View.render.call(this, scope, stack);
   };
 
   bender.init_content = function (id, children) {
@@ -878,13 +870,15 @@
         this.children.map(function (ch) { return ch.text; }).join(""));
   }
 
-  bender.Attribute.render = function (target, stack) {
-    var rendered = { attr: this, component: stack.component };
+  bender.Attribute.render = function (scope) {
+    // TODO rendered could be a vertex
+    var rendered = { attr: this, component: scope.$this };
+    var target = scope.$target;
     rendered.children = this.children.map(function (ch) {
       if (flexo.instance_of(ch, bender.Text)) {
         var ch_ = { text: ch.text };
         if (ch.id) {
-          stack.component.rendered[ch.id] = ch_;
+          scope[ch.id] = ch_;
         }
         Object.defineProperty(ch_, "textContent", {
           enumerable: true,
@@ -905,7 +899,7 @@
       }
     });
     if (this.id) {
-      stack.component.rendered[this.id] = rendered;
+      scope[this.id] = rendered;
     }
     set_attribute_value.call(rendered, target);
   };
@@ -922,10 +916,11 @@
 
   bender.Text = {};
 
-  bender.Text.render = function (target, stack) {
-    var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
+  bender.Text.render = function (scope) {
+    var e = scope.$target.appendChild(
+        scope.$target.ownerDocument.createTextNode(this.text));
     if (this.id) {
-      stack.component.rendered[this.id] = e;
+      scope[this.id] = e;
     } else {
       console.warn("No id for Bender text node", this);
     }
@@ -941,25 +936,26 @@
 
   bender.Element = {};
 
-  bender.Element.render = function (target, stack) {
-    var e = target.appendChild(
-      target.ownerDocument.createElementNS(this.nsuri, this.name)
-    );
+  bender.Element.render = function (scope, stack) {
+    var e = scope.$target.appendChild(
+        scope.$target.ownerDocument.createElementNS(this.nsuri, this.name));
     for (var nsuri in this.attrs) {
       for (var attr in this.attrs[nsuri]) {
         if (nsuri === "" && attr === "id") {
-          stack.component.rendered[this.attrs[""].id] = e;
+          scope[this.attrs[""].id] = e;
         } else {
           e.setAttributeNS(nsuri, attr, this.attrs[nsuri][attr]);
         }
       }
     }
+    var target = scope.$target;
+    scope.$target = e;
     this.children.forEach(function (ch) {
-      ch.render(e, stack);
+      ch.render(scope, stack);
     });
-    if (!stack.component.rendered.hasOwnProperty("$root") &&
-        target === stack.component.rendered.$target) {
-      stack.component.rendered.$root = e;
+    scope.$target = target;
+    if (!scope.hasOwnProperty("$root")) {
+      scope.$root = e;
     }
   };
 
@@ -975,9 +971,9 @@
 
   bender.DOMTextNode = {};
 
-  bender.DOMTextNode.render = function (target, stack) {
-    var d = target.ownerDocument.createTextNode(this.text);
-    target.appendChild(d);
+  bender.DOMTextNode.render = function (scope, stack) {
+    var d = scope.$target.ownerDocument.createTextNode(this.text);
+    scope.$target.appendChild(d);
     this.rendered.push(d);
   };
 
@@ -1014,14 +1010,14 @@
     set.watch = this;
   };
 
-  bender.Watch.render = function (component) {
+  bender.Watch.render = function (component, scope) {
     this.gets.forEach(function (get) {
-      var v = get.render(component);
+      var v = get.render(component, scope);
       if (v) {
         var w = component.environment.add_vertex(init_vertex(bender.Vertex));
         make_edge(bender.Edge, v, w, get.value, component);
         this.sets.forEach(function (set) {
-          set.render(w, component);
+          set.render(w, component, scope);
         }, this);
       }
     }, this);
@@ -1112,15 +1108,15 @@
 
   // The vertex for a property was already rendered when the vertex was
   // rendered.
-  bender.GetProperty.render = function (component) {
-    var c = component.components[this.source];
+  bender.GetProperty.render = function (component, scope) {
+    var c = scope[this.source];
     if (c) {
       var vertex = c.property_vertices[this.property];
       if (vertex) {
         return vertex;
       }
-      console.warn("No property “%0” on component %1 for get property"
-          .fmt(this.property, this.source));
+      console.warn("No property “%0” on component %1 (%2) for get property"
+          .fmt(this.property, this.source, c.id));
     } else {
       console.warn("No component “%0” for get property %1"
           .fmt(this.source, this.property));
@@ -1130,8 +1126,8 @@
   // A DOM Event input is rendered to a DOMEventVertex, or nothing if the source
   // element could not be found. An event listener is added to this element to
   // schedule a visit.
-  bender.GetDOMEvent.render = function (component) {
-    var elem = component.rendered[this.source];
+  bender.GetDOMEvent.render = function (component, scope) {
+    var elem = scope[this.source];
     if (elem) {
       var vertex = init_vertex(bender.DOMEventVertex, { parent: component,
         elem: elem, event: this.event });
@@ -1157,8 +1153,8 @@
   // An event input is rendered to an EventVertex, or nothing if the source
   // ocmponent could not be found. An event listener is added to this component
   // to schedule a visit.
-  bender.GetEvent.render = function (component) {
-    var c = component.components[this.source];
+  bender.GetEvent.render = function (component, scope) {
+    var c = scope[this.source];
     if (c) {
       var vertex = init_vertex(bender.EventVertex, { parent: component,
         component: c, event: this.event });
@@ -1288,8 +1284,8 @@
   };
 
   // Set a property on a component
-  bender.SetProperty.render = function (source, component) {
-    var c = component.components[this.target];
+  bender.SetProperty.render = function (source, component, scope) {
+    var c = scope[this.target];
     if (c) {
       var dest = c.property_vertices[this.property];
       if (dest) {
@@ -1320,8 +1316,8 @@
         this.dest);
   };
 
-  bender.SetEvent.render = function (source, component) {
-    var c = component.components[this.target];
+  bender.SetEvent.render = function (source, component, scope) {
+    var c = scope[this.target];
     if (c) {
       var dest = component.environment.add_vertex(
           init_vertex(bender.EventVertex, { component: c, event: this.event }));
@@ -1350,8 +1346,8 @@
   };
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
-  bender.SetDOMAttribute.render = function (source, component) {
-    var r = component.rendered[this.target];
+  bender.SetDOMAttribute.render = function (source, component, scope) {
+    var r = scope[this.target];
     if (r) {
       var edge = make_edge(bender.DOMAttributeEdge, source,
           component.environment.vortex, this.value, component,
@@ -1385,8 +1381,8 @@
   };
 
   // Set a DOM property: no further effect, so make an edge to the Vortex.
-  bender.SetDOMProperty.render = function (source, component) {
-    var r = component.rendered[this.target];
+  bender.SetDOMProperty.render = function (source, component, scope) {
+    var r = scope[this.target];
     if (r) {
       var edge = make_edge(bender.DOMPropertyEdge, source,
           component.environment.vortex, this.value, component,
