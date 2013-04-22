@@ -7,7 +7,7 @@
   <property name="stroke"/>
   <property name="fill"/>
   <property name="context" as="dynamic"
-    value="this.rendered.canvas.getContext('2d')"/>
+    value="this.scope.canvas.getContext('2d')"/>
   <property name="down" as="boolean" value="false"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
@@ -51,7 +51,7 @@
       value="cancel(!this.properties.enabled) || event"/>
     <set property="down">
       this.properties.context.beginPath();
-      var p = flexo.event_offset_pos(input, this.rendered.canvas);
+      var p = flexo.event_offset_pos(input, this.scope.canvas);
       this.properties.context.moveTo(p.x, p.y);
       console.log(p.x);
       return true;

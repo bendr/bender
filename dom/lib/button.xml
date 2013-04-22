@@ -27,8 +27,11 @@
   </watch>
 
   <watch>
-    <get elem="$document" dom-event="mouseup"/>
+    <get elem="$document" dom-event="mouseup"
+      value="cancel(!this.properties.down &amp;&amp;
+      (event.target !== this.scope.div || !this.properties.enabled))"/>
     <set property="down" value="false"/>
+    <set event="!pushed"/>
   </watch>
 
 </component>
