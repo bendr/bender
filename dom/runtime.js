@@ -24,12 +24,12 @@
 
     // Add classes based on id
     (function ($super) {
-      bender.Component.render = function (scope) {
-        $super.call(this, scope);
-        if (scope.$root) {
+      bender.Component.render = function () {
+        $super.apply(this, arguments);
+        if (this.scope.$root) {
           for (var c = this; c; c = c.prototype) {
             if (c.id) {
-              scope.$root.classList.add(c.id);
+              this.scope.$root.classList.add(c.id);
             }
           }
         }

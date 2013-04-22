@@ -16,7 +16,7 @@
   <watch>
     <get event="!rendered"><![CDATA[
       for (var i = 0; i < 60; ++i) {
-        this.rendered.n.appendChild(flexo.$line({ y1: 170, y2: i % 5 === 0 ? 150 : 160,
+        this.scope.n.appendChild(flexo.$line({ y1: 170, y2: i % 5 === 0 ? 150 : 160,
           transform: "rotate(%0)".fmt(i * 6) }));
       }
     ]]></get>

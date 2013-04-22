@@ -27,7 +27,7 @@
 
   <watch>
     <get elem="$document" dom-event="mousemove"
-      value="flexo.event_svg_point(event, this.rendered.svg)"/>
+      value="flexo.event_svg_point(event, this.scope.svg)"/>
     <set property="angle" value="flexo.remap(Math.atan2(input.y, input.x),
       -Math.PI, Math.PI, -180, 180)"/>
     <set property="v">

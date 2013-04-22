@@ -1,16 +1,16 @@
 function rendered($super) {
   $super();
-  this.rendered.t.textContent = this.properties.message;
+  this.scope.t.textContent = this.properties.message;
 }
 
 function rendered_derived($super) {
   $super();
-  this.rendered.t.textContent += " (really)";
+  this.scope.t.textContent += " (really)";
 }
 
 function rendered_derived_derived($super) {
   $super();
-  this.rendered.t.textContent += " (yes, really!)";
+  this.scope.t.textContent += " (yes, really!)";
 }
 
 console.log("Defined rendered:", rendered);
