@@ -66,7 +66,7 @@
             });
             component = d;
           }
-          component.render(target, {});
+          component.render(target, component.scope || {});
           console.log("* component rendered OK", component);
           k(component);
         } else {
@@ -87,7 +87,7 @@
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
         var ks = this.loaded[url];
         if (req.response) {
-          this.deserialize(req.response.documentElement, function (d) {
+          this.deserialize(req.response.documentElement, null, function (d) {
             if (flexo.instance_of(d, bender.Component)) {
               // Introduce a new lexical scope for this URL
               d.scope = { $url: url, $src: req.response };
@@ -119,15 +119,15 @@
     }
   };
 
-  // Deserialize `node` in the environment; upon completion, call k with the
-  // created object (if any) or an error message
-  bender.Environment.deserialize = function (node, k) {
+  // Deserialize `node` in the environment, within `component`; upon completion,
+  // call k with the created object (if any) or an error message
+  bender.Environment.deserialize = function (node, component, k) {
     if (node instanceof window.Node) {
       if (node.nodeType === window.Node.ELEMENT_NODE) {
         if (node.namespaceURI === bender.ns) {
           var f = bender.Environment.deserialize[node.localName];
           if (typeof f === "function") {
-            f.call(this, node, k);
+            f.call(this, node, component, k);
           } else {
             k("Unknown Bender element “%0” in %1"
                 .fmt(node.localName, node.baseURI))
@@ -252,9 +252,13 @@
     });
   }
 
-  bender.Environment.deserialize.component = function (elem, k) {
+  bender.Environment.deserialize.component = function (elem, parent, k) {
     var init_component = function (env, prototype) {
       var component = bender.component(env);
+      if (parent) {
+        parent.children.push(component);
+        component.parent = parent;
+      }
       component.id = elem.getAttribute("id");
       if (elem.hasAttribute("on-render")) {
         component.on.__render = elem.getAttribute("on-render");
@@ -266,7 +270,7 @@
       var seq = flexo.seq();
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {
-          env.deserialize(ch, function (d) {
+          env.deserialize(ch, component, function (d) {
             if (typeof d === "string") {
               k(d);
             } else {
@@ -297,7 +301,7 @@
     }
   };
 
-  bender.Environment.deserialize.link = function (elem, k) {
+  bender.Environment.deserialize.link = function (elem, component, k) {
     var uri = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
     var link = bender.init_link(uri, elem.getAttribute("rel"));
     if (!this.loaded[uri]) {
@@ -308,21 +312,21 @@
     }
   };
 
-  bender.Environment.deserialize.property = function (elem, k) {
+  bender.Environment.deserialize.property = function (elem, _, k) {
     var value = elem.getAttribute("value");
     k(bender.init_property(elem.getAttribute("name"), elem.getAttribute("as"),
           elem.getAttribute("value")));
   };
 
-  bender.Environment.deserialize.view = function (elem, k) {
-    this.deserialize_view_content(elem, function (d) {
+  bender.Environment.deserialize.view = function (elem, component, k) {
+    this.deserialize_view_content(elem, component, function (d) {
       k(typeof d === "string" ? d :
         bender.init_view(elem.getAttribute("id"), elem.getAttribute("stack"),
           d));
     });
   };
 
-  bender.Environment.deserialize_view_content = function (elem, k) {
+  bender.Environment.deserialize_view_content = function (elem, component, k) {
     var children = [];
     var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
@@ -334,7 +338,7 @@
             ch.localName === "text") {
             seq.add(function (k_) {
               bender.Environment.deserialize[ch.localName].call(this, ch,
-                function (d) {
+                component, function (d) {
                   if (typeof d === "string") {
                     k(d);
                   } else {
@@ -349,7 +353,7 @@
           }
         } else {
           seq.add(function (k_) {
-            this.deserialize_element(ch, function(d) {
+            this.deserialize_element(ch, component, function(d) {
               if (typeof d === "string") {
                 k(d);
               } else {
@@ -373,8 +377,8 @@
     seq.flush();
   };
 
-  bender.Environment.deserialize_element = function (elem, k) {
-    this.deserialize_view_content(elem, function (d) {
+  bender.Environment.deserialize_element = function (elem, component, k) {
+    this.deserialize_view_content(elem, component, function (d) {
       if (typeof d === "string") {
         k(d);
       } else {
@@ -391,22 +395,23 @@
     });
   };
 
-  bender.Environment.deserialize.content = function (elem, k) {
-    this.deserialize_view_content(elem, function (d) {
+  bender.Environment.deserialize.content = function (elem, component, k) {
+    this.deserialize_view_content(elem, component, function (d) {
       k(typeof d === "string" ? d :
         bender.init_content(elem.getAttribute("id"), d));
     });
   };
 
-  bender.Environment.deserialize.attribute = function (elem, k) {
+  bender.Environment.deserialize.attribute = function (elem, component, k) {
     var attr = bender.init_attribute(elem.getAttribute("id"),
         elem.getAttribute("ns"), elem.getAttribute("name"));
     foreach.call(elem.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE &&
         ch.namespaceURI === bender.ns && ch.localName === "text") {
-        bender.Environment.deserialize.text.call(this, ch, function (d) {
-          attr.append_child(d);
-        });
+        bender.Environment.deserialize.text.call(this, ch, component,
+          function (d) {
+            attr.append_child(d);
+          });
       } else if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
         attr.append_child(bender.init_dom_text_node(ch.textContent));
@@ -415,15 +420,15 @@
     k(attr);
   };
 
-  bender.Environment.deserialize.text = function (elem, k) {
+  bender.Environment.deserialize.text = function (elem, _, k) {
     k(bender.init_text(elem.getAttribute("id"), elem.textContent));
   };
 
-  bender.Environment.deserialize.watch = function (elem, k) {
+  bender.Environment.deserialize.watch = function (elem, component, k) {
     var watch = bender.init_watch();
     var error = false;
     foreach.call(elem.childNodes, function (ch) {
-      this.deserialize(ch, function (d) {
+      this.deserialize(ch, component, function (d) {
         if (typeof d === "object") {
           if (flexo.instance_of(d, bender.Get)) {
             watch.append_get(d);
@@ -438,7 +443,7 @@
     k(error || watch);
   };
 
-  bender.Environment.deserialize.get = function (elem, k) {
+  bender.Environment.deserialize.get = function (elem, _, k) {
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("property")) {
@@ -459,7 +464,7 @@
     }
   };
 
-  bender.Environment.deserialize.set = function (elem, k) {
+  bender.Environment.deserialize.set = function (elem, _, k) {
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("elem")) {
@@ -504,6 +509,7 @@
     });
     c.environment = environment;
     environment.components.push(c);
+    c.children = [];
     c.links = [];
     c.views = {};
     c.own_properties = {};
@@ -531,17 +537,16 @@
 
   function render_watches(queue) {
     for (var i = queue.length - 1; i >= 0; --i) {
-      queue[0].scope.$that = queue[i];
       queue[i].watches.forEach(function (watch) {
+        queue[i].scope.$this = queue[0];
         watch.render(queue[0]);
+        delete queue[i].scope.$this;
       });
     }
-    delete queue[0].scope.$that;
   }
 
   function render_properties(queue) {
     for (var i = 0, n = queue.length; i < n; ++i) {
-      queue[0].scope.$that = queue[i];
       var c = queue[i];
       var properties = flexo.values(c.own_properties);
       if (!c.hasOwnProperty("properties")) {
@@ -557,7 +562,6 @@
         }
       });
     }
-    delete queue[0].scope.$that;
   }
 
   function init_properties(queue) {
@@ -593,18 +597,34 @@
     }
   }
 
-  bender.Component.render = function (target, scope, stack) {
-    if (scope.$this) {
-      scope.$this.children.push(this);
-      if (this.id) {
-        scope[this.id] = this;
-      }
+  // Update the current scope for the component and the target element
+  function update_scope(target, scope, component) {
+    if (component.id) {
+      scope[component.id] = component;
     }
-    stack = [];
+    scope.$this = component;
+    scope.$that = component;
+    if (target !== scope.$target) {
+      scope.$target = target;
+    }
+    if (!scope.$document) {
+      scope.$document = target.ownerDocument;
+    }
+    scope.$root = null;
+  }
+
+  // Find out the scope for a view
+  function scope_for_view(view) {
+    for (var c = view.component; c && !c.scope; c = c.parent);
+    return c && c.scope;
+  }
+
+  bender.Component.render = function (target, scope) {
+    update_scope(scope, this, target);
     for (var queue = [], c = this; c; c = c.prototype) {
       queue.push(c);
     }
-    for (var i = queue.length - 1; i >= 0; --i) {
+    for (var stack = [], i = queue.length - 1; i >= 0; --i) {
       var c = queue[i];
       var mode = c.views[""] ? c.views[""].stack : "top";
       if (mode === "replace") {
@@ -615,24 +635,12 @@
         stack.unshift(c);
       }
     }
-    this.children = [];
-    if (!this.hasOwnProperty(scope)) {
-      this.scope = Object.create(scope);
-    }
-    if (!this.scope.hasOwnProperty("$document")) {
-      this.scope.$document = target.ownerDocument;
-    }
-    scope = this.scope;
-    scope.$this = this;
-    scope.$target = target;
-    if (this.id) {
-      scope[this.id] = this;
-    }
     stack.i = 0;
     for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
-      stack[stack.i++].views[""].render(target, scope, stack);
+      var c = stack[stack.i++];
+      c.views[""].render(target, scope, stack);
     }
     render_properties(queue);
     render_watches(queue);
