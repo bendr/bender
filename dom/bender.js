@@ -816,7 +816,7 @@
   };
 
   bender.Property.init = function (current) {
-    if (current.__value) {
+    if (this.__value) {
       current.properties[this.name] = this.__value.call(current);
       delete this.__value;
     }

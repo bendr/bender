@@ -1,0 +1,12 @@
+<component xmlns="http://bender.igel.co.jp" id="scope">
+  <property name="x" value="foo"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      x = <html:span id="t"/>
+    </html:p>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set elem="t"/>
+  </watch>
+</component>
