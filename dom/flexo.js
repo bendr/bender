@@ -211,6 +211,13 @@
     for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i);
     return a[i];
   };
+  
+  // Foreach in reverse
+  flexo.hcaErof = function (a, f, that) {
+    for (var i = a.length - 1; i >= 0; --i) {
+      f.call(that, a[i], i, a);
+    }
+  };
 
   // Partition `a` according to predicate `p` and return and array of two arrays
   // (first one is the array of elements for which p is true.)
