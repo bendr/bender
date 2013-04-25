@@ -3,6 +3,7 @@
   <link rel="stylesheet" href="lib.css"/>
 
   <property name="class"/>
+  <property name="base-class"/>
   <property name="enabled" as="boolean" value="true"/>
 
   <!--

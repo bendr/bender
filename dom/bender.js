@@ -11,10 +11,6 @@
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 
-  // Scope for Bender components.
-  bender.Scope = {};
-
-
   // Environment in which components run and the watch graph is built.
   bender.Environment = {};
 
@@ -23,6 +19,8 @@
   bender.environment = function (document) {
     var e = Object.create(bender.Environment);
     e.document = document;
+    e.scope = { $document: document, $__ENV: this, $__SERIAL: SERIAL++ };
+    console.log("New scope for environment #%0".fmt(e.scope.$__SERIAL));
     e.loaded = {};
     e.components = [];
     e.vertices = [];
@@ -70,7 +68,7 @@
             });
             component = d;
           }
-          component.render(target, component.scope);
+          component.render(target);
           console.log("* component rendered OK", component);
           k(component);
         } else {
@@ -91,12 +89,12 @@
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
         var ks = this.loaded[url];
         if (req.response) {
-          var urscope = Object.create(bender.Scope, {
-            $document: { enumerable: true, value: this.document },
-            $__ENV: { enumerable: true, value: this },
+          var urscope = Object.create(this.scope, {
             $__SRC: { enumerable: true, value: req.response },
-            $__URL: { enumerable: true, value: url }
+            $__URL: { enumerable: true, value: url },
+            $__SERIAL: { enumerable: true, configurable: true, value: SERIAL++ }
           });
+          console.log("New scope #%0 for URL %1".fmt(urscope.$__SERIAL, url));
           // Root “component” to initialize the scope
           var root = { scope: Object.create(urscope) };
           this.deserialize(req.response.documentElement, root, function (d) {
@@ -515,26 +513,28 @@
   // Add id to scope for object x
   function add_id_to_scope(scope, id, x) {
     if (id) {
-      var scope_ = Object.getPrototypeOf(scope);
-      if (!scope_.hasOwnProperty(id)) {
-        scope_[id] = x;
+      if (!scope.hasOwnProperty(id)) {
+        console.log("+++ id %0 in scope %1".fmt(id, scope.$__SERIAL));
+        scope[id] = x;
         return id;
       }
-      console.warn("Redefining id %0 in scope %1".fmt(id, scope_.$__URL || "()"));
+      console.warn("Redefining id %0 in scope %1"
+          .fmt(id, scope.$__URL || "()"));
     }
   }
 
+  var SERIAL = 0;
 
   bender.Component = {};
 
   // Initialize an empty component
   bender.component = function (environment, parent) {
     var c = Object.create(bender.Component);
-    c.scope = Object.create(parent ?
-        Object.getPrototypeOf(parent.scope) :
-        Object.create(bender.Scope, {
-          $document: { enumerable: true, value: environment.document }
-        }));
+    c.serial = SERIAL++;
+    c.scope = Object.create(environment.scope);
+    c.scope.$__SERIAL = SERIAL++;
+    console.log("New component #%0 with scope %1 (%2)"
+        .fmt(c.serial, c.scope.$__SERIAL, parent && parent.scope.$__SERIAL));
     c.scope.$that = c;
     if (parent) {
       if (parent.hasOwnProperty("children")) {
@@ -544,8 +544,10 @@
     }
     flexo.make_property(c, "id", function (id) {
       if (id) {
-        // TODO handle id change
-        return add_id_to_scope(this.scope, id, this) || flexo.cancel();
+        console.log("New id for component: %0#%1 [scope %2]"
+          .fmt(id, this.serial, this.scope.$__SERIAL));
+        return add_id_to_scope(Object.getPrototypeOf(this.scope), id, this) ||
+          flexo.cancel();
       }
     }, "");
     flexo.make_readonly(c, "defined_properties", function () {
@@ -587,21 +589,22 @@
     }
   };
 
-  // Render properties for a component and all of the components in the
-  // prototype chain as necessary. The current component is first in the chain.
+  // Render properties for the chain of components. Because scope is irrelevant
+  // for properties, the prototype of components in the chain is used.
   function render_properties(chain) {
     chain.forEach(function (c) {
-      var properties = flexo.values(c.own_properties);
-      if (!c.hasOwnProperty("properties")) {
-        c.properties = {};
-        c.property_vertices = {};
+      var c_ = Object.getPrototypeOf(c);
+      var properties = flexo.values(c_.own_properties);
+      if (!c_.hasOwnProperty("properties")) {
+        c_.properties = {};
+        c_.property_vertices = {};
         properties.forEach(function (property) {
-          property.render(c);
+          property.render(c_);
         });
       }
       properties.forEach(function (property) {
-        if (!chain[0].properties.hasOwnProperty(property.name)) {
-          property.render_for_prototype(c, chain[0]);
+        if (!c.scope.$this.properties.hasOwnProperty(property.name)) {
+          property.render_for_prototype(c_, c.scope.$this);
         }
       });
     });
@@ -626,7 +629,7 @@
         ++stack.i);
     if (stack.i < n && stack[stack.i].views[""]) {
       var component = stack[stack.i++];
-      component.views[""].render(target, component.scope, stack);
+      component.views[""].render(target, stack);
     }
   }
 
@@ -635,17 +638,16 @@
   function render_watches(chain) {
     flexo.hcaErof(chain, function (c) {
       c.watches.forEach(function (watch) {
-        c.scope.$this = chain[0];
-        watch.render(chain[0]);
-        delete c.scope.$this;
+        watch.render(c);
       });
     });
   }
 
   function init_properties(chain) {
     chain.forEach(function (c) {
-      flexo.values(c.own_properties).forEach(function (p) {
-        p.init(c);
+      var c_ = Object.getPrototypeOf(c);
+      flexo.values(c_.own_properties).forEach(function (p) {
+        p.init(c_);
       });
     });
   }
@@ -668,26 +670,28 @@
       return c.on.render;
     });
     for (var i = on.length - 1; i >= 0; --i) {
-      on[i] = on[i].bind(chain[0], on[i + 1] || flexo.id);
+      on[i] = on[i].bind(c.scope.$this, on[i + 1] || flexo.id);
     }
     if (on.length > 0) {
       on[0]();
     }
   }
 
-  bender.Component.render = function (target, scope) {
+  // Render the component by building the prototype chain, creating light-weight
+  // copies of prototypes (to keep track of concrete nodes) along the way
+  bender.Component.render = function (target, stack) {
     for (var chain = [], c = this; c; c = c.prototype) {
-      if (c !== this) {
-        c = Object.create(c, {
-          scope: { enumerable: true,
-            value: Object.create(Object.getPrototypeOf(c))
-          }
-        });
-      }
-      chain.push(c);
-      c.scope.$this = this;
-      c.scope.$target = target;
-      delete c.scope.$root;
+      var scope_ = Object.getPrototypeOf(c.scope);
+      var c_ = Object.create(c, {
+        scope: { enumerable: true, value: Object.create(scope_) }
+      });
+      c_.scope.$__SERIAL = SERIAL++;
+      console.log("New scope %0 from %1"
+          .fmt(c_.scope.$__SERIAL, c.scope.$__SERIAL));
+      chain.push(c_);
+      c_.scope.$this = this;
+      c_.scope.$target = target;
+      delete c_.scope.$root;
     }
     render_properties(chain);
     render_view(target, chain);
@@ -857,9 +861,9 @@
 
   bender.View = {};
 
-  bender.View.render = function (target, scope, stack) {
+  bender.View.render = function (target, stack) {
     this.children.forEach(function (ch) {
-      ch.render(target, scope, stack);
+      ch.render(target, stack);
     });
   };
 
@@ -875,17 +879,17 @@
 
   bender.Content = {};
 
-  bender.Content.render = function (target, scope, stack) {
+  bender.Content.render = function (target, stack) {
     for (var i = stack.i, n = stack.length; i < n; ++i) {
       if (stack[i].views[this.id]) {
         var j = stack.i;
-        stack.i = i;
-        stack[i].views[this.id].render(target, stack[i].scope, stack);
+        stack.i = i + 1;
+        stack[i].views[this.id].render(target, stack);
         stack.i = j;
         return;
       }
     }
-    bender.View.render.call(this, target, scope, stack);
+    bender.View.render.call(this, target, stack);
   };
 
   bender.content = function (id, children) {
@@ -921,8 +925,8 @@
         this.children.map(function (ch) { return ch.text; }).join(""));
   }
 
-  bender.Attribute.render = function (target, scope) {
-    // TODO rendered should be a vertex -- also “pre-rendered” like properties?
+  bender.Attribute.render = function (target, stack) {
+    var scope = stack[stack.i - 1].scope;
     var rendered = { attr: this, component: scope.$this };
     rendered.children = this.children.map(function (ch) {
       if (flexo.instance_of(ch, bender.Text)) {
@@ -962,9 +966,9 @@
 
   bender.Text = {};
 
-  bender.Text.render = function (target, scope) {
+  bender.Text.render = function (target, stack) {
     var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
-    add_id_to_scope(scope, this.id, e);
+    add_id_to_scope(stack[stack.i - 1].scope, this.id, e);
   };
 
   bender.text = function (id, text) {
@@ -977,7 +981,8 @@
 
   bender.DOMElement = {};
 
-  bender.DOMElement.render = function (target, scope, stack) {
+  bender.DOMElement.render = function (target, stack) {
+    var scope = stack[stack.i - 1].scope;
     var e = target.appendChild(target.ownerDocument.createElementNS(this.nsuri,
           this.name));
     for (var nsuri in this.attrs) {
@@ -990,7 +995,7 @@
       }
     }
     this.children.forEach(function (ch) {
-      ch.render(e, scope, stack);
+      ch.render(e, stack);
     });
     if (!scope.$root && target === scope.$target) {
       scope.$root = e;
@@ -1049,11 +1054,12 @@
   };
 
   bender.Watch.render = function (component) {
+    var protocomponent = Object.getPrototypeOf(component);
     this.gets.forEach(function (get) {
       var v = get.render(component);
       if (v) {
         var w = component.environment.add_vertex(init_vertex(bender.Vertex));
-        make_edge(bender.Edge, v, w, get.value, component);
+        make_edge(bender.Edge, v, w, get.value, protocomponent);
         this.sets.forEach(function (set) {
           set.render(w, component);
         }, this);
@@ -1167,8 +1173,10 @@
   bender.GetDOMEvent.render = function (component) {
     var elem = component.scope[this.source];
     if (elem) {
-      var vertex = init_vertex(bender.DOMEventVertex, { parent: component,
-        elem: elem, event: this.event });
+      var vertex = init_vertex(bender.DOMEventVertex, {
+        parent: Object.getPrototypeOf(component),
+        elem: elem, event: this.event
+      });
       var v = component.environment.add_vertex(vertex);
       if (v === vertex) {
         elem.addEventListener(v.event, function (e) {
@@ -1194,8 +1202,10 @@
   bender.GetEvent.render = function (component) {
     var c = component.scope[this.source];
     if (c) {
-      var vertex = init_vertex(bender.EventVertex, { parent: component,
-        component: c, event: this.event });
+      var vertex = init_vertex(bender.EventVertex, {
+        parent: Object.getPrototypeOf(component),
+        component: c, event: this.event
+      });
       var v = component.environment.add_vertex(vertex);
       if (v === vertex) {
         flexo.listen(c, this.event, function (e) {
@@ -1306,7 +1316,7 @@
   // Render a sink output edge to a regular Edge going to the Vortex.
   bender.Set.render = function (source, component) {
     return make_edge(bender.Edge, source, component.environment.vortex,
-        this.value, component, this.watch.component);
+        this.value, Object.getPrototypeOf(component), this.watch.component);
   };
 
   // A regular edge executes its input and output functions for the side effects
@@ -1328,7 +1338,7 @@
       var dest = c.property_vertices[this.property];
       if (dest) {
         var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
-            component, this.watch.component);
+            Object.getPrototypeOf(component), this.watch.component);
         edge.property = this.property;
         edge.component = c;
         return edge;
@@ -1360,7 +1370,7 @@
       var dest = component.environment.add_vertex(
           init_vertex(bender.EventVertex, { component: c, event: this.event }));
       var edge = make_edge(bender.EventEdge, source, dest, this.value,
-          component, this.watch.component);
+          Object.getPrototypeOf(component), this.watch.component);
       edge.component = c;
       edge.event = this.event;
       return edge;
@@ -1388,8 +1398,8 @@
     var r = component.scope[this.target];
     if (r) {
       var edge = make_edge(bender.DOMAttributeEdge, source,
-          component.environment.vortex, this.value, component,
-          this.watch.component);
+          component.environment.vortex, this.value,
+          Object.getPrototypeOf(component), this.watch.component);
       edge.target = r;
       edge.ns = this.ns;
       edge.attr = this.attr;
@@ -1423,8 +1433,8 @@
     var r = component.scope[this.target];
     if (r) {
       var edge = make_edge(bender.DOMPropertyEdge, source,
-          component.environment.vortex, this.value, component,
-          this.watch.component);
+          component.environment.vortex, this.value,
+          Object.getPrototypeOf(component), this.watch.component);
       edge.target = r;
       edge.property = this.property;
       return edge;

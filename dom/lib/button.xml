@@ -1,4 +1,9 @@
-<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button">
+<component xmlns="http://bender.igel.co.jp" id="button">
+
+  <link rel="stylesheet" href="lib.css"/>
+
+  <property name="class"/>
+  <property name="enabled" as="boolean" value="true"/>
 
   <property name="base-class" value="button"/>
   <property name="down" as="boolean" value="false"/>
@@ -32,6 +37,21 @@
       (event.target !== this.scope.div || !this.properties.enabled))"/>
     <set property="down" value="false"/>
     <set event="!pushed"/>
+  </watch>
+
+  <watch>
+    <get property="base-class"/>
+    <set elem="base-class-class"/>
+  </watch>
+
+  <watch>
+    <get property="class"/>
+    <set elem="class-class"/>
+  </watch>
+
+  <watch>
+    <get property="enabled"/>
+    <set elem="enabled-class" value="input ? '' : 'disabled'"/>
   </watch>
 
 </component>
