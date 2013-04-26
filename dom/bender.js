@@ -3,6 +3,8 @@
 
   bender.VERSION = "0.8.1";
 
+  var SERIAL = 0;  // Debug stuff, to be removed
+
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
   var push = Array.prototype.push;
@@ -14,13 +16,14 @@
   // Environment in which components run and the watch graph is built.
   bender.Environment = {};
 
-  // Create a new environment with no loaded component and an empty watch graph
-  // (consisting only of a vortex), then start the graph scheduler.
+  // Create a new environment with its environment scope, no loaded component,
+  // and an empty watch graph (consisting only of a vortex), then start the
+  // graph scheduler.
   bender.environment = function (document) {
     var e = Object.create(bender.Environment);
     e.document = document;
     e.scope = { $document: document, $__ENV: this, $__SERIAL: SERIAL++ };
-    console.log("New scope for environment #%0".fmt(e.scope.$__SERIAL));
+    console.log("New scope for environment #%0".fmt(serial_scope(e.scope)));
     e.loaded = {};
     e.components = [];
     e.vertices = [];
@@ -89,14 +92,17 @@
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
         var ks = this.loaded[url];
         if (req.response) {
-          var urscope = Object.create(this.scope, {
+          var shared_scope = Object.create(this.scope, {
             $__SRC: { enumerable: true, value: req.response },
             $__URL: { enumerable: true, value: url },
-            $__SERIAL: { enumerable: true, configurable: true, value: SERIAL++ }
+            $__SERIAL: { enumerable: true, writable: true, value: SERIAL++ }
           });
-          console.log("New scope #%0 for URL %1".fmt(urscope.$__SERIAL, url));
-          // Root “component” to initialize the scope
-          var root = { scope: Object.create(urscope) };
+          console.log("New scope #%0 for URL %1"
+            .fmt(serial_scope(shared_scope), url));
+          // Root “component” to initialize the scope (similar to a document
+          // node so that components are anchored; components under this root
+          // will share the same scope.)
+          var root = { scope: shared_scope };
           this.deserialize(req.response.documentElement, root, function (d) {
             if (flexo.instance_of(d, bender.Component)) {
               this.loaded[url] = d;
@@ -514,42 +520,69 @@
   function add_id_to_scope(scope, id, x) {
     if (id) {
       if (!scope.hasOwnProperty(id)) {
-        console.log("+++ id %0 in scope %1".fmt(id, scope.$__SERIAL));
+        console.log("+++ id %0 in scope %1".fmt(id, serial_scope(scope)));
         scope[id] = x;
         return id;
       }
-      console.warn("Redefining id %0 in scope %1"
-          .fmt(id, scope.$__URL || "()"));
+      console.warn("Redefining id %0 in scope %1".fmt(id, serial_scope(scope)));
     }
   }
 
-  var SERIAL = 0;
+  function serial_scope(scope) {
+    if (!scope) {
+      return "";
+    }
+    var s = serial_scope(Object.getPrototypeOf(scope));
+    if (scope.hasOwnProperty("$__SERIAL")) {
+      return scope.$__SERIAL + (s ? (" < " + s) : "");
+    }
+    return "";
+  }
+
 
   bender.Component = {};
 
-  // Initialize an empty component
+  // Get a new scope for a component, from its parent scope
+  function get_scope(component) {
+    var scope = component.parent.scope;
+    if (scope.hasOwnProperty("$that")) {
+      scope = Object.create(Object.getPrototypeOf(scope));
+    } else {
+      scope = Object.create(scope);
+    }
+    scope.$that = component;
+    scope.$__SERIAL = SERIAL++;
+    return scope;
+  }
+
+  // Initialize an empty component with an initial scope
   bender.component = function (environment, parent) {
     var c = Object.create(bender.Component);
-    c.serial = SERIAL++;
-    c.scope = Object.create(environment.scope);
-    c.scope.$__SERIAL = SERIAL++;
-    console.log("New component #%0 with scope %1 (%2)"
-        .fmt(c.serial, c.scope.$__SERIAL, parent && parent.scope.$__SERIAL));
-    c.scope.$that = c;
-    if (parent) {
-      if (parent.hasOwnProperty("children")) {
-        parent.children.push(c);
-        c.parent = parent;
-      }
+    c.$__SERIAL = SERIAL++;
+    if (parent.hasOwnProperty("children")) {
+      parent.children.push(c);
+      c.parent = parent;
     }
+    c.parent = parent;
+    c.scope = get_scope(c);
     flexo.make_property(c, "id", function (id) {
       if (id) {
-        console.log("New id for component: %0#%1 [scope %2]"
-          .fmt(id, this.serial, this.scope.$__SERIAL));
         return add_id_to_scope(Object.getPrototypeOf(this.scope), id, this) ||
           flexo.cancel();
       }
     }, "");
+    flexo.make_property(c, "prototype", function (proto, prev_p) {
+      flexo.cancel(proto === prev_p);
+      if (proto.children.length > 0) {
+        var p = Object.create(proto);
+        p.children = [];
+        p.views = {};
+        Object.keys(proto.views).forEach(function (v) {
+          p.views[v] = proto.views[v].duplicate(p);
+        });
+      }
+      return proto;
+    });
     flexo.make_readonly(c, "defined_properties", function () {
       var properties = {};
       for (var component = this; component; component = component.prototype) {
@@ -681,13 +714,11 @@
   // copies of prototypes (to keep track of concrete nodes) along the way
   bender.Component.render = function (target, stack) {
     for (var chain = [], c = this; c; c = c.prototype) {
-      var scope_ = Object.getPrototypeOf(c.scope);
       var c_ = Object.create(c, {
-        scope: { enumerable: true, value: Object.create(scope_) }
+        scope: { enumerable: true, value: get_scope(c) }
       });
       c_.scope.$__SERIAL = SERIAL++;
-      console.log("New scope %0 from %1"
-          .fmt(c_.scope.$__SERIAL, c.scope.$__SERIAL));
+      console.log("New scope %0".fmt(serial_scope(c_.scope)));
       chain.push(c_);
       c_.scope.$this = this;
       c_.scope.$target = target;
