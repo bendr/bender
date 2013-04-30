@@ -25,11 +25,11 @@
     // Add classes based on id
     (function ($super) {
       bender.Component.render = function () {
-        $super.apply(this, arguments);
-        if (this.scope.$root) {
-          for (var c = this; c; c = c.prototype) {
+        var rendered = $super.apply(this, arguments);
+        if (rendered.scope.$root) {
+          for (var c = rendered; c; c = c.prototype) {
             if (c.id) {
-              this.scope.$root.classList.add(c.id);
+              rendered.scope.$root.classList.add(c.id);
             }
           }
         }
@@ -37,7 +37,7 @@
     }(bender.Component.render));
   }
 
-  this.ENV = bender.load_app(target, {}, function (component) {
+  this.ENV = bender.load_app(target, function (component) {
     if (!component) {
       no_href();
     } else if (typeof component === "string") {

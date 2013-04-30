@@ -3,44 +3,27 @@
 
   bender.VERSION = "0.8.1";
 
-  var SERIAL = 0;  // Debug stuff, to be removed
-
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
-  var push = Array.prototype.push;
+
 
   // The Bender namespace for (de)serialization to XML
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 
-  // Environment in which components run and the watch graph is built.
-  bender.Environment = {};
-
-  // Create a new environment with its environment scope, no loaded component,
-  // and an empty watch graph (consisting only of a vortex), then start the
-  // graph scheduler.
-  bender.environment = function (document) {
-    var e = Object.create(bender.Environment);
-    e.document = document;
-    e.scope = { $document: document, $__ENV: this, $__SERIAL: SERIAL++ };
-    console.log("New scope for environment #%0".fmt(serial_scope(e.scope)));
-    e.loaded = {};
-    e.components = [];
-    e.vertices = [];
-    e.vortex = init_vertex(bender.Vortex);
-    e.add_vertex(e.vortex);
-    e.scheduled = [];
-    e.traverse_graph = traverse_graph.bind(e);
-    e.traverse_graph();
-    return e;
-  };
-
   // Load an application from a component to be rendered in the given target.
   // The defaults object contains default values for the properties of the
   // component, and should have a `href` property for the URL of the application
   // component. If no environent is given, a new one is created for the target
-  // element document. When done or in case of error, call the continuation k.
+  // element document. The created environment is returned.
+  // When done or in case of error, call the continuation k with either the
+  // created component, or an error message, or nothing if there was nothing to
+  // load in the first place (e.g., no href argument.)
   bender.load_app = function (target, defaults, env, k) {
+    if (typeof defaults === "function") {
+      k = defaults;
+      defaults = undefined;
+    }
     if (typeof env === "function") {
       k = env;
       env = undefined;
@@ -49,13 +32,15 @@
       k = flexo.nop;
     }
     env = env || bender.environment(target.ownerDocument);
-    var args = flexo.get_args(defaults || { href: "app.xml" });
+    var args = flexo.get_args(typeof defaults === "object" ? defaults :
+        typeof defaults === "string" ? { href: defaults } :
+          { href: "app.xml" });
     if (args.href) {
       var url = flexo.absolute_uri(window.document.baseURI, args.href);
       env.load_component(url, function (component) {
         if (flexo.instance_of(component, bender.Component)) {
           console.log("* component at %0 loaded OK".fmt(url));
-          var defined = component.defined_properties;
+          var defined = component.all_properties;
           var props = Object.keys(args).filter(function (p) {
             return defined.hasOwnProperty(p);
           }).map(function (p) {
@@ -63,7 +48,7 @@
             return bender.property(prop.name, prop.as, args[prop.name]);
           });
           if (props.length > 0) {
-            var d = bender.component(env);
+            var d = bender.Component(env);
             d.prototype = component;
             props.forEach(function (p) {
               d.own_properties[p.name] = p;
@@ -84,26 +69,49 @@
     return env;
   };
 
+
+  var __SERIAL = 0;  // Debug stuff, to be removed
+
+  // Debug function to display a scope chain
+  function scope_chain(scope) {
+    if (!scope) {
+      return "";
+    }
+    var s = scope_chain(Object.getPrototypeOf(scope));
+    if (scope.hasOwnProperty("$__SERIAL")) {
+      return scope.$__SERIAL + (s ? (" < " + s) : "");
+    }
+    return "";
+  }
+
+
+  // Create a new environment with its environment scope, no loaded component,
+  // and an empty watch graph (consisting only of a vortex.) Then start the
+  // graph scheduler.
+  bender.environment = function (document) {
+    var e = Object.create(bender.environment);
+    e.document = document;
+    e.scope = { $document: document, $__ENV: this, $__SERIAL: __SERIAL++ };
+    console.log("New scope %0 for environment".fmt(scope_chain(e.scope)));
+    e.loaded = {};
+    e.components = [];
+    e.vertices = [];
+    e.vortex = init_vertex(bender.Vortex);
+    e.add_vertex(e.vortex);
+    e.scheduled = [];
+    (e.traverse_graph = traverse_graph.bind(e))();
+    return e;
+  };
+
   // Load a component at the given URL and call k with the loaded component (or
   // an error)
-  bender.Environment.load_component = function (url, k) {
+  bender.environment.load_component = function (url, k) {
     if (!this.loaded.hasOwnProperty(url)) {
       this.loaded[url] = [k];
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
         var ks = this.loaded[url];
         if (req.response) {
-          var shared_scope = Object.create(this.scope, {
-            $__SRC: { enumerable: true, value: req.response },
-            $__URL: { enumerable: true, value: url },
-            $__SERIAL: { enumerable: true, writable: true, value: SERIAL++ }
-          });
-          console.log("New scope #%0 for URL %1"
-            .fmt(serial_scope(shared_scope), url));
-          // Root “component” to initialize the scope (similar to a document
-          // node so that components are anchored; components under this root
-          // will share the same scope.)
-          var root = { scope: shared_scope };
-          this.deserialize(req.response.documentElement, root, function (d) {
+          this.deserialize(req.response.documentElement, null, function (d) {
             if (flexo.instance_of(d, bender.Component)) {
               this.loaded[url] = d;
             } else if (typeof d === "string") {
@@ -135,11 +143,11 @@
 
   // Deserialize `node` in the environment, within `component`; upon completion,
   // call k with the created object (if any) or an error message
-  bender.Environment.deserialize = function (node, component, k) {
+  bender.environment.deserialize = function (node, component, k) {
     if (node instanceof window.Node) {
       if (node.nodeType === window.Node.ELEMENT_NODE) {
         if (node.namespaceURI === bender.ns) {
-          var f = bender.Environment.deserialize[node.localName];
+          var f = bender.environment.deserialize[node.localName];
           if (typeof f === "function") {
             f.call(this, node, component, k);
           } else {
@@ -148,7 +156,7 @@
           }
         } else {
           var suggestion =
-            bender.Environment.deserialize.hasOwnProperty(node.localName) ?
+            bender.environment.deserialize.hasOwnProperty(node.localName) ?
             "reminder: Bender’s namespace is %0".fmt(bender.ns) :
             "a Bender element was expected";
           k("Unknown element “%0” in %1 (%2)"
@@ -166,7 +174,7 @@
   // Set default values for properties of a component from the attributes of the
   // element being deserialized (which are different from href, id, and on-...)
   function set_property_defaults(elem, component) {
-    var defined = component.defined_properties;
+    var defined = component.all_properties;
     filter.call(elem.attributes, function (a) {
       return defined.hasOwnProperty(a.localName) && a.namespaceURI === null &&
         a.localName !== "href" && a.localName !== "id" &&
@@ -180,7 +188,7 @@
   }
 
   // Deserialize a Bender component element
-  bender.Environment.deserialize.component = function (elem, parent, k) {
+  bender.environment.deserialize.component = function (elem, parent, k) {
     var init_component = function (env, prototype) {
       var component = bender.component(env, parent);
       component.id = elem.getAttribute("id");
@@ -228,7 +236,7 @@
   // Deserialize a Bender link element. The link is rendered immediately in the
   // environment’s document (which, in the case of a script, may require script
   // loading.)
-  bender.Environment.deserialize.link = function (elem, component, k) {
+  bender.environment.deserialize.link = function (elem, component, k) {
     var uri = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
     var link = bender.link(uri, elem.getAttribute("rel"));
     if (!this.loaded[uri]) {
@@ -240,14 +248,14 @@
   };
 
   // Deserialize a Bender property element.
-  bender.Environment.deserialize.property = function (elem, _, k) {
+  bender.environment.deserialize.property = function (elem, _, k) {
     var value = elem.getAttribute("value");
     k(bender.property(elem.getAttribute("name"), elem.getAttribute("as"),
           elem.getAttribute("value")));
   };
 
   // Deserialize a Bender view element.
-  bender.Environment.deserialize.view = function (elem, component, k) {
+  bender.environment.deserialize.view = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
       k(typeof d === "string" ? d :
         bender.view(elem.getAttribute("id"), elem.getAttribute("stack"),
@@ -257,7 +265,7 @@
 
   // Deserialize view content, which is either Bender elements that can appear
   // within a view, foreign elements, or text.
-  bender.Environment.deserialize_view_content = function (elem, component, k) {
+  bender.environment.deserialize_view_content = function (elem, component, k) {
     var children = [];
     var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
@@ -268,7 +276,7 @@
             ch.localName === "attribute" ||
             ch.localName === "text") {
             seq.add(function (k_) {
-              bender.Environment.deserialize[ch.localName].call(this, ch,
+              bender.environment.deserialize[ch.localName].call(this, ch,
                 component, function (d) {
                   if (typeof d === "string") {
                     k(d);
@@ -309,7 +317,7 @@
   };
 
   // Deserialize a foreign element.
-  bender.Environment.deserialize_dom_element = function (elem, component, k) {
+  bender.environment.deserialize_dom_element = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
       if (typeof d === "string") {
         k(d);
@@ -328,7 +336,7 @@
   };
 
   // Deserialize a Bender content element.
-  bender.Environment.deserialize.content = function (elem, component, k) {
+  bender.environment.deserialize.content = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
       k(typeof d === "string" ? d :
         bender.content(elem.getAttribute("id"), d));
@@ -336,13 +344,13 @@
   };
 
   // Deserialize a Bender attribute element.
-  bender.Environment.deserialize.attribute = function (elem, component, k) {
+  bender.environment.deserialize.attribute = function (elem, component, k) {
     var attr = bender.attribute(elem.getAttribute("id"),
         elem.getAttribute("ns"), elem.getAttribute("name"));
     foreach.call(elem.childNodes, function (ch) {
       if (ch.nodeType === window.Node.ELEMENT_NODE &&
         ch.namespaceURI === bender.ns && ch.localName === "text") {
-        bender.Environment.deserialize.text.call(this, ch, component,
+        bender.environment.deserialize.text.call(this, ch, component,
           function (d) {
             attr.append_child(d);
           });
@@ -355,12 +363,12 @@
   };
 
   // Deserialize a Bender text element.
-  bender.Environment.deserialize.text = function (elem, component, k) {
+  bender.environment.deserialize.text = function (elem, component, k) {
     k(bender.text(elem.getAttribute("id"), elem.textContent));
   };
 
   // Deserialize a Bender watch element.
-  bender.Environment.deserialize.watch = function (elem, component, k) {
+  bender.environment.deserialize.watch = function (elem, component, k) {
     var watch = bender.watch();
     var error = false;
     foreach.call(elem.childNodes, function (ch) {
@@ -380,7 +388,7 @@
   };
 
   // Deserialize a Bender get element.
-  bender.Environment.deserialize.get = function (elem, _, k) {
+  bender.environment.deserialize.get = function (elem, _, k) {
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("property")) {
@@ -402,7 +410,7 @@
   };
 
   // Deserialize a Bender set element.
-  bender.Environment.deserialize.set = function (elem, _, k) {
+  bender.environment.deserialize.set = function (elem, _, k) {
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("elem")) {
@@ -475,7 +483,7 @@
 
   // Schedule a visit of the vertex for a given value. If the same vertex is
   // already scheduled, discard the old value.
-  bender.Environment.schedule_visit = function (vertex, value) {
+  bender.environment.schedule_visit = function (vertex, value) {
     var q = flexo.find_first(this.scheduled, function (q) {
       return q[0] === vertex;
     });
@@ -494,7 +502,7 @@
 
   // Add a vertex to the watch graph and return it. If a matching vertex was
   // found, just return the previous vertex.
-  bender.Environment.add_vertex = function (v) {
+  bender.environment.add_vertex = function (v) {
     var v_ = flexo.find_first(this.vertices, function (w) {
       return v.match(w);
     });
@@ -507,7 +515,7 @@
   };
 
   // Debugging: output the watch graph
-  bender.Environment.dump_graph = function () {
+  bender.environment.dump_graph = function () {
     this.vertices.forEach(function (vertex) {
       console.log(vertex.toString());
       vertex.out_edges.forEach(function (edge) {
@@ -516,74 +524,34 @@
     });
   };
 
-  // Add id to scope for object x
+
+  // Add id to scope for object x (actually, to the parent scope!)
   function add_id_to_scope(scope, id, x) {
     if (id) {
+      scope = Object.getPrototypeOf(scope);
       if (!scope.hasOwnProperty(id)) {
-        console.log("+++ id %0 in scope %1".fmt(id, serial_scope(scope)));
+        console.log("+++ id %0 in scope %1".fmt(id, scope_chain(scope)));
         scope[id] = x;
         return id;
       }
-      console.warn("Redefining id %0 in scope %1".fmt(id, serial_scope(scope)));
+      console.warn("Redefining id %0 in scope %1".fmt(id, scope_chain(scope)));
     }
-  }
-
-  function serial_scope(scope) {
-    if (!scope) {
-      return "";
-    }
-    var s = serial_scope(Object.getPrototypeOf(scope));
-    if (scope.hasOwnProperty("$__SERIAL")) {
-      return scope.$__SERIAL + (s ? (" < " + s) : "");
-    }
-    return "";
   }
 
 
   bender.Component = {};
 
-  // Get a new scope for a component, from its parent scope
-  function get_scope(component) {
-    var scope = component.parent.scope;
-    if (scope.hasOwnProperty("$that")) {
-      scope = Object.create(Object.getPrototypeOf(scope));
-    } else {
-      scope = Object.create(scope);
-    }
-    scope.$that = component;
-    scope.$__SERIAL = SERIAL++;
-    return scope;
-  }
-
   // Initialize an empty component with an initial scope
   bender.component = function (environment, parent) {
     var c = Object.create(bender.Component);
-    c.$__SERIAL = SERIAL++;
-    if (parent.hasOwnProperty("children")) {
+    c.$__SERIAL = __SERIAL++;
+    console.log("New component %0 (parent: %1)".fmt(c.$__SERIAL,
+          parent && parent.$__SERIAL || "none"));
+    if (parent) {
       parent.children.push(c);
       c.parent = parent;
     }
-    c.parent = parent;
-    c.scope = get_scope(c);
-    flexo.make_property(c, "id", function (id) {
-      if (id) {
-        return add_id_to_scope(Object.getPrototypeOf(this.scope), id, this) ||
-          flexo.cancel();
-      }
-    }, "");
-    flexo.make_property(c, "prototype", function (proto, prev_p) {
-      flexo.cancel(proto === prev_p);
-      if (proto.children.length > 0) {
-        var p = Object.create(proto);
-        p.children = [];
-        p.views = {};
-        Object.keys(proto.views).forEach(function (v) {
-          p.views[v] = proto.views[v].duplicate(p);
-        });
-      }
-      return proto;
-    });
-    flexo.make_readonly(c, "defined_properties", function () {
+    flexo.make_readonly(c, "all_properties", function () {
       var properties = {};
       for (var component = this; component; component = component.prototype) {
         for (var p in component.own_properties) {
@@ -714,15 +682,29 @@
   // copies of prototypes (to keep track of concrete nodes) along the way
   bender.Component.render = function (target, stack) {
     for (var chain = [], c = this; c; c = c.prototype) {
+      var root_scope, scope;
+      if (!c.parent) {
+        root_scope = Object.create(c.environment.scope);
+        root_scope.$__SERIAL = __SERIAL++;
+        console.log("New scope %0 to render component %1"
+            .fmt(scope_chain(root_scope), c.$__SERIAL));
+        scope = Object.create(root_scope);
+      } else {
+        scope = Object.create(Object.getPrototypeOf(c.parent.__rendering.scope));
+      }
+      scope.$__SERIAL = __SERIAL++;
       var c_ = Object.create(c, {
-        scope: { enumerable: true, value: get_scope(c) }
+        scope: { enumerable: true, value: scope },
+        $__SERIAL: { enumerable: true, value: __SERIAL++ }
       });
-      c_.scope.$__SERIAL = SERIAL++;
-      console.log("New scope %0".fmt(serial_scope(c_.scope)));
+      console.log("New scope %0 to render component %2/%1"
+          .fmt(scope_chain(scope), c_.$__SERIAL, c.$__SERIAL));
       chain.push(c_);
-      c_.scope.$this = this;
+      c_.scope.$that = c_;
+      c_.scope.$this = chain[0];
       c_.scope.$target = target;
-      delete c_.scope.$root;
+      c.__rendering = c_;
+      add_id_to_scope(c_.scope, c.id, c_);
     }
     render_properties(chain);
     render_view(target, chain);
@@ -730,6 +712,10 @@
     init_properties(chain);
     flexo.notify(this, "!rendered");
     on_render(chain);
+    chain.forEach(function (c) {
+      delete c.__rendering;
+    });
+    return chain[0];
   };
 
 
