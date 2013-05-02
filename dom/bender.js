@@ -729,7 +729,7 @@
     render_view(target, chain);
     render_watches(chain);
     init_properties(chain);
-    flexo.notify(this, "!rendered");
+    flexo.notify(chain[0], "!rendered");
     on_render(chain);
     chain.forEach(function (c) {
       delete c.__rendering;
