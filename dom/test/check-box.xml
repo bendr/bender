@@ -30,7 +30,7 @@
   <watch>
     <get component="b" event="!pushed"/>
     <set component="ch" property="checked"
-      value="!this.scope.ch.properties.checked"/>
+      value="!scope.ch.properties.checked"/>
   </watch>
 
 </component>

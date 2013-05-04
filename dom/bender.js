@@ -1083,7 +1083,8 @@
   };
 
   bender.Watch.render = function (component) {
-    var context = component.scope.$this;
+    var scope = component.scope;
+    var context = scope.$this;
     console.log("Render watch for %0/%1: %2/%3 (#gets=%4, #sets=%5)"
         .fmt(Object.getPrototypeOf(context).$__SERIAL, context.$__SERIAL,
           Object.getPrototypeOf(component).$__SERIAL, component.$__SERIAL,
@@ -1092,9 +1093,9 @@
       var v = get.render(component);
       if (v) {
         var w = component.environment.add_vertex(make_vertex(bender.Vertex));
-        make_edge(bender.Edge, v, w, get.value, context);
+        make_edge(bender.Edge, v, w, get.value, context, scope);
         this.sets.forEach(function (set) {
-          set.render(w, component);
+          set.render(w, component, scope);
         }, this);
       }
     }, this);
@@ -1256,7 +1257,7 @@
   // the action if it is called with no parameter, or a falsy value)
   function init_get_value(name, value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function(name, "cancel", "that", value) : flexo.id;
+      new Function(name, "cancel", "scope", value) : flexo.id;
   }
 
   bender.get_property = function (property, source, value) {
@@ -1315,7 +1316,7 @@
 
   // Create an edge of the given prototype between a source and a destination
   // vertex with a value for its label.
-  function make_edge(prototype, source, dest, value, context, that) {
+  function make_edge(prototype, source, dest, value, context, scope) {
     var edge = Object.create(prototype);
     if (source.protovertex) {
       set_edge_source(edge, source.protovertex);
@@ -1326,7 +1327,7 @@
     set_edge_dest(edge, dest);
     edge.value = value;
     edge.context = context;
-    edge.that = that;
+    edge.scope = scope;
     return edge;
   }
 
@@ -1337,19 +1338,19 @@
   // falsy value)
   function init_set_value(value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("input", "cancel", "that", value) : flexo.id;
+      new Function ("input", "cancel", "scope", value) : flexo.id;
   }
 
   // Render a sink output edge to a regular Edge going to the Vortex.
-  bender.Set.render = function (source, component) {
+  bender.Set.render = function (source, component, scope) {
     return make_edge(bender.Edge, source, component.environment.vortex,
-        this.value, component.scope.$this, this.watch.component);
+        this.value, component.scope.$this, scope);
   };
 
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.that);
+    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
@@ -1359,13 +1360,13 @@
   };
 
   // Set a property on a component
-  bender.SetProperty.render = function (source, component) {
+  bender.SetProperty.render = function (source, component, scope) {
     var c = component.scope[this.target];
     if (c) {
       var dest = c.property_vertices[this.property];
       if (dest) {
         var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
-            component.scope.$this, this.watch.component);
+            component.scope.$this, scope);
         edge.property = this.property;
         edge.component = c;
         return edge;
@@ -1380,7 +1381,7 @@
 
   // A PropertyEdge sets a property
   bender.PropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.that);
+    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     this.component.properties[this.property] = v;
     console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1391,13 +1392,13 @@
         this.dest);
   };
 
-  bender.SetEvent.render = function (source, component) {
+  bender.SetEvent.render = function (source, component, scope) {
     var c = component.scope[this.target];
     if (c) {
       var dest = component.environment.add_vertex(
           make_vertex(bender.EventVertex, { component: c, event: this.event }));
       var edge = make_edge(bender.EventEdge, source, dest, this.value,
-          component.scope.$this, this.watch.component);
+          component.scope.$this, scope);
       edge.component = c;
       edge.event = this.event;
       return edge;
@@ -1409,7 +1410,7 @@
 
   // An EventEdge sends an event notification
   bender.EventEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.that);
+    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     flexo.notify(this.component, this.event, v);
     console.log("  - %0 = %1".fmt(this, v));
     return v;
@@ -1421,12 +1422,12 @@
   };
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
-  bender.SetDOMAttribute.render = function (source, component) {
+  bender.SetDOMAttribute.render = function (source, component, scope) {
     var r = component.scope[this.target];
     if (r) {
       var edge = make_edge(bender.DOMAttributeEdge, source,
-          component.environment.vortex, this.value,
-          component.scope.$this, this.watch.component);
+          component.environment.vortex, this.value, component.scope.$this,
+          scope);
       edge.target = r;
       edge.ns = this.ns;
       edge.attr = this.attr;
@@ -1440,7 +1441,7 @@
   // A DOMAttribute edge sets an attribute, has no other effect.
   // If the value is null, the attribute is not set but removed.
   bender.DOMAttributeEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.that);
+    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     if (v === null) {
       this.target.removeAttributeNS(this.ns, this.attr);
     } else {
@@ -1456,12 +1457,12 @@
   };
 
   // Set a DOM property: no further effect, so make an edge to the Vortex.
-  bender.SetDOMProperty.render = function (source, component) {
+  bender.SetDOMProperty.render = function (source, component, scope) {
     var r = component.scope[this.target];
     if (r) {
       var edge = make_edge(bender.DOMPropertyEdge, source,
-          component.environment.vortex, this.value,
-          component.scope.$this, this.watch.component);
+          component.environment.vortex, this.value, component.scope.$this,
+          scope);
       edge.target = r;
       edge.property = this.property;
       return edge;
@@ -1473,7 +1474,7 @@
 
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.that);
+    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     this.target[this.property] = v;
     console.log("  - %0 = %1".fmt(this, v));
     return v;

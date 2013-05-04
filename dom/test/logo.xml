@@ -63,8 +63,8 @@
   <watch>
     <get elem="mask" dom-event="click">
       cancel(!this.properties.clickable);
-      this.scope.anim_b.beginElement();
-      this.scope.anim_p.beginElement();
+      scope.anim_b.beginElement();
+      scope.anim_p.beginElement();
     </get>
   </watch>
 
