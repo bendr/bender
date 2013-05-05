@@ -3,6 +3,14 @@
 
   bender.VERSION = "0.8.1";
 
+  // Regular expressions to match property bindings
+  var RX_ID = "(?:[$A-Z_a-z\x80-\uffff]|\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\.)*";
+  var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
+  var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK), "g");
+
+
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
 
@@ -656,6 +664,21 @@
       console.log("Render watches for %0/%1: %2/%3"
         .fmt(Object.getPrototypeOf(chain[0]).$__SERIAL, chain[0].$__SERIAL,
           Object.getPrototypeOf(c).$__SERIAL, c.$__SERIAL));
+      flexo.values(c.own_properties).forEach(function (property) {
+        if (property.hasOwnProperty("__bindings")) {
+          var watch = bender.watch();
+          watch.append_set(bender.set_property(property.name, "$this",
+              "return " + property.__bindings[""]));
+          Object.keys(property.__bindings).forEach(function (id) {
+            if (id) {
+              Object.keys(property.__bindings[id]).forEach(function (prop) {
+                watch.append_get(bender.get_property(prop, id));
+              });
+            }
+          });
+          Object.getPrototypeOf(c).append_child(watch);
+        }
+      });
       c.watches.forEach(function (watch) {
         watch.render(c);
       });
@@ -855,6 +878,28 @@
     }
   };
 
+  // Create the property bindings for a value string with as="dynamic"
+  function property_binding_dynamic(value) {
+    var properties = {};
+    var r = function (_, b, id, id_p, prop, prop_p) {
+      var i = (id || id_p || "$this").replace(/\\(.)/g, "$1");
+      if (!properties.hasOwnProperty[i]) {
+        properties[i] = {};
+      }
+      var p = (prop || prop_p).replace(/\\(.)/g, "$1");
+      properties[i][p] = true;
+      return (i === "$this" ?
+        "%0this.properties[%2]" : "%0scope[%1].properties[%2]")
+          .fmt(b, flexo.quote(i), flexo.quote(p));
+    };
+    var v = value.replace(RX_PROP, r).replace(/\\(.)/g, "$1");
+    if (Object.keys(properties).length === 0) {
+      return value;
+    }
+    properties[""] = v;
+    return properties;
+  }
+
   bender.property = function (name, as, value) {
     var property = Object.create(bender.Property);
     property.as = (as || "").trim().toLowerCase();
@@ -869,7 +914,12 @@
       };
     } else if (typeof value === "string") {
       if (as === "dynamic") {
-        property.__value = new Function("return " + value);
+        var bindings = property_binding_dynamic(value);
+        if (typeof bindings === "string") {
+          property.__value = new Function("return " + value);
+        } else {
+          property.__bindings = bindings;
+        }
       } else if (as === "json") {
         property.__value = function () {
           try {

@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="chain">
   <property name="count" as="number" value="0"/>
-  <property name="next"/>
+  <property name="next" as="dynamic" value="`count + 1"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       Number of clicks: <text id="clicks"/> (next: <text id="clicks-next"/>)
@@ -20,7 +20,6 @@
   <watch>
     <get property="count"/>
     <set elem="clicks"/>
-    <set property="next" value="input + 1"/>
   </watch>
   <watch>
     <get component="button" event="!pushed"/>
