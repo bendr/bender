@@ -1,6 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" id="bind-attr">
   <property name="color" value="red"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:rect width="200" height="100" fill="`color"/>
+    <attribute name="viewBox">0 0 400 400</attribute>
+    <svg:rect width="400" height="400" fill="`color"/>
   </view>
 </component>
