@@ -677,7 +677,24 @@
             }
           });
           Object.getPrototypeOf(c).append_child(watch);
+          delete property.__bindings;
         }
+      });
+      flexo.values(c.__bindings).forEach(function (bindings) {
+        console.log("New watch for binding", bindings);
+        var watch = bender.watch();
+        watch.append_set(bender.set_dom_attribute(bindings[""].ns,
+            bindings[""].name, bindings[""].target,
+            "return " + bindings[""].value));
+        Object.keys(bindings).forEach(function (id) {
+          if (id) {
+            Object.keys(bindings[id]).forEach(function (prop) {
+              watch.append_get(bender.get_property(prop, id));
+            });
+          }
+        });
+        Object.getPrototypeOf(c).append_child(watch);
+        delete c.__bindings;
       });
       c.watches.forEach(function (watch) {
         watch.render(c);
@@ -732,7 +749,8 @@
             .fmt(scope_chain(root_scope), c.$__SERIAL));
         scope = Object.create(root_scope);
       } else {
-        scope = Object.create(Object.getPrototypeOf(c.parent.__rendering.scope));
+        scope = Object.create(Object.getPrototypeOf(
+              c.parent.__rendering[c.parent.__rendering.length - 1].scope));
       }
       scope.$__SERIAL = __SERIAL++;
       var c_ = Object.create(c, {
@@ -745,7 +763,12 @@
       c_.scope.$that = c_;
       c_.scope.$this = chain[0];
       c_.scope.$target = target;
-      c.__rendering = c_;
+      if (c.__rendering) {
+        c.__rendering.push(c_);
+      } else {
+        c.__rendering = [c_];
+      }
+      c_.__bindings = [];
       add_id_to_scope(c_.scope, c.id, c_);
     }
     render_properties(chain);
@@ -755,7 +778,11 @@
     flexo.notify(chain[0], "!rendered");
     on_render(chain);
     chain.forEach(function (c) {
-      delete c.__rendering;
+      if (c.__rendering.length === 1) {
+        delete c.__rendering;
+      } else {
+        c.__rendering.pop();
+      }
     });
     return chain[0];
   };
@@ -772,7 +799,7 @@
       console.warn("Cannot render “%0” link".fmt(this.rel));
       k(this);
     }
-  }
+  };
 
   // Render script links for HTML and SVG documents; overload this function to
   // handle other types of document. Scripts are handled synchronously.
@@ -1072,7 +1099,20 @@
         if (nsuri === "" && attr === "id") {
           add_id_to_scope(scope, this.attrs[""].id, e);
         } else {
-          e.setAttributeNS(nsuri, attr, this.attrs[nsuri][attr]);
+          var bindings = property_binding_dynamic(this.attrs[nsuri][attr]);
+          if (typeof bindings === "string") {
+            e.setAttributeNS(nsuri, attr, bindings);
+          } else {
+            delete this.attrs[nsuri][attr];
+            if (this.attrs[nsuri].length === 0) {
+              delete this.attrs[nsuri];
+            }
+            var id = "`%0".fmt(__SERIAL++);
+            add_id_to_scope(scope, id, e);
+            bindings[""] = { value: bindings[""], ns: nsuri, name: attr,
+              target: id };
+            stack[stack.i - 1].__bindings.push(bindings);
+          }
         }
       }
     }
