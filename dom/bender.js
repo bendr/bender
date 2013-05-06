@@ -819,10 +819,11 @@
 
   bender.Property = {};
 
-  // Define the getter/setter for a component’s own property named `name` with
-  // a previously created vertex.
-  function define_own_property(component, name, vertex) {
-    Object.defineProperty(component.properties, name, {
+  // Define the getter/setter for a component’s own property with a previously
+  // created vertex. The name of the property is given by the `property`
+  // property of the vertex.
+  function define_own_property(component, vertex) {
+    Object.defineProperty(component.properties, vertex.property, {
       enumerable: true,
       get: function () {
         return vertex.value;
@@ -842,10 +843,9 @@
     component.property_vertices[this.name] = vertex;
     component.environment.add_vertex(vertex);
     if (component === prototype) {
-      define_own_property(component, this.name, vertex);
+      define_own_property(component, vertex);
     } else {
       vertex.protovertex = prototype.property_vertices[this.name];
-      var property = this;
       Object.defineProperty(component.properties, this.name, {
         enumerable: true,
         configurable: true,
@@ -864,8 +864,8 @@
           });
           vertex.protovertex.out_edges = edges[1];
           delete vertex.protovertex;
-          define_own_property(component, property.name, vertex);
-          component.properties[property.name] = v;
+          define_own_property(component, vertex);
+          component.properties[vertex.property] = v;
         }
       });
     }
@@ -874,11 +874,15 @@
   bender.Property.init = function (component) {
     if (this.__value) {
       component.properties[this.name] = this.__value.call(component);
+      console.log("=== init property %0 to %1 for %2".fmt(this.name,
+            component.properties[this.name], component.$__SERIAL));
       delete this.__value;
     }
   };
 
-  // Create the property bindings for a value string with as="dynamic"
+  // Identify property bindings for a value string. When there are none, return
+  // the string unchanged; otherwise, return the dictionary of bindings (indexed
+  // by id, then property.)
   function property_binding_dynamic(value) {
     var properties = {};
     var r = function (_, b, id, id_p, prop, prop_p) {
@@ -888,9 +892,8 @@
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       properties[i][p] = true;
-      return (i === "$this" ?
-        "%0this.properties[%2]" : "%0scope[%1].properties[%2]")
-          .fmt(b, flexo.quote(i), flexo.quote(p));
+      return "%0scope[%1].properties[%2]"
+        .fmt(b, flexo.quote(i), flexo.quote(p));
     };
     var v = value.replace(RX_PROP, r).replace(/\\(.)/g, "$1");
     if (Object.keys(properties).length === 0) {
@@ -1388,7 +1391,7 @@
   // falsy value)
   function init_set_value(value) {
     return typeof value === "string" && /\S/.test(value) ?
-      new Function ("input", "cancel", "scope", value) : flexo.id;
+      new Function("input", "cancel", "scope", value) : flexo.id;
   }
 
   // Render a sink output edge to a regular Edge going to the Vortex.
