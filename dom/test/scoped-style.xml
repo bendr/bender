@@ -24,6 +24,7 @@
           value="#scoped\-style`color !== 'green'"/>
         <view>Green</view>
       </component>
+      Current color: `color
     </html:p>
   </view>
   <watch>

@@ -99,7 +99,8 @@
   // changed to '
   flexo.quote = function (string, q) {
     q = q || '"';
-    return "%0%1%0".fmt(q, string.replace(new RegExp(q, "g"), "\\" + q));
+    return "%0%1%0".fmt(q, string.replace(new RegExp(q, "g"), "\\" + q)
+        .replace(/\n/g, "\\n"));
   };
 
   // Convert a number to roman numerals (integer part only; n must be positive

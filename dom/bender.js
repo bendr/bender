@@ -670,6 +670,9 @@
           watch.append_set(bender.set_dom_attribute(bindings[""].ns,
               bindings[""].attr, bindings[""].target,
               "return " + bindings[""].value));
+        } else {
+          watch.append_set(bender.set_dom_property("textContent",
+              bindings[""].target, "return " + bindings[""].value));
         }
         Object.keys(bindings).forEach(function (id) {
           if (id) {
@@ -1011,8 +1014,7 @@
     if (remain) {
       strings.push(flexo.quote(remain));
     }
-    var id = "`%0".fmt(__SERIAL++);
-    properties[""] = { value: strings.join("+"), target: id };
+    properties[""] = { value: strings.join("+") };
     return properties;
   }
 
@@ -1115,7 +1117,7 @@
             if (this.attrs[nsuri].length === 0) {
               delete this.attrs[nsuri];
             }
-            add_id_to_scope(scope, bindings[""].target, e);
+            bindings[""].target = e;
             bindings[""].ns = nsuri;
             bindings[""].attr = attr;
             stack[stack.i - 1].__bindings.push(bindings);
@@ -1143,9 +1145,15 @@
 
   bender.DOMTextNode = {};
 
-  bender.DOMTextNode.render = function (target) {
-    var d = target.ownerDocument.createTextNode(this.text);
-    target.appendChild(d);
+  bender.DOMTextNode.render = function (target, stack) {
+    var d = target.appendChild(target.ownerDocument.createTextNode());
+    var bindings = property_binding_string(this.text);
+    if (typeof bindings === "string") {
+      d.textContent = bindings;
+    } else {
+      bindings[""].target = d;
+      stack[stack.i - 1].__bindings.push(bindings);
+    }
     this.rendered.push(d);
   };
 
@@ -1516,7 +1524,8 @@
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
   bender.SetDOMAttribute.render = function (source, component, scope) {
-    var r = component.scope[this.target];
+    var r = typeof this.target === "string" ? component.scope[this.target] :
+      this.target;
     if (r) {
       var edge = make_edge(bender.DOMAttributeEdge, source,
           component.environment.vortex, this.value, component.scope.$this,
@@ -1550,7 +1559,8 @@
 
   // Set a DOM property: no further effect, so make an edge to the Vortex.
   bender.SetDOMProperty.render = function (source, component, scope) {
-    var r = component.scope[this.target];
+    var r = typeof this.target === "string" ? component.scope[this.target] :
+      this.target;
     if (r) {
       var edge = make_edge(bender.DOMPropertyEdge, source,
           component.environment.vortex, this.value, component.scope.$this,
