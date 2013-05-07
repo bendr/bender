@@ -5,6 +5,7 @@
     <svg:rect width="400" height="400" fill="`color"/>
     <svg:foreignObject width="400" height="400">
       <html:body xmlns:html="http://www.w3.org/1999/xhtml">
+
         <component href="../lib/button.xml" id="red-button">
           <property name="enabled" as="dynamic"
             value="#(bind-attr)`color !== 'red'"/>
@@ -12,6 +13,7 @@
             Red
           </view>
         </component>
+
         <component href="../lib/button.xml" id="blue-button">
           <property name="enabled" as="dynamic"
             value="#bind\-attr`color !== 'blue'"/>

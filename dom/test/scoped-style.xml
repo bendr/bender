@@ -1,0 +1,47 @@
+<component xmlns="http://bender.igel.co.jp" id="scoped-style">
+  <property name="color" value="red"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div id="rect" class="'rect %0'.fmt(`color)">
+      <!--
+      <attribute name="class">
+        rect <text value="`color"/>
+      </attribute>
+      -->
+    </html:div>
+    <html:style scoped="">
+      .rect { width: 40em; height: 10em; }
+      .red { background-color: #ff4040; }
+      .blue { background-color: #08f; }
+      .green { background-color: #0f8; }
+    </html:style>
+    <html:p>
+      <component href="../lib/button.xml" id="red-button">
+        <property name="enabled" as="dynamic"
+          value="#scoped\-style`color !== 'red'"/>
+        <view>Red</view>
+      </component>
+      <component href="../lib/button.xml" id="blue-button">
+        <property name="enabled" as="dynamic"
+          value="#scoped\-style`color !== 'blue'"/>
+        <view>Blue</view>
+      </component>
+      <component href="../lib/button.xml" id="green-button">
+        <property name="enabled" as="dynamic"
+          value="#scoped\-style`color !== 'green'"/>
+        <view>Green</view>
+      </component>
+    </html:p>
+  </view>
+  <watch>
+    <get component="red-button" event="!pushed"/>
+    <set property="color" value="'red'"/>
+  </watch>
+  <watch>
+    <get component="blue-button" event="!pushed"/>
+    <set property="color" value="'blue'"/>
+  </watch>
+  <watch>
+    <get component="green-button" event="!pushed"/>
+    <set property="color" value="'green'"/>
+  </watch>
+</component>
