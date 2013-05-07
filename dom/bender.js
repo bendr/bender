@@ -4,7 +4,8 @@
   bender.VERSION = "0.8.1";
 
   // Regular expressions to match property bindings
-  var RX_ID = "(?:[$A-Z_a-z\x80-\uffff]|\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\.)*";
+  var RX_ID =
+    "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
   var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
   var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
