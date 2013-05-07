@@ -9,7 +9,7 @@
   var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
   var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
-  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK), "g");
+  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
 
 
   var filter = Array.prototype.filter;
@@ -103,7 +103,6 @@
     var e = Object.create(bender.Environment);
     e.document = document;
     e.scope = { $document: document, $__ENV: this, $__SERIAL: __SERIAL++ };
-    console.log("New scope %0 for environment".fmt(scope_chain(e.scope)));
     e.loaded = {};
     e.components = [];
     e.vertices = [];
@@ -456,13 +455,11 @@
   // point. This function must be bound to an environment.
   function traverse_graph() {
     if (this.scheduled.length > 0) {
-      // console.log("> start graph traversal");
       this.__schedule_next = [];
       var visited = [];
       for (var i = 0; i < this.scheduled.length; ++i) {
         var q = this.scheduled[i];
         var vertex = q[0];
-        // console.log("* visit %0 (value: %1)".fmt(q[0], q[1]));
         if (vertex.hasOwnProperty("__value")) {
           if (vertex.__value !== q[1]) {
             this.schedule_visit(vertex, q[1]);
@@ -481,8 +478,6 @@
           }, this);
         }
       }
-      // console.log("< finished graph traversal (visited: %0)"
-      //     .fmt(visited.length));
       visited.forEach(function (v) {
         delete v.__value;
       });
@@ -540,8 +535,6 @@
   function add_id_to_scope(scope, id, x) {
     if (id) {
       scope = Object.getPrototypeOf(scope);
-      console.log("+ New id %0 in scope %1 for %2".
-          fmt(id, scope.$__SERIAL, x.$__SERIAL || x));
       if (!scope.hasOwnProperty(id)) {
         scope[id] = x;
         return id;
@@ -557,8 +550,6 @@
   bender.component = function (environment, parent) {
     var c = Object.create(bender.Component);
     c.$__SERIAL = __SERIAL++;
-    console.log("New component %0 (parent: %1)".fmt(c.$__SERIAL,
-          parent && parent.$__SERIAL || "none"));
     if (parent) {
       parent.children.push(c);
       c.parent = parent;
@@ -615,20 +606,14 @@
         c_.properties = {};
         c_.property_vertices = {};
         for (var p in c_.own_properties) {
-          console.log("* Render own property %0 for abstract component %1"
-            .fmt(p, c_.$__SERIAL));
           c_.own_properties[p].render(c_, c_);
         }
       }
       for (var p in c.own_properties) {
         if (!k.properties.hasOwnProperty(p)) {
           if (k !== c) {
-            console.log("* Render property %0 from rendered component %1 on %2"
-              .fmt(p, c.$__SERIAL, k.$__SERIAL));
             c.own_properties[p].render(k, c);
           }
-          console.log("* Render property %0 from abstract component %1 on %2"
-            .fmt(p, c_.$__SERIAL, k.$__SERIAL));
           c.own_properties[p].render(k, c_);
         }
       }
@@ -662,9 +647,6 @@
   // ancestor.)
   function render_watches(chain) {
     flexo.hcaErof(chain, function (c) {
-      console.log("Render watches for %0/%1: %2/%3"
-        .fmt(Object.getPrototypeOf(chain[0]).$__SERIAL, chain[0].$__SERIAL,
-          Object.getPrototypeOf(c).$__SERIAL, c.$__SERIAL));
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
           var watch = bender.watch();
@@ -681,12 +663,14 @@
           delete property.__bindings;
         }
       });
+      // Render string bindings
       flexo.values(c.__bindings).forEach(function (bindings) {
-        console.log("New watch for binding", bindings);
         var watch = bender.watch();
-        watch.append_set(bender.set_dom_attribute(bindings[""].ns,
-            bindings[""].name, bindings[""].target,
-            "return " + bindings[""].value));
+        if (bindings[""].hasOwnProperty("attr")) {
+          watch.append_set(bender.set_dom_attribute(bindings[""].ns,
+              bindings[""].attr, bindings[""].target,
+              "return " + bindings[""].value));
+        }
         Object.keys(bindings).forEach(function (id) {
           if (id) {
             Object.keys(bindings[id]).forEach(function (prop) {
@@ -740,14 +724,11 @@
   // Render the component by building the prototype chain, creating light-weight
   // copies of prototypes (to keep track of concrete nodes) along the way
   bender.Component.render = function (target, stack) {
-    console.log("*** RENDER COMPONENT %0".fmt(this.$__SERIAL));
     for (var chain = [], c = this; c; c = c.prototype) {
       var root_scope, scope;
       if (!c.parent) {
         root_scope = Object.create(c.environment.scope);
         root_scope.$__SERIAL = __SERIAL++;
-        console.log("New scope %0 to render component %1"
-            .fmt(scope_chain(root_scope), c.$__SERIAL));
         scope = Object.create(root_scope);
       } else {
         scope = Object.create(Object.getPrototypeOf(
@@ -758,8 +739,6 @@
         scope: { enumerable: true, value: scope },
         $__SERIAL: { enumerable: true, value: __SERIAL++ }
       });
-      console.log("New scope %0 to render component %2/%1"
-          .fmt(scope_chain(scope), c_.$__SERIAL, c.$__SERIAL));
       chain.push(c_);
       c_.scope.$that = c_;
       c_.scope.$this = chain[0];
@@ -902,8 +881,6 @@
   bender.Property.init = function (component) {
     if (this.__value) {
       component.properties[this.name] = this.__value.call(component);
-      console.log("=== init property %0 to %1 for %2".fmt(this.name,
-            component.properties[this.name], component.$__SERIAL));
       delete this.__value;
     }
   };
@@ -923,7 +900,7 @@
       return "%0scope[%1].properties[%2]"
         .fmt(b, flexo.quote(i), flexo.quote(p));
     };
-    var v = value.replace(RX_PROP, r).replace(/\\(.)/g, "$1");
+    var v = value.replace(RX_PROP, r, "g").replace(/\\(.)/g, "$1");
     if (Object.keys(properties).length === 0) {
       return value;
     }
@@ -956,7 +933,7 @@
           try {
             return JSON.parse(value);
           } catch (e) {
-            console.log("Error parsing JSON string “%0”: %1".fmt(value, e));
+            console.error("Error parsing JSON string “%0”: %1".fmt(value, e));
           }
         };
       } else {
@@ -1008,6 +985,36 @@
     c.children = children || [];
     return c;
   };
+
+
+  function property_binding_string(value) {
+    var strings = [];
+    var properties = {};
+    for (var remain = value, m; m = remain.match(RX_PROP);
+        remain = m.input.substr(m.index + m[0].length)) {
+      var q = m.input.substr(0, m.index) + m[1];
+      if (q) {
+        strings.push(flexo.quote(q));
+      }
+      var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
+      if (!properties.hasOwnProperty[id]) {
+        properties[id] = {};
+      }
+      var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
+      properties[id][prop] = true;
+      strings.push("scope[%0].properties[%1]"
+          .fmt(flexo.quote(id), flexo.quote(prop)));
+    }
+    if (Object.keys(properties).length === 0) {
+      return value;
+    }
+    if (remain) {
+      strings.push(flexo.quote(remain));
+    }
+    var id = "`%0".fmt(__SERIAL++);
+    properties[""] = { value: strings.join("+"), target: id };
+    return properties;
+  }
 
 
   bender.Attribute = {};
@@ -1100,7 +1107,7 @@
         if (nsuri === "" && attr === "id") {
           add_id_to_scope(scope, this.attrs[""].id, e);
         } else if (nsuri !== flexo.ns.xmlns) {
-          var bindings = property_binding_dynamic(this.attrs[nsuri][attr]);
+          var bindings = property_binding_string(this.attrs[nsuri][attr]);
           if (typeof bindings === "string") {
             e.setAttributeNS(nsuri, attr, bindings);
           } else {
@@ -1108,10 +1115,9 @@
             if (this.attrs[nsuri].length === 0) {
               delete this.attrs[nsuri];
             }
-            var id = "`%0".fmt(__SERIAL++);
-            add_id_to_scope(scope, id, e);
-            bindings[""] = { value: bindings[""], ns: nsuri, name: attr,
-              target: id };
+            add_id_to_scope(scope, bindings[""].target, e);
+            bindings[""].ns = nsuri;
+            bindings[""].attr = attr;
             stack[stack.i - 1].__bindings.push(bindings);
           }
         }
@@ -1179,10 +1185,6 @@
   bender.Watch.render = function (component) {
     var scope = component.scope;
     var context = scope.$this;
-    console.log("Render watch for %0/%1: %2/%3 (#gets=%4, #sets=%5)"
-        .fmt(Object.getPrototypeOf(context).$__SERIAL, context.$__SERIAL,
-          Object.getPrototypeOf(component).$__SERIAL, component.$__SERIAL,
-          this.gets.length, this.sets.length));
     this.gets.forEach(function (get) {
       var v = get.render(component);
       if (v) {
@@ -1445,7 +1447,6 @@
   // only.
   bender.Edge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel, this.scope);
-    console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1466,7 +1467,7 @@
         return edge;
       }
       console.warn("No property “%0” to set on component “%1”"
-          .fmt(this.target, this.property));
+          .fmt(this.property, this.target));
     } else {
       console.warn("No component “%0” for set property %1"
           .fmt(this.target, this.property));
@@ -1477,7 +1478,6 @@
   bender.PropertyEdge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     this.component.properties[this.property] = v;
-    console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1506,7 +1506,6 @@
   bender.EventEdge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     flexo.notify(this.component, this.event, v);
-    console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1541,7 +1540,6 @@
     } else {
       this.target.setAttributeNS(this.ns, this.attr, v);
     }
-    console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 
@@ -1570,7 +1568,6 @@
   bender.DOMPropertyEdge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel, this.scope);
     this.target[this.property] = v;
-    console.log("  - %0 = %1".fmt(this, v));
     return v;
   };
 

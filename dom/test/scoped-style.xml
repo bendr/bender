@@ -1,13 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" id="scoped-style">
   <property name="color" value="red"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div id="rect" class="'rect %0'.fmt(`color)">
-      <!--
-      <attribute name="class">
-        rect <text value="`color"/>
-      </attribute>
-      -->
-    </html:div>
+    <html:div id="rect" class="rect `color"/>
     <html:style scoped="">
       .rect { width: 40em; height: 10em; }
       .red { background-color: #ff4040; }
