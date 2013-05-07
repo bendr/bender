@@ -1098,7 +1098,7 @@
       for (var attr in this.attrs[nsuri]) {
         if (nsuri === "" && attr === "id") {
           add_id_to_scope(scope, this.attrs[""].id, e);
-        } else {
+        } else if (nsuri !== flexo.ns.xmlns) {
           var bindings = property_binding_dynamic(this.attrs[nsuri][attr]);
           if (typeof bindings === "string") {
             e.setAttributeNS(nsuri, attr, bindings);
