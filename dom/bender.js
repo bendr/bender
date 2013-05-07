@@ -646,20 +646,22 @@
   // Render watches for components along the chain (starting from the furthest
   // ancestor.)
   function render_watches(chain) {
-    flexo.hcaErof(chain, function (c) {
+    chain.forEach(function (c) {
+      // Render property bindings
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
-          var watch = bender.watch();
-          watch.append_set(bender.set_property(property.name, "$this",
-              "return " + property.__bindings[""]));
           Object.keys(property.__bindings).forEach(function (id) {
             if (id) {
+              var watch = bender.watch();
+              // TODO this does not work for a derived component :(
+              watch.append_set(bender.set_property(property.name, c,
+                  "return " + property.__bindings[""]));
               Object.keys(property.__bindings[id]).forEach(function (prop) {
                 watch.append_get(bender.get_property(prop, id));
               });
+              Object.getPrototypeOf(c.scope[id]).append_child(watch);
             }
           });
-          Object.getPrototypeOf(c).append_child(watch);
           delete property.__bindings;
         }
       });
@@ -684,6 +686,8 @@
         Object.getPrototypeOf(c).append_child(watch);
         delete c.__bindings;
       });
+    });
+    flexo.hcaErof(chain, function (c) {
       c.watches.forEach(function (watch) {
         watch.render(c);
       });
@@ -1464,7 +1468,8 @@
 
   // Set a property on a component
   bender.SetProperty.render = function (source, component, scope) {
-    var c = component.scope[this.target];
+    var c = typeof this.target === "string" ? component.scope[this.target] :
+      this.target;
     if (c) {
       var dest = c.property_vertices[this.property];
       if (dest) {
