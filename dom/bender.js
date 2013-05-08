@@ -598,7 +598,9 @@
   // an abstract component) must be handled as well.
   function render_properties(chain) {
     var k = chain[0];
+    console.log("Render properties for %0#%1".fmt(k.id, k.$__SERIAL));
     chain.forEach(function (c) {
+      console.log("  render properties of %0#%1".fmt(c.id, c.$__SERIAL));
       c.properties = {};
       c.property_vertices = {};
       var c_ = Object.getPrototypeOf(c);
@@ -606,6 +608,8 @@
         c_.properties = {};
         c_.property_vertices = {};
         for (var p in c_.own_properties) {
+          console.log("    render property %0 of %1#%2"
+            .fmt(p, c_.id, c_.$__SERIAL));
           c_.own_properties[p].render(c_, c_);
         }
       }
@@ -613,8 +617,12 @@
         if (!k.properties.hasOwnProperty(p)) {
           if (k !== c) {
             c.own_properties[p].render(k, c);
+            console.log("    render property %0 of %1#%2 on %3#%4"
+              .fmt(p, c.id, c.$__SERIAL, k.id, k.$__SERIAL));
           }
           c.own_properties[p].render(k, c_);
+          console.log("    render property %0 of %1#%2 on %3#%4"
+            .fmt(p, c_.id, c_.$__SERIAL, k.id, k.$__SERIAL));
         }
       }
     });
@@ -653,13 +661,12 @@
           Object.keys(property.__bindings).forEach(function (id) {
             if (id) {
               var watch = bender.watch();
-              // TODO this does not work for a derived component :(
               watch.append_set(bender.set_property(property.name, c,
                   "return " + property.__bindings[""]));
               Object.keys(property.__bindings[id]).forEach(function (prop) {
                 watch.append_get(bender.get_property(prop, id));
               });
-              Object.getPrototypeOf(c.scope[id]).append_child(watch);
+              c.append_child(watch);
             }
           });
           delete property.__bindings;
@@ -904,8 +911,7 @@
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       properties[i][p] = true;
-      return "%0scope[%1].properties[%2]"
-        .fmt(b, flexo.quote(i), flexo.quote(p));
+      return "%0this.properties[%1]".fmt(b, flexo.quote(p));
     };
     var v = value.replace(RX_PROP, r, "g").replace(/\\(.)/g, "$1");
     if (Object.keys(properties).length === 0) {
@@ -1009,8 +1015,7 @@
       }
       var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
       properties[id][prop] = true;
-      strings.push("scope[%0].properties[%1]"
-          .fmt(flexo.quote(id), flexo.quote(prop)));
+      strings.push("this.properties[%0]".fmt(flexo.quote(prop)));
     }
     if (Object.keys(properties).length === 0) {
       return value;
@@ -1117,10 +1122,6 @@
           if (typeof bindings === "string") {
             e.setAttributeNS(nsuri, attr, bindings);
           } else {
-            delete this.attrs[nsuri][attr];
-            if (this.attrs[nsuri].length === 0) {
-              delete this.attrs[nsuri];
-            }
             bindings[""].target = e;
             bindings[""].ns = nsuri;
             bindings[""].attr = attr;

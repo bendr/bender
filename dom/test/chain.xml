@@ -5,13 +5,15 @@
     <html:p>
       Number of clicks: <text id="clicks"/> (next: <text id="clicks-next"/>)
     </html:p>
+    <!--
     <html:p>
-      <component href="../lib/button.xml" id="button">
+      <component href="../lib/button.xml" id="plus">
         <view>
           +1
         </view>
       </component>
     </html:p>
+    -->
   </view>
   <watch>
     <get property="next"/>
@@ -21,8 +23,10 @@
     <get property="count"/>
     <set elem="clicks"/>
   </watch>
+  <!--
   <watch>
-    <get component="button" event="!pushed"/>
+    <get component="plus" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
+  -->
 </component>
