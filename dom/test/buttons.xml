@@ -1,11 +1,20 @@
 <component xmlns="http://bender.igel.co.jp" id="buttons">
-  <property name="label" value="Test"/>
+  <property name="label" value="A"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       <component href="../lib/button.xml" id="button*">
+        <property name="label" value="B"/>
         <view>
-          #buttons`label
+          #buttons`label/`label = <text id="label"/>
         </view>
+        <!--
+        <watch>
+          <get component="buttons" property="label"/>
+          <get property="label"/>
+          <set elem="label" value="'%0/%1'.fmt(scope.buttons.properties.label,
+            this.properties.label)"/>
+        </watch>
+        -->
       </component>
       <component href="../lib/button.xml" id="button**">
         <property name="class" value="red"/>
@@ -13,7 +22,9 @@
     </html:p>
   </view>
   <watch>
+    <get component="button*" property="label"/>
     <get property="label"/>
-    <set elem="button-label"/>
+    <set elem="label" value="'%0/%1'.fmt(this.properties.label,
+      scope['button*'].properties.label)"/>
   </watch>
 </component>

@@ -663,7 +663,7 @@
             }
           });
           c_.append_child(watch);
-          console.log("Render watch for bound property %0=\"%1\" on %2#%3:"
+          console.log("Create watch for bound property %0=\"%1\" on %2#%3:"
             .fmt(property.name, property.__bindings[""].value, c_.id,
               c_.$__SERIAL), watch);
           delete property.__bindings;
@@ -686,11 +686,10 @@
             });
           }
         });
-        c_.append_child(watch);
-        console.log("Render watch for string binding \"%0\" on %1#%2:"
-          .fmt(bindings[""].value, c_.id, c_.$__SERIAL), watch);
+        c.append_child(watch);
+        console.log("Create watch for string binding \"%0\" on %1#%2:"
+          .fmt(bindings[""].value, c.id, c.$__SERIAL), watch);
       });
-      delete c.__bindings;
     });
     flexo.hcaErof(chain, function (c) {
       c.watches.forEach(function (watch) {
@@ -918,7 +917,8 @@
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       bindings[i][p] = true;
-      return "%0this.properties[%1]".fmt(b, flexo.quote(p));
+      return "%0scope[%1].properties[%2]"
+        .fmt(b, flexo.quote(i), flexo.quote(p));
     };
     var v = value.replace(RX_PROP, r, "g").replace(/\\(.)/g, "$1");
     if (Object.keys(bindings).length === 0) {
@@ -945,8 +945,8 @@
       }
       var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
       bindings[id][prop] = true;
-      strings.push("flexo.safe_string(this.properties[%0])"
-          .fmt(flexo.quote(prop)));
+      strings.push("flexo.safe_string(scope[%0].properties[%1])"
+          .fmt(flexo.quote(id), flexo.quote(prop)));
     }
     if (Object.keys(bindings).length === 0) {
       return value;

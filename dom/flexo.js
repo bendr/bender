@@ -57,6 +57,12 @@
     });
   };
 
+  flexo.safe = function (x, f) {
+    if (x != null && f in x) {
+      return x[f].apply(x, slice.call(arguments, 2));
+    }
+  };
+
   // Safe call to toString(); when obj is null or undefined, return an empty
   // string.
   flexo.safe_string = function (obj) {
@@ -64,7 +70,7 @@
       return "";
     }
     return obj.toString.apply(obj, slice.call(arguments, 1));
-  }
+  };
 
 
   // Strings

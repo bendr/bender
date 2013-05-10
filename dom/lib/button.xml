@@ -5,9 +5,10 @@
   <property name="base-class" value="button"/>
   <property name="class"/>
   <property name="enabled" as="boolean" value="true"/>
+  <property name="down" as="boolean" value="false"/>
+
   <property name="enabled-class" as="dynamic"
     value="`enabled ? '' : 'disabled'"/>
-  <property name="down" as="boolean" value="false"/>
   <property name="down-class" as="dynamic" value="`down ? 'down' : ''"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
