@@ -2,28 +2,21 @@
 
   <link rel="stylesheet" href="lib.css"/>
 
+  <property name="base-class" value="button"/>
   <property name="class"/>
   <property name="enabled" as="boolean" value="true"/>
-
-  <property name="base-class" value="button"/>
+  <property name="enabled-class" as="dynamic"
+    value="`enabled ? '' : 'disabled'"/>
   <property name="down" as="boolean" value="false"/>
+  <property name="down-class" as="dynamic" value="`down ? 'down' : ''"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div id="div">
-      <attribute name="class">
-        <text id="base-class-class"/> <text id="class-class"/>
-        <text id="enabled-class"/> <text id="down-class"/>
-      </attribute>
+    <html:div id="div" class="`base\-class `class `enabled\-class `down\-class">
       <content>
         OK
       </content>
     </html:div>
   </view>
-
-  <watch>
-    <get property="down"/>
-    <set elem="down-class" value="input ? 'down' : ''"/>
-  </watch>
 
   <watch>
     <get elem="div" dom-event="mousedown" prevent-default="true"
@@ -37,21 +30,6 @@
       (event.target !== scope.div || !this.properties.enabled))"/>
     <set property="down" value="false"/>
     <set event="!pushed"/>
-  </watch>
-
-  <watch>
-    <get property="base-class"/>
-    <set elem="base-class-class"/>
-  </watch>
-
-  <watch>
-    <get property="class"/>
-    <set elem="class-class"/>
-  </watch>
-
-  <watch>
-    <get property="enabled"/>
-    <set elem="enabled-class" value="input ? '' : 'disabled'"/>
   </watch>
 
 </component>

@@ -687,11 +687,10 @@
           }
         });
         c_.append_child(watch);
-        console.log("Render watch for bound property %0=\"%1\" on %2#%3:"
-          .fmt(property.name, property.__bindings[""].value, c_.id,
-            c_.$__SERIAL), watch);
-        delete c.__bindings;
+        console.log("Render watch for string binding \"%0\" on %1#%2:"
+          .fmt(bindings[""].value, c_.id, c_.$__SERIAL), watch);
       });
+      delete c.__bindings;
     });
     flexo.hcaErof(chain, function (c) {
       c.watches.forEach(function (watch) {
@@ -946,7 +945,8 @@
       }
       var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
       bindings[id][prop] = true;
-      strings.push("this.properties[%0].toString()".fmt(flexo.quote(prop)));
+      strings.push("flexo.safe_string(this.properties[%0])"
+          .fmt(flexo.quote(prop)));
     }
     if (Object.keys(bindings).length === 0) {
       return value;
@@ -1186,7 +1186,7 @@
         return text;
       },
       set: function (new_text) {
-        new_text = new_text != null && new_text.toString() || "";
+        new_text = flexo.safe_string(new_text);
         if (new_text !== text) {
           text = new_text;
           this.rendered.forEach(function (d) {

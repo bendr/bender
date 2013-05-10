@@ -57,6 +57,15 @@
     });
   };
 
+  // Safe call to toString(); when obj is null or undefined, return an empty
+  // string.
+  flexo.safe_string = function (obj) {
+    if (obj == null) {
+      return "";
+    }
+    return obj.toString.apply(obj, slice.call(arguments, 1));
+  }
+
 
   // Strings
 
