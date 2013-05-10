@@ -3,14 +3,6 @@
 
   bender.VERSION = "0.8.1";
 
-  // Regular expressions to match property bindings
-  var RX_ID =
-    "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
-  var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
-  var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
-  var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
-  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
-
 
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
@@ -593,36 +585,37 @@
     }
   };
 
+  function render_property(property, component, prototype) {
+    if (!component.properties.hasOwnProperty(property.name)) {
+      console.log("    render %0property %1 on %2#%3"
+        .fmt(component === prototype ? "own " : "", property.name, component.id,
+          component.$__SERIAL));
+      property.render(component, prototype);
+    }
+  }
+
   // Render properties for the chain of components. The parallel chain of the
   // corresponding abstract components (each item in the chain is a rendering of
   // an abstract component) must be handled as well.
   function render_properties(chain) {
-    var k = chain[0];
-    console.log("Render properties for %0#%1".fmt(k.id, k.$__SERIAL));
-    chain.forEach(function (c) {
-      console.log("  render properties of %0#%1".fmt(c.id, c.$__SERIAL));
+    console.log("Render properties for %0#%1"
+        .fmt(chain[0].id, chain[0].$__SERIAL));
+    chain.forEach(function (c, i) {
       c.properties = {};
       c.property_vertices = {};
       var c_ = Object.getPrototypeOf(c);
+      console.log("  [%0] render properties of %1#%2"
+        .fmt(i, c_.id, c_.$__SERIAL));
       if (!c_.properties) {
         c_.properties = {};
         c_.property_vertices = {};
-        for (var p in c_.own_properties) {
-          console.log("    render property %0 of %1#%2"
-            .fmt(p, c_.id, c_.$__SERIAL));
-          c_.own_properties[p].render(c_, c_);
-        }
       }
-      for (var p in c.own_properties) {
-        if (!k.properties.hasOwnProperty(p)) {
-          if (k !== c) {
-            c.own_properties[p].render(k, c);
-            console.log("    render property %0 of %1#%2 on %3#%4"
-              .fmt(p, c.id, c.$__SERIAL, k.id, k.$__SERIAL));
-          }
-          c.own_properties[p].render(k, c_);
-          console.log("    render property %0 of %1#%2 on %3#%4"
-            .fmt(p, c_.id, c_.$__SERIAL, k.id, k.$__SERIAL));
+      for (var j = i; j >= 0; --j) {
+        var d = chain[j];
+        var d_ = Object.getPrototypeOf(d);
+        for (var p in c_.own_properties) {
+          render_property(c_.own_properties[p], d_, c_);
+          render_property(c_.own_properties[p], d, c_);
         }
       }
     });
@@ -655,20 +648,24 @@
   // ancestor.)
   function render_watches(chain) {
     chain.forEach(function (c) {
-      // Render property bindings
+      var c_ = Object.getPrototypeOf(c);
+      // Render dynamic bindings
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
+          var watch = bender.watch();
+          watch.append_set(bender.set_property(property.name, c_,
+              property.__bindings[""].value));
           Object.keys(property.__bindings).forEach(function (id) {
             if (id) {
-              var watch = bender.watch();
-              watch.append_set(bender.set_property(property.name, c,
-                  "return " + property.__bindings[""]));
               Object.keys(property.__bindings[id]).forEach(function (prop) {
                 watch.append_get(bender.get_property(prop, id));
               });
-              c.append_child(watch);
             }
           });
+          c_.append_child(watch);
+          console.log("Render watch for bound property %0=\"%1\" on %2#%3:"
+            .fmt(property.name, property.__bindings[""].value, c_.id,
+              c_.$__SERIAL), watch);
           delete property.__bindings;
         }
       });
@@ -677,11 +674,10 @@
         var watch = bender.watch();
         if (bindings[""].hasOwnProperty("attr")) {
           watch.append_set(bender.set_dom_attribute(bindings[""].ns,
-              bindings[""].attr, bindings[""].target,
-              "return " + bindings[""].value));
+              bindings[""].attr, bindings[""].target, bindings[""].value));
         } else {
           watch.append_set(bender.set_dom_property("textContent",
-              bindings[""].target, "return " + bindings[""].value));
+              bindings[""].target, bindings[""].value));
         }
         Object.keys(bindings).forEach(function (id) {
           if (id) {
@@ -690,7 +686,10 @@
             });
           }
         });
-        Object.getPrototypeOf(c).append_child(watch);
+        c_.append_child(watch);
+        console.log("Render watch for bound property %0=\"%1\" on %2#%3:"
+          .fmt(property.name, property.__bindings[""].value, c_.id,
+            c_.$__SERIAL), watch);
         delete c.__bindings;
       });
     });
@@ -899,26 +898,64 @@
     }
   };
 
-  // Identify property bindings for a value string. When there are none, return
-  // the string unchanged; otherwise, return the dictionary of bindings (indexed
-  // by id, then property.)
+  // Regular expressions to match property bindings
+  var RX_ID =
+    "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
+  var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
+  var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
+
+  // Identify property bindings for a dynamic property value string. When there
+  // are none, return the string unchanged; otherwise, return the dictionary of
+  // bindings (indexed by id, then property). bindings[""] will be the new value
+  // for the set element of the watch to create.
   function property_binding_dynamic(value) {
-    var properties = {};
+    var bindings = {};
     var r = function (_, b, id, id_p, prop, prop_p) {
       var i = (id || id_p || "$this").replace(/\\(.)/g, "$1");
-      if (!properties.hasOwnProperty[i]) {
-        properties[i] = {};
+      if (!bindings.hasOwnProperty[i]) {
+        bindings[i] = {};
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
-      properties[i][p] = true;
+      bindings[i][p] = true;
       return "%0this.properties[%1]".fmt(b, flexo.quote(p));
     };
     var v = value.replace(RX_PROP, r, "g").replace(/\\(.)/g, "$1");
-    if (Object.keys(properties).length === 0) {
+    if (Object.keys(bindings).length === 0) {
       return value;
     }
-    properties[""] = v;
-    return properties;
+    bindings[""] = { value: "return " + v };
+    return bindings;
+  }
+
+  // Indentify property bindings for a string property value string (e.g. from a
+  // literal attribute or text node.)
+  function property_binding_string(value) {
+    var strings = [];
+    var bindings = {};
+    for (var remain = value, m; m = remain.match(RX_PROP);
+        remain = m.input.substr(m.index + m[0].length)) {
+      var q = m.input.substr(0, m.index) + m[1];
+      if (q) {
+        strings.push(flexo.quote(q));
+      }
+      var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
+      if (!bindings.hasOwnProperty[id]) {
+        bindings[id] = {};
+      }
+      var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
+      bindings[id][prop] = true;
+      strings.push("this.properties[%0].toString()".fmt(flexo.quote(prop)));
+    }
+    if (Object.keys(bindings).length === 0) {
+      return value;
+    }
+    if (remain) {
+      strings.push(flexo.quote(remain));
+    }
+    bindings[""] = { value: "return " + strings.join("+") };
+    return bindings;
   }
 
   bender.property = function (name, as, value) {
@@ -940,6 +977,8 @@
           property.__value = new Function("return " + value);
         } else {
           property.__bindings = bindings;
+          console.log("Property bindings for %0=\"%1\":".fmt(name, value),
+              bindings);
         }
       } else if (as === "json") {
         property.__value = function () {
@@ -950,8 +989,13 @@
           }
         };
       } else {
-        property.__value = function () {
-          return value;
+        var bindings = property_binding_string(value);
+        if (typeof bindings === "string") {
+          property.__value = flexo.funcify(value);
+        } else {
+          property.__bindings = bindings;
+          console.log("Property bindings for %0=\"%1\":".fmt(name, value),
+              bindings);
         }
       }
     }
@@ -999,33 +1043,6 @@
     return c;
   };
 
-
-  function property_binding_string(value) {
-    var strings = [];
-    var properties = {};
-    for (var remain = value, m; m = remain.match(RX_PROP);
-        remain = m.input.substr(m.index + m[0].length)) {
-      var q = m.input.substr(0, m.index) + m[1];
-      if (q) {
-        strings.push(flexo.quote(q));
-      }
-      var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
-      if (!properties.hasOwnProperty[id]) {
-        properties[id] = {};
-      }
-      var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
-      properties[id][prop] = true;
-      strings.push("this.properties[%0]".fmt(flexo.quote(prop)));
-    }
-    if (Object.keys(properties).length === 0) {
-      return value;
-    }
-    if (remain) {
-      strings.push(flexo.quote(remain));
-    }
-    properties[""] = { value: strings.join("+") };
-    return properties;
-  }
 
 
   bender.Attribute = {};

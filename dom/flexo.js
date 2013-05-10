@@ -534,6 +534,13 @@
   flexo.nop = function () {
   };
 
+  // Make a function returning the given value
+  flexo.funcify = function (x) {
+    return function () {
+      return x;
+    };
+  };
+
   // Identity function
   flexo.id = function (x) {
     return x;
