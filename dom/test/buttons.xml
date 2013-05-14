@@ -5,26 +5,25 @@
       <component href="../lib/button.xml" id="button*">
         <property name="label" value="B"/>
         <view>
-          #buttons`label/`label = <text id="label"/>
+          #buttons`label/`label
         </view>
-        <!--
-        <watch>
-          <get component="buttons" property="label"/>
-          <get property="label"/>
-          <set elem="label" value="'%0/%1'.fmt(scope.buttons.properties.label,
-            this.properties.label)"/>
-        </watch>
-        -->
       </component>
       <component href="../lib/button.xml" id="button**">
         <property name="class" value="red"/>
       </component>
+      <component href="../lib/button.xml" id="button***">
+        <property name="enabled" value=""/>
+      </component>
     </html:p>
   </view>
   <watch>
-    <get component="button*" property="label"/>
-    <get property="label"/>
-    <set elem="label" value="'%0/%1'.fmt(this.properties.label,
-      scope['button*'].properties.label)"/>
+    <get component="button*" event="!pushed">
+      console.log("Button*");
+    </get>
+  </watch>
+  <watch>
+    <get component="button**" event="!pushed">
+      console.log("OK");
+    </get>
   </watch>
 </component>

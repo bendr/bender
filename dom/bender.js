@@ -574,9 +574,6 @@
 
   function render_property(property, component, prototype) {
     if (!component.properties.hasOwnProperty(property.name)) {
-      console.log("    render %0property %1 on %2#%3"
-        .fmt(component === prototype ? "own " : "", property.name, component.id,
-          component.$__SERIAL));
       property.render(component, prototype);
     }
   }
@@ -585,14 +582,10 @@
   // corresponding abstract components (each item in the chain is a rendering of
   // an abstract component) must be handled as well.
   function render_properties(chain) {
-    console.log("Render properties for %0#%1"
-        .fmt(chain[0].id, chain[0].$__SERIAL));
     chain.forEach(function (c, i) {
       c.properties = {};
       c.property_vertices = {};
       var c_ = Object.getPrototypeOf(c);
-      console.log("  [%0] render properties of %1#%2"
-        .fmt(i, c_.id, c_.$__SERIAL));
       if (!c_.properties) {
         c_.properties = {};
         c_.property_vertices = {};
@@ -635,12 +628,12 @@
   // ancestor.)
   function render_watches(chain) {
     chain.forEach(function (c) {
-      var c_ = Object.getPrototypeOf(c);
+      c.__watches = c.watches.slice();
       // Render dynamic bindings
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
           var watch = bender.watch();
-          watch.append_set(bender.set_property(property.name, c_,
+          watch.append_set(bender.set_property(property.name, chain[0],
               property.__bindings[""].value));
           Object.keys(property.__bindings).forEach(function (id) {
             if (id) {
@@ -649,15 +642,11 @@
               });
             }
           });
-          c_.append_child(watch);
-          console.log("Create watch for bound property %0=\"%1\" on %2#%3:"
-            .fmt(property.name, property.__bindings[""].value, c_.id,
-              c_.$__SERIAL), watch);
-          delete property.__bindings;
+          c.__watches.push(watch);
         }
       });
       // Render string bindings
-      flexo.values(c.__bindings).forEach(function (bindings) {
+      c.__bindings.forEach(function (bindings) {
         var watch = bender.watch();
         if (bindings[""].hasOwnProperty("attr")) {
           watch.append_set(bender.set_dom_attribute(bindings[""].ns,
@@ -673,15 +662,14 @@
             });
           }
         });
-        c.append_child(watch);
-        console.log("Create watch for string binding \"%0\" on %1#%2:"
-          .fmt(bindings[""].value, c.id, c.$__SERIAL), watch);
+        c.__watches.push(watch);
       });
     });
     flexo.hcaErof(chain, function (c) {
-      c.watches.forEach(function (watch) {
+      c.__watches.forEach(function (watch) {
         watch.render(c);
       });
+      delete c.__watches;
     });
   }
 
@@ -959,8 +947,6 @@
           property.__value = new Function("return " + value);
         } else {
           property.__bindings = bindings;
-          console.log("Property bindings for %0=\"%1\":".fmt(name, value),
-              bindings);
         }
       } else if (as === "json") {
         property.__value = function () {
@@ -976,8 +962,6 @@
           property.__value = flexo.funcify(value);
         } else {
           property.__bindings = bindings;
-          console.log("Property bindings for %0=\"%1\":".fmt(name, value),
-              bindings);
         }
       }
     }
