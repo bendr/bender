@@ -630,6 +630,8 @@
     chain.forEach(function (c) {
       c.__watches = c.watches.slice();
       // Render dynamic bindings
+      // TODO check bug in logo.xml where `palette && `sides || ... does not
+      // work, but `sides || (`palette && ...) does
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
           var watch = bender.watch();
@@ -817,6 +819,8 @@
         return vertex.value;
       },
       set: function (v) {
+        console.log("Set %0=%1 (was %2) on %3#%4"
+          .fmt(vertex.property, v, vertex.value, component.id, component.$__SERIAL));
         vertex.value = v;
         component.environment.schedule_visit(vertex, v);
       }
@@ -873,6 +877,7 @@
   var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
+  var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK), "g");
 
   // Identify property bindings for a dynamic property value string. When there
   // are none, return the string unchanged; otherwise, return the dictionary of
@@ -890,7 +895,7 @@
       return "%0scope[%1].properties[%2]"
         .fmt(b, flexo.quote(i), flexo.quote(p));
     };
-    var v = value.replace(RX_PROP, r, "g").replace(/\\(.)/g, "$1");
+    var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
     if (Object.keys(bindings).length === 0) {
       return value;
     }
