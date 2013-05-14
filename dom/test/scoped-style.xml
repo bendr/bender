@@ -1,27 +1,24 @@
 <component xmlns="http://bender.igel.co.jp" id="scoped-style">
-  <property name="color" value="red"/>
+  <property name="color" as="string" value="red"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div id="rect" class="rect `color"/>
     <html:style scoped="">
       .rect { width: 40em; height: 10em; }
       .red { background-color: #ff4040; }
-      .blue { background-color: #08f; }
+      .orange { background-color: #f80; }
       .green { background-color: #0f8; }
     </html:style>
     <html:p>
       <component href="../lib/button.xml" id="red-button">
-        <property name="enabled" as="dynamic"
-          value="#scoped\-style`color !== 'red'"/>
+        <property name="enabled" value="#scoped\-style`color !== 'red'"/>
         <view>Red</view>
       </component>
-      <component href="../lib/button.xml" id="blue-button">
-        <property name="enabled" as="dynamic"
-          value="#scoped\-style`color !== 'blue'"/>
-        <view>Blue</view>
+      <component href="../lib/button.xml" id="orange-button">
+        <property name="enabled" value="#scoped\-style`color !== 'orange'"/>
+        <view>Orange</view>
       </component>
       <component href="../lib/button.xml" id="green-button">
-        <property name="enabled" as="dynamic"
-          value="#scoped\-style`color !== 'green'"/>
+        <property name="enabled" value="#scoped\-style`color !== 'green'"/>
         <view>Green</view>
       </component>
       Current color: `color
@@ -32,8 +29,8 @@
     <set property="color" value="'red'"/>
   </watch>
   <watch>
-    <get component="blue-button" event="!pushed"/>
-    <set property="color" value="'blue'"/>
+    <get component="orange-button" event="!pushed"/>
+    <set property="color" value="'orange'"/>
   </watch>
   <watch>
     <get component="green-button" event="!pushed"/>

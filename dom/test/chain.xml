@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="chain">
   <property name="count" as="number" value="0"/>
-  <property name="next" as="dynamic" value="`count + 1"/>
+  <property name="next" value="`count + 1"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       Number of clicks: `count (next: `next)

@@ -1,10 +1,9 @@
-<component xmlns="http://bender.igel.co.jp" id="test">
-
-  <property name="ok" as="boolean" value="true"/>
+<component xmlns="http://bender.igel.co.jp" id="checkbox-test">
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       <component href="../lib/check-box.xml" id="ch">
+        <!-- TODO set enabled? -->
         <view>
           Check me out!
         </view>

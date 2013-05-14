@@ -1,16 +1,12 @@
 <component xmlns="http://bender.igel.co.jp" id="button-test">
-  <property name="label" value="Test"/>
+  <property name="label" as="string" value="Test"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       <component href="../lib/button.xml" id="button*">
         <view>
-          <text id="button-label"/>
+          #button\-test`label
         </view>
       </component>
     </html:p>
   </view>
-  <watch>
-    <get property="label"/>
-    <set elem="button-label"/>
-  </watch>
 </component>

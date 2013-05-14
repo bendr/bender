@@ -1,12 +1,8 @@
 <component xmlns="http://bender.igel.co.jp" id="scope-test">
-  <property name="x" value="foo"/>
+  <property name="x" as="string" value="foo"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
-      x = <html:span id="t"/>
+      x = `x
     </html:p>
   </view>
-  <watch>
-    <get property="x"/>
-    <set elem="t"/>
-  </watch>
 </component>

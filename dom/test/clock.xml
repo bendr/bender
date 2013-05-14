@@ -1,7 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
 
-  <property name="offset" as="dynamic"
-    value="(new Date()).getTimezoneOffset() / 60"/>
+  <property name="offset" value="(new Date()).getTimezoneOffset() / 60"/>
   <property name="h"/>
   <property name="m"/>
   <property name="s"/>

@@ -44,3 +44,7 @@
 .text-input.disabled {
   color: #888 !important;
 }
+
+.check-box.disabled {
+  color: #888 !important;
+}

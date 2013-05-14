@@ -1,8 +1,8 @@
 <component xmlns="http://bender.igel.co.jp">
 
-  <property name="first-name" value="Bender"/>
-  <property name="middle-name" value="Bending"/>
-  <property name="last-name" value="Rodríguez"/>
+  <property name="first-name" as="string" value="Bender"/>
+  <property name="middle-name" as="string" value="Bending"/>
+  <property name="last-name" as="string" value="Rodríguez"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>

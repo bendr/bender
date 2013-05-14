@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="test">
 
-  <property name="name" value="Bender"/>
+  <property name="name" as="string" value="Bender"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>

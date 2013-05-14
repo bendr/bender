@@ -684,6 +684,7 @@
     });
   }
 
+  // TODO this is broken; must be fixed!
   function on_render(chain) {
     chain.forEach(function (c) {
       if (c.on.hasOwnProperty("__render")) {
@@ -819,8 +820,6 @@
         return vertex.value;
       },
       set: function (v) {
-        console.log("Set %0=%1 (was %2) on %3#%4"
-          .fmt(vertex.property, v, vertex.value, component.id, component.$__SERIAL));
         vertex.value = v;
         component.environment.schedule_visit(vertex, v);
       }
@@ -946,10 +945,10 @@
         return parseFloat(value);
       };
     } else if (typeof value === "string") {
-      if (as === "dynamic") {
-        var bindings = property_binding_dynamic(value);
+      if (as === "string") {
+        var bindings = property_binding_string(value);
         if (typeof bindings === "string") {
-          property.__value = new Function("return " + value);
+          property.__value = flexo.funcify(value);
         } else {
           property.__bindings = bindings;
         }
@@ -962,9 +961,9 @@
           }
         };
       } else {
-        var bindings = property_binding_string(value);
+        var bindings = property_binding_dynamic(value);
         if (typeof bindings === "string") {
-          property.__value = flexo.funcify(value);
+          property.__value = new Function("return " + value);
         } else {
           property.__bindings = bindings;
         }

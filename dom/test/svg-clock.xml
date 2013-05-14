@@ -1,14 +1,18 @@
 <component xmlns="http://bender.igel.co.jp" href="clock.xml">
 
+  <property name="th" value="'rotate(%0)'.fmt(`h * 30)"/>
+  <property name="tm" value="'rotate(%0)'.fmt(`m * 6)"/>
+  <property name="ts" value="'rotate(%0)'.fmt(`s * 6)"/>
+
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="-200 -200 400 400">
       <svg:g id="n" fill="white" stroke="black" stroke-linecap="round">
         <svg:circle r="180"/>
       </svg:g>
       <svg:g stroke-linecap="round" stroke="black" transform="rotate(-90)">
-        <svg:line x1="80" id="h"/>
-        <svg:line x1="160" id="m"/>
-        <svg:line x1="160" id="s" stroke-dasharray="10 10"/>
+        <svg:line x1="80" transform="`th"/>
+        <svg:line x1="140" transform="`tm"/>
+        <svg:line x1="140" transform="`ts" stroke-dasharray="10 10"/>
       </svg:g>
     </svg:svg>
   </view>
@@ -20,21 +24,6 @@
           y2: i % 5 === 0 ? 150 : 160, transform: "rotate(%0)".fmt(i * 6) }));
       }
     ]]></get>
-  </watch>
-
-  <watch>
-    <get property="h"/>
-    <set elem="h" attr="transform" value="'rotate(%0)'.fmt(input * 30)"/>
-  </watch>
-
-  <watch>
-    <get property="m"/>
-    <set elem="m" attr="transform" value="'rotate(%0)'.fmt(input * 6)"/>
-  </watch>
-
-  <watch>
-    <get property="s"/>
-    <set elem="s" attr="transform" value="'rotate(%0)'.fmt(input * 6)"/>
   </watch>
 
 </component>
