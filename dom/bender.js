@@ -3,6 +3,8 @@
 
   bender.VERSION = "0.8.1";
 
+  var __SERIAL = 0;  // Counter for serial numbers, should be removed in the end
+
 
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
@@ -69,21 +71,6 @@
     }
     return env;
   };
-
-
-  var __SERIAL = 0;  // Debug stuff, to be removed
-
-  // Debug function to display a scope chain
-  function scope_chain(scope) {
-    if (!scope) {
-      return "";
-    }
-    var s = scope_chain(Object.getPrototypeOf(scope));
-    if (scope.hasOwnProperty("$__SERIAL")) {
-      return scope.$__SERIAL + (s ? (" < " + s) : "");
-    }
-    return "";
-  }
 
 
   bender.Environment = {};
@@ -531,7 +518,7 @@
         scope[id] = x;
         return id;
       }
-      console.warn("Redefining id %0 in scope %1".fmt(id, scope_chain(scope)));
+      console.warn("Redefining id %0 in scope %1".fmt(id, scope.$__SERIAL));
     }
   }
 
@@ -733,34 +720,30 @@
   }
 
   // Render the component by building the prototype chain, creating light-weight
-  // copies of prototypes (to keep track of concrete nodes) along the way
+  // copies of prototypes (to keep track of concrete nodes) along the way. We
+  // name those scopes as they mostly map element ids in XML to rendered
+  // components.
   bender.Component.render = function (target, stack) {
     for (var chain = [], c = this; c; c = c.prototype) {
-      var root_scope, scope;
-      if (!c.parent) {
-        root_scope = Object.create(c.environment.scope);
-        root_scope.$__SERIAL = __SERIAL++;
-        scope = Object.create(root_scope);
-      } else {
-        scope = Object.create(Object.getPrototypeOf(
-              c.parent.__rendering[c.parent.__rendering.length - 1].scope));
-      }
-      scope.$__SERIAL = __SERIAL++;
+      var component_scope = c.parent ?
+        Object.getPrototypeOf(c.parent.__scopes[c.parent.__scopes.length - 1]) :
+        Object.create(c.environment.scope);
       var c_ = Object.create(c, {
-        scope: { enumerable: true, value: scope },
+        scope: { enumerable: true, value: Object.create(component_scope) },
         $__SERIAL: { enumerable: true, value: __SERIAL++ }
       });
-      chain.push(c_);
-      c_.scope.$that = c_;
-      c_.scope.$this = chain[0];
-      c_.scope.$target = target;
-      if (c.__rendering) {
-        c.__rendering.push(c_);
-      } else {
-        c.__rendering = [c_];
+      if (!c.__scopes) {
+        c.__scopes = [];
       }
+      c.__scopes.push(c_.scope);
+      chain.push(c_);
+      c_.scope.$this = chain[0];
+      c_.scope.$that = c_;
+      c_.scope.$component = c;
+      c_.scope.$prototype = c.prototype;
+      c_.scope.$target = target;
       c_.__bindings = [];
-      add_id_to_scope(c_.scope, c.id, c_);
+      add_id_to_scope(c_.scope, c.id, c.parent ? c_ : chain[0]);
     }
     render_properties(chain);
     render_view(target, chain);
@@ -769,10 +752,9 @@
     flexo.notify(chain[0], "!rendered");
     on_render(chain);
     chain.forEach(function (c) {
-      if (c.__rendering.length === 1) {
-        delete c.__rendering;
-      } else {
-        c.__rendering.pop();
+      c.__scopes.pop();
+      if (c.__scopes.length === 0) {
+        delete c.__scopes;
       }
     });
     return chain[0];
