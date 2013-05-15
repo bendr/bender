@@ -698,16 +698,14 @@
         delete c.on.__render;
       }
     });
-    var on = chain.filter(function (c) {
+    var cs = chain.filter(function (c) {
       return typeof c.on.render === "function";
-    }).map(function (c) {
-      return c.on.render;
     });
-    for (var i = on.length - 1; i >= 0; --i) {
-      on[i] = on[i].bind(c.scope.$this, on[i + 1] || flexo.id);
+    for (var i = cs.length - 1; i >= 0; --i) {
+      cs[i] = cs[i].on.render.bind(cs[i], cs[i + 1] || flexo.id);
     }
-    if (on.length > 0) {
-      on[0]();
+    if (cs.length > 0) {
+      cs[0]();
     }
   }
 
