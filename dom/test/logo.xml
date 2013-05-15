@@ -3,9 +3,8 @@
   <property name="palette" value='flexo.urn(["#ff6a4d", "#0b486b", "#5eb26b",
     "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
     "#06491d", "#f94179"], true)'/>
-  <!-- TODO check why switching sides/palette does not work -->
   <property name="sides"
-    value="`sides || (`palette &amp;&amp; flexo.random_int(5, 9))"/>
+    value="`palette &amp;&amp; `sides || flexo.random_int(5, 9)"/>
   <property name="bgcolor" value="`bgcolor || `palette.pick()"/>
   <property name="fgcolor" value="`fgcolor || `palette.pick()"/>
   <property name="points"

@@ -1,6 +1,6 @@
 # The Bender Javascript API
 
-Bender v0.8.1, 10 April 2013
+Bender v0.8.1, 14 May 2013
 
 ## Using the standard runtime
 
@@ -76,8 +76,8 @@ Because XML attribute values are text strings, an additional attribute `as` may
 be specified to define how that text string should be parsed.
 The legal values of `as` are:
 
-* `string` (which is the default): no parsing is done, the property value is the
-  same text string as the attribute value;
+* `string`: no parsing is done, the property value is the same text string as
+  the attribute value;
 * `boolean`: if the attribute value matches the string “true” (after trimming
   leading and trailing whitespace and converting to lowercase), then the
   property value is the boolean `true`, otherwise it is the boolean `false`;
@@ -90,6 +90,8 @@ The legal values of `as` are:
   is the result Javascript object;
 * `number`: the attribute value is parsed as a Javascript number, using the
   `parseFloat` function.
+
+The default value is `dynamic`.
 
 
 ### Get and set values

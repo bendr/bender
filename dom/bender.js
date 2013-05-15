@@ -60,7 +60,8 @@
             component = d;
           }
           component.render(target);
-          console.log("* component rendered OK", component);
+          console.log("* component %0#%1 rendered OK"
+            .fmt(component.id, component.$__SERIAL));
           k(component);
         } else {
           k(component);
@@ -715,6 +716,7 @@
   // name those scopes as they mostly map element ids in XML to rendered
   // components.
   bender.Component.render = function (target, stack) {
+    // console.log("Render component %0#%1".fmt(this.id, this.$__SERIAL));
     for (var chain = [], c = this; c; c = c.prototype) {
       var component_scope = c.parent ?
         Object.getPrototypeOf(c.parent.__scopes[c.parent.__scopes.length - 1]) :
@@ -723,6 +725,7 @@
         scope: { enumerable: true, value: Object.create(component_scope) },
         $__SERIAL: { enumerable: true, value: __SERIAL++ }
       });
+      // console.log("  add %0#%1 (for %2#%3) to the chain".fmt(c_.id, c_.$__SERIAL, c.id, c.$__SERIAL));
       if (!c.__scopes) {
         c.__scopes = [];
       }
@@ -886,7 +889,7 @@
     var bindings = {};
     var r = function (_, b, id, id_p, prop, prop_p) {
       var i = (id || id_p || "$this").replace(/\\(.)/g, "$1");
-      if (!bindings.hasOwnProperty[i]) {
+      if (!bindings.hasOwnProperty(i)) {
         bindings[i] = {};
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
@@ -914,7 +917,7 @@
         strings.push(flexo.quote(q));
       }
       var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
-      if (!bindings.hasOwnProperty[id]) {
+      if (!bindings.hasOwnProperty(id)) {
         bindings[id] = {};
       }
       var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
@@ -1138,7 +1141,7 @@
   bender.DOMTextNode = {};
 
   bender.DOMTextNode.render = function (target, stack) {
-    var d = target.appendChild(target.ownerDocument.createTextNode());
+    var d = target.appendChild(target.ownerDocument.createTextNode(""));
     var bindings = property_binding_string(this.text);
     if (typeof bindings === "string") {
       d.textContent = bindings;
@@ -1239,7 +1242,7 @@
   };
 
   bender.Vortex.toString = function () {
-    return "v%0 [Vortex]".fmt(this.index);
+    return "Vortex".fmt(this.index);
   };
 
   bender.Vertex.match = function (v) {
@@ -1247,7 +1250,7 @@
   };
 
   bender.Vertex.toString = function () {
-    return "v%0 [Vertex]".fmt(this.index);
+    return "v%0".fmt(this.index);
   };
 
   bender.PropertyVertex.match = function (v) {
@@ -1256,8 +1259,8 @@
   };
 
   bender.PropertyVertex.toString = function () {
-    return "v%0 [PropertyVertex] %1.%2%3".fmt(this.index,
-        this.component.$__SERIAL,
+    return "p%0 %1#%2.%3%4".fmt(this.index,
+        this.component.id, this.component.$__SERIAL,
         this.property, this.__value ? "=" + this.value : "");
   };
 
@@ -1267,7 +1270,7 @@
   };
 
   bender.DOMEventVertex.toString = function () {
-    return "v%0 [DOMEventVertex] %1!%2%3".fmt(this.index, this.elem.localName,
+    return "d%0 %1!%2%3".fmt(this.index, this.elem.localName,
         this.event, this.__value ? "=" + this.value : "");
   };
 
@@ -1277,7 +1280,7 @@
   };
 
   bender.EventVertex.toString = function () {
-    return "v%0 [EventVertex] %1!%2%3".fmt(this.index, this.component.$__SERIAL,
+    return "e%0 %1!%2%3".fmt(this.index, this.component.$__SERIAL,
         this.event, this.__value ? "=" + this.value : "");
   };
 
@@ -1451,7 +1454,7 @@
   };
 
   bender.Edge.toString = function () {
-    return "(Edge) -> %0".fmt(this.dest);
+    return "-> %0".fmt(this.dest);
   };
 
   // Set a property on a component
@@ -1483,8 +1486,9 @@
   };
 
   bender.PropertyEdge.toString = function () {
-    return "(PropertyEdge) %0.%1 -> %2".fmt(this.component.id, this.property,
-        this.dest);
+    return "(Property) %0#%1.%2 -> %3"
+      .fmt(this.component.id, this.component.$__SERIAL, this.property,
+          this.dest);
   };
 
   bender.SetEvent.render = function (source, component, scope) {
@@ -1511,8 +1515,8 @@
   };
 
   bender.EventEdge.toString = function () {
-    return "(EventEdge) %0%1 -> %2".fmt(this.component.id, this.event,
-        this.dest);
+    return "(Event) %0#%1%2 -> %2".fmt(this.component.id,
+        this.component.$__SERIAL, this.event, this.dest);
   };
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
@@ -1546,7 +1550,7 @@
   };
 
   bender.DOMAttributeEdge.toString = function () {
-    return "(DOMAttributeEdge) %0{%1}%2 -> %3".fmt(this.target.localName,
+    return "(Attribute) %0{%1}%2 -> %3".fmt(this.target.localName,
         this.ns, this.attr, this.dest);
   };
 
@@ -1575,7 +1579,7 @@
   };
 
   bender.DOMPropertyEdge.toString = function () {
-    return "(DOMPropertyEdge) %0.%1 -> %2"
+    return "(DOMProperty) %0.%1 -> %2"
       .fmt(this.target.localName || "text()", this.property, this.dest);
   };
 
