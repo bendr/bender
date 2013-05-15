@@ -33,6 +33,14 @@
   background-color: #ff4040;
 }
 
+.canvas {
+  position: relative;
+}
+
+.canvas canvas {
+  position: absolute;
+}
+
 .text-input {
   font-family: Futura, Optima, sans-serif;
   font-size: 100%;

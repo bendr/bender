@@ -1,66 +1,81 @@
 <component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="canvas">
 
-  <properyy name="base-class" value="canvas"/>
-  <property name="enabled" as="boolean" value="false"/>
+  <property name="base-class" as="string" value="canvas"/>
   <property name="width"/>
   <property name="height"/>
-  <property name="stroke"/>
-  <property name="fill"/>
-  <property name="context" as="dynamic"
-    value="this.scope.canvas.getContext('2d')"/>
+  <property name="stroke" as="string" value="black"/>
+  <property name="stroke-width" as="number" value="1"/>
+  <property name="bg"/>
+  <property name="fg"/>
   <property name="down" as="boolean" value="false"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:canvas id="canvas">
-      <attribute name="class">
-        <text id="base-class-class"/>
-        <text id="class-class"/>
-        <text id="enabled-class"/>
-      </attribute>
-      <attribute name="width" id="width-attr"/>
-      <attribute name="height" id="height-attr"/>
-    </html:canvas>
+    <html:div class="`base\-class `class `enabled\-class"
+      style="width:`(width)px;height:`(height)px">
+      <html:canvas id="bg" width="`width" height="`height"/>
+      <html:canvas id="fg" width="`width" height="`height"/>
+    </html:div>
   </view>
 
+  <!-- TODO review scope rules (?) e.g., scope === scope.$that? -->
   <watch>
-    <get property="width"/>
-    <set elem="width-attr"/>
+    <get event="!rendered"/>
+    <set property="bg" value="scope.$that.scope.bg.getContext('2d')"/>
+    <set property="fg" value="scope.$that.scope.fg.getContext('2d')"/>
+    <set>
+      this.properties.fg.lineCap = "round";
+      this.properties.fg.lineJoin = "round";
+    </set>
   </watch>
 
   <watch>
-    <get property="height"/>
-    <set elem="height-attr"/>
+    <get property="fg"/>
+    <get property="stroke"/>
+    <set>
+      cancel(!this.properties.fg);
+      this.properties.fg.strokeStyle = this.properties.stroke;
+    </set>
   </watch>
 
   <watch>
-    <get property="stroke">
-      cancel(!this.context);
-      this.context.strokeStyle = property;
-    </get>
+    <get property="fg"/>
+    <get property="stroke-width"/>
+    <set>
+      cancel(!this.properties.fg);
+      this.properties.fg.lineWidth = this.properties["stroke-width"];
+    </set>
   </watch>
 
   <watch>
-    <get property="fill">
-      cancel(!this.context);
-      this.context.fillStyle = property;
-    </get>
-  </watch>
-
-  <watch>
-    <get elem="canvas" dom-event="mousedown" prevent-default="true"
-      value="cancel(!this.properties.enabled) || event"/>
+    <get elem="fg" dom-event="mousedown" prevent-default="true"
+      value="cancel(!this.properties.fg || !this.properties.enabled) || event"/>
     <set property="down">
-      this.properties.context.beginPath();
-      var p = flexo.event_offset_pos(input, this.scope.canvas);
-      this.properties.context.moveTo(p.x, p.y);
-      console.log(p.x);
+      this.properties.fg.beginPath();
+      var p = flexo.event_offset_pos(input, this.properties.fg.canvas);
+      this.properties.fg.moveTo(p.x, p.y);
       return true;
     </set>
   </watch>
 
   <watch>
+    <get elem="fg" dom-event="mousemove">
+      cancel(!this.properties.down);
+      var p = flexo.event_offset_pos(event, this.properties.fg.canvas);
+      this.properties.fg.clearRect(0, 0, this.properties.fg.canvas.width,
+        this.properties.fg.canvas.height);
+      this.properties.fg.lineTo(p.x, p.y);
+      this.properties.fg.stroke();
+    </get>
+  </watch>
+
+  <watch>
     <get elem="$document" dom-event="mouseup"/>
-    <set property="down" value="'false'"/>
+    <set property="down">
+      this.properties.bg.drawImage(this.properties.fg.canvas, 0, 0);
+      this.properties.fg.clearRect(0, 0, this.properties.fg.canvas.width,
+        this.properties.fg.canvas.height);
+      return false;
+    </set>
   </watch>
 
 </component>

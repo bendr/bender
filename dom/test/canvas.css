@@ -1,0 +1,7 @@
+body {
+  background-color: #888;
+}
+
+.canvas :first-child {
+  background-color: #f8f9f0;
+}

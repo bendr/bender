@@ -1,0 +1,40 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <link rel="stylesheet" href="canvas.css"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <component href="../lib/canvas.xml" id="canvas" width="640" height="480"/>
+    <html:p>
+      <html:label>
+        Color:
+        <component href="../lib/text-input.xml" id="color-input"/>
+      </html:label>
+      <html:label>
+        Width:
+        <component href="../lib/text-input.xml" id="width-input"/>
+      </html:label>
+    </html:p>
+  </view>
+
+  <!-- TODO use property bindings here -->
+  <watch>
+    <get component="canvas" property="stroke"/>
+    <set component="color-input" property="value"/>
+  </watch>
+
+  <watch>
+    <get component="color-input" property="value"/>
+    <set component="canvas" property="stroke"/>
+  </watch>
+
+  <watch>
+    <get component="canvas" property="stroke-width"/>
+    <set component="width-input" property="value"/>
+  </watch>
+
+  <watch>
+    <get component="width-input" property="value"/>
+    <set component="canvas" property="stroke-width"/>
+  </watch>
+
+</component>

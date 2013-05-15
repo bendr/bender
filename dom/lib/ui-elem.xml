@@ -5,30 +5,6 @@
   <property name="class"/>
   <property name="base-class"/>
   <property name="enabled" as="boolean" value="true"/>
-
-  <!--
-  <view stack="bottom" id="class-attr">
-    <attribute name="class">
-      <text id="base-class-class"/>
-      <text id="class-class"/>
-      <text id="enabled-class"/>
-    </attribute>
-  </view>
--->
-
-  <watch>
-    <get property="base-class"/>
-    <set elem="base-class-class"/>
-  </watch>
-
-  <watch>
-    <get property="class"/>
-    <set elem="class-class"/>
-  </watch>
-
-  <watch>
-    <get property="enabled"/>
-    <set elem="enabled-class" value="input ? '' : 'disabled'"/>
-  </watch>
+  <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
 
 </component>
