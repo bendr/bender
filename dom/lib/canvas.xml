@@ -17,11 +17,10 @@
     </html:div>
   </view>
 
-  <!-- TODO review scope rules (?) e.g., scope === scope.$that? -->
   <watch>
     <get event="!rendered"/>
-    <set property="bg" value="scope.$that.scope.bg.getContext('2d')"/>
-    <set property="fg" value="scope.$that.scope.fg.getContext('2d')"/>
+    <set property="bg" value="scope.bg.getContext('2d')"/>
+    <set property="fg" value="scope.fg.getContext('2d')"/>
     <set>
       this.properties.fg.lineCap = "round";
       this.properties.fg.lineJoin = "round";
@@ -51,7 +50,7 @@
       value="cancel(!this.properties.fg || !this.properties.enabled) || event"/>
     <set property="down">
       this.properties.fg.beginPath();
-      var p = flexo.event_offset_pos(input, this.properties.fg.canvas);
+      var p = flexo.event_offset_pos(input, scope.fg);
       this.properties.fg.moveTo(p.x, p.y);
       return true;
     </set>
@@ -60,9 +59,8 @@
   <watch>
     <get elem="fg" dom-event="mousemove">
       cancel(!this.properties.down);
-      var p = flexo.event_offset_pos(event, this.properties.fg.canvas);
-      this.properties.fg.clearRect(0, 0, this.properties.fg.canvas.width,
-        this.properties.fg.canvas.height);
+      var p = flexo.event_offset_pos(event, scope.fg);
+      this.properties.fg.clearRect(0, 0, scope.fg.width, scope.fg.height);
       this.properties.fg.lineTo(p.x, p.y);
       this.properties.fg.stroke();
     </get>
@@ -71,9 +69,8 @@
   <watch>
     <get elem="$document" dom-event="mouseup"/>
     <set property="down">
-      this.properties.bg.drawImage(this.properties.fg.canvas, 0, 0);
-      this.properties.fg.clearRect(0, 0, this.properties.fg.canvas.width,
-        this.properties.fg.canvas.height);
+      this.properties.bg.drawImage(scope.fg, 0, 0);
+      this.properties.fg.clearRect(0, 0, scope.fg.width, scope.fg.height);
       return false;
     </set>
   </watch>

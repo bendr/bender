@@ -1,12 +1,7 @@
-<component xmlns="http://bender.igel.co.jp" id="check-box">
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="check-box">
 
-  <link rel="stylesheet" href="lib.css"/>
-
-  <property name="class" as="string"/>
   <property name="base-class" as="string" value="check-box"/>
   <property name="checked" as="boolean" value="false"/>
-  <property name="enabled" as="boolean" value="true"/>
-  <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:label class="`base\-class `class `enabled\-class">

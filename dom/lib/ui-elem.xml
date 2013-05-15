@@ -2,8 +2,8 @@
 
   <link rel="stylesheet" href="lib.css"/>
 
-  <property name="class"/>
-  <property name="base-class"/>
+  <property name="class" as="string"/>
+  <property name="base-class" as="string"/>
   <property name="enabled" as="boolean" value="true"/>
   <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
 

@@ -1,13 +1,8 @@
-<component xmlns="http://bender.igel.co.jp" id="button">
-
-  <link rel="stylesheet" href="lib.css"/>
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button">
 
   <property name="base-class" as="string" value="button"/>
-  <property name="class" as="string"/>
-  <property name="enabled" as="boolean" value="true"/>
-  <property name="down" as="boolean" value="false"/>
-
   <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
+  <property name="down" as="boolean" value="false"/>
   <property name="down-class" value="`down ? 'down' : ''"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">

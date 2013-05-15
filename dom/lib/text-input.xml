@@ -1,17 +1,12 @@
-<component xmlns="http://bender.igel.co.jp" id="text-input">
-
-  <link rel="stylesheet" href="lib.css"/>
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="text-input">
 
   <property name="base-class" as="string" value="text-input"/>
-  <property name="class" as="string"/>
   <property name="placeholder" as="string"/>
   <property name="value" as="string"/>
-  <property name="enabled" as="boolean" value="true"/>
-  <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:input id="input" aria-role="textbox"
-      class="`base\-class `class `(enabled-class)"/>
+      class="`base\-class `class `enabled\-class"/>
   </view>
 
   <watch>
@@ -32,7 +27,10 @@
 
   <watch>
     <get elem="input" dom-event="change"/>
-    <set property="value" value="input.target.value"/>
+    <set property="value">
+      scope.input.blur();
+      return input.target.value;
+    </set>
   </watch>
 
 </component>

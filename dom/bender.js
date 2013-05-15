@@ -1449,7 +1449,8 @@
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
+    var v = this.value.call(this.context, input, flexo.cancel,
+        this.scope.$that.scope);
     return v;
   };
 
@@ -1480,7 +1481,8 @@
 
   // A PropertyEdge sets a property
   bender.PropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
+    var v = this.value.call(this.context, input, flexo.cancel,
+        this.scope.$that.scope);
     this.component.properties[this.property] = v;
     return v;
   };
@@ -1509,7 +1511,8 @@
 
   // An EventEdge sends an event notification
   bender.EventEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
+    var v = this.value.call(this.context, input, flexo.cancel,
+        this.scope.$that.scope);
     flexo.notify(this.component, this.event, v);
     return v;
   };
@@ -1540,7 +1543,8 @@
   // A DOMAttribute edge sets an attribute, has no other effect.
   // If the value is null, the attribute is not set but removed.
   bender.DOMAttributeEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
+    var v = this.value.call(this.context, input, flexo.cancel,
+        this.scope.$that.scope);
     if (v === null) {
       this.target.removeAttributeNS(this.ns, this.attr);
     } else {
@@ -1573,7 +1577,8 @@
 
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (input) {
-    var v = this.value.call(this.context, input, flexo.cancel, this.scope);
+    var v = this.value.call(this.context, input, flexo.cancel,
+        this.scope.$that.scope);
     this.target[this.property] = v;
     return v;
   };

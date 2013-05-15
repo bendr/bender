@@ -12,7 +12,6 @@
         </view>
       </component>
       <component href="../lib/button.xml" id="button-minus" class="red">
-        <!-- TODO the button class does not change?! -->
         <property name="enabled" value="#sample`count &gt; 0"/>
         <view>
           -1
