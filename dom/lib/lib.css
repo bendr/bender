@@ -48,3 +48,7 @@
 .check-box.disabled {
   color: #888 !important;
 }
+
+.hidden {
+  display: none;
+}

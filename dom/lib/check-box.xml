@@ -2,6 +2,7 @@
 
   <link rel="stylesheet" href="lib.css"/>
 
+  <property name="class" as="string"/>
   <property name="base-class" as="string" value="check-box"/>
   <property name="checked" as="boolean" value="false"/>
   <property name="enabled" as="boolean" value="true"/>

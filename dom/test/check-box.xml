@@ -3,7 +3,6 @@
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       <component href="../lib/check-box.xml" id="ch">
-        <!-- TODO set enabled? -->
         <view>
           Check me out!
         </view>
@@ -18,6 +17,18 @@
           Toggle
         </view>
       </component>
+      <component href="../lib/button.xml" id="e">
+        <property name="class" value="#ch`enabled ? 'hidden' : ''"/>
+        <view>
+          Enable
+        </view>
+      </component>
+      <component href="../lib/button.xml" id="d">
+        <property name="class" value="#ch`enabled ? '' : 'hidden'"/>
+        <view>
+          Disable
+        </view>
+      </component>
     </html:p>
   </view>
 
@@ -30,6 +41,13 @@
     <get component="b" event="!pushed"/>
     <set component="ch" property="checked"
       value="!scope.ch.properties.checked"/>
+  </watch>
+
+  <watch>
+    <get component="e" event="!pushed" value="true"/>
+    <get component="d" event="!pushed" value="false"/>
+    <set component="b" property="enabled"/>
+    <set component="ch" property="enabled"/>
   </watch>
 
 </component>
