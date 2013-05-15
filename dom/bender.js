@@ -702,7 +702,8 @@
       return typeof c.on.render === "function";
     });
     for (var i = cs.length - 1; i >= 0; --i) {
-      cs[i] = cs[i].on.render.bind(cs[i], cs[i + 1] || flexo.id);
+      cs[i] = cs[i].on.render.bind(cs[i].scope.$this, cs[i + 1] || flexo.id,
+          cs[i].scope.$that.scope);
     }
     if (cs.length > 0) {
       cs[0]();

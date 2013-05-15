@@ -1,6 +1,6 @@
-function rendered($super) {
+function rendered($super, scope) {
   $super();
-  this.scope.t.textContent = this.properties.message;
+  scope.t.textContent = this.properties.message;
 }
 
 function rendered_derived_derived($super, scope) {
