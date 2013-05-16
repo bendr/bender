@@ -1,6 +1,6 @@
 # The Bender Javascript API
 
-Bender v0.8.1, 14 May 2013
+Bender v0.8.1, 16 May 2013
 
 ## Using the standard runtime
 
@@ -139,5 +139,7 @@ chain, already bound to the current component so that it can be simply called by
 ## Bender API Reference
 
 The Bender DOM runtime described here is implemented by `dom/bender.js`.
+
+### The Bender environment
 
 **TODO**

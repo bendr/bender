@@ -545,6 +545,14 @@
     return false;
   };
 
+  // Return a function that discards its arguments. An optional parameter allows
+  // to keep at most n arguments (defaults to 0 of course.)
+  flexo.discard = function (f, n) {
+    return function () {
+      return f.apply(this, slice.call(arguments, 0, n || 0));
+    };
+  };
+
   // No-op function, returns nothing
   flexo.nop = function () {
   };

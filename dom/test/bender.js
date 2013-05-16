@@ -13,44 +13,11 @@
     });
   });
 
-  var env = bender.init_environment(document);
-  var hello, sample;
-
-  describe("Deserialization", function () {
-    describe("hello.xml", function () {
-      it("is deserialized into a component", function (done) {
-        env.load_component("hello.xml", function (d) {
-          assert.isObject(d);
-          hello = d;
-          done();
-        });
-      });
-    });
-    describe("sample.xml", function () {
-      it("is deserialized into a component", function (done) {
-        env.load_component("sample.xml", function (d) {
-          assert.isObject(d);
-          sample = d;
-          done();
-        });
-      });
-    });
-  });
-
-  describe("Rendering", function () {
-    describe("hello.xml", function () {
-      it("is rendered correctly", function () {
-        var div = document.createElement("div");
-        hello.render(div);
-        assert.strictEqual(div.textContent.trim(), "Hello, world!");
-      });
-    });
-    describe("sample.xml", function () {
-      it("is rendered correctly", function () {
-        var div = document.createElement("div");
-        sample.render(div);
-        assert.strictEqual(div.textContent.trim().replace(/\s+/g, " "),
-          "Number of clicks: +1 -1");
+  describe("Runtime API", function () {
+    describe("bender.load_app(target, url, env, k)", function () {
+      it("Loads a Bender application from an XML file at url into the target", function (done) {
+        var target = flexo.$div();
+        var env = bender.load_app(target, flexo.discard(done));
       });
     });
   });

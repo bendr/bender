@@ -5,74 +5,72 @@
 
   var __SERIAL = 0;  // Counter for serial numbers, should be removed in the end
 
-
   var filter = Array.prototype.filter;
   var foreach = Array.prototype.forEach;
-
 
   // The Bender namespace for (de)serialization to XML
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+  // Set properties for the loaded component from the arguments. If properties
+  // were set, return the new component with the set properties, otherwise the
+  // original component unchanged.
+  function set_properties_from_args(component, args) {
+    var defined = component.all_properties;
+    var props = Object.keys(args).filter(function (p) {
+      return p !== "href" && p in defined;
+    }).map(function (p) {
+      return bender.property(p, defined[p].as, args[p]);
+    });
+    if (props.length > 0) {
+      var c = bender.component(component.environment);
+      c.prototype = component;
+      props.forEach(function (prop) {
+        c.own_properties[prop.name] = prop;
+        prop.component = c;
+      });
+      return c;
+    }
+    return component;
+  }
 
   // Load an application from a component to be rendered in the given target.
   // The defaults object contains default values for the properties of the
   // component, and should have a `href` property for the URL of the application
-  // component. If no environent is given, a new one is created for the target
-  // element document. The created environment is returned.
-  // When done or in case of error, call the continuation k with either the
-  // created component, or an error message, or nothing if there was nothing to
-  // load in the first place (e.g., no href argument.)
+  // component; alternatively, a URL can be passed as a string (it then becomes
+  // the `href` property of the defaults object.) If no environent is given, a
+  // new one is created for the target element document. The environment is
+  // returned immediately. When done or in case of error, call the continuation
+  // k with either the created component, or an error message, or nothing if
+  // there was nothing to load in the first place (e.g., no href argument.)
   bender.load_app = function (target, defaults, env, k) {
-    if (typeof defaults === "function") {
+    if (arguments.length < 3) {
       k = defaults;
       defaults = undefined;
-    }
-    if (typeof env === "function") {
+    } else if (arguments.length < 4) {
       k = env;
       env = undefined;
     }
     if (typeof k !== "function") {
       k = flexo.nop;
     }
+    target = target || window.document.body || window.document.documentElement;
     env = env || bender.environment(target.ownerDocument);
     var args = flexo.get_args(typeof defaults === "object" ? defaults :
-        typeof defaults === "string" ? { href: defaults } :
-          { href: "app.xml" });
+        { href: typeof defaults === "string" ? defaults : "app.xml" });
     if (args.href) {
       var url = flexo.absolute_uri(window.document.baseURI, args.href);
       env.load_component(url, function (component) {
         if (flexo.instance_of(component, bender.Component)) {
-          console.log("* component at %0 loaded OK".fmt(url));
-          var defined = component.all_properties;
-          var props = Object.keys(args).filter(function (p) {
-            return defined.hasOwnProperty(p);
-          }).map(function (p) {
-            var prop = defined[p];
-            return bender.property(prop.name, prop.as, args[prop.name]);
-          });
-          if (props.length > 0) {
-            var d = bender.component(env);
-            d.prototype = component;
-            props.forEach(function (p) {
-              d.own_properties[p.name] = p;
-              p.component = d;
-            });
-            component = d;
-          }
+          component = set_properties_from_args(component, args);
           component.render(target);
-          console.log("* component %0#%1 rendered OK"
-            .fmt(component.id, component.$__SERIAL));
-          k(component);
-        } else {
-          k(component);
         }
+        k(component);
       });
     } else {
       k();
     }
     return env;
   };
-
 
   bender.Environment = {};
 
