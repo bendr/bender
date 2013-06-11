@@ -1,6 +1,6 @@
 # The Bender Javascript API
 
-Bender v0.8.1, 16 May 2013
+Bender v0.8.1, 11 June 2013
 
 ## Using the standard runtime
 
@@ -136,10 +136,30 @@ reserved word in Javascript) which is the next such function in the prototype
 chain, already bound to the current component so that it can be simply called by
 `$super()`.
 
+## Bindings
+
+Bindings are special syntax that reduces the amount of markup necessary to
+create watches. Text content (the value of properties, as well as attributes and
+text nodes in a view) may contain direct reference to properties, which then get
+rendered as watches in the following manner.
+
+### Binding syntax
+
+Bindings use two special characters, ` and #. The backtick (`) is the mark of a
+property name. By default, this refers to a property of the parent component;
+but the property name may be prefixed by an id name marked with a sharp sign (#)
+to point to a component or element in the scope of the parent component.
+
+### Property bindings
+
+### Text bindings
+
 ## Bender API Reference
 
 The Bender DOM runtime described here is implemented by `dom/bender.js`.
 
 ### The Bender environment
+
+### Lexical scope
 
 **TODO**

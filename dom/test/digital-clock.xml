@@ -3,9 +3,9 @@
   <link rel="stylesheet" href="digital-clock.css"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p class="clock">
+    <html:div class="clock">
       <text id="h"/>:<text id="m"/>:<text id="s"/>
-    </html:p>
+    </html:div>
   </view>
 
   <watch>
