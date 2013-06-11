@@ -1,15 +1,6 @@
 # TODO List
 
-Bender v0.8.1, 10 April 2013
-
-## High priority items
-
-* Feature: property bindings
-* Bug: scope of ids in views
-* Bug: fix dom/lib/button.xml; investigate possible issue in watch graph
-* Bug: rendering on views with id
-* Bug: content loop
-* Bug: leaked state between components, cf. dom/test/panels.xml
+Bender v0.8.1, 11 June 2013
 
 ## Semantic extensions
 
@@ -21,21 +12,24 @@ These extensions add actual features to Bender.
   recursive elements (such as recursive drawing.) Replication can be controlled
   by some number or a list of values.
 
-* Manipulating component *traits* with watches: traits are similar to attributes
-  and properties, and are features of the component tree itself, such as the
-  *prototype* of a component, the *id* of a view, &c. These need to be
-  accessible through watch inputs and outputs just like attributes and
-  properties.
+* Manipulating component *attributes* with watches: features of the component
+  tree itself, such as the *prototype* of a component, the *id* of a view, &c.
+  These need to be accessible through watch inputs and outputs just like
+  attributes and properties.
 
 * Manipulating tree structure with watches: adding, removing and replacing
   nodes in the application tree. Structured values in watches and properties.
   (Action output: append/prepend/remove; insertion point output:
-  before/after/replace.)
+  before/after/replace.) Solved with `as="xml"`; merge view/output.
+
+* Watches can be part of the output.
 
 * Watch composition and input pattern matching: enabling and disabling watch
   depending on other watches (for instance: dragging.) Activating watches
   conditionally using pattern matching. Pause propagation to solve the turtle
   problem?
+
+* More generally, **enabled** attribute.
 
 * Inline scripts, API for re/de-rendering when scripts appear in a view.
 
@@ -44,7 +38,7 @@ These extensions add actual features to Bender.
 
 * Refer to unrendered components (see for instance dom/test/logos.xml: we have
   components that inherit from logo, but how can we set the palette globally for
-  all logos?)
+  all logos?) Use of link for prototype, href to actually refer to a component?
 
 
 ## Syntactic sugar
@@ -53,17 +47,6 @@ These extensions do not change the semantics of Bender in any way but enhance
 the expressivity of the language by allowing complex constructs to be rendered
 more briefly. These can be implemented by transformations of the input to a
 simplified form, in the manner of the Relax NG simplification process.
-
-* Property bindings: simple syntax to access properties (prefixed with ^) and
-  rendered nodes (prefixed with #) within text contents of a document. When used
-  in property value attribute or withing a view, create watches to *bind* the
-  values together.
-
-* ~~`$prototype` pseudo-component, as opposed to `$self`. `$self` is always the
-  final component, whereas `$prototype` is the component currently defined.~~
-  (Changed to **$this** and **$that**.) Also **own** attribute (or something
-  similar) on properties to describe whether a property is defined on the final
-  component or the prototype.
 
 * Property getters and setters: similar to Javascript getter and setter.
 
@@ -108,20 +91,11 @@ simplified form, in the manner of the Relax NG simplification process.
 
 * Bug: loops in prototype chain are not detected.
 
-* Scope of id for nested views: the element is stored in the wrong component.
-
-* Error handling for ill-formed components.
-
 * **on-render** only takes a function and should be able to take an object with
   a `handleEvent` method.
 
 * Pull initial property values as necessary during rendering to render with the
   right values immediately.
-
-* `lib/button.xml` does not behave well if the mouseup/mousedown events are too
-  close to one another.
-
-* Class attribute view of `lib/ui-elem.xml` should render properly.
 
 * Simplify the watch graph: remove dead-ends, consolidate edges with id values,
   &c. Precompute path?

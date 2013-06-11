@@ -9,7 +9,7 @@ other is an SVG document.
 One main difference is that the SVG flavor of the runtime cannot handle
 stylesheet links.
 The runtime documents are located in the repository in `dom/runtime.html` and
-`dom/runtime.svg`. 
+`dom/runtime.svg`.
 
 To run a Bender component in a browser, open either document.
 The component to run is specified with the `href` attribute, for instance:
@@ -150,9 +150,56 @@ property name. By default, this refers to a property of the parent component;
 but the property name may be prefixed by an id name marked with a sharp sign (#)
 to point to a component or element in the scope of the parent component.
 
+Example:
+
+```xml
+<component xmlns="http://bender.igel.co.jp" id="sample">
+  <property name="count" as="number" value="0"/>
+  <property name="roman" value="flexo.to_roman(`count).toUpperCase()"/>
+
+  ...
+
+      <component href="../lib/button.xml" id="button-minus" class="red">
+        <property name="enabled" value="#sample`count &gt; 0"/>
+```
+
+In the fragment above, the **roman** property of the **sample** component makes
+a reference to the **count** property of the same component.
+Then, in the **button-minus** component below, another reference is made to the
+**count** property of the **sample** component; this time, the component
+referred to needs to be named explicitly.
+
 ### Property bindings
 
+A *property binding* is a binding inside the value of a property (the example
+above shows two such bindings) interpreted dynamically.
+A watch is created for every property that has at least one occurrence of a
+bound property, which corresponds to a watch input.
+A single output is created for a watch, setting the value of the property.
+
+In the above example, two new watches are created:
+
+```xml
+<watch>
+  <get property="count"/>
+  <set property="roman"
+    value="flexo.to_roman(this.properties.count).toUpperCase()"/>
+</watch>
+```
+
+and
+
+```xml
+<watch>
+  <get component="sample" property="count"/>
+  <set property="enabled" value="scope.sample.properties.count) &gt; 0"/>
+</watch>
+```
+
 ### Text bindings
+
+A *text* binding is a binding inside the value of a property interpreted as a
+string, or inside a literal attribute or text node in the view of a component.
 
 ## Bender API Reference
 
