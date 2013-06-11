@@ -1,5 +1,7 @@
-### Changes in v0.8.1 (forthcoming)
+### Changes in v0.8.1 (11 June 2013)
 
+* Property, attribute and text bindings.
+* Lexical scoping rules for ids.
 * Improved error reporting somewhat.
 * Attributes of **component** to set property defaults.
 * Components have a **children** property to access all child components.
