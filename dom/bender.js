@@ -43,20 +43,16 @@
   // k with either the created component, or an error message, or nothing if
   // there was nothing to load in the first place (e.g., no href argument.)
   bender.load_app = function (target, defaults, env, k) {
-    if (arguments.length < 3) {
-      k = defaults;
-      defaults = undefined;
-    } else if (arguments.length < 4) {
+    if (typeof env == "function") {
       k = env;
       env = undefined;
-    }
-    if (typeof k !== "function") {
+    } else if (typeof k != "function") {
       k = flexo.nop;
     }
     target = target || window.document.body || window.document.documentElement;
     env = env || bender.environment(target.ownerDocument);
-    var args = flexo.get_args(typeof defaults === "object" ? defaults :
-        { href: typeof defaults === "string" ? defaults : "app.xml" });
+    var args = flexo.get_args(typeof defaults == "object" ? defaults :
+        { href: defaults });
     if (args.href) {
       var url = flexo.absolute_uri(window.document.baseURI, args.href);
       env.load_component(url, function (component) {
