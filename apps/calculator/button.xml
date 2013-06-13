@@ -1,0 +1,45 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" as="number" value="0"/>
+  <property name="y" as="number" value="0"/>
+  <property name="width" as="number"/>
+  <property name="height" as="number"/>
+  <property name="shadow-offset" value="Math.min(`width, `height) / 10"/>
+  <property name="font-size" value="Math.min(`width, `height) * 0.65"/>
+  <property name="y-text" value="`height - `font\-size * 0.45"/>
+  <property name="x-text" value="Math.min(`width, `height) / 2"/>
+  <property name="label" as="string"/>
+  <property name="down" as="boolean" value="false"/>
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:g transform="translate(`x, `y)" class="button">
+      <svg:rect width="`width" height="`height" x="`shadow\-offset"
+        y="`shadow\-offset"/>
+      <svg:g id="g">
+        <svg:rect width="`width" height="`height" fill="white" stroke="black"/>
+        <svg:text x="`x\-text" y="`y\-text" font-size="`font\-size"
+          text-anchor="middle">`label</svg:text>
+      </svg:g>
+      <svg:rect width="`width" height="`height" fill-opacity="0" id="mask"/>
+    </svg:g>
+  </view>
+
+  <watch>
+    <get elem="mask" dom-event="mousedown" prevent-default="true"/>
+    <get elem="mask" dom-event="touchstart" prevent-default="true"/>
+    <set property="down" value="true"/>
+  </watch>
+
+  <watch>
+    <get elem="mask" dom-event="mouseup"/>
+    <get elem="mask" dom-event="mouseout"/>
+    <get elem="mask" dom-event="touchend"/>
+    <set event="!pushed" value="cancel(!this.properties.down)"/>
+    <set property="down" value="false"/>
+  </watch>
+
+  <watch>
+    <get property="down"/>
+    <set elem="g" attr="transform"
+      value="input ? 'translate(%0, %0)'.fmt(this.properties['shadow-offset']) : ''"/>
+  </watch>
+
+</component>

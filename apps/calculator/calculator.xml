@@ -1,0 +1,181 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <property name="operand" as="string" value=""/>
+  <property name="period-pressed" as="boolean" value="false"/>
+  <property name="last-digit" as="string" value="0"/>
+  <property name="prev"/>
+  <property name="operator"/>
+  <property name="new-operand" as="boolean" value="true"/>
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:svg viewBox="0 0 260 388" style="display: block"
+      font-family="sans-serif">
+      <svg:rect x="8" y="8" width="252" height="376" fill="black" rx="12" ry="12"
+        stroke="black"/>
+      <svg:rect x="4" y="4" width="252" height="376" fill="#bbb" rx="12" ry="12"
+        stroke="black"/>
+      <svg:g transform="translate(20, 20)">
+        <component href="calculator-screen.xml" width="220" height="60"
+          id="screen"/>
+        <svg:g transform="translate(6, 76)">
+          <svg:g transform="translate(0, 0)">
+            <component href="button.xml" label="C" width="40" height="40"
+              id="button-c"/>
+            <component href="button.xml" label="=" x="56" width="40" height="40"
+              id="button-eq1"/>
+            <component href="button.xml" label="÷" x="112" width="40" height="40"
+              id="button-div"/>
+            <component href="button.xml" label="×" x="168" width="40" height="40"
+              id="button-mul"/>
+          </svg:g>
+          <svg:g transform="translate(0, 56)">
+            <component href="button.xml" label="7" width="40" height="40"
+              id="button-7"/>
+            <component href="button.xml" label="8" x="56" width="40" height="40"
+              id="button-8"/>
+            <component href="button.xml" label="9" x="112" width="40" height="40"
+              id="button-9"/>
+            <component href="button.xml" label="−" x="168" width="40" height="40"
+              id="button-sub"/>
+          </svg:g>
+          <svg:g transform="translate(0, 112)">
+            <component href="button.xml" label="4" width="40" height="40"
+              id="button-4"/>
+            <component href="button.xml" label="5" x="56" width="40" height="40"
+              id="button-5"/>
+            <component href="button.xml" label="6" x="112" width="40" height="40"
+              id="button-6"/>
+            <component href="button.xml" label="+" x="168" width="40" height="40"
+              id="button-add"/>
+          </svg:g>
+          <svg:g transform="translate(0, 168)">
+            <component href="button.xml" label="1" width="40" height="40"
+              id="button-1"/>
+            <component href="button.xml" label="2" x="56" width="40" height="40"
+              id="button-2"/>
+            <component href="button.xml" label="3" x="112" width="40" height="40"
+              id="button-3"/>
+            <component href="button.xml" label="=" x="168" width="40" height="96"
+              id="button-eq2"/>
+          </svg:g>
+          <svg:g transform="translate(0, 224)">
+            <component href="button.xml" label="0" width="96" height="40"
+              id="button-0"/>
+            <component href="button.xml" label="." x="112" width="40" height="40"
+              id="button-period"/>
+          </svg:g>
+        </svg:g>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+  <watch>
+    <get property="operand"/>
+    <set component="screen" property="display"/>
+  </watch>
+
+  <watch>
+    <get component="button-c" event="!pushed"/>
+    <set property="period-pressed" value="false"/>
+    <set property="operand" value="0"/>
+    <set property="operator" value="undefined"/>
+  </watch>
+
+  <watch>
+    <get component="button-add" event="!pushed"
+      value="function(x, y) { return x + y; }"/>
+    <get component="button-sub" event="!pushed"
+      value="function(x, y) { return x - y; }"/>
+    <get component="button-div" event="!pushed"
+      value="function(x, y) { return x / y; }"/>
+    <get component="button-mul" event="!pushed"
+      value="function(x, y) { return x * y; }"/>
+    <set property="operator"/>
+    <set property="prev" value="parseFloat(this.properties.operand)"/>
+    <set property="new-operand" value="true"/>
+  </watch>
+
+  <watch>
+    <get component="button-eq1" event="!pushed"/>
+    <get component="button-eq2" event="!pushed"/>
+    <set property="operand">
+      cancel(!this.properties.operator);
+      return this.properties.operator(this.properties.prev || 0,
+        parseFloat(this.properties.operand));
+    </set>
+    <set property="prev" value="undefined"/>
+    <set property="new-operand" value="true"/>
+  </watch>
+
+  <watch>
+    <get component="button-period" event="!pushed"
+      value="!cancel(this.properties['period-pressed'])"/>
+    <set property="period-pressed"/>
+    <set property="last-digit" value="'.'"/>
+  </watch>
+
+  <watch>
+    <get component="button-0" event="!pushed"/>
+    <set property="last-digit" value="0"/>
+  </watch>
+
+  <watch>
+    <get component="button-1" event="!pushed"/>
+    <set property="last-digit" value="1"/>
+  </watch>
+
+  <watch>
+    <get component="button-2" event="!pushed"/>
+    <set property="last-digit" value="2"/>
+  </watch>
+
+  <watch>
+    <get component="button-3" event="!pushed"/>
+    <set property="last-digit" value="3"/>
+  </watch>
+
+  <watch>
+    <get component="button-4" event="!pushed"/>
+    <set property="last-digit" value="4"/>
+  </watch>
+
+  <watch>
+    <get component="button-5" event="!pushed"/>
+    <set property="last-digit" value="5"/>
+  </watch>
+
+  <watch>
+    <get component="button-6" event="!pushed"/>
+    <set property="last-digit" value="6"/>
+  </watch>
+
+  <watch>
+    <get component="button-7" event="!pushed"/>
+    <set property="last-digit" value="7"/>
+  </watch>
+
+  <watch>
+    <get component="button-8" event="!pushed"/>
+    <set property="last-digit" value="8"/>
+  </watch>
+
+  <watch>
+    <get component="button-9" event="!pushed"/>
+    <set property="last-digit" value="9"/>
+  </watch>
+
+  <watch>
+    <get property="last-digit"/>
+    <set property="operand">
+      var op = this.properties.operand;
+      if (op == "0" || this.properties["new-operand"]) {
+        op = "";
+      }
+      op += input;
+      cancel(op.length > scope.screen.properties.digits);
+      return op;
+    </set>
+    <set property="new-operand" value="false"/>
+  </watch>
+
+</component>

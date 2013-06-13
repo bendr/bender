@@ -1,0 +1,18 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" as="number" value="0"/>
+  <property name="y" as="number" value="0"/>
+  <property name="width" as="number"/>
+  <property name="height" as="number"/>
+  <property name="font-size" value="`height * 0.65"/>
+  <property name="digits" as="number" value="8"/>
+  <property name="display" value="'-' + flexo.pad('.', `digits + 1)"/>
+  <property name="y-text" value="`y + `font\-size * 1.125"/>
+  <property name="x-text" value="`width - `font\-size * 0.25"/>
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:rect width="`width" height="`height" x="`x" y="`y" fill="white"
+      stroke="black">
+    </svg:rect>
+    <svg:text x="`x\-text" y="`y\-text" font-size="`font\-size"
+      text-anchor="end">`display</svg:text>
+  </view>
+</component>
