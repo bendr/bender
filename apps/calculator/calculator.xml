@@ -6,14 +6,16 @@
   <property name="prev"/>
   <property name="operator"/>
   <property name="new-operand" as="boolean" value="true"/>
+  <property name="frame" as="boolean" value="true"/>
+  <property name="frame-op" value="`frame ? 1 : 0"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 260 388" style="display: block"
       font-family="sans-serif">
       <svg:rect x="8" y="8" width="252" height="376" fill="black" rx="12" ry="12"
-        stroke="black"/>
+        fill-opacity="`frame\-op"/>
       <svg:rect x="4" y="4" width="252" height="376" fill="#bbb" rx="12" ry="12"
-        stroke="black"/>
+        stroke="black" fill-opacity="`frame\-op" stroke-opacity="`frame\-op"/>
       <svg:g transform="translate(20, 20)">
         <component href="calculator-screen.xml" width="220" height="60"
           id="screen"/>
@@ -93,6 +95,7 @@
     <set property="operator"/>
     <set property="prev" value="parseFloat(this.properties.operand)"/>
     <set property="new-operand" value="true"/>
+    <set property="period-pressed" value="false"/>
   </watch>
 
   <watch>
@@ -105,6 +108,7 @@
     </set>
     <set property="prev" value="undefined"/>
     <set property="new-operand" value="true"/>
+    <set property="period-pressed" value="false"/>
   </watch>
 
   <watch>
@@ -166,15 +170,15 @@
 
   <watch>
     <get property="last-digit"/>
-    <set property="operand">
+    <set property="operand"><![CDATA[
       var op = this.properties.operand;
       if (op == "0" || this.properties["new-operand"]) {
-        op = "";
+        op = input == "." ? "0" : "";
       }
       op += input;
       cancel(op.length > scope.screen.properties.digits);
       return op;
-    </set>
+    ]]></set>
     <set property="new-operand" value="false"/>
   </watch>
 
