@@ -247,7 +247,7 @@
       } else if (ch.nodeType == window.Node.TEXT_NODE ||
         ch.nodeType == window.Node.CDATA_SECTION_NODE) {
         seq.add(function (k_) {
-          children.push(bender.dom_text_node(ch.textContent));
+          children.push(new bender.DOMTextNode(ch.textContent));
           k_();
         });
       }
@@ -272,7 +272,7 @@
           }
           attrs[nsuri][attr.localName] = attr.value;
         });
-        k(bender.dom_element(elem.namespaceURI, elem.localName, attrs, d));
+        k(new bender.DOMElement(elem.namespaceURI, elem.localName, attrs, d));
       }
     });
   };
@@ -286,7 +286,7 @@
 
   // Deserialize a Bender attribute element.
   Env.deserialize.attribute = function (elem, component, k) {
-    var attr = bender.attribute(elem.getAttribute("id"),
+    var attr = new bender.Attribute(elem.getAttribute("id"),
         elem.getAttribute("ns"), elem.getAttribute("name"));
     foreach.call(elem.childNodes, function (ch) {
       if (ch.nodeType == window.Node.ELEMENT_NODE &&
@@ -297,7 +297,7 @@
           });
       } else if (ch.nodeType == window.Node.TEXT_NODE ||
         ch.nodeType == window.Node.CDATA_SECTION_NODE) {
-        attr.append_child(bender.dom_text_node(ch.textContent));
+        attr.append_child(new bender.DOMTextNode(ch.textContent));
       }
     }, this);
     k(attr);
@@ -305,12 +305,12 @@
 
   // Deserialize a Bender text element.
   Env.deserialize.text = function (elem, component, k) {
-    k(bender.text(elem.getAttribute("id"), elem.textContent));
+    k(new bender.Text(elem.getAttribute("id"), elem.textContent));
   };
 
   // Deserialize a Bender watch element.
   Env.deserialize.watch = function (elem, component, k) {
-    var watch = bender.watch();
+    var watch = new bender.Watch;
     var error = false;
     foreach.call(elem.childNodes, function (ch) {
       this.deserialize(ch, component, function (d) {
@@ -513,7 +513,7 @@
         }
         ch.component = this;
         this.view = ch;
-      } else if (flexo.instance_of(ch, bender.Watch)) {
+      } else if (ch instanceof bender.Watch) {
         ch.component = this;
         this.watches.push(ch);
       }
@@ -559,7 +559,7 @@
       // work, but `sides || (`palette && ...) does
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
-          var watch = bender.watch();
+          var watch = new bender.Watch;
           watch.append_set(bender.set_property(property.name, chain[0],
               property.__bindings[""].value));
           Object.keys(property.__bindings).forEach(function (id) {
@@ -574,7 +574,7 @@
       });
       // Render string bindings
       c.__bindings.forEach(function (bindings) {
-        var watch = bender.watch();
+        var watch = new bender.Watch;
         if (bindings[""].hasOwnProperty("attr")) {
           watch.append_set(bender.set_dom_attribute(bindings[""].ns,
               bindings[""].attr, bindings[""].target, bindings[""].value));
@@ -807,7 +807,6 @@
     }
   };
 
-
   bender.View = function (stack, children) {
     var s = flexo.safe_trim(stack).toLowerCase();
     this.stack = s == "bottom" || s == "replace" ? s : "top";
@@ -837,38 +836,36 @@
     bender.View.prototype.render.call(this, target, stack);
   };
 
+  bender.Attribute = function (id, ns, name, children) {
+    this.id = id || "";
+    this.ns = ns || "";
+    this.name = name;
+    this.children = children || [];
+  };
 
-
-  bender.Attribute = {};
-
-  bender.Attribute.append_child = function (ch) {
-    if (flexo.instance_of(ch, bender.Text)) {
+  bender.Attribute.prototype.append_child = function (ch) {
+    if (ch instanceof bender.Text) {
       this.children.push(ch);
       ch.parent = this;
-    } else if (flexo.instance_of(ch, bender.DOMTextNode)) {
+    } else if (ch instanceof bender.DOMTextNode) {
       this.children.push(ch);
     }
   };
 
-  bender.Attribute.remove_children = function () {
+  bender.Attribute.prototype.remove_children = function () {
     this.children.forEach(function (ch) {
-      if (flexo.instance_of(ch, bender.Text)) {
+      if (ch instanceof bender.Text) {
         delete ch.parent;
       }
     });
     this.children = [];
   };
 
-  function set_attribute_value(target) {
-    target.setAttributeNS(this.attr.ns, this.attr.name,
-        this.children.map(function (ch) { return ch.text; }).join(""));
-  }
-
   bender.Attribute.render = function (target, stack) {
     var scope = stack[stack.i - 1].scope;
     var rendered = { attr: this, component: scope.$this };
     rendered.children = this.children.map(function (ch) {
-      if (flexo.instance_of(ch, bender.Text)) {
+      if (ch instanceof bender.Text) {
         var ch_ = { text: ch.text };
         add_id_to_scope(scope, ch.id, ch_);
         Object.defineProperty(ch_, "textContent", {
@@ -885,7 +882,7 @@
     Object.defineProperty(rendered, "textContent", {
       enumerable: true,
       set: function (t) {
-        rendered.children = [bender.dom_text_node(t)];
+        rendered.children = [new bender.DOMTextNode(t)];
         set_attribute_value.call(rendered, target);
       }
     });
@@ -893,34 +890,24 @@
     set_attribute_value.call(rendered, target);
   };
 
-  bender.attribute = function (id, ns, name, children) {
-    var a = Object.create(bender.Attribute);
-    a.id = id || "";
-    a.ns = ns || "";
-    a.name = name;
-    a.children = children || [];
-    return a;
+  bender.Text = function (id, text) {
+    this.id = id || "";
+    this.text = text || "";
   };
 
-
-  bender.Text = {};
-
-  bender.Text.render = function (target, stack) {
+  bender.Text.prototype.render = function (target, stack) {
     var e = target.appendChild(target.ownerDocument.createTextNode(this.text));
     add_id_to_scope(stack[stack.i - 1].scope, this.id, e);
   };
 
-  bender.text = function (id, text) {
-    var t = Object.create(bender.Text);
-    t.id = id || "";
-    t.text = text || "";
-    return t;
+  bender.DOMElement = function (nsuri, name, attrs, children) {
+    this.nsuri = nsuri;
+    this.name = name;
+    this.attrs = attrs || {};
+    this.children = children || [];
   };
 
-
-  bender.DOMElement = {};
-
-  bender.DOMElement.render = function (target, stack) {
+  bender.DOMElement.prototype.render = function (target, stack) {
     var scope = stack[stack.i - 1].scope;
     var e = target.appendChild(target.ownerDocument.createElementNS(this.nsuri,
           this.name));
@@ -949,22 +936,28 @@
     }
   };
 
-  bender.dom_element = function (nsuri, name, attrs, children) {
-    var e = Object.create(bender.DOMElement);
-    e.nsuri = nsuri;
-    e.name = name;
-    e.attrs = attrs || {};
-    e.children = children || [];
-    return e;
+  bender.DOMTextNode = function (text) {
+    Object.defineProperty(this, "text", { enumerable: true,
+      get: function () {
+        return text;
+      },
+      set: function (new_text) {
+        new_text = flexo.safe_string(new_text);
+        if (new_text != text) {
+          text = new_text;
+          this.rendered.forEach(function (d) {
+            d.textContent = new_text;
+          });
+        }
+      }
+    });
+    this.rendered = [];
   };
 
-
-  bender.DOMTextNode = {};
-
-  bender.DOMTextNode.render = function (target, stack) {
+  bender.DOMTextNode.prototype.render = function (target, stack) {
     var d = target.appendChild(target.ownerDocument.createTextNode(""));
     var bindings = property_binding_string(this.text);
-    if (typeof bindings === "string") {
+    if (typeof bindings == "string") {
       d.textContent = bindings;
     } else {
       bindings[""].target = d;
@@ -973,40 +966,22 @@
     this.rendered.push(d);
   };
 
-  bender.dom_text_node = function (text) {
-    var t = Object.create(bender.DOMTextNode);
-    Object.defineProperty(t, "text", { enumerable: true,
-      get: function () {
-        return text;
-      },
-      set: function (new_text) {
-        new_text = flexo.safe_string(new_text);
-        if (new_text !== text) {
-          text = new_text;
-          this.rendered.forEach(function (d) {
-            d.textContent = new_text;
-          });
-        }
-      }
-    });
-    t.rendered = [];
-    return t;
+  bender.Watch = function () {
+    this.gets = [];
+    this.sets = [];
   };
 
-
-  bender.Watch = {};
-
-  bender.Watch.append_get = function (get) {
+  bender.Watch.prototype.append_get = function (get) {
     this.gets.push(get);
     get.watch = this;
   };
 
-  bender.Watch.append_set = function (set) {
+  bender.Watch.prototype.append_set = function (set) {
     this.sets.push(set);
     set.watch = this;
   };
 
-  bender.Watch.render = function (component) {
+  bender.Watch.prototype.render = function (component) {
     var scope = component.scope;
     var context = scope.$this;
     this.gets.forEach(function (get) {
@@ -1019,13 +994,6 @@
         }, this);
       }
     }, this);
-  };
-
-  bender.watch = function () {
-    var w = Object.create(bender.Watch);
-    w.gets = [];
-    w.sets = [];
-    return w;
   };
 
 
@@ -1581,6 +1549,13 @@
     }
   }
 
+  function set_attribute_value(target) {
+    target.setAttributeNS(this.attr.ns, this.attr.name,
+        this.children.map(function (ch) {
+          return ch.text;
+        }).join(""));
+  }
+
   // Set properties for the loaded component from the arguments. If properties
   // were set, return the new component with the set properties, otherwise the
   // original component unchanged.
@@ -1589,7 +1564,7 @@
     var props = Object.keys(args).filter(function (p) {
       return (p != "href") && (p in all_properties);
     }).map(function (p) {
-      return bender.property(p, all_properties[p].as, args[p]);
+      return new bender.Property(p, all_properties[p].as, args[p]);
     });
     if (props.length > 0) {
       var c = bender.component(component.environment);
@@ -1617,7 +1592,7 @@
         !/^on-/.test(a.localName);
     }).forEach(function (a) {
       var prop = all_properties[a.localName];
-      var p = bender.property(prop.name, prop.as, a.value);
+      var p = new bender.Property(prop.name, prop.as, a.value);
       component.own_properties[p.name] = p;
       p.component = component;
     });
