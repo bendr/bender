@@ -1,0 +1,31 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="grid-size" as="number" value="16"/>
+  <property name="grid-canvas"/>
+  <watch>
+    <get property="grid-size"/>
+    <set property="grid-canvas">
+      var canvas = scope.$document.createElement("canvas");
+      canvas.width = this.properties["grid-size"];
+      canvas.height = this.properties["grid-size"];
+      var context = canvas.getContext("2d");
+      context.beginPath();
+      var sz = this.properties["grid-size"] - 0.5;
+      context.moveTo(sz, 0);
+      context.lineTo(sz, sz + 0.5);
+      context.moveTo(sz + 0.5, sz);
+      context.lineTo(0, sz);
+      context.strokeStyle = "#bfdfff";
+      context.stroke();
+      return canvas;
+    </set>
+  </watch>
+  <watch>
+    <get property="grid-canvas">
+      if (property) {
+        var body = scope.$document.body;
+        body.style.backgroundImage =
+          "url(%0)".fmt(property.toDataURL("image/png"));
+      }
+    </get>
+  </watch>
+</component>
