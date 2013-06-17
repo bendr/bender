@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.1, 9 April 2013 -->
+  <!-- Bender v0.8.2, 17 June 2013 -->
 
   <start>
     <ref name="component"/>
@@ -28,14 +28,10 @@
 
   <define name="component">
     <element name="component">
-      <optional>
-        <ref name="id"/>
-      </optional>
-      <optional>
-        <ref name="href-component"/>
-      </optional>
       <zeroOrMore>
-        <ref name="on-render"/>
+        <attribute>
+          <anyName/>
+        </attribute>
       </zeroOrMore>
       <interleave>
         <zeroOrMore>
@@ -124,7 +120,7 @@
   <define name="link">
     <element name="link">
       <ref name="rel"/>
-      <ref name="href-link"/>
+      <ref name="href"/>
     </element>
   </define>
 
@@ -213,25 +209,12 @@
       <optional>
         <ref name="stack"/>
       </optional>
-      <mixed>
-        <zeroOrMore>
-          <ref name="foreign-view-content"/>
-        </zeroOrMore>
-        <zeroOrMore>
-          <ref name="component"/>
-        </zeroOrMore>
-        <zeroOrMore>
-          <ref name="text"/>
-        </zeroOrMore>
-        <zeroOrMore>
-          <ref name="content"/>
-        </zeroOrMore>
-      </mixed>
+      <ref name="view-content"/>
     </element>
   </define>
 
   <define name="view-content">
-    <mixed>
+    <interleave>
       <zeroOrMore>
         <ref name="attribute"/>
       </zeroOrMore>
@@ -247,7 +230,8 @@
       <zeroOrMore>
         <ref name="text"/>
       </zeroOrMore>
-    </mixed>
+      <text/>
+    </interleave>
   </define>
 
   <define name="watch">
@@ -305,13 +289,7 @@
     </attribute>
   </define>
 
-  <define name="href-component">
-    <attribute name="href">
-      <data type="anyURI"/>
-    </attribute>
-  </define>
-
-  <define name="href-link">
+  <define name="href">
     <attribute name="href">
       <data type="anyURI"/>
     </attribute>
@@ -333,10 +311,6 @@
     <attribute name="ns">
       <data type="anyURI"/>
     </attribute>
-  </define>
-
-  <define name="on-render">
-    <attribute name="on-render"/>
   </define>
 
   <define name="prevent-default">

@@ -1,7 +1,7 @@
 (function (bender) {
   "use strict";
 
-  bender.VERSION = "0.8.1";
+  bender.VERSION = "0.8.2";
 
   var __SERIAL = 0;  // Counter for serial numbers, should be removed in the end
 
@@ -10,28 +10,6 @@
 
   // The Bender namespace for (de)serialization to XML
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
-
-  // Set properties for the loaded component from the arguments. If properties
-  // were set, return the new component with the set properties, otherwise the
-  // original component unchanged.
-  function set_properties_from_args(component, args) {
-    var defined = component.all_properties;
-    var props = Object.keys(args).filter(function (p) {
-      return p !== "href" && p in defined;
-    }).map(function (p) {
-      return bender.property(p, defined[p].as, args[p]);
-    });
-    if (props.length > 0) {
-      var c = bender.component(component.environment);
-      c.prototype = component;
-      props.forEach(function (prop) {
-        c.own_properties[prop.name] = prop;
-        prop.component = c;
-      });
-      return c;
-    }
-    return component;
-  }
 
   // Load an application from a component to be rendered in the given target.
   // The defaults object contains default values for the properties of the
@@ -50,7 +28,7 @@
       k = flexo.nop;
     }
     target = target || window.document.body || window.document.documentElement;
-    env = env || bender.environment(target.ownerDocument);
+    env = env || new bender.Environment(target.ownerDocument);
     var args = flexo.get_args(typeof defaults == "object" ? defaults :
         { href: defaults });
     if (args.href) {
@@ -68,28 +46,26 @@
     return env;
   };
 
-  bender.Environment = {};
-
   // Create a new environment with its environment scope, no loaded component,
   // and an empty watch graph (consisting only of a vortex.) Then start the
   // graph scheduler.
-  bender.environment = function (document) {
-    var e = Object.create(bender.Environment);
-    e.document = document;
-    e.scope = { $document: document, $__ENV: this, $__SERIAL: __SERIAL++ };
-    e.loaded = {};
-    e.components = [];
-    e.vertices = [];
-    e.vortex = make_vertex(bender.Vortex);
-    e.add_vertex(e.vortex);
-    e.scheduled = [];
-    (e.traverse_graph = traverse_graph.bind(e))();
-    return e;
+  bender.Environment = function (document) {
+    this.document = document;
+    this.scope = { $document: document, $__ENV: this, $__SERIAL: __SERIAL++ };
+    this.loaded = {};
+    this.components = [];
+    this.vertices = [];
+    this.vortex = make_vertex(bender.Vortex);
+    this.add_vertex(this.vortex);
+    this.scheduled = [];
+    this.traverse_graph_bound = this.traverse_graph.bind(this);
   };
+
+  var Env = bender.Environment.prototype;
 
   // Load a component at the given URL and call k with the loaded component (or
   // an error)
-  bender.Environment.load_component = function (url, k) {
+  Env.load_component = function (url, k) {
     if (!this.loaded.hasOwnProperty(url)) {
       this.loaded[url] = [k];
       flexo.ez_xhr(url, { responseType: "document" }, function (req) {
@@ -98,13 +74,13 @@
           this.deserialize(req.response.documentElement, null, function (d) {
             if (flexo.instance_of(d, bender.Component)) {
               this.loaded[url] = d;
-            } else if (typeof d === "string") {
+            } else if (typeof d == "string") {
               this.loaded[url] = d;
             } else {
               this.loaded[url] = "could not get a Bender component at %0"
                 .fmt(url);
             }
-            if (typeof this.loaded[url] === "string") {
+            if (typeof this.loaded[url] == "string") {
               k(this.loaded[url]);
             } else {
               ks.forEach(function (k_) {
@@ -127,20 +103,19 @@
 
   // Deserialize `node` in the environment, within `component`; upon completion,
   // call k with the created object (if any) or an error message
-  bender.Environment.deserialize = function (node, component, k) {
+  Env.deserialize = function (node, component, k) {
     if (node instanceof window.Node) {
-      if (node.nodeType === window.Node.ELEMENT_NODE) {
-        if (node.namespaceURI === bender.ns) {
-          var f = bender.Environment.deserialize[node.localName];
-          if (typeof f === "function") {
+      if (node.nodeType == window.Node.ELEMENT_NODE) {
+        if (node.namespaceURI == bender.ns) {
+          var f = Env.deserialize[node.localName];
+          if (typeof f == "function") {
             f.call(this, node, component, k);
           } else {
             k("Unknown Bender element “%0” in %1"
                 .fmt(node.localName, node.baseURI))
           }
         } else {
-          var suggestion =
-            bender.Environment.deserialize.hasOwnProperty(node.localName) ?
+          var suggestion = Env.deserialize.hasOwnProperty(node.localName) ?
             "reminder: Bender’s namespace is %0".fmt(bender.ns) :
             "a Bender element was expected";
           k("Unknown element “%0” in %1 (%2)"
@@ -155,24 +130,8 @@
     }
   };
 
-  // Set default values for properties of a component from the attributes of the
-  // element being deserialized (which are different from href, id, and on-...)
-  function set_property_defaults(elem, component) {
-    var defined = component.all_properties;
-    filter.call(elem.attributes, function (a) {
-      return defined.hasOwnProperty(a.localName) && a.namespaceURI === null &&
-        a.localName !== "href" && a.localName !== "id" &&
-      !/^on-/.test(a.localName)
-    }).forEach(function (a) {
-      var prop = defined[a.localName];
-      var p = bender.property(prop.name, prop.as, a.value);
-      component.own_properties[p.name] = p;
-      p.component = component;
-    });
-  }
-
   // Deserialize a Bender component element
-  bender.Environment.deserialize.component = function (elem, parent, k) {
+  Env.deserialize.component = function (elem, parent, k) {
     var init_component = function (env, prototype) {
       var component = bender.component(env, parent);
       component.id = elem.getAttribute("id");
@@ -187,7 +146,7 @@
       foreach.call(elem.childNodes, function (ch) {
         seq.add(function (k_) {
           env.deserialize(ch, component, function (d) {
-            if (typeof d === "string") {
+            if (typeof d == "string") {
               k(d);
             } else {
               component.append_child(d);
@@ -205,7 +164,7 @@
       this.load_component(
         flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")),
         function (d) {
-          if (typeof d === "string") {
+          if (typeof d == "string") {
             k(d);
           } else {
             init_component(this, d);
@@ -220,7 +179,7 @@
   // Deserialize a Bender link element. The link is rendered immediately in the
   // environment’s document (which, in the case of a script, may require script
   // loading.)
-  bender.Environment.deserialize.link = function (elem, component, k) {
+  Env.deserialize.link = function (elem, component, k) {
     var uri = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
     var link = bender.link(uri, elem.getAttribute("rel"));
     if (!this.loaded[uri]) {
@@ -232,16 +191,16 @@
   };
 
   // Deserialize a Bender property element.
-  bender.Environment.deserialize.property = function (elem, _, k) {
+  Env.deserialize.property = function (elem, _, k) {
     var value = elem.getAttribute("value");
     k(bender.property(elem.getAttribute("name"), elem.getAttribute("as"),
           elem.getAttribute("value")));
   };
 
   // Deserialize a Bender view element.
-  bender.Environment.deserialize.view = function (elem, component, k) {
+  Env.deserialize.view = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
-      k(typeof d === "string" ? d :
+      k(typeof d == "string" ? d :
         bender.view(elem.getAttribute("id"), elem.getAttribute("stack"),
           d));
     });
@@ -249,20 +208,20 @@
 
   // Deserialize view content, which is either Bender elements that can appear
   // within a view, foreign elements, or text.
-  bender.Environment.deserialize_view_content = function (elem, component, k) {
+  Env.deserialize_view_content = function (elem, component, k) {
     var children = [];
     var seq = flexo.seq();
     foreach.call(elem.childNodes, function (ch) {
-      if (ch.nodeType === window.Node.ELEMENT_NODE) {
-        if (ch.namespaceURI === bender.ns) {
-          if (ch.localName === "component" ||
-            ch.localName === "content" ||
-            ch.localName === "attribute" ||
-            ch.localName === "text") {
+      if (ch.nodeType == window.Node.ELEMENT_NODE) {
+        if (ch.namespaceURI == bender.ns) {
+          if (ch.localName == "component" ||
+            ch.localName == "content" ||
+            ch.localName == "attribute" ||
+            ch.localName == "text") {
             seq.add(function (k_) {
-              bender.Environment.deserialize[ch.localName].call(this, ch,
+              Env.deserialize[ch.localName].call(this, ch,
                 component, function (d) {
-                  if (typeof d === "string") {
+                  if (typeof d == "string") {
                     k(d);
                   } else {
                     children.push(d);
@@ -277,7 +236,7 @@
         } else {
           seq.add(function (k_) {
             this.deserialize_dom_element(ch, component, function(d) {
-              if (typeof d === "string") {
+              if (typeof d == "string") {
                 k(d);
               } else {
                 children.push(d);
@@ -286,8 +245,8 @@
             });
           }.bind(this));
         }
-      } else if (ch.nodeType === window.Node.TEXT_NODE ||
-        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+      } else if (ch.nodeType == window.Node.TEXT_NODE ||
+        ch.nodeType == window.Node.CDATA_SECTION_NODE) {
         seq.add(function (k_) {
           children.push(bender.dom_text_node(ch.textContent));
           k_();
@@ -301,9 +260,9 @@
   };
 
   // Deserialize a foreign element.
-  bender.Environment.deserialize_dom_element = function (elem, component, k) {
+  Env.deserialize_dom_element = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
-      if (typeof d === "string") {
+      if (typeof d == "string") {
         k(d);
       } else {
         var attrs = {};
@@ -320,26 +279,26 @@
   };
 
   // Deserialize a Bender content element.
-  bender.Environment.deserialize.content = function (elem, component, k) {
+  Env.deserialize.content = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
-      k(typeof d === "string" ? d :
+      k(typeof d == "string" ? d :
         bender.content(elem.getAttribute("id"), d));
     });
   };
 
   // Deserialize a Bender attribute element.
-  bender.Environment.deserialize.attribute = function (elem, component, k) {
+  Env.deserialize.attribute = function (elem, component, k) {
     var attr = bender.attribute(elem.getAttribute("id"),
         elem.getAttribute("ns"), elem.getAttribute("name"));
     foreach.call(elem.childNodes, function (ch) {
-      if (ch.nodeType === window.Node.ELEMENT_NODE &&
-        ch.namespaceURI === bender.ns && ch.localName === "text") {
-        bender.Environment.deserialize.text.call(this, ch, component,
+      if (ch.nodeType == window.Node.ELEMENT_NODE &&
+        ch.namespaceURI == bender.ns && ch.localName == "text") {
+        Env.deserialize.text.call(this, ch, component,
           function (d) {
             attr.append_child(d);
           });
-      } else if (ch.nodeType === window.Node.TEXT_NODE ||
-        ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+      } else if (ch.nodeType == window.Node.TEXT_NODE ||
+        ch.nodeType == window.Node.CDATA_SECTION_NODE) {
         attr.append_child(bender.dom_text_node(ch.textContent));
       }
     }, this);
@@ -347,17 +306,17 @@
   };
 
   // Deserialize a Bender text element.
-  bender.Environment.deserialize.text = function (elem, component, k) {
+  Env.deserialize.text = function (elem, component, k) {
     k(bender.text(elem.getAttribute("id"), elem.textContent));
   };
 
   // Deserialize a Bender watch element.
-  bender.Environment.deserialize.watch = function (elem, component, k) {
+  Env.deserialize.watch = function (elem, component, k) {
     var watch = bender.watch();
     var error = false;
     foreach.call(elem.childNodes, function (ch) {
       this.deserialize(ch, component, function (d) {
-        if (typeof d === "object") {
+        if (typeof d == "object") {
           if (flexo.instance_of(d, bender.Get)) {
             watch.append_get(d);
           } else if (flexo.instance_of(d, bender.Set)) {
@@ -372,7 +331,7 @@
   };
 
   // Deserialize a Bender get element.
-  bender.Environment.deserialize.get = function (elem, _, k) {
+  Env.deserialize.get = function (elem, _, k) {
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("property")) {
@@ -394,7 +353,7 @@
   };
 
   // Deserialize a Bender set element.
-  bender.Environment.deserialize.set = function (elem, _, k) {
+  Env.deserialize.set = function (elem, _, k) {
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("elem")) {
@@ -427,7 +386,8 @@
   // value for its destination vertex; when the edge wants to cancel the
   // traversal, it sends a "cancel" exception which stops the traversal at this
   // point. This function must be bound to an environment.
-  function traverse_graph() {
+  Env.traverse_graph = function () {
+    delete this.__next_request;
     if (this.scheduled.length > 0) {
       this.__schedule_next = [];
       var visited = [];
@@ -457,15 +417,16 @@
       });
       this.scheduled = this.__schedule_next;
       delete this.__schedule_next;
+      this.__next_request =
+        flexo.request_animation_frame(this.traverse_graph_bound);
     }
-    flexo.request_animation_frame(this.traverse_graph);
-  }
+  };
 
   // Schedule a visit of the vertex for a given value. If the same vertex is
   // already scheduled, discard the old value.
-  bender.Environment.schedule_visit = function (vertex, value) {
+  Env.schedule_visit = function (vertex, value) {
     var q = flexo.find_first(this.scheduled, function (q) {
-      return q[0] === vertex;
+      return q[0] == vertex;
     });
     if (q) {
       if (q[0].hasOwnProperty("__value")) {
@@ -477,12 +438,16 @@
       }
     } else {
       this.scheduled.push([vertex, value]);
+      if (!this.__next_request) {
+        this.__next_request =
+          flexo.request_animation_frame(this.traverse_graph_bound);
+      }
     }
   };
 
   // Add a vertex to the watch graph and return it. If a matching vertex was
   // found, just return the previous vertex.
-  bender.Environment.add_vertex = function (v) {
+  Env.add_vertex = function (v) {
     var v_ = flexo.find_first(this.vertices, function (w) {
       return v.match(w);
     });
@@ -495,7 +460,7 @@
   };
 
   // Debugging: output the watch graph
-  bender.Environment.dump_graph = function () {
+  Env.dump_graph = function () {
     this.vertices.forEach(function (vertex) {
       console.log(vertex.toString());
       vertex.out_edges.forEach(function (edge) {
@@ -1628,5 +1593,50 @@
     s.value = init_set_value(value);
     return s;
   };
+
+
+  // Utility functions
+
+  // Set properties for the loaded component from the arguments. If properties
+  // were set, return the new component with the set properties, otherwise the
+  // original component unchanged.
+  function set_properties_from_args(component, args) {
+    var all_properties = component.all_properties;
+    var props = Object.keys(args).filter(function (p) {
+      return (p != "href") && (p in all_properties);
+    }).map(function (p) {
+      return bender.property(p, all_properties[p].as, args[p]);
+    });
+    if (props.length > 0) {
+      var c = bender.component(component.environment);
+      c.prototype = component;
+      props.forEach(function (prop) {
+        c.own_properties[prop.name] = prop;
+        prop.component = c;
+      });
+      return c;
+    }
+    return component;
+  }
+
+  // Set default values for properties of a component from the attributes of the
+  // element being deserialized (which are different from href, id, and on-...)
+  // TODO use namespaces to allow properties having the same name as attributes
+  // such as `href` and `enabled` in the future
+  function set_property_defaults(elem, component) {
+    var all_properties = component.all_properties;
+    filter.call(elem.attributes, function (a) {
+      return all_properties.hasOwnProperty(a.localName) &&
+        a.namespaceURI == null &&
+        a.localName != "href" &&
+        a.localName != "id" &&
+        !/^on-/.test(a.localName);
+    }).forEach(function (a) {
+      var prop = all_properties[a.localName];
+      var p = bender.property(prop.name, prop.as, a.value);
+      component.own_properties[p.name] = p;
+      p.component = component;
+    });
+  }
 
 }(this.bender = {}));
