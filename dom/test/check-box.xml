@@ -33,21 +33,22 @@
   </view>
 
   <watch>
-    <get component="ch" property="checked"/>
-    <set elem="selected" value="input ? 'yes' : 'no'"/>
+    <get select="#ch" property="checked"/>
+    <set select="@selected" dom-property="textContent"
+      value="input ? 'yes' : 'no'"/>
   </watch>
 
   <watch>
-    <get component="b" event="!pushed"/>
-    <set component="ch" property="checked"
-      value="!scope.ch.properties.checked"/>
+    <get select="#b" event="!pushed"/>
+    <set select="#ch" property="checked"
+      value="!scope['#ch'].properties.checked"/>
   </watch>
 
   <watch>
-    <get component="e" event="!pushed" value="true"/>
-    <get component="d" event="!pushed" value="false"/>
-    <set component="b" property="enabled"/>
-    <set component="ch" property="enabled"/>
+    <get select="#e" event="!pushed" value="true"/>
+    <get select="#d" event="!pushed" value="false"/>
+    <set select="#b" property="enabled"/>
+    <set select="#ch" property="enabled"/>
   </watch>
 
 </component>

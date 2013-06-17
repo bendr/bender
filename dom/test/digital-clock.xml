@@ -10,17 +10,20 @@
 
   <watch>
     <get property="h"/>
-    <set elem="h" value="flexo.pad(input | 0, 2)"/>
+    <set select="@h" dom-property="textContent"
+      value="flexo.pad(input | 0, 2)"/>
   </watch>
 
   <watch>
     <get property="m"/>
-    <set elem="m" value="flexo.pad(input | 0, 2)"/>
+    <set select="@m" dom-property="textContent"
+      value="flexo.pad(input | 0, 2)"/>
   </watch>
 
   <watch>
     <get property="s"/>
-    <set elem="s" value="flexo.pad(input | 0, 2)"/>
+    <set select="@s" dom-property="textContent"
+      value="flexo.pad(input | 0, 2)"/>
   </watch>
 
 </component>

@@ -30,53 +30,53 @@
 
   <watch>
     <get property="first-name"/>
-    <set elem="first"/>
-    <set component="first-input" property="value"/>
+    <set select="@first" dom-property="textContent"/>
+    <set select="#first-input" property="value"/>
   </watch>
 
   <watch>
-    <get component="first-input" property="value"/>
+    <get select="#first-input" property="value"/>
     <set property="first-name"/>
   </watch>
 
   <watch>
     <get property="first-name"/>
-    <set elem="first"/>
+    <set select="@first" dom-property="textContent"/>
   </watch>
 
   <watch>
     <get property="middle-name"/>
-    <set elem="middle">
+    <set select="@middle" dom-property="textContent">
       var m = input.match(/\b(\w)/);
       return m ? m[0] + "." : "";
     </set>
-    <set component="middle-input" property="value"/>
+    <set select="#middle-input" property="value"/>
   </watch>
 
   <watch>
-    <get component="middle-input" property="value"/>
+    <get select="#middle-input" property="value"/>
     <set property="middle-name"/>
   </watch>
 
   <watch>
     <get property="first-name"/>
-    <set elem="first"/>
+    <set select="@first" dom-property="textContent"/>
   </watch>
 
   <watch>
     <get property="last-name"/>
-    <set elem="last"/>
-    <set component="last-input" property="value"/>
+    <set select="@last" dom-property="textContent"/>
+    <set select="#last-input" property="value"/>
   </watch>
 
   <watch>
-    <get component="last-input" property="value"/>
+    <get select="#last-input" property="value"/>
     <set property="last-name"/>
   </watch>
 
   <watch>
     <get property="last-name"/>
-    <set elem="last"/>
+    <set select="@last" dom-property="textContent"/>
   </watch>
 
 </component>

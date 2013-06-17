@@ -11,24 +11,24 @@
 
   <watch>
     <get property="enabled"/>
-    <set elem="input" property="readOnly" value="!input"/>
+    <set select="@input" dom-property="readOnly" value="!input"/>
   </watch>
 
   <watch>
     <get property="placeholder"/>
-    <set elem="input" attr="placeholder"/>
+    <set select="@input" attr="placeholder"/>
   </watch>
 
   <watch>
     <get property="value"/>
-    <set elem="input" property="value"/>
-    <set elem="input" dom-event="change"/>
+    <set select="@input" dom-property="value"/>
+    <set select="@input" dom-event="change"/>
   </watch>
 
   <watch>
-    <get elem="input" dom-event="change"/>
+    <get select="@input" dom-event="change"/>
     <set property="value">
-      scope.input.blur();
+      scope["@input"].blur();
       return input.target.value;
     </set>
   </watch>

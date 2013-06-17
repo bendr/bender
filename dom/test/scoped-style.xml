@@ -25,15 +25,15 @@
     </html:p>
   </view>
   <watch>
-    <get component="red-button" event="!pushed"/>
+    <get select="#red-button" event="!pushed"/>
     <set property="color" value="'red'"/>
   </watch>
   <watch>
-    <get component="orange-button" event="!pushed"/>
+    <get select="#orange-button" event="!pushed"/>
     <set property="color" value="'orange'"/>
   </watch>
   <watch>
-    <get component="green-button" event="!pushed"/>
+    <get select="#green-button" event="!pushed"/>
     <set property="color" value="'green'"/>
   </watch>
 </component>

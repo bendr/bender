@@ -1,5 +1,7 @@
 ### Changes in v0.8.2 (forthcoming)
 
+* Replaced elem/component attribute with select. Introduce @ and # to separate
+  identifiers to concrete and abstract nodes.
 * Single view/content, no id (will use XML properties instead.)
 * Pausing the event loop when the queue is empty.
 

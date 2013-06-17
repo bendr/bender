@@ -7,7 +7,7 @@
   </view>
 
   <watch>
-    <get component="timer" event="!tick">
+    <get select="#timer" event="!tick">
       console.log("Tick! %0".fmt(event.time));
     </get>
   </watch>

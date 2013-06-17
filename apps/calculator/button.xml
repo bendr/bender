@@ -23,22 +23,22 @@
   </view>
 
   <watch>
-    <get elem="mask" dom-event="mousedown" prevent-default="true"/>
-    <get elem="mask" dom-event="touchstart" prevent-default="true"/>
+    <get select="@mask" dom-event="mousedown" prevent-default="true"/>
+    <get select="@mask" dom-event="touchstart" prevent-default="true"/>
     <set property="down" value="true"/>
   </watch>
 
   <watch>
-    <get elem="mask" dom-event="mouseup"/>
-    <get elem="mask" dom-event="mouseout"/>
-    <get elem="mask" dom-event="touchend"/>
+    <get select="@mask" dom-event="mouseup"/>
+    <get select="@mask" dom-event="mouseout"/>
+    <get select="@mask" dom-event="touchend"/>
     <set event="!pushed" value="cancel(!this.properties.down)"/>
     <set property="down" value="false"/>
   </watch>
 
   <watch>
     <get property="down"/>
-    <set elem="g" attr="transform"
+    <set select="@g" attr="transform"
       value="input ? 'translate(%0, %0)'.fmt(this.properties['shadow-offset']) : ''"/>
   </watch>
 

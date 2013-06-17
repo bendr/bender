@@ -12,17 +12,17 @@
 
   <watch>
     <get property="enabled"/>
-    <set elem="checkbox" property="disabled" value="!input"/>
+    <set select="@checkbox" dom-property="disabled" value="!input"/>
   </watch>
 
   <watch>
-    <get elem="checkbox" dom-event="change"/>
+    <get select="@checkbox" dom-event="change"/>
     <set property="checked" value="input.target.checked"/>
   </watch>
 
   <watch>
     <get property="checked"/>
-    <set elem="checkbox" property="checked"/>
+    <set select="@checkbox" dom-property="checked"/>
   </watch>
 
 </component>

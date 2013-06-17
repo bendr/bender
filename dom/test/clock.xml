@@ -11,7 +11,7 @@
   </view>
 
   <watch>
-    <get component="timer" event="!tick" value="Date.now()"/>
+    <get select="#timer" event="!tick" value="Date.now()"/>
     <set property="h" value="(input / 3600000) % 24 - this.properties.offset"/>
     <set property="m" value="(input / 60000) % 60"/>
     <set property="s" value="(input / 1000) % 60"/>

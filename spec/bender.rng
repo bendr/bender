@@ -90,13 +90,13 @@
 
   <define name="get-property">
     <optional>
-      <ref name="component-ref"/>
+      <ref name="select"/>
     </optional>
     <ref name="property-ref"/>
   </define>
 
   <define name="get-dom-event">
-    <ref name="elem"/>
+    <ref name="select"/>
     <ref name="dom-event"/>
     <optional>
       <ref name="prevent-default"/>
@@ -108,7 +108,7 @@
 
   <define name="get-event">
     <optional>
-      <ref name="component-ref"/>
+      <ref name="select"/>
     </optional>
     <ref name="event"/>
   </define>
@@ -155,27 +155,27 @@
 
   <define name="set-property">
     <optional>
-      <ref name="component-ref"/>
+      <ref name="select"/>
     </optional>
     <ref name="property-ref"/>
   </define>
 
   <define name="set-event">
     <optional>
-      <ref name="component-ref"/>
+      <ref name="select"/>
     </optional>
     <ref name="event"/>
   </define>
 
   <define name="set-dom-event">
     <optional>
-      <ref name="elem"/>
+      <ref name="select"/>
     </optional>
     <ref name="dom-event"/>
   </define>
 
   <define name="set-dom-attribute">
-    <ref name="elem"/>
+    <ref name="select"/>
     <optional>
       <ref name="ns"/>
     </optional>
@@ -183,10 +183,8 @@
   </define>
 
   <define name="set-dom-property">
-    <ref name="elem"/>
-    <optional>
-      <ref name="property-dom-ref"/>
-    </optional>
+    <ref name="select"/>
+    <ref name="property-dom-ref"/>
   </define>
 
   <define name="text">
@@ -259,20 +257,8 @@
     </attribute>
   </define>
 
-  <define name="component-ref">
-    <attribute name="component">
-      <data type="token"/>
-    </attribute>
-  </define>
-
   <define name="dom-event">
     <attribute name="dom-event">
-      <data type="token"/>
-    </attribute>
-  </define>
-
-  <define name="elem">
-    <attribute name="elem">
       <data type="token"/>
     </attribute>
   </define>
@@ -325,7 +311,7 @@
   </define>
 
   <define name="property-dom-ref">
-    <attribute name="property"/>
+    <attribute name="dom-property"/>
   </define>
 
   <define name="rel">
@@ -334,6 +320,12 @@
         <value>script</value>
         <value>stylesheet</value>
       </choice>
+    </attribute>
+  </define>
+
+  <define name="select">
+    <attribute name="select">
+      <data type="token"/>
     </attribute>
   </define>
 

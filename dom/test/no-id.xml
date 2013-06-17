@@ -19,15 +19,16 @@
   </view>
   <watch>
     <get property="kount"/>
-    <set elem="clicks" value="flexo.to_roman(input).toUpperCase()"/>
-    <set component="button-minus" property="enabled" value="input &gt; 0"/>
+    <set select="@clicks" dom-property="textContent"
+      value="flexo.to_roman(input).toUpperCase()"/>
+    <set select="#button-minus" property="enabled" value="input &gt; 0"/>
   </watch>
   <watch>
-    <get component="button-plus" event="!pushed"/>
+    <get select="#button-plus" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
   <watch>
-    <get component="button-minus" event="!pushed"/>
+    <get select="#button-minus" event="!pushed"/>
     <set property="count" value="this.properties.count - 1"/>
   </watch>
 </component>

@@ -23,11 +23,11 @@
     </svg:foreignObject>
   </view>
   <watch>
-    <get component="red-button" event="!pushed"/>
+    <get select="#red-button" event="!pushed"/>
     <set property="color" value="'red'"/>
   </watch>
   <watch>
-    <get component="blue-button" event="!pushed"/>
+    <get select="#blue-button" event="!pushed"/>
     <set property="color" value="'blue'"/>
   </watch>
 </component>

@@ -14,7 +14,7 @@
     </html:p>
   </view>
   <watch>
-    <get component="plus" event="!pushed"/>
+    <get select="#plus" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
 </component>

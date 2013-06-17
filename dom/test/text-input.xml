@@ -16,12 +16,12 @@
 
   <watch>
     <get property="name"/>
-    <set elem="name-output"/>
-    <set component="name-input" property="value"/>
+    <set select="@name-output" dom-property="textContent"/>
+    <set select="#name-input" property="value"/>
   </watch>
 
   <watch>
-    <get component="name-input" property="value"/>
+    <get select="#name-input" property="value"/>
     <set property="name"/>
   </watch>
 

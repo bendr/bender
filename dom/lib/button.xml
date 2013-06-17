@@ -14,13 +14,13 @@
   </view>
 
   <watch>
-    <get elem="div" dom-event="mousedown" prevent-default="true"
+    <get select="@div" dom-event="mousedown" prevent-default="true"
       value="!cancel(!this.properties.enabled)"/>
     <set property="down"/>
   </watch>
 
   <watch>
-    <get elem="$document" dom-event="mouseup"
+    <get select="$document" dom-event="mouseup"
       value="cancel(!this.properties.down &amp;&amp;
       (event.target !== scope.div || !this.properties.enabled))"/>
     <set property="down" value="false"/>

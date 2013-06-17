@@ -73,24 +73,24 @@
 
   <watch>
     <get property="operand"/>
-    <set component="screen" property="display"/>
+    <set select="#screen" property="display"/>
   </watch>
 
   <watch>
-    <get component="button-c" event="!pushed"/>
+    <get select="#button-c" event="!pushed"/>
     <set property="period-pressed" value="false"/>
     <set property="operand" value="0"/>
     <set property="operator" value="undefined"/>
   </watch>
 
   <watch>
-    <get component="button-add" event="!pushed"
+    <get select="#button-add" event="!pushed"
       value="function(x, y) { return x + y; }"/>
-    <get component="button-sub" event="!pushed"
+    <get select="#button-sub" event="!pushed"
       value="function(x, y) { return x - y; }"/>
-    <get component="button-div" event="!pushed"
+    <get select="#button-div" event="!pushed"
       value="function(x, y) { return x / y; }"/>
-    <get component="button-mul" event="!pushed"
+    <get select="#button-mul" event="!pushed"
       value="function(x, y) { return x * y; }"/>
     <set property="operator"/>
     <set property="prev" value="parseFloat(this.properties.operand)"/>
@@ -99,8 +99,8 @@
   </watch>
 
   <watch>
-    <get component="button-eq1" event="!pushed"/>
-    <get component="button-eq2" event="!pushed"/>
+    <get select="#button-eq1" event="!pushed"/>
+    <get select="#button-eq2" event="!pushed"/>
     <set property="operand">
       cancel(!this.properties.operator);
       return this.properties.operator(this.properties.prev || 0,
@@ -112,60 +112,24 @@
   </watch>
 
   <watch>
-    <get component="button-period" event="!pushed"
+    <get select="#button-period" event="!pushed"
       value="!cancel(this.properties['period-pressed'])"/>
     <set property="period-pressed"/>
     <set property="last-digit" value="'.'"/>
   </watch>
 
   <watch>
-    <get component="button-0" event="!pushed"/>
-    <set property="last-digit" value="0"/>
-  </watch>
-
-  <watch>
-    <get component="button-1" event="!pushed"/>
-    <set property="last-digit" value="1"/>
-  </watch>
-
-  <watch>
-    <get component="button-2" event="!pushed"/>
-    <set property="last-digit" value="2"/>
-  </watch>
-
-  <watch>
-    <get component="button-3" event="!pushed"/>
-    <set property="last-digit" value="3"/>
-  </watch>
-
-  <watch>
-    <get component="button-4" event="!pushed"/>
-    <set property="last-digit" value="4"/>
-  </watch>
-
-  <watch>
-    <get component="button-5" event="!pushed"/>
-    <set property="last-digit" value="5"/>
-  </watch>
-
-  <watch>
-    <get component="button-6" event="!pushed"/>
-    <set property="last-digit" value="6"/>
-  </watch>
-
-  <watch>
-    <get component="button-7" event="!pushed"/>
-    <set property="last-digit" value="7"/>
-  </watch>
-
-  <watch>
-    <get component="button-8" event="!pushed"/>
-    <set property="last-digit" value="8"/>
-  </watch>
-
-  <watch>
-    <get component="button-9" event="!pushed"/>
-    <set property="last-digit" value="9"/>
+    <get select="#button-0" event="!pushed" value="0"/>
+    <get select="#button-1" event="!pushed" value="1"/>
+    <get select="#button-2" event="!pushed" value="2"/>
+    <get select="#button-3" event="!pushed" value="3"/>
+    <get select="#button-4" event="!pushed" value="4"/>
+    <get select="#button-5" event="!pushed" value="5"/>
+    <get select="#button-6" event="!pushed" value="6"/>
+    <get select="#button-7" event="!pushed" value="7"/>
+    <get select="#button-8" event="!pushed" value="8"/>
+    <get select="#button-9" event="!pushed" value="9"/>
+    <set property="last-digit"/>
   </watch>
 
   <watch>
@@ -176,7 +140,7 @@
         op = input == "." ? "0" : "";
       }
       op += input;
-      cancel(op.length > scope.screen.properties.digits);
+      cancel(op.length > scope["#screen"].properties.digits);
       return op;
     ]]></set>
     <set property="new-operand" value="false"/>

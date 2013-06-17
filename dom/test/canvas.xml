@@ -17,24 +17,28 @@
   </view>
 
   <!-- TODO use property bindings here -->
+  <!--
   <watch>
-    <get component="canvas" property="stroke"/>
-    <set component="color-input" property="value"/>
+    <get select="#canvas" property="stroke"/>
+    <set select="#color-input" property="value"/>
   </watch>
 
+-->
   <watch>
-    <get component="color-input" property="value"/>
-    <set component="canvas" property="stroke"/>
+    <get select="#color-input" property="value"/>
+    <set select="#canvas" property="stroke"/>
   </watch>
 
+  <!--
   <watch>
-    <get component="canvas" property="stroke-width"/>
-    <set component="width-input" property="value"/>
+    <get select="#canvas" property="stroke-width"/>
+    <set select="#width-input" property="value"/>
   </watch>
+-->
 
   <watch>
-    <get component="width-input" property="value"/>
-    <set component="canvas" property="stroke-width"/>
+    <get select="#width-input" property="value"/>
+    <set select="#canvas" property="stroke-width"/>
   </watch>
 
 </component>

@@ -22,11 +22,11 @@
     </html:div>
   </view>
   <watch>
-    <get component="button-plus" event="!pushed"/>
+    <get select="#button-plus" event="!pushed"/>
     <set property="count" value="this.properties.count + 1"/>
   </watch>
   <watch>
-    <get component="button-minus" event="!pushed"/>
+    <get select="#button-minus" event="!pushed"/>
     <set property="count" value="this.properties.count - 1"/>
   </watch>
 </component>
