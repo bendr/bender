@@ -1,5 +1,6 @@
-### Changes in v0.8.1 (11 June 2013)
+### Changes in v0.8.1 (17 June 2013)
 
+* Calculator demo.
 * Property, attribute and text bindings.
 * Lexical scoping rules for ids.
 * Improved error reporting somewhat.
