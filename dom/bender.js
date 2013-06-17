@@ -1455,7 +1455,7 @@
   var RX_ID =
     "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
   var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
-  var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_HASH = "(?:([#@])(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
   var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK), "g");
@@ -1466,8 +1466,8 @@
   // for the set element of the watch to create.
   function property_binding_dynamic(value) {
     var bindings = {};
-    var r = function (_, b, id, id_p, prop, prop_p) {
-      var i = (id || id_p || "$this").replace(/\\(.)/g, "$1");
+    var r = function (_, b, sigil, id, id_p, prop, prop_p) {
+      var i = (sigil || "") + (id || id_p || "$this").replace(/\\(.)/g, "$1");
       if (!bindings.hasOwnProperty(i)) {
         bindings[i] = {};
       }
@@ -1495,11 +1495,11 @@
       if (q) {
         strings.push(flexo.quote(q));
       }
-      var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
+      var id = (m[2] || "") + (m[3] || m[4] || "$this").replace(/\\(.)/g, "$1");
       if (!bindings.hasOwnProperty(id)) {
         bindings[id] = {};
       }
-      var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
+      var prop = (m[5] || m[6]).replace(/\\(.)/g, "$1");
       bindings[id][prop] = true;
       strings.push("flexo.safe_string(scope[%0].properties[%1])"
           .fmt(flexo.quote(id), flexo.quote(prop)));
