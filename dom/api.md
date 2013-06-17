@@ -1,6 +1,6 @@
 # The Bender Javascript API
 
-Bender v0.8.1, 11 June 2013
+Bender v0.8.1, 17 June 2013
 
 ## Using the standard runtime
 
@@ -99,6 +99,7 @@ The default value is `dynamic`.
 The `value` attribute of a `get` or `set` element is handled similarly to the
 `value` attribute of a `property` element, except that there is no `as`
 attribute: it defaults to `dynamic`.
+(_Note_: there will be an `as` attribute in the near future.)
 
 Additionally, the Javascript function that is compiled gets called with
 additional arguments:
@@ -114,8 +115,8 @@ In all cases, two other arguments get also passed:
 
 1. `cancel` is a function that can be called with either no argument or a true
    value to cancel the execution of the value function altogether;
-2. `that` is a pointer to the component *in which the watch was defined*, which
-   which may be different from this.
+2. `scope` is a pointer to the scope of the components so that elements with ids
+   can be accessed by their id, including some meta-ids such as `$that`.
 
 When the value of a `get` or `set` element is specified as the text content of
 the element, then no implicit return is added.
@@ -123,6 +124,28 @@ More complex functions with multiple statements can then be specified, which
 must be careful to return a value.
 
 **TODO** Example
+
+### The `scope` object
+
+The `scope` object is a mapping between identifiers in the component tree and
+**concrete** nodes in the running application, or other Bender components.
+For example, if the view of a component contains an HTML paragraph element with
+the id _p_, then `scope.p` will point to the concrete HTML paragraph element
+that gets rendered for this component.
+
+All identifiers defined inside a component and the components in its view are in
+the scope of the component.
+
+There are several meta identifiers in a scope object:
+
+* `$this` is the current component;
+* `$that` is the parent component of the watch. It may differ from `$this` if
+  the current component is derived from that component;
+* `$document` is the current document;
+* `$target` is the current target for the rendering.
+
+These meta identifiers may also be used as values of the `elem` or `component`
+attributes in `get` and `set` elements.
 
 ### `on-render`
 
@@ -200,13 +223,13 @@ and
 
 A *text* binding is a binding inside the value of a property interpreted as a
 string, or inside a literal attribute or text node in the view of a component.
+Text bindings differ from property bindings in that they are simple string
+replacements, and are not evaluted as Javascript.
 
 ## Bender API Reference
 
 The Bender DOM runtime described here is implemented by `dom/bender.js`.
 
 ### The Bender environment
-
-### Lexical scope
 
 **TODO**
