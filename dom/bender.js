@@ -181,7 +181,7 @@
   // loading.)
   Env.deserialize.link = function (elem, component, k) {
     var uri = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
-    var link = bender.link(uri, elem.getAttribute("rel"));
+    var link = new bender.Link(uri, elem.getAttribute("rel"));
     if (!this.loaded[uri]) {
       this.loaded[uri] = link;
       link.render(this.document, k);
@@ -193,7 +193,7 @@
   // Deserialize a Bender property element.
   Env.deserialize.property = function (elem, _, k) {
     var value = elem.getAttribute("value");
-    k(bender.property(elem.getAttribute("name"), elem.getAttribute("as"),
+    k(new bender.Property(elem.getAttribute("name"), elem.getAttribute("as"),
           elem.getAttribute("value")));
   };
 
@@ -468,19 +468,6 @@
   };
 
 
-  // Add id to scope for object x (actually, to the parent scope!)
-  function add_id_to_scope(scope, id, x) {
-    if (id) {
-      scope = Object.getPrototypeOf(scope);
-      if (!scope.hasOwnProperty(id)) {
-        scope[id] = x;
-        return id;
-      }
-      console.warn("Redefining id %0 in scope %1".fmt(id, scope.$__SERIAL));
-    }
-  }
-
-
   bender.Component = {};
 
   // Initialize an empty component with an initial scope
@@ -514,9 +501,9 @@
 
   bender.Component.append_child = function (ch) {
     if (ch) {
-      if (flexo.instance_of(ch, bender.Link)) {
+      if (ch instanceof bender.Link) {
         this.links.push(ch);
-      } else if (flexo.instance_of(ch, bender.Property)) {
+      } else if (ch instanceof bender.Property) {
         ch.component = this;
         this.own_properties[ch.name] = ch;
       } else if (ch instanceof bender.View) {
@@ -690,13 +677,20 @@
     return chain[0];
   };
 
-
-  bender.Link = {};
+  // A runtime should overload this so that links can be handled accordingly.
+  // TODO scoped stylesheets (render style links then)
+  bender.Link = function (uri, rel) {
+    var r = flexo.safe_trim(rel).toLowerCase();
+    if (r == "script" || r == "stylesheet") {
+      this.uri = uri;
+      this.rel = r;
+    }
+  };
 
   // Link rendering is called when deserializing the link; target is a document
-  bender.Link.render = function (target, k) {
-    var render = bender.Link.render[this.rel];
-    if (typeof render === "function") {
+  bender.Link.prototype.render = function (target, k) {
+    var render = bender.Link.prototype.render[this.rel];
+    if (typeof render == "function") {
       render.call(this, target, k);
     } else {
       console.warn("Cannot render “%0” link".fmt(this.rel));
@@ -706,13 +700,13 @@
 
   // Render script links for HTML and SVG documents; overload this function to
   // handle other types of document. Scripts are handled synchronously.
-  bender.Link.render.script = function (target, k) {
-    if (target.documentElement.namespaceURI === flexo.ns.svg) {
+  bender.Link.prototype.render.script = function (target, k) {
+    if (target.documentElement.namespaceURI == flexo.ns.svg) {
       var script = flexo.$("svg:script", { "xlink:href": this.uri });
       script.addEventListener("load", k, false);
       target.documentElement.appendChild(script);
     } else
-      if (target.documentElement.namespaceURI === flexo.ns.html) {
+      if (target.documentElement.namespaceURI == flexo.ns.html) {
       var script = flexo.$script({ src: this.uri });
       script.addEventListener("load", k, false);
       target.head.appendChild(script);
@@ -724,8 +718,8 @@
 
   // Render stylesheet links for HTML documents; overload this function to
   // handle other types of document. Stylesheets are handled asynchronously.
-  bender.Link.render.stylesheet = function (target, k) {
-    if (target.documentElement.namespaceURI === flexo.ns.html) {
+  bender.Link.prototype.render.stylesheet = function (target, k) {
+    if (target.documentElement.namespaceURI == flexo.ns.html) {
       target.head.appendChild(flexo.$link({ rel: this.rel,
         href: this.uri }));
     } else {
@@ -734,45 +728,50 @@
     k(this);
   };
 
-  // A runtime should overload this so that links can be handled accordingly.
-  // TODO scoped stylesheets (render style links then)
-  bender.link = function (uri, rel) {
-    var r = (rel || "").trim().toLowerCase();
-    if (r === "script" || r === "stylesheet") {
-      var l = Object.create(bender.Link);
-      l.uri = uri;
-      l.rel = r;
-      return l;
+  bender.Property = function (name, as, value) {
+    this.name = name;
+    this.as = normalize_as(as);
+    if (typeof value == "string") {
+      if (this.as == "boolean") {
+        this.__value = flexo.funcify(flexo.is_true(value));
+      } else if (this.as == "number") {
+        this.__value = flexo.funcify(flexo.to_number(value));
+      } else if (this.as == "string") {
+        var bindings = property_binding_string(value);
+        if (typeof bindings == "string") {
+          this.__value = flexo.funcify(value);
+        } else {
+          this.__bindings = bindings;
+        }
+      } else if (this.as == "json") {
+        this.__value = function () {
+          try {
+            return JSON.parse(value);
+          } catch (e) {
+            console.error("Error parsing JSON string “%0”: %1".fmt(value, e));
+          }
+        };
+      } else {
+        var bindings = property_binding_dynamic(value);
+        if (typeof bindings == "string") {
+          this.__value = new Function("return " + value);
+        } else {
+          this.__bindings = bindings;
+        }
+      }
+    } else {
+      this.__value = flexo.funcify(value);
     }
   };
 
-
-  bender.Property = {};
-
-  // Define the getter/setter for a component’s own property with a previously
-  // created vertex. The name of the property is given by the `property`
-  // property of the vertex.
-  function define_own_property(component, vertex) {
-    Object.defineProperty(component.properties, vertex.property, {
-      enumerable: true,
-      get: function () {
-        return vertex.value;
-      },
-      set: function (v) {
-        vertex.value = v;
-        component.environment.schedule_visit(vertex, v);
-      }
-    });
-  }
-
   // Render the property from the prototype to a component. If the prototype and
   // the component are the same, then this is the component’s own property.
-  bender.Property.render = function (component, prototype) {
+  bender.Property.prototype.render = function (component, prototype) {
     var vertex = make_vertex(bender.PropertyVertex, { component: component,
       property: this.name });
     component.property_vertices[this.name] = vertex;
     component.environment.add_vertex(vertex);
-    if (component === prototype) {
+    if (component == prototype) {
       define_own_property(component, vertex);
     } else {
       vertex.protovertex = prototype.property_vertices[this.name];
@@ -785,10 +784,10 @@
         set: function (v) {
           var edges = flexo.partition(vertex.protovertex.out_edges,
             function (edge) {
-              return edge.__source === vertex;
+              return edge.__source == vertex;
             });
           edges[0].forEach(function (edge) {
-            edge.source === vertex;
+            edge.source == vertex;
             delete edge.__source;
             vertex.out_edges.push(edge);
           });
@@ -801,114 +800,11 @@
     }
   };
 
-  bender.Property.init = function (component) {
+  bender.Property.prototype.init = function (component) {
     if (this.__value) {
       component.properties[this.name] = this.__value.call(component);
       delete this.__value;
     }
-  };
-
-  // Regular expressions to match property bindings
-  var RX_ID =
-    "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
-  var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
-  var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
-  var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
-  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
-  var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK), "g");
-
-  // Identify property bindings for a dynamic property value string. When there
-  // are none, return the string unchanged; otherwise, return the dictionary of
-  // bindings (indexed by id, then property). bindings[""] will be the new value
-  // for the set element of the watch to create.
-  function property_binding_dynamic(value) {
-    var bindings = {};
-    var r = function (_, b, id, id_p, prop, prop_p) {
-      var i = (id || id_p || "$this").replace(/\\(.)/g, "$1");
-      if (!bindings.hasOwnProperty(i)) {
-        bindings[i] = {};
-      }
-      var p = (prop || prop_p).replace(/\\(.)/g, "$1");
-      bindings[i][p] = true;
-      return "%0scope[%1].properties[%2]"
-        .fmt(b, flexo.quote(i), flexo.quote(p));
-    };
-    var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
-    if (Object.keys(bindings).length === 0) {
-      return value;
-    }
-    bindings[""] = { value: "return " + v };
-    return bindings;
-  }
-
-  // Indentify property bindings for a string property value string (e.g. from a
-  // literal attribute or text node.)
-  function property_binding_string(value) {
-    var strings = [];
-    var bindings = {};
-    for (var remain = value, m; m = remain.match(RX_PROP);
-        remain = m.input.substr(m.index + m[0].length)) {
-      var q = m.input.substr(0, m.index) + m[1];
-      if (q) {
-        strings.push(flexo.quote(q));
-      }
-      var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
-      if (!bindings.hasOwnProperty(id)) {
-        bindings[id] = {};
-      }
-      var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
-      bindings[id][prop] = true;
-      strings.push("flexo.safe_string(scope[%0].properties[%1])"
-          .fmt(flexo.quote(id), flexo.quote(prop)));
-    }
-    if (Object.keys(bindings).length === 0) {
-      return value;
-    }
-    if (remain) {
-      strings.push(flexo.quote(remain));
-    }
-    bindings[""] = { value: "return " + strings.join("+") };
-    return bindings;
-  }
-
-  bender.property = function (name, as, value) {
-    var property = Object.create(bender.Property);
-    property.as = (as || "").trim().toLowerCase();
-    property.name = name;
-    if (as === "boolean") {
-      property.__value = function () {
-        return flexo.is_true(value);
-      };
-    } else if (as === "number") {
-      property.__value = function () {
-        return parseFloat(value);
-      };
-    } else if (typeof value === "string") {
-      if (as === "string") {
-        var bindings = property_binding_string(value);
-        if (typeof bindings === "string") {
-          property.__value = flexo.funcify(value);
-        } else {
-          property.__bindings = bindings;
-        }
-      } else if (as === "json") {
-        property.__value = function () {
-          try {
-            return JSON.parse(value);
-          } catch (e) {
-            console.error("Error parsing JSON string “%0”: %1".fmt(value, e));
-          }
-        };
-      } else {
-        var bindings = property_binding_dynamic(value);
-        if (typeof bindings === "string") {
-          property.__value = new Function("return " + value);
-        } else {
-          property.__bindings = bindings;
-        }
-      }
-    }
-    return property;
   };
 
 
@@ -1563,6 +1459,105 @@
 
 
   // Utility functions
+
+  // Add id to scope for object x (actually, to the parent scope!)
+  function add_id_to_scope(scope, id, x) {
+    if (id) {
+      scope = Object.getPrototypeOf(scope);
+      if (!scope.hasOwnProperty(id)) {
+        scope[id] = x;
+        return id;
+      }
+      console.warn("Redefining id %0 in scope %1".fmt(id, scope.$__SERIAL));
+    }
+  }
+
+  // Define the getter/setter for a component’s own property with a previously
+  // created vertex. The name of the property is given by the `property`
+  // property of the vertex.
+  function define_own_property(component, vertex) {
+    Object.defineProperty(component.properties, vertex.property, {
+      enumerable: true,
+      get: function () {
+        return vertex.value;
+      },
+      set: function (v) {
+        vertex.value = v;
+        component.environment.schedule_visit(vertex, v);
+      }
+    });
+  }
+
+  // Normalize the “as” property of an element so that it matches a known value.
+  // Set to “dynamic” as default.
+  function normalize_as(as) {
+    as = flexo.safe_trim(as).toLowerCase();
+    return as == "string" || as == "number" || as == "boolean" ||
+      as == "json" || as == "xml" ? as : "dynamic";
+  }
+
+  // Regular expressions to match property bindings
+  var RX_ID =
+    "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
+  var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
+  var RX_HASH = "(?:#(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK));
+  var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_HASH, RX_TICK), "g");
+
+  // Identify property bindings for a dynamic property value string. When there
+  // are none, return the string unchanged; otherwise, return the dictionary of
+  // bindings (indexed by id, then property). bindings[""] will be the new value
+  // for the set element of the watch to create.
+  function property_binding_dynamic(value) {
+    var bindings = {};
+    var r = function (_, b, id, id_p, prop, prop_p) {
+      var i = (id || id_p || "$this").replace(/\\(.)/g, "$1");
+      if (!bindings.hasOwnProperty(i)) {
+        bindings[i] = {};
+      }
+      var p = (prop || prop_p).replace(/\\(.)/g, "$1");
+      bindings[i][p] = true;
+      return "%0scope[%1].properties[%2]"
+        .fmt(b, flexo.quote(i), flexo.quote(p));
+    };
+    var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
+    if (Object.keys(bindings).length === 0) {
+      return value;
+    }
+    bindings[""] = { value: "return " + v };
+    return bindings;
+  }
+
+  // Indentify property bindings for a string property value string (e.g. from a
+  // literal attribute or text node.)
+  function property_binding_string(value) {
+    var strings = [];
+    var bindings = {};
+    for (var remain = value, m; m = remain.match(RX_PROP);
+        remain = m.input.substr(m.index + m[0].length)) {
+      var q = m.input.substr(0, m.index) + m[1];
+      if (q) {
+        strings.push(flexo.quote(q));
+      }
+      var id = (m[2] || m[3] || "$this").replace(/\\(.)/g, "$1");
+      if (!bindings.hasOwnProperty(id)) {
+        bindings[id] = {};
+      }
+      var prop = (m[4] || m[5]).replace(/\\(.)/g, "$1");
+      bindings[id][prop] = true;
+      strings.push("flexo.safe_string(scope[%0].properties[%1])"
+          .fmt(flexo.quote(id), flexo.quote(prop)));
+    }
+    if (Object.keys(bindings).length === 0) {
+      return value;
+    }
+    if (remain) {
+      strings.push(flexo.quote(remain));
+    }
+    bindings[""] = { value: "return " + strings.join("+") };
+    return bindings;
+  }
 
   // Render the view of a component in a target following the chain of
   // prototypes (starting from the furthest ancestor.)
