@@ -315,9 +315,9 @@
     foreach.call(elem.childNodes, function (ch) {
       this.deserialize(ch, component, function (d) {
         if (typeof d == "object") {
-          if (flexo.instance_of(d, bender.Get)) {
+          if (d instanceof bender.Get) {
             watch.append_get(d);
-          } else if (flexo.instance_of(d, bender.Set)) {
+          } else if (d instanceof bender.Set) {
             watch.append_set(d);
           }
         } else if (!error) {
@@ -333,17 +333,17 @@
     var value = elem.hasAttribute("value") ?
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("property")) {
-      k(bender.get_property(elem.getAttribute("property"),
+      k(new bender.GetProperty(elem.getAttribute("property"),
           elem.getAttribute("component"), value));
     } else if (elem.hasAttribute("dom-event")) {
-      var get = bender.get_dom_event(elem.getAttribute("dom-event"),
+      var get = new bender.GetDOMEvent(elem.getAttribute("dom-event"),
           elem.getAttribute("elem"), value);
       get.prevent_default = flexo.is_true(elem.getAttribute("prevent-default"));
       get.stop_propagation =
         flexo.is_true(elem.getAttribute("stop-propagation"));
       k(get);
     } else if (elem.hasAttribute("event")) {
-      k(bender.get_event(elem.getAttribute("event"),
+      k(new bender.GetEvent(elem.getAttribute("event"),
           elem.getAttribute("component"), value));
     } else {
       k();
@@ -356,23 +356,23 @@
       "return " + elem.getAttribute("value") : elem.textContent;
     if (elem.hasAttribute("elem")) {
       if (elem.hasAttribute("attr")) {
-        k(bender.set_dom_attribute(elem.getAttribute("ns"),
+        k(new bender.SetDOMAttribute(elem.getAttribute("ns"),
               elem.getAttribute("attr"), elem.getAttribute("elem"), value));
       } else if (elem.hasAttribute("dom-event")) {
-        k(bender.set_dom_event(elem.getAttribute("dom-event"),
+        k(new bender.SetDOMEvent(elem.getAttribute("dom-event"),
               elem.getAttribute("dom-event"), value));
       } else {
-        k(bender.set_dom_property(elem.getAttribute("property"),
+        k(new bender.SetDOMProperty(elem.getAttribute("property"),
             elem.getAttribute("elem"), value));
       }
     } else if (elem.hasAttribute("property")) {
-      k(bender.set_property(elem.getAttribute("property"),
+      k(new bender.SetProperty(elem.getAttribute("property"),
           elem.getAttribute("component"), value));
     } else if (elem.hasAttribute("event")) {
-      k(bender.set_event(elem.getAttribute("event"),
+      k(new bender.SetEvent(elem.getAttribute("event"),
           elem.getAttribute("component"), value));
     } else {
-      k(bender.set(value));
+      k(new bender.Set(value));
     }
   };
 
@@ -560,12 +560,12 @@
       flexo.values(c.own_properties).forEach(function (property) {
         if (property.hasOwnProperty("__bindings")) {
           var watch = new bender.Watch;
-          watch.append_set(bender.set_property(property.name, chain[0],
+          watch.append_set(new bender.SetProperty(property.name, chain[0],
               property.__bindings[""].value));
           Object.keys(property.__bindings).forEach(function (id) {
             if (id) {
               Object.keys(property.__bindings[id]).forEach(function (prop) {
-                watch.append_get(bender.get_property(prop, id));
+                watch.append_get(new bender.GetProperty(prop, id));
               });
             }
           });
@@ -576,16 +576,16 @@
       c.__bindings.forEach(function (bindings) {
         var watch = new bender.Watch;
         if (bindings[""].hasOwnProperty("attr")) {
-          watch.append_set(bender.set_dom_attribute(bindings[""].ns,
+          watch.append_set(new bender.SetDOMAttribute(bindings[""].ns,
               bindings[""].attr, bindings[""].target, bindings[""].value));
         } else {
-          watch.append_set(bender.set_dom_property("textContent",
+          watch.append_set(new bender.SetDOMProperty("textContent",
               bindings[""].target, bindings[""].value));
         }
         Object.keys(bindings).forEach(function (id) {
           if (id) {
             Object.keys(bindings[id]).forEach(function (prop) {
-              watch.append_get(bender.get_property(prop, id));
+              watch.append_get(new bender.GetProperty(prop, id));
             });
           }
         });
@@ -996,12 +996,96 @@
     }, this);
   };
 
+  bender.Get = function () {};
 
-  // Watch inputs (three different kinds)
-  bender.Get = {};
-  bender.GetProperty = Object.create(bender.Get);
-  bender.GetDOMEvent = Object.create(bender.Get);
-  bender.GetEvent = Object.create(bender.Get);
+  bender.GetProperty = function (property, source, value) {
+    this.property = property;
+    this.source = source || "$this";
+    this.value = init_get_value("property", value);
+  };
+
+  bender.GetProperty.prototype = new bender.Get;
+
+  // The vertex for a property was already rendered when the vertex was
+  // rendered.
+  bender.GetProperty.prototype.render = function (component) {
+    var c = component.scope[this.source];
+    if (c) {
+      var vertex = c.property_vertices[this.property];
+      if (vertex) {
+        return vertex;
+      }
+      console.warn("No property “%0” on component %1 (%2) for get property"
+          .fmt(this.property, this.source, c.id));
+    } else {
+      console.warn("No component “%0” for get property %1"
+          .fmt(this.source, this.property));
+    }
+  };
+
+  bender.GetDOMEvent = function (event, source, value) {
+    this.event = event;
+    this.source = source;
+    this.value = init_get_value("event", value);
+  };
+
+  bender.GetDOMEvent.prototype = new bender.Get;
+
+  // A DOM Event input is rendered to a DOMEventVertex, or nothing if the source
+  // element could not be found. An event listener is added to this element to
+  // schedule a visit.
+  bender.GetDOMEvent.prototype.render = function (component) {
+    var elem = component.scope[this.source];
+    if (elem) {
+      var vertex = make_vertex(bender.DOMEventVertex, { elem: elem,
+        event: this.event });
+      var v = component.environment.add_vertex(vertex);
+      if (v === vertex) {
+        elem.addEventListener(v.event, function (e) {
+          if (this.prevent_default) {
+            e.preventDefault();
+          }
+          if (this.stop_propagation) {
+            e.stopPropagation();
+          }
+          component.environment.schedule_visit(v, e);
+        }.bind(this), false);
+      }
+      return v;
+    } else {
+      console.warn("No component “%0” for get DOM event %1"
+          .fmt(this.source, this.event));
+    }
+  };
+
+  bender.GetEvent = function (event, source, value) {
+    this.event = event;
+    this.source = source || "$this";
+    this.value = init_get_value("event", value);
+  };
+
+  bender.GetEvent.prototype = new bender.Get;
+
+  // An event input is rendered to an EventVertex, or nothing if the source
+  // ocmponent could not be found. An event listener is added to this component
+  // to schedule a visit.
+  bender.GetEvent.prototype.render = function (component) {
+    var c = component.scope[this.source];
+    if (c) {
+      var vertex = make_vertex(bender.EventVertex, { component: c,
+        event: this.event });
+      var v = component.environment.add_vertex(vertex);
+      if (v === vertex) {
+        flexo.listen(c, this.event, function (e) {
+          component.environment.schedule_visit(v, e);
+        });
+      }
+      return v;
+    } else {
+      console.warn("No component “%0” for get event %1"
+          .fmt(this.source, this.event));
+    }
+  };
 
   // Corresponding vertex objects for the watch graph. The Vortex should be
   // unique in the graph and is a sink vertex with no outputs.
@@ -1073,71 +1157,6 @@
         this.event, this.__value ? "=" + this.value : "");
   };
 
-  // The vertex for a property was already rendered when the vertex was
-  // rendered.
-  bender.GetProperty.render = function (component) {
-    var c = component.scope[this.source];
-    if (c) {
-      var vertex = c.property_vertices[this.property];
-      if (vertex) {
-        return vertex;
-      }
-      console.warn("No property “%0” on component %1 (%2) for get property"
-          .fmt(this.property, this.source, c.id));
-    } else {
-      console.warn("No component “%0” for get property %1"
-          .fmt(this.source, this.property));
-    }
-  };
-
-  // A DOM Event input is rendered to a DOMEventVertex, or nothing if the source
-  // element could not be found. An event listener is added to this element to
-  // schedule a visit.
-  bender.GetDOMEvent.render = function (component) {
-    var elem = component.scope[this.source];
-    if (elem) {
-      var vertex = make_vertex(bender.DOMEventVertex, { elem: elem,
-        event: this.event });
-      var v = component.environment.add_vertex(vertex);
-      if (v === vertex) {
-        elem.addEventListener(v.event, function (e) {
-          if (this.prevent_default) {
-            e.preventDefault();
-          }
-          if (this.stop_propagation) {
-            e.stopPropagation();
-          }
-          component.environment.schedule_visit(v, e);
-        }.bind(this), false);
-      }
-      return v;
-    } else {
-      console.warn("No component “%0” for get DOM event %1"
-          .fmt(this.source, this.event));
-    }
-  };
-
-  // An event input is rendered to an EventVertex, or nothing if the source
-  // ocmponent could not be found. An event listener is added to this component
-  // to schedule a visit.
-  bender.GetEvent.render = function (component) {
-    var c = component.scope[this.source];
-    if (c) {
-      var vertex = make_vertex(bender.EventVertex, { component: c,
-        event: this.event });
-      var v = component.environment.add_vertex(vertex);
-      if (v === vertex) {
-        flexo.listen(c, this.event, function (e) {
-          component.environment.schedule_visit(v, e);
-        });
-      }
-      return v;
-    } else {
-      console.warn("No component “%0” for get event %1"
-          .fmt(this.source, this.event));
-    }
-  };
-
   // Initialize the value property of a watch input by creating a new function
   // from a value string. The corresponding function has two inputs named
   // name (`event` for event inputs, `property` for property inputs; the input
@@ -1148,38 +1167,129 @@
       new Function(name, "cancel", "scope", value) : flexo.id;
   }
 
-  bender.get_property = function (property, source, value) {
-    var g = Object.create(bender.GetProperty);
-    g.property = property;
-    g.source = source || "$this";
-    g.value = init_get_value("property", value);
-    return g;
+
+  bender.Set = function (value) {
+    this.value = init_set_value(value);
   };
 
-  bender.get_dom_event = function (event, source, value) {
-    var g = Object.create(bender.GetDOMEvent);
-    g.event = event;
-    g.source = source;
-    g.value = init_get_value("event", value);
-    return g;
+  // Render a sink output edge to a regular Edge going to the Vortex.
+  bender.Set.prototype.render = function (source, component, scope) {
+    return make_edge(bender.Edge, source, component.environment.vortex,
+        this.value, component.scope.$this, scope);
   };
 
-  bender.get_event = function (event, source, value) {
-    var g = Object.create(bender.GetEvent);
-    g.event = event;
-    g.source = source || "$this";
-    g.value = init_get_value("event", value);
-    return g;
+  bender.SetProperty = function (property, target, value) {
+    this.property = property;
+    this.target = target || "$this";
+    bender.Set.call(this, value);
   };
 
+  bender.SetProperty.prototype = new bender.Set;
 
-  // Set (watch output) and Edge
-  bender.Set = {};
-  bender.SetProperty = Object.create(bender.Set);
-  bender.SetEvent = Object.create(bender.Set);
-  bender.SetDOMEvent = Object.create(bender.Set);
-  bender.SetDOMAttribute = Object.create(bender.Set);
-  bender.SetDOMProperty = Object.create(bender.Set);
+  // Set a property on a component
+  bender.SetProperty.prototype.render = function (source, component, scope) {
+    var c = typeof this.target == "string" ? component.scope[this.target] :
+      this.target;
+    if (c) {
+      var dest = c.property_vertices[this.property];
+      if (dest) {
+        var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
+            component.scope.$this, scope);
+        edge.property = this.property;
+        edge.component = c;
+        return edge;
+      }
+      console.warn("No property “%0” to set on component “%1”"
+          .fmt(this.property, this.target));
+    } else {
+      console.warn("No component “%0” for set property %1"
+          .fmt(this.target, this.property));
+    }
+  };
+
+  bender.SetEvent = function (event, target, value) {
+    this.event = event;
+    this.target = target || "$this";
+    bender.Set.call(this, value);
+  };
+
+  bender.SetEvent.prototype = new bender.Set;
+
+  bender.SetEvent.prototype.render = function (source, component, scope) {
+    var c = component.scope[this.target];
+    if (c) {
+      var dest = component.environment.add_vertex(
+          make_vertex(bender.EventVertex, { component: c, event: this.event }));
+      var edge = make_edge(bender.EventEdge, source, dest, this.value,
+          component.scope.$this, scope);
+      edge.component = c;
+      edge.event = this.event;
+      return edge;
+    } else {
+      console.warn("No component “%0” for set event %1"
+          .fmt(this.target, this.event));
+    }
+  };
+
+  bender.SetDOMEvent = function (event, target, value) {
+    this.event = event;
+    this.target = target;
+    bender.Set.call(this, value);
+  };
+
+  bender.SetDOMEvent.prototype = new bender.Set;
+
+  bender.SetDOMAttribute = function (ns, attr, target, value) {
+    this.ns = ns;
+    this.attr = attr;
+    this.target = target;
+    bender.Set.call(this, value);
+  };
+
+  bender.SetDOMAttribute.prototype.render = new bender.Set;
+
+  // Set a DOM attribute: no further effect, so make an edge to the Vortex.
+  bender.SetDOMAttribute.prototype.render = function (source, component, scope) {
+    var r = typeof this.target == "string" ? component.scope[this.target] :
+      this.target;
+    if (r) {
+      var edge = make_edge(bender.DOMAttributeEdge, source,
+          component.environment.vortex, this.value, component.scope.$this,
+          scope);
+      edge.target = r;
+      edge.ns = this.ns;
+      edge.attr = this.attr;
+      return edge;
+    } else {
+      console.warn("No element “%0” for set DOM attribute {%1}%2"
+          .fmt(this.target, this.ns, this.attr));
+    }
+  };
+
+  bender.SetDOMProperty = function (property, target, value) {
+    this.property = property || "textContent";
+    this.target = target;
+    bender.Set.call(this, value);
+  };
+
+  bender.SetDOMProperty.prototype = new bender.Set;
+
+  // Set a DOM property: no further effect, so make an edge to the Vortex.
+  bender.SetDOMProperty.prototype.render = function (source, component, scope) {
+    var r = typeof this.target == "string" ? component.scope[this.target] :
+      this.target;
+    if (r) {
+      var edge = make_edge(bender.DOMPropertyEdge, source,
+          component.environment.vortex, this.value, component.scope.$this,
+          scope);
+      edge.target = r;
+      edge.property = this.property;
+      return edge;
+    } else {
+      console.warn("No element “%0” for set DOM property %1"
+          .fmt(this.target, this.property));
+    }
+  };
 
   bender.Edge = {};
   bender.PropertyEdge = Object.create(bender.Edge);
@@ -1229,12 +1339,6 @@
       new Function("input", "cancel", "scope", value) : flexo.id;
   }
 
-  // Render a sink output edge to a regular Edge going to the Vortex.
-  bender.Set.render = function (source, component, scope) {
-    return make_edge(bender.Edge, source, component.environment.vortex,
-        this.value, component.scope.$this, scope);
-  };
-
   // A regular edge executes its input and output functions for the side effects
   // only.
   bender.Edge.visit = function (input) {
@@ -1245,27 +1349,6 @@
 
   bender.Edge.toString = function () {
     return "-> %0".fmt(this.dest);
-  };
-
-  // Set a property on a component
-  bender.SetProperty.render = function (source, component, scope) {
-    var c = typeof this.target === "string" ? component.scope[this.target] :
-      this.target;
-    if (c) {
-      var dest = c.property_vertices[this.property];
-      if (dest) {
-        var edge = make_edge(bender.PropertyEdge, source, dest, this.value,
-            component.scope.$this, scope);
-        edge.property = this.property;
-        edge.component = c;
-        return edge;
-      }
-      console.warn("No property “%0” to set on component “%1”"
-          .fmt(this.property, this.target));
-    } else {
-      console.warn("No component “%0” for set property %1"
-          .fmt(this.target, this.property));
-    }
   };
 
   // A PropertyEdge sets a property
@@ -1282,22 +1365,6 @@
           this.dest);
   };
 
-  bender.SetEvent.render = function (source, component, scope) {
-    var c = component.scope[this.target];
-    if (c) {
-      var dest = component.environment.add_vertex(
-          make_vertex(bender.EventVertex, { component: c, event: this.event }));
-      var edge = make_edge(bender.EventEdge, source, dest, this.value,
-          component.scope.$this, scope);
-      edge.component = c;
-      edge.event = this.event;
-      return edge;
-    } else {
-      console.warn("No component “%0” for set event %1"
-          .fmt(this.target, this.event));
-    }
-  };
-
   // An EventEdge sends an event notification
   bender.EventEdge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel,
@@ -1309,24 +1376,6 @@
   bender.EventEdge.toString = function () {
     return "(Event) %0#%1%2 -> %2".fmt(this.component.id,
         this.component.$__SERIAL, this.event, this.dest);
-  };
-
-  // Set a DOM attribute: no further effect, so make an edge to the Vortex.
-  bender.SetDOMAttribute.render = function (source, component, scope) {
-    var r = typeof this.target === "string" ? component.scope[this.target] :
-      this.target;
-    if (r) {
-      var edge = make_edge(bender.DOMAttributeEdge, source,
-          component.environment.vortex, this.value, component.scope.$this,
-          scope);
-      edge.target = r;
-      edge.ns = this.ns;
-      edge.attr = this.attr;
-      return edge;
-    } else {
-      console.warn("No element “%0” for set DOM attribute {%1}%2"
-          .fmt(this.target, this.ns, this.attr));
-    }
   };
 
   // A DOMAttribute edge sets an attribute, has no other effect.
@@ -1347,23 +1396,6 @@
         this.ns, this.attr, this.dest);
   };
 
-  // Set a DOM property: no further effect, so make an edge to the Vortex.
-  bender.SetDOMProperty.render = function (source, component, scope) {
-    var r = typeof this.target === "string" ? component.scope[this.target] :
-      this.target;
-    if (r) {
-      var edge = make_edge(bender.DOMPropertyEdge, source,
-          component.environment.vortex, this.value, component.scope.$this,
-          scope);
-      edge.target = r;
-      edge.property = this.property;
-      return edge;
-    } else {
-      console.warn("No element “%0” for set DOM property %1"
-          .fmt(this.target, this.property));
-    }
-  };
-
   // A DOMAttribute edge sets a property, has no other effect.
   bender.DOMPropertyEdge.visit = function (input) {
     var v = this.value.call(this.context, input, flexo.cancel,
@@ -1377,53 +1409,6 @@
       .fmt(this.target.localName || "text()", this.property, this.dest);
   };
 
-
-  bender.set = function (value) {
-    var s = Object.create(bender.Set);
-    s.value = init_set_value(value);
-    return s;
-  };
-
-  bender.set_property = function (property, target, value) {
-    var s = Object.create(bender.SetProperty);
-    s.property = property;
-    s.target = target || "$this";
-    s.value = init_set_value(value);
-    return s;
-  };
-
-  bender.set_event = function (event, target, value) {
-    var s = Object.create(bender.SetEvent);
-    s.event = event;
-    s.target = target || "$this";
-    s.value = init_set_value(value);
-    return s;
-  };
-
-  bender.set_dom_event = function (event, target, value) {
-    var s = Object.create(bender.SetDOMEvent);
-    s.event = event;
-    s.target = target;
-    s.value = init_set_value(value);
-    return s;
-  };
-
-  bender.set_dom_attribute = function (ns, attr, target, value) {
-    var s = Object.create(bender.SetDOMAttribute);
-    s.ns = ns;
-    s.attr = attr;
-    s.target = target;
-    s.value = init_set_value(value);
-    return s;
-  };
-
-  bender.set_dom_property = function (property, target, value) {
-    var s = Object.create(bender.SetDOMProperty);
-    s.property = property || "textContent";
-    s.target = target;
-    s.value = init_set_value(value);
-    return s;
-  };
 
 
   // Utility functions
