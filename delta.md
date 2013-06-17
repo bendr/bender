@@ -1,5 +1,6 @@
 ### Changes in v0.8.2 (forthcoming)
 
+* Single view/content, no id (will use XML properties instead.)
 * Pausing the event loop when the queue is empty.
 
 ### Changes in v0.8.1 (17 June 2013)

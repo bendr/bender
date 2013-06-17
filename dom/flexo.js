@@ -94,7 +94,7 @@
   // Get a true or false value from a string; true if the string matches "true"
   // in case-insensitive, whitespace-tolerating way
   flexo.is_true = function (string) {
-    return typeof string === "string" && string.trim().toLowerCase() === "true";
+    return flexo.safe_trim(string).toLowerCase() === "true";
   };
 
   // Pad a string to the given length with the given padding (defaults to 0)
@@ -116,6 +116,19 @@
     q = q || '"';
     return "%0%1%0".fmt(q, string.replace(new RegExp(q, "g"), "\\" + q)
         .replace(/\n/g, "\\n"));
+  };
+
+  // Trim a string, or return the empty string if the argument was not a string
+  // (for instance, null or undefined.)
+  flexo.safe_trim = function (maybe_string) {
+    return typeof maybe_string == "string" ? maybe_string.trim() : "";
+  };
+
+  // Parse a number, using parseFloat first but defaulting to parseInt for
+  // hexadecimal values (no octal parsing is done.)
+  flexo.to_number = function (string) {
+    var f = parseFloat(string);
+    return f == 0 ? parseInt(string) : f;
   };
 
   // Convert a number to roman numerals (integer part only; n must be positive

@@ -52,9 +52,6 @@
 
   <define name="content">
     <element name="content">
-      <optional>
-        <ref name="id"/>
-      </optional>
       <ref name="view-content"/>
     </element>
   </define>
@@ -204,9 +201,6 @@
   <define name="view">
     <element name="view">
       <optional>
-        <ref name="id"/>
-      </optional>
-      <optional>
         <ref name="stack"/>
       </optional>
       <ref name="view-content"/>
@@ -221,9 +215,9 @@
       <zeroOrMore>
         <ref name="component"/>
       </zeroOrMore>
-      <zeroOrMore>
+      <optional>
         <ref name="content"/>
-      </zeroOrMore>
+      </optional>
       <zeroOrMore>
         <ref name="foreign-view-content"/>
       </zeroOrMore>

@@ -201,8 +201,7 @@
   Env.deserialize.view = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
       k(typeof d == "string" ? d :
-        bender.view(elem.getAttribute("id"), elem.getAttribute("stack"),
-          d));
+        new bender.View(elem.getAttribute("stack"), d));
     });
   };
 
@@ -281,8 +280,7 @@
   // Deserialize a Bender content element.
   Env.deserialize.content = function (elem, component, k) {
     this.deserialize_view_content(elem, component, function (d) {
-      k(typeof d == "string" ? d :
-        bender.content(elem.getAttribute("id"), d));
+      k(typeof d == "string" ? d : new bender.Content(d));
     });
   };
 
@@ -508,7 +506,6 @@
     environment.components.push(c);
     c.children = [];
     c.links = [];
-    c.views = {};
     c.own_properties = {};
     c.watches = [];
     c.on = {};
@@ -522,9 +519,13 @@
       } else if (flexo.instance_of(ch, bender.Property)) {
         ch.component = this;
         this.own_properties[ch.name] = ch;
-      } else if (flexo.instance_of(ch, bender.View)) {
+      } else if (ch instanceof bender.View) {
+        if (this.view && this.view != ch) {
+          console.warn("Resetting view for component %0#%1"
+              .fmt(this.id, this.$__SERIAL));
+        }
         ch.component = this;
-        this.views[ch.id] = ch;
+        this.view = ch;
       } else if (flexo.instance_of(ch, bender.Watch)) {
         ch.component = this;
         this.watches.push(ch);
@@ -560,29 +561,6 @@
       }
     });
   };
-
-  // Render the view of a component in a target following the chain of
-  // prototypes (starting from the furthest ancestor.)
-  function render_view(target, chain) {
-    var stack = [];
-    flexo.hcaErof(chain, function (c) {
-      var mode = c.views[""] ? c.views[""].stack : "top";
-      if (mode === "replace") {
-        stack = [c];
-      } else if (mode === "top") {
-        stack.push(c);
-      } else {
-        stack.unshift(c);
-      }
-    });
-    stack.i = 0;
-    for (var n = stack.length; stack.i < n && !stack[stack.i].views[""];
-        ++stack.i);
-    if (stack.i < n && stack[stack.i].views[""]) {
-      var component = stack[stack.i++];
-      component.views[""].render(target, stack);
-    }
-  }
 
   // Render watches for components along the chain (starting from the furthest
   // ancestor.)
@@ -934,44 +912,33 @@
   };
 
 
-  bender.View = {};
+  bender.View = function (stack, children) {
+    var s = flexo.safe_trim(stack).toLowerCase();
+    this.stack = s == "bottom" || s == "replace" ? s : "top";
+    this.children = children || [];
+  };
 
-  bender.View.render = function (target, stack) {
+  bender.View.prototype.render = function (target, stack) {
     this.children.forEach(function (ch) {
       ch.render(target, stack);
     });
   };
 
-  bender.view = function (id, stack, children) {
-    var s = (stack || "").trim().toLowerCase();
-    var v = Object.create(bender.View);
-    v.id = id || "";
-    v.stack = s === "top" || s === "bottom" || s === "replace" ? s : "top";
-    v.children = children || [];
-    return v;
+  bender.Content = function (children) {
+    this.children = children || [];
   };
 
-
-  bender.Content = {};
-
-  bender.Content.render = function (target, stack) {
+  bender.Content.prototype.render = function (target, stack) {
     for (var i = stack.i, n = stack.length; i < n; ++i) {
-      if (stack[i].views[this.id]) {
+      if (stack[i].view) {
         var j = stack.i;
         stack.i = i + 1;
-        stack[i].views[this.id].render(target, stack);
+        stack[i].view.render(target, stack);
         stack.i = j;
         return;
       }
     }
-    bender.View.render.call(this, target, stack);
-  };
-
-  bender.content = function (id, children) {
-    var c = Object.create(bender.Content);
-    c.id = id || "";
-    c.children = children || [];
-    return c;
+    bender.View.prototype.render.call(this, target, stack);
   };
 
 
@@ -1596,6 +1563,28 @@
 
 
   // Utility functions
+
+  // Render the view of a component in a target following the chain of
+  // prototypes (starting from the furthest ancestor.)
+  function render_view(target, chain) {
+    var stack = [];
+    flexo.hcaErof(chain, function (c) {
+      var mode = c.view ? c.view.stack : "top";
+      if (mode == "replace") {
+        stack = [c];
+      } else if (mode == "top") {
+        stack.push(c);
+      } else {
+        stack.unshift(c);
+      }
+    });
+    stack.i = 0;
+    for (var n = stack.length; stack.i < n && !stack[stack.i].view; ++stack.i);
+    if (stack.i < n && stack[stack.i].view) {
+      var component = stack[stack.i++];
+      component.view.render(target, stack);
+    }
+  }
 
   // Set properties for the loaded component from the arguments. If properties
   // were set, return the new component with the set properties, otherwise the
