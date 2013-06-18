@@ -168,10 +168,10 @@ rendered as watches in the following manner.
 
 ### Binding syntax
 
-Bindings use two special characters, ` and #. The backtick (`) is the mark of a
-property name. By default, this refers to a property of the parent component;
-but the property name may be prefixed by an id name marked with a sharp sign (#)
-to point to a component or element in the scope of the parent component.
+Bindings use two special characters, \` and \#. The backtick (\`) is the mark of
+a property name. By default, this refers to a property of the parent component;
+but the property name may be prefixed by an id name marked with a sharp sign
+(\#) to point to a component or element in the scope of the parent component.
 
 Example:
 
