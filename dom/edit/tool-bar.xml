@@ -1,0 +1,12 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div class="tool-bar">
+      <component href="../lib/button.xml">
+        <view>+</view>
+      </component>
+      <component href="../lib/button.xml">
+        <view>x</view>
+      </component>
+    </html:div>
+  </view>
+</component>

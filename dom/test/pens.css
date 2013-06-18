@@ -1,0 +1,19 @@
+.pens {
+  width: 220px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pen.down {
+  opacity: 0.5;
+}
+
+.pen {
+  display: inline-block;
+  cursor: pointer;
+  width: 50px;
+  font-size: 20px;
+  text-align: center;
+}

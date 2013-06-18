@@ -10,7 +10,7 @@
   <property name="label" as="string"/>
   <property name="down" as="boolean" value="false"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:g transform="translate(`x, `y)" class="button">
+    <svg:g transform="translate(`x, `y)">
       <svg:rect width="`width" height="`height" x="`shadow\-offset"
         y="`shadow\-offset"/>
       <svg:g id="g">

@@ -1,0 +1,52 @@
+<component xmlns="http://bender.igel.co.jp" id="pens">
+  <link rel="stylesheet" href="pens.css"/>
+  <property name="palette" value='flexo.urn(["#ff6a4d", "#0b486b", "#5eb26b",
+    "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#4dbce9", "#06491d",
+    "#f94179"], true)'/>
+  <property name="c1" value="`c1 || `palette.pick()"/>
+  <property name="c2" value="`c2 || `palette.pick()"/>
+  <property name="c3" value="`c3 || `palette.pick()"/>
+  <property name="c4" value="`c4 || `palette.pick()"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div class="pens">
+      <component href="../lib/button.xml" base-class="" class="pen" id="p1">
+        <view>
+          <html:span style="color:#pens`c1">✎</html:span>
+        </view>
+      </component>
+      <component href="../lib/button.xml" base-class="" class="pen" id="p2">
+        <view>
+          <html:span style="color:#pens`c2">✎</html:span>
+        </view>
+      </component>
+      <component href="../lib/button.xml" base-class="" class="pen" id="p3">
+        <view>
+          <html:span style="color:#pens`c3">✎</html:span>
+        </view>
+      </component>
+      <component href="../lib/button.xml" base-class="" class="pen" id="p4">
+        <view>
+          <html:span style="color:#pens`c4">✎</html:span>
+        </view>
+      </component>
+    </html:div>
+    <component href="../lib/canvas.xml" id="canvas" width="220" height="200"
+      stroke-width="3" stroke="#pens`c1"/>
+  </view>
+  <watch>
+    <get select="#p1" event="!pushed"/>
+    <set select="#canvas" property="stroke" value="this.properties.c1"/>
+  </watch>
+  <watch>
+    <get select="#p2" event="!pushed"/>
+    <set select="#canvas" property="stroke" value="this.properties.c2"/>
+  </watch>
+  <watch>
+    <get select="#p3" event="!pushed"/>
+    <set select="#canvas" property="stroke" value="this.properties.c3"/>
+  </watch>
+  <watch>
+    <get select="#p4" event="!pushed"/>
+    <set select="#canvas" property="stroke" value="this.properties.c4"/>
+  </watch>
+</component>
