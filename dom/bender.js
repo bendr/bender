@@ -1243,7 +1243,7 @@
     bender.Set.call(this, value);
   };
 
-  bender.SetDOMAttribute.prototype.render = new bender.Set;
+  bender.SetDOMAttribute.prototype = new bender.Set;
 
   // Set a DOM attribute: no further effect, so make an edge to the Vortex.
   bender.SetDOMAttribute.prototype.render = function (source, component, scope) {
