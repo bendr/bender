@@ -21,6 +21,7 @@
       this.value = value;
       this._resolved();
     }
+    return this;
   };
 
   flexo.Promise.prototype.reject = function (reason) {
@@ -28,6 +29,7 @@
       this.reason = reason;
       this._resolved();
     }
+    return this;
   };
 
   flexo.Promise.prototype._resolved = function () {
@@ -86,25 +88,78 @@
   };
 
   bender.Environment.prototype.deserialize = function (node, parent) {
-    var promise = new flexo.Promise;
-    promise.fulfill("...");
-    return promise;
+    console.log("Deserialize {%0}%1".fmt(node.namespaceURI, node.localName));
+    if (node instanceof window.Node) {
+      if (node.nodeType == window.Node.ELEMENT_NODE) {
+        if (node.namespaceURI == bender.ns) {
+          var f = bender.Environment.prototype.deserialize[node.localName];
+          if (typeof f == "function") {
+            return f.call(this, node, parent);
+          }
+        } else {
+          console.log("Foreign content");
+        }
+      } else {
+        console.log("Text");
+      }
+    } else {
+      throw "Deseralization error: expected an element; got: %0".fmt(node);
+    }
+  };
+
+  var foreach = Array.prototype.forEach;
+  var push = Array.prototype.push;
+
+  bender.Environment.prototype.deserialize.component = function (elem, parent) {
+    console.log("Deserialize component", elem);
+    var component = new bender.Component(this, parent);
+    var deserialize_children = function (promise) {
+      console.log("Deserialize child nodes (%0)".fmt(elem.childNodes.length));
+      foreach.call(elem.childNodes, function (ch) {
+        promise = promise.then(function () {
+          this.deserialize(ch, component);
+          return component;
+        }.bind(this));
+      }, this);
+      return promise;
+    }.bind(this);
+    if (elem.hasAttribute("href")) {
+      var url = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
+      var promise = bender.load_component(url, this).then(function (response) {
+        console.log("Loaded href=%0 (%1)".fmt(elem.getAttribute("href"), url));
+        return this.deserialize(response)
+      }.bind(this)).then(function (proto) {
+        component.$prototype = proto;
+        return deserialize_children(promise);
+      });
+    } else {
+      return deserialize_children(new flexo.Promise().fulfill());
+    }
   };
 
   // Load a component and return a promise.
   bender.load_component = function (defaults, env) {
-    var promise = new flexo.Promise;
     var args = flexo.get_args(typeof defaults == "object" ? defaults :
       { href: defaults });
     if (args.href) {
-      if (!env) {
-        return flexo.ez_xhr(args.href).then(function (response) {
-          env = new bender.Environment;
-          return env.deserialize(response);
+      return flexo.ez_xhr(args.href, { responseType: "document" })
+        .then(function (response) {
+          if (!env) {
+            env = new bender.Environment;
+            return env.deserialize(response.documentElement);
+          }
         });
-      }
     }
     return new flexo.Promise().reject("No href argument for component.");
+  };
+
+  bender.Component = function (environment, parent) {
+    this.environment = environment;
+    this.children = [];
+    if (parent) {
+      this.parent = parent;
+      this.parent.children.push(this);
+    }
   };
 
 }(this.bender = {}));
