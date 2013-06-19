@@ -19,6 +19,10 @@
     Function.prototype.bind.native = false;
   }
 
+  Function.prototype.delay = function () {
+    setTimeout(this.apply(null, arguments), 0);
+  };
+
 
   // Objects
 
@@ -567,10 +571,6 @@
     };
   };
 
-  // No-op function, returns nothing
-  flexo.nop = function () {
-  };
-
   // Make a function returning the given value
   flexo.funcify = function (x) {
     return function () {
@@ -583,6 +583,9 @@
     return x;
   };
 
+  // No-op function, returns nothing
+  flexo.nop = function () {
+  };
 
   // Seq object for chaining asynchronous calls
   flexo.Seq = {};

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender ^ new load</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+    </style>
+  </head>
+  <body>
+    <script src="../dom/flexo.js"></script>
+    <script src="new-load.js"></script>
+    <script>
+"use strict";
+bender.load_component().then(function (component) {
+  console.log("Got component:", component);
+}, function (error) {
+  alert(error);
+});
+    </script>
+  </body>
+</html>
+
+
