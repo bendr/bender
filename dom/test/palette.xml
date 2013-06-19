@@ -1,0 +1,17 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="palette" value='new flexo.Urn(["#ff6a4d", "#0b486b", "#5eb26b",
+    "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
+    "#06491d", "#f94179"], true)'/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:ul id="palette"/>
+  </view>
+  <watch>
+    <get property="palette">
+      while (!property.is_empty) {
+        var color = property.pick();
+        scope["@palette"].appendChild(flexo
+          .$li({ style: "background-color: %0".fmt(color) }, color));
+      }
+    </get>
+  </watch>
+</component>
