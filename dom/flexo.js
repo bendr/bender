@@ -302,38 +302,39 @@
   // Pick random elements from an array and remove them from the array. When the
   // array is empty, recreate the initial array. The urn can also be emptied at
   // any moment, which resets is state completely.
-  flexo.Urn = {
-    pick: function () {
-      if (!this.remaining || this.remaining.length === 0) {
-        this.remaining = slice.call(this.array);
-      }
-      var i = flexo.random_int(this.remaining.length - 1);
-      if (this.non_repeatable && this.array.length > 1) {
-        while (this.remaining[i] === this.last_pick) {
-          i = flexo.random_int(this.remaining.length - 1);
-        }
-      }
-      this.last_pick = this.remaining.splice(i, 1)[0];
-      return this.last_pick;
-    },
-    empty: function () {
-      delete this.remaining;
-      delete this.last_pick;
-      return this;
-    }
-  };
 
   // Create a new urn to pick from. The first argument is the array for the urn,
   // then a flag to prevent successive repeating values when the urn is refilled
   // (defaults to false.)
-  flexo.urn = function (a, non_repeatable) {
-    var urn = Object.create(flexo.Urn);
-    flexo.make_property(urn, "array", function (a_) {
+  flexo.Urn = function (a, non_repeatable) {
+    flexo.make_property(this, "array", function (a_) {
       this.empty();
       return a_;
     }, a);
-    urn.non_repeatable = !!non_repeatable;
-    return urn;
+    flexo.make_readonly(this, "is_empty", function () {
+      return this.remaining && this.remaining.length == 0;
+    });
+    this.non_repeatable = !!non_repeatable;
+  };
+
+  flexo.Urn.prototype.pick = function () {
+    if (!this.remaining || this.remaining.length === 0) {
+      this.remaining = slice.call(this.array);
+    }
+    var i = flexo.random_int(this.remaining.length - 1);
+    if (this.non_repeatable && this.array.length > 1) {
+      while (this.remaining[i] === this.last_pick) {
+        i = flexo.random_int(this.remaining.length - 1);
+      }
+    }
+    this.last_pick = this.remaining.splice(i, 1)[0];
+    return this.last_pick;
+  };
+
+  flexo.Urn.prototype.empty = function () {
+    delete this.remaining;
+    delete this.last_pick;
+    return this;
   };
 
   // Return all the values of an object (presumably used as a dictionary)

@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="logo">
 
-  <property name="palette" value='flexo.urn(["#ff6a4d", "#0b486b", "#5eb26b",
+  <property name="palette" value='new flexo.Urn(["#ff6a4d", "#0b486b", "#5eb26b",
     "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
     "#06491d", "#f94179"], true)'/>
   <property name="sides"
