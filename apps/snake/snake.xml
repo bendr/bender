@@ -1,0 +1,37 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="direction" value="1 * Math.PI / 2"/>
+  <property name="head" value="[0, 0]"/>
+  <property name="length" value="3"/>
+  <property name="segments"/>
+  <property name="size" as="number" value="20"/>
+  <property name="r" value="`size / 2"/>
+  <property name="points" value="`segments &amp;&amp; `segments.map(function (p) { return '%0,%1'.fmt(p[0] * `size + `r, p[1] * `size + `r); }).join(' ');"/>
+  <property name="xeye" value="`segments &amp;&amp; `segments[0][0] * `size + `r + `r * Math.cos(`direction + Math.PI / 4) / 4"/>
+  <property name="yeye" value="`segments &amp;&amp; `segments[0][1] * `size + `r - `r * Math.sin(`direction + Math.PI / 4) / 4"/>
+  <property name="reye" value="`r / 4"/>
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:polyline points="`points" fill="none" stroke="#5eb26b"
+      stroke-width="`r" stroke-linejoin="round" stroke-linecap="round"/>
+    <svg:circle cx="`xeye" cy="`yeye" r="`reye" fill="#222"/>
+  </view>
+  <watch>
+    <get property="length"/>
+    <get property="head"/>
+    <set property="segments"><![CDATA[
+      console.log("Segments: length=%0, head=%1".fmt(this.properties.length,
+        this.properties.head));
+      cancel(!this.properties.head);
+      var segments = this.properties.segments || [];
+      if (segments[0] != this.properties.head) {
+        segments.pop();
+        segments.unshift(this.properties.head);
+      }
+      for (var tail = segments[segments.length - 1],
+        dir = this.properties.direction + Math.PI;
+        segments.length < this.properties.length;) {
+        segments.push(tail = [tail[0] + Math.cos(dir), tail[1] + Math.sin(dir)]);
+      }
+      return segments;
+    ]]></set>
+  </watch>
+</component>
