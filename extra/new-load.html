@@ -21,9 +21,13 @@ a {
 "use strict";
 bender.load_component().then(function (component) {
   console.log("*** Got component:", component);
-  return "ready";
-}, function (error) {
-  alert(error);
+  window.ENV = component.environment;
+  window.APP = component;
+}, function (reason) {
+  if (reason && reason.environment) {
+    window.ENV = reason.environment;
+  }
+  alert(reason && reason.reason || reason);
 });
     </script>
   </body>
