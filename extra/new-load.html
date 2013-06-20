@@ -20,7 +20,8 @@ a {
     <script>
 "use strict";
 bender.load_component().then(function (component) {
-  console.log("Got component:", component);
+  console.log("*** Got component:", component);
+  return "ready";
 }, function (error) {
   alert(error);
 });

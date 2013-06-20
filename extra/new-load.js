@@ -1,15 +1,14 @@
 (function (bender) {
 
-  // Promise
-  flexo.Promise = function () {
+  var reduce = Array.prototype.reduce;
+
+  flexo.Promise = function (id) {
     this._then = [];
   };
 
   flexo.Promise.prototype.then = function (on_fulfilled, on_rejected) {
     var p = new flexo.Promise;
-    this._then.push(p);
-    p._on_fulfilled = on_fulfilled;
-    p._on_rejected = on_rejected;
+    this._then.push([p, on_fulfilled, on_rejected]);
     if (this.hasOwnProperty("value") || this.hasOwnProperty("reason")) {
       this._resolved.bind(this).delay();
     }
@@ -17,7 +16,11 @@
   };
 
   flexo.Promise.prototype.fulfill = function (value) {
-    if (!this.hasOwnProperty("value") && !this.hasOwnProperty("reason")) {
+    if (this.hasOwnProperty("value")) {
+      console.error("Cannot fulfill promise: already fulfilled:", this.value);
+    } else if (this.hasOwnProperty("reason")) {
+      console.error("Cannot fulfill promise: already rejected:", this.reason);
+    } else {
       this.value = value;
       this._resolved();
     }
@@ -25,7 +28,11 @@
   };
 
   flexo.Promise.prototype.reject = function (reason) {
-    if (!this.hasOwnProperty("value") && !this.hasOwnProperty("reason")) {
+    if (this.hasOwnProperty("value")) {
+      console.error("Cannot reject promise: already fulfilled:", this.value);
+    } else if (this.hasOwnProperty("reason")) {
+      console.error("Cannot reject promise: already rejected:", this.reason);
+    } else {
       this.reason = reason;
       this._resolved();
     }
@@ -34,29 +41,31 @@
 
   flexo.Promise.prototype._resolved = function () {
     var resolution = this.hasOwnProperty("value") ? "value" : "reason";
-    var on = this.hasOwnProperty("value") ? "_on_fulfilled" : "_on_rejected";
+    var on = this.hasOwnProperty("value") ? 1 : 2;
     this._then.forEach(function (p) {
       if (typeof p[on] == "function") {
         try {
           var v = p[on](this[resolution]);
           if (v && typeof v.then == "function") {
-            v.then(p.fulfill.bind(p), p.reject.bind(p));
+            v.then(function (value) {
+              p[0].fulfill(value);
+            }, function (reason) {
+              p[0].reject(reason);
+            });
           } else {
-            p.fulfill(v);
+            p[0].fulfill(v);
           }
         } catch (e) {
-          p.reject(e);
+          p[0].reject(e);
         }
-      } else if (resolution == "value") {
-        p.fulfill(this.value);
       } else {
-        p.reject(this.reason);
+        p[0][resolution == "value" ? "fulfill" : "reject"](this[resolution]);
       }
     }, this);
     this._then = [];
   };
 
-  // Redefine flexo.ez_xhr to return a promise
+
   flexo.ez_xhr = function (uri, params) {
     var req = new XMLHttpRequest;
     if (!params) {
@@ -73,12 +82,17 @@
     }
     var promise = new flexo.Promise;
     req.onload = function () {
-      promise.fulfill(req.response);
+      if (req.response != null) {
+        promise.fulfill(req.response);
+      } else {
+        promise.reject(req);
+      }
     };
     req.onerror = promise.reject.bind(promise, req);
     req.send(params.data || "");
     return promise;
   };
+
 
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
@@ -87,79 +101,89 @@
     this.urls = [];
   };
 
-  bender.Environment.prototype.deserialize = function (node, parent) {
-    console.log("Deserialize {%0}%1".fmt(node.namespaceURI, node.localName));
+  bender.Environment.prototype.deserialize = function (node) {
+    console.log("Deserialize node {%0}%1".fmt(node.namespaceURI, node.localName));
     if (node instanceof window.Node) {
       if (node.nodeType == window.Node.ELEMENT_NODE) {
         if (node.namespaceURI == bender.ns) {
           var f = bender.Environment.prototype.deserialize[node.localName];
           if (typeof f == "function") {
             return f.call(this, node, parent);
+          } else {
+            console.log("Unknown bender element %0 (skipped)"
+                .fmt(node.localName));
           }
         } else {
-          console.log("Foreign content");
+          console.log("Foreign content (skipped)");
         }
       } else {
-        console.log("Text");
+        console.log("Text (skipped)");
       }
     } else {
       throw "Deseralization error: expected an element; got: %0".fmt(node);
     }
   };
 
-  var foreach = Array.prototype.forEach;
-  var push = Array.prototype.push;
-
-  bender.Environment.prototype.deserialize.component = function (elem, parent) {
+  bender.Environment.prototype.deserialize.component = function (elem) {
     console.log("Deserialize component", elem);
-    var component = new bender.Component(this, parent);
-    var deserialize_children = function (promise) {
-      console.log("Deserialize child nodes (%0)".fmt(elem.childNodes.length));
-      foreach.call(elem.childNodes, function (ch) {
-        promise = promise.then(function () {
-          this.deserialize(ch, component);
+    var component = new bender.Component(this);
+    // Deserialize the prototype of the component (from the href attribute),
+    // then all child nodes. At every step, a promise handles the content and
+    // return the component itself so that it can be safely returned regardless
+    // of the presence of a prototype or children. The reduce function iterates
+    // over all children and is initialized with the result of getting the
+    // prototype for the component.
+    // TODO attributes
+    // TODO check the prototype chain for loops
+    return reduce.call(elem.childNodes, function (p, ch) {
+      return p.then(function (component) {
+        var p = component.environment.deserialize(ch);
+        if (p instanceof flexo.Promise) {
+          return p.then(function (d) {
+            component.append_child(d);
+            return component;
+          });
+        } else {
+          component.append_child(p);
           return component;
-        }.bind(this));
-      }, this);
-      return promise;
-    }.bind(this);
-    if (elem.hasAttribute("href")) {
-      var url = flexo.absolute_uri(elem.baseURI, elem.getAttribute("href"));
-      var promise = bender.load_component(url, this).then(function (response) {
-        console.log("Loaded href=%0 (%1)".fmt(elem.getAttribute("href"), url));
-        return this.deserialize(response)
-      }.bind(this)).then(function (proto) {
-        component.$prototype = proto;
-        return deserialize_children(promise);
+        }
       });
-    } else {
-      return deserialize_children(new flexo.Promise().fulfill());
-    }
+    }, elem.hasAttribute("href") ?
+      flexo.ez_xhr(flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")),
+        { responseType: "document" }).then(function (response) {
+          return component.environment.deserialize(response.documentElement);
+        }).then(function (prototype) {
+          component.$prototype = prototype;
+          return component;
+        }) : new flexo.Promise().fulfill(component));
   };
 
   // Load a component and return a promise.
+  // TODO cache the deserialized result.
   bender.load_component = function (defaults, env) {
     var args = flexo.get_args(typeof defaults == "object" ? defaults :
       { href: defaults });
     if (args.href) {
+      if (!env) {
+        env = new bender.Environment;
+      }
       return flexo.ez_xhr(args.href, { responseType: "document" })
         .then(function (response) {
-          if (!env) {
-            env = new bender.Environment;
-            return env.deserialize(response.documentElement);
-          }
+          return env.deserialize(response.documentElement);
         });
     }
     return new flexo.Promise().reject("No href argument for component.");
   };
 
-  bender.Component = function (environment, parent) {
+  bender.Component = function (environment) {
     this.environment = environment;
     this.children = [];
-    if (parent) {
-      this.parent = parent;
-      this.parent.children.push(this);
-    }
+  };
+
+  bender.Component.prototype.append_child = function (child) {
+    console.log("+ add child", child);
+    // TODO
+    return child;
   };
 
 }(this.bender = {}));
