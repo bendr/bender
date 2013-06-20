@@ -115,14 +115,23 @@
     this.urls = {};
   };
 
-  bender.Environment.prototype.load = function (url) {
+  bender.Environment.prototype.load_component = function (url) {
+    var response_;
     return this.urls[url] || flexo.ez_xhr(url, { responseType: "document" })
       .then(function (response) {
+        response_ = response;
         return this.deserialize(response.documentElement);
       }.bind(this)).then(function (d) {
-        this.urls[url] = new flexo.Promise().fulfill(d);
-        d.url = url;
-        return d;
+        if (d instanceof bender.Component) {
+          this.urls[url] = new flexo.Promise().fulfill(d);
+          d.url = url;
+          return d;
+        } else {
+          var reason = { response: response_, reason: "not a Bender component",
+            environment: this };
+          this.urls[url] = new flexo.Promise().reject(reason);
+          throw reason;
+        }
       }.bind(this), function (reason) {
         this.urls[url] = new flexo.Promise().reject(reason);
         reason.environment = this;
@@ -163,7 +172,8 @@
       if (!env) {
         env = new bender.Environment;
       }
-      return env.load(flexo.absolute_uri(env.document.baseURI, args.href));
+      return env
+        .load_component(flexo.absolute_uri(env.document.baseURI, args.href));
     }
     return new flexo.Promise().reject("No href argument for component.");
   };
@@ -178,7 +188,8 @@
     // TODO attributes
     // TODO check the prototype chain for loops
     return append_children(elem.hasAttribute("href") ?
-      this.load(flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")))
+      this.load_component(flexo.absolute_uri(elem.baseURI,
+          elem.getAttribute("href")))
         .then(function (prototype) {
           component.$prototype = prototype;
           return component;
