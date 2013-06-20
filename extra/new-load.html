@@ -23,6 +23,7 @@ bender.load_component().then(function (component) {
   console.log("*** Got component:", component);
   window.ENV = component.environment;
   window.APP = component;
+  component.render(document.body);
 }, function (reason) {
   if (reason && reason.environment) {
     window.ENV = reason.environment;

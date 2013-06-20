@@ -17,7 +17,7 @@
 
   var reduce = Array.prototype.reduce;
 
-  flexo.Promise.prototype.seq = function (xs, f) {
+  flexo.Promise.prototype.each = function (xs, f) {
     return reduce.call(xs, function (p, x) {
       return p.then(function (v) {
         return f(x, v);
@@ -147,7 +147,7 @@
         }
       } else if (node.nodeType == window.Node.TEXT_NODE ||
           node.nodeType == window.Node.CDATA_SECTION_NODE) {
-        // Text node
+        return new bender.DOMTextNode(node.textContent);
       }
     } else {
       throw "Deseralization error: expected a node; got: %0".fmt(node);
@@ -177,36 +177,95 @@
     var component = new bender.Component(this);
     // TODO attributes
     // TODO check the prototype chain for loops
-    return (elem.hasAttribute("href") ?
+    return append_children(elem.hasAttribute("href") ?
       this.load(flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")))
         .then(function (prototype) {
           component.$prototype = prototype;
           return component;
-        }) : new flexo.Promise().fulfill(component))
-    .seq(elem.childNodes, function (ch) {
-      var p = component.environment.deserialize(ch);
-      if (p instanceof flexo.Promise) {
-        return p.then(function (d) {
-          component.append_child(d);
-          return component;
-        });
-      } else {
-        component.append_child(p);
-        return component;
-      }
-    });
+        }) : new flexo.Promise().fulfill(component), elem, this);
   };
 
   bender.Component.prototype.append_child = function (child) {
-    // TODO
-    this.children.push(child);
+    if (!child) {
+      return;
+    }
+    if (child instanceof bender.View) {
+      if (this.view) {
+        console.warn("Component already has a view");
+        return;
+      } else {
+        this.view = child;
+      }
+    }
+    child.parent = this;
     return child;
   };
 
-  bender.View = function () {};
+  bender.Component.prototype.render = function (target) {
+    if (this.view) {
+      this.view.render(target);
+    }
+  };
+
+  bender.View = function () {
+    this.children = [];
+  };
 
   bender.Environment.prototype.deserialize.view = function (elem) {
-    return new bender.View;
+    return append_children(new flexo.Promise().fulfill(new bender.View), elem,
+        this);
+  };
+
+  bender.View.prototype.append_child = function (child) {
+    if (child instanceof bender.DOMTextNode) {
+      this.children.push(child);
+      child.parent = this;
+    }
+  };
+
+  bender.View.prototype.render = function (target) {
+    this.children.forEach(function (ch) {
+      ch.render(target);
+    });
+  };
+
+  bender.DOMTextNode = function (text) {
+    Object.defineProperty(this, "text", { enumerable: true,
+      get: function () {
+        return text;
+      },
+      set: function (new_text) {
+        new_text = flexo.safe_string(new_text);
+        if (new_text != text) {
+          text = new_text;
+          this.rendered.forEach(function (d) {
+            d.textContent = new_text;
+          });
+        }
+      }
+    });
+    this.rendered = [];
+  };
+
+  function append_children(promise, elem, env) {
+    return promise.each(elem.childNodes, function (ch, parent) {
+      var p = env.deserialize(ch);
+      if (p instanceof flexo.Promise) {
+        return p.then(function (d) {
+          parent.append_child(d);
+          return parent;
+        });
+      } else {
+        parent.append_child(p);
+        return parent;
+      }
+    });
+  }
+
+  bender.DOMTextNode.prototype.render = function (target) {
+    var t = target.ownerDocument.createTextNode(this.text);
+    target.appendChild(t);
+    this.rendered.push(t);
   };
 
 }(this.bender = {}));
