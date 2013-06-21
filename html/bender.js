@@ -1,14 +1,34 @@
 (function (bender) {
 
-  bender.version = "0.8.2/h"
-
+  bender.version = "0.8.2-h";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+  // Load a component and return a promise. The defaults object should contain
+  // the defaults, including a href property for the URL of the component to
+  // load; alternatively, a URL as string may be provided. If no environment
+  // parameter is passed, a new one is created for the current document.
+  bender.load_component = function (defaults, env) {
+    var args = flexo.get_args(typeof defaults == "object" ? defaults :
+      { href: defaults });
+    if (args.href) {
+      if (!env) {
+        env = new bender.Environment;
+      }
+      return env
+        .load_component(flexo.absolute_uri(env.document.baseURI, args.href));
+    }
+    return new flexo.Promise().reject("No href argument for component.");
+  };
+
+  // Create a new environment in a document, or window.document by default.
   bender.Environment = function (document) {
     this.document = document || window.document;
     this.urls = {};
   };
 
+  // Load a component from an URL in the environment and return a promise. If
+  // loading fails, return an object with a reason, the current environment, and
+  // possibly the original XHMLHttpRequest or the response from said request.
   bender.Environment.prototype.load_component = function (url) {
     var response_;
     return this.urls[url] || flexo.ez_xhr(url, { responseType: "document" })
@@ -33,20 +53,23 @@
       }.bind(this));
   };
 
+  // Deserialize an XML node. Unknown nodes (non-Bender elements, or nodes other
+  // than elements, text and CDATA) are simply skipped, possibly with a warning
+  // in the case of unknown Bender elements (as it probably means that another
+  // namespace was meant; or a deprecated tag was used.)
   bender.Environment.prototype.deserialize = function (node) {
     if (node instanceof window.Node) {
       if (node.nodeType == window.Node.ELEMENT_NODE) {
         if (node.namespaceURI == bender.ns) {
           var f = bender.Environment.prototype.deserialize[node.localName];
           if (typeof f == "function") {
-            return f.call(this, node, parent);
+            return f.call(this, node);
           } else {
-            // Unknown Bender element
             console.warn("Unknow element in Bender namespace: %0"
                 .fmt(node.localName));
           }
         } else {
-          // Foreign content
+          return this.deserialize_foreign(node);
         }
       } else if (node.nodeType == window.Node.TEXT_NODE ||
           node.nodeType == window.Node.CDATA_SECTION_NODE) {
@@ -57,19 +80,38 @@
     }
   };
 
-  // Load a component and return a promise.
-  // TODO cache the deserialized result.
-  bender.load_component = function (defaults, env) {
-    var args = flexo.get_args(typeof defaults == "object" ? defaults :
-      { href: defaults });
-    if (args.href) {
-      if (!env) {
-        env = new bender.Environment;
+  // Deserialize a foreign element and its contents (attribute and children),
+  // creating a generic DOM element object.
+  bender.Environment.prototype.deserialize_foreign = function (elem) {
+    var attrs = {};
+    for (var i = 0, n = elem.attributes.length; i < n; ++i) {
+      var attr = elem.attributes[i];
+      var ns = attr.namespaceURI || "";
+      if (!attrs.hasOwnProperty(ns)) {
+        attrs[ns] = {};
       }
-      return env
-        .load_component(flexo.absolute_uri(env.document.baseURI, args.href));
+      attrs[ns][attr.localName] = attr.value;
     }
-    return new flexo.Promise().reject("No href argument for component.");
+    var e = new bender.DOMElement(elem.namespaceURI, elem.localName, attrs);
+    return new flexo.Promise().fulfill(e).append_children(elem, this);
+  };
+
+  // Helper function for deserialize to handle all children of `elem` in the
+  // environment `env`, whether the result of deserialization is a promise
+  // (e.g., a component) or an immediate value (a Bender object.)
+  flexo.Promise.prototype.append_children = function (elem, env) {
+    return this.each(elem.childNodes, function (ch, parent) {
+      var p = env.deserialize(ch);
+      if (p instanceof flexo.Promise) {
+        return p.then(function (d) {
+          parent.append_child(d);
+          return parent;
+        });
+      } else {
+        parent.append_child(p);
+        return parent;
+      }
+    });
   };
 
   bender.Component = function (environment) {
@@ -82,13 +124,14 @@
     var component = new bender.Component(this);
     // TODO attributes
     // TODO check the prototype chain for loops
-    return append_children(elem.hasAttribute("href") ?
+    return (elem.hasAttribute("href") ?
       this.load_component(flexo.absolute_uri(elem.baseURI,
           elem.getAttribute("href")))
         .then(function (prototype) {
           component.$prototype = prototype;
           return component;
-        }) : new flexo.Promise().fulfill(component), elem, this);
+        }) : new flexo.Promise().fulfill(component))
+      .append_children(elem, this);
   };
 
   bender.Component.prototype.append_child = function (child) {
@@ -191,12 +234,13 @@
   };
 
   bender.Environment.prototype.deserialize.view = function (elem) {
-    return append_children(new flexo.Promise().fulfill(new bender.View), elem,
+    return new flexo.Promise().fulfill(new bender.View).append_children(elem,
         this);
   };
 
   bender.View.prototype.append_child = function (child) {
-    if (child instanceof bender.DOMTextNode) {
+    if (child instanceof bender.DOMElement ||
+        child instanceof bender.DOMTextNode) {
       this.children.push(child);
       child.parent = this;
     }
@@ -207,6 +251,28 @@
       ch.render(target);
     });
   };
+
+  bender.DOMElement = function (ns, name, attrs, children) {
+    this.ns = ns;
+    this.name = name;
+    this.attrs = attrs || {};
+    this.children = children || [];
+  };
+
+  bender.DOMElement.prototype.render = function (target) {
+    var elem = target.ownerDocument.createElementNS(this.ns, this.name);
+    for (var ns in this.attrs) {
+      for (var a in this.attrs[ns]) {
+        elem.setAttributeNS(ns, a, this.attrs[ns][a]);
+      }
+    }
+    this.children.forEach(function (ch) {
+      ch.render(elem);
+    });
+    target.appendChild(elem);
+  };
+
+  bender.DOMElement.prototype.append_child = bender.View.prototype.append_child;
 
   bender.DOMTextNode = function (text) {
     Object.defineProperty(this, "text", { enumerable: true,
@@ -225,21 +291,6 @@
     });
     this.rendered = [];
   };
-
-  function append_children(promise, elem, env) {
-    return promise.each(elem.childNodes, function (ch, parent) {
-      var p = env.deserialize(ch);
-      if (p instanceof flexo.Promise) {
-        return p.then(function (d) {
-          parent.append_child(d);
-          return parent;
-        });
-      } else {
-        parent.append_child(p);
-        return parent;
-      }
-    });
-  }
 
   bender.DOMTextNode.prototype.render = function (target) {
     var t = target.ownerDocument.createTextNode(this.text);
