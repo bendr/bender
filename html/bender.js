@@ -1,112 +1,6 @@
 (function (bender) {
 
-  flexo.Promise = function () {
-    this._then = [];
-  };
-
-  var foreach = Array.prototype.forEach
-
-  flexo.Promise.prototype.then = function (on_fulfilled, on_rejected) {
-    var p = new flexo.Promise;
-    this._then.push([p, on_fulfilled, on_rejected]);
-    if (this.hasOwnProperty("value") || this.hasOwnProperty("reason")) {
-      this._resolved.bind(this).delay();
-    }
-    return p;
-  };
-
-  var reduce = Array.prototype.reduce;
-
-  flexo.Promise.prototype.each = function (xs, f) {
-    return reduce.call(xs, function (p, x) {
-      return p.then(function (v) {
-        return f(x, v);
-      });
-    }, this);
-  };
-
-  flexo.Promise.prototype.fulfill = function (value) {
-    if (this.hasOwnProperty("value")) {
-      console.error("Cannot fulfill promise: already fulfilled:", this.value);
-    } else if (this.hasOwnProperty("reason")) {
-      console.error("Cannot fulfill promise: already rejected:", this.reason);
-    } else {
-      this.value = value;
-      this._resolved();
-    }
-    return this;
-  };
-
-  flexo.Promise.prototype.reject = function (reason) {
-    if (this.hasOwnProperty("value")) {
-      console.error("Cannot reject promise: already fulfilled:", this.value);
-    } else if (this.hasOwnProperty("reason")) {
-      console.error("Cannot reject promise: already rejected:", this.reason);
-    } else {
-      this.reason = reason;
-      this._resolved();
-    }
-    return this;
-  };
-
-  flexo.Promise.prototype._resolved = function () {
-    var resolution = this.hasOwnProperty("value") ? "value" : "reason";
-    var on = this.hasOwnProperty("value") ? 1 : 2;
-    this._then.forEach(function (p) {
-      if (typeof p[on] == "function") {
-        try {
-          var v = p[on](this[resolution]);
-          if (v && typeof v.then == "function") {
-            v.then(function (value) {
-              p[0].fulfill(value);
-            }, function (reason) {
-              p[0].reject(reason);
-            });
-          } else {
-            p[0].fulfill(v);
-          }
-        } catch (e) {
-          p[0].reject(e);
-        }
-      } else {
-        p[0][resolution == "value" ? "fulfill" : "reject"](this[resolution]);
-      }
-    }, this);
-    this._then = [];
-  };
-
-  // Make an asynchronous XMLHttpRequest for `uri`, with optional parameters
-  // `params` (known parameters: method, responseType, headers, data.) Return a
-  // promise which will be fulfilled with the result response, or rejected with
-  // an object containing a reason and the request that was made.
-  flexo.ez_xhr = function (uri, params) {
-    var req = new XMLHttpRequest;
-    if (!params) {
-      params = {};
-    }
-    req.open(params.method || "GET", uri);
-    if ("responseType" in params) {
-      req.responseType = params.responseType;
-    }
-    if (typeof params.headers == "object") {
-      for (var h in params.headers) {
-        req.setRequestHeader(h, params.headers[h]);
-      }
-    }
-    var promise = new flexo.Promise;
-    req.onload = function () {
-      if (req.response != null) {
-        promise.fulfill(req.response);
-      } else {
-        promise.reject({ reason: "missing response", request: req });
-      }
-    };
-    req.onerror = promise.reject.bind(promise,
-        { reason: "XHR error", request: req });
-    req.send(params.data || "");
-    return promise;
-  };
-
+  bender.version = "0.8.2/h"
 
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
@@ -180,6 +74,7 @@
 
   bender.Component = function (environment) {
     this.environment = environment;
+    this.links = [];
     this.children = [];
   };
 
@@ -200,7 +95,10 @@
     if (!child) {
       return;
     }
-    if (child instanceof bender.View) {
+    if (child instanceof bender.Link) {
+      this.links.push(child);
+      child.parent = this;
+    } else if (child instanceof bender.View) {
       if (this.view) {
         console.warn("Component already has a view");
         return;
@@ -212,9 +110,58 @@
     return child;
   };
 
+  // TODO wait for scripts to finish before rendering the view
   bender.Component.prototype.render = function (target) {
+    this.links.forEach(function (link) {
+      link.render(target);
+    });
     if (this.view) {
       this.view.render(target);
+    }
+  };
+
+  bender.Link = function (rel, href) {
+    this.rel = flexo.safe_trim(rel).toLowerCase();
+    this.href = href;
+  };
+
+  bender.Environment.prototype.deserialize.link = function (elem) {
+    return new bender.Link(elem.getAttribute("rel"),
+        flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")));
+  };
+
+  bender.Link.prototype.render = function (target) {
+    var render = bender.Link.prototype.render[this.rel];
+    if (typeof render == "function") {
+      render.call(this, target);
+    } else {
+      console.warn("Cannot render “%0” link".fmt(this.rel));
+    }
+  };
+
+  bender.Link.prototype.render.script = function (target) {
+    var document = target.ownerDocument;
+    var ns = document.documentElement.namespaceURI;
+    if (ns == flexo.ns.html) {
+      var script = target.ownerDocument.createElement("script");
+      script.src = this.href;
+      script.async = false;
+      document.head.appendChild(script);
+    } else {
+      console.warn("Cannot render script link for namespace %0".fmt(ns));
+    }
+  };
+
+  bender.Link.prototype.render.stylesheet = function () {
+    var document = target.ownerDocument;
+    var ns = document.documentElement.namespaceURI;
+    if (ns == flexo.ns.html) {
+      var link = target.ownerDocument.createElement("link");
+      link.setAttribute("rel", "stylesheet");
+      link.setAttribute("href", this.href);
+      document.head.appendChild(script);
+    } else {
+      console.warn("Cannot render stylesheet link for namespace %0".fmt(ns));
     }
   };
 

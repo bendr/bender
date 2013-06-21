@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Bender ^ new load</title>
+    <title>⚐ Bender HTML Runtime</title>
     <meta charset="UTF-8">
     <style>
 body {
@@ -15,15 +15,17 @@ a {
     </style>
   </head>
   <body>
-    <script src="../dom/flexo.js"></script>
-    <script src="new-load.js"></script>
+    <script src="flexo.js"></script>
+    <script src="bender.js"></script>
     <script>
 "use strict";
 bender.load_component().then(function (component) {
   console.log("*** Got component:", component);
   window.ENV = component.environment;
   window.APP = component;
-  component.render(document.body);
+  setTimeout(function () {
+    component.render(document.body);
+  }, 0);
 }, function (reason) {
   if (reason && reason.environment) {
     window.ENV = reason.environment;
