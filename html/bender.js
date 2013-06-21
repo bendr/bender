@@ -30,25 +30,29 @@
   // loading fails, return an object with a reason, the current environment, and
   // possibly the original XHMLHttpRequest or the response from said request.
   bender.Environment.prototype.load_component = function (url) {
+    if (this.urls[url]) {
+      return this.urls[url];
+    }
     var response_;
-    return this.urls[url] || flexo.ez_xhr(url, { responseType: "document" })
+    this.urls[url] = new flexo.Promise;
+    return flexo.ez_xhr(url, { responseType: "document" })
       .then(function (response) {
         response_ = response;
         return this.deserialize(response.documentElement);
       }.bind(this)).then(function (d) {
         if (d instanceof bender.Component) {
-          this.urls[url] = new flexo.Promise().fulfill(d);
           d.url = url;
+          this.urls[url].fulfill(d);
           return d;
         } else {
           var reason = { response: response_, reason: "not a Bender component",
             environment: this };
-          this.urls[url] = new flexo.Promise().reject(reason);
+          this.urls[url].reject(reason);
           throw reason;
         }
       }.bind(this), function (reason) {
-        this.urls[url] = new flexo.Promise().reject(reason);
         reason.environment = this;
+        this.urls[url].reject(reason);
         throw reason;
       }.bind(this));
   };
@@ -116,14 +120,17 @@
 
   bender.Component = function (environment) {
     this.environment = environment;
+    this.properties = {};
     this.links = [];
     this.children = [];
   };
 
   bender.Environment.prototype.deserialize.component = function (elem) {
     var component = new bender.Component(this);
-    // TODO attributes
-    // TODO check the prototype chain for loops
+    // TODO attributes to set properties; enabled/id?
+    // TODO make a list of dependencies so that we don’t block if there is a
+    // loop (loop in content should be OK once there is <replicate>; for
+    // prototypes that’s still an error.)
     return (elem.hasAttribute("href") ?
       this.load_component(flexo.absolute_uri(elem.baseURI,
           elem.getAttribute("href")))
@@ -135,9 +142,6 @@
   };
 
   bender.Component.prototype.append_child = function (child) {
-    if (!child) {
-      return;
-    }
     if (child instanceof bender.Link) {
       this.links.push(child);
       child.parent = this;
@@ -148,6 +152,10 @@
       } else {
         this.view = child;
       }
+    } else if (child instanceof bender.Property) {
+      this.properties[child.name] = child;
+    } else {
+      return;
     }
     child.parent = this;
     return child;
@@ -297,5 +305,36 @@
     target.appendChild(t);
     this.rendered.push(t);
   };
+
+  bender.Property = function (name, as) {
+    this.name = name;
+    this.as = normalize_as(as);
+    this.children = [];
+  };
+
+  bender.Environment.prototype.deserialize.property = function (elem) {
+    var name = elem.getAttribute("name");
+    if (!name) {
+      console.warn("Property with no name:", elem);
+      return;
+    }
+    var property = new bender.Property(name, elem.getAttribute("as"));
+    if (!/\S/.test(elem.textContent)) {
+      property.value = elem.getAttribute("value");
+      return property;
+    }
+    return new flexo.Promise().fulfill(property).append_children(elem, this);
+  };
+
+  bender.Property.prototype.append_child = bender.View.prototype.append_child;
+
+
+  // Normalize the “as” property of an element so that it matches a known value.
+  // Set to “dynamic” as default.
+  function normalize_as(as) {
+    as = flexo.safe_trim(as).toLowerCase();
+    return as == "string" || as == "number" || as == "boolean" ||
+      as == "json" || as == "xml" ? as : "dynamic";
+  }
 
 }(this.bender = {}));

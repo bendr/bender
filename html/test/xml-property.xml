@@ -1,0 +1,14 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <property name="use-other-view" as="boolean" value="false"/>
+  <property name="other-view" as="xml">
+    <html:div>
+      A different hello.
+    </html:div>
+  </property>
+  <view>
+    <html:p>
+      Hello, world!
+    </html:p>
+  </view>
+</component>
