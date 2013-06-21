@@ -110,14 +110,27 @@
     return child;
   };
 
-  // TODO wait for scripts to finish before rendering the view
+  // Render the links, then the view. Link rendering may delay rendering the
+  // view (e.g., scripts need to finish loading before the view can be rendered)
   bender.Component.prototype.render = function (target) {
+    var pending_links = 0;
+    var render_view = function () {
+      if (arguments.length > 0) {
+        --pending_links;
+      }
+      if (pending_links == 0) {
+        if (this.view) {
+          this.view.render(target);
+        }
+      }
+    }.bind(this);
     this.links.forEach(function (link) {
-      link.render(target);
+      var p = link.render(target);
+      if (p) {
+        p.then(render_view);
+      }
     });
-    if (this.view) {
-      this.view.render(target);
-    }
+    render_view();
   };
 
   bender.Link = function (rel, href) {
@@ -130,6 +143,9 @@
         flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")));
   };
 
+  // Render links according to their rel attribute. If a link requires delaying
+  // the rest of the rendering, return a promise then fulfill it with a value to
+  // resume rendering (see script rendering below.)
   bender.Link.prototype.render = function (target) {
     var render = bender.Link.prototype.render[this.rel];
     if (typeof render == "function") {
@@ -146,7 +162,12 @@
       var script = target.ownerDocument.createElement("script");
       script.src = this.href;
       script.async = false;
+      var promise = new flexo.Promise;
+      script.onload = function () {
+        promise.fulfill(script);
+      }
       document.head.appendChild(script);
+      return promise;
     } else {
       console.warn("Cannot render script link for namespace %0".fmt(ns));
     }
