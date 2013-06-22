@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 17 June 2013 -->
+  <!-- Bender v0.8.2, 22 June 2013 -->
 
   <start>
     <ref name="component"/>
@@ -124,12 +124,25 @@
   <define name="property">
     <element name="property">
       <ref name="property-name"/>
-      <optional>
-        <ref name="value"/>
-      </optional>
-      <optional>
-        <ref name="as"/>
-      </optional>
+      <choice>
+        <group>
+          <optional>
+            <ref name="value"/>
+          </optional>
+          <optional>
+            <ref name="as"/>
+          </optional>
+        </group>
+        <group>
+          <attribute name="as">
+            <value>xml</value>
+          </attribute>
+          <optional>
+            <ref name="stack"/>
+          </optional>
+          <ref name="view-content"/>
+        </group>
+      </choice>
     </element>
   </define>
 
@@ -324,9 +337,7 @@
   </define>
 
   <define name="select">
-    <attribute name="select">
-      <data type="token"/>
-    </attribute>
+    <attribute name="select"/>
   </define>
 
   <define name="stack">

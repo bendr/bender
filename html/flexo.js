@@ -51,9 +51,9 @@
       get: function () { return value; },
       set: function (v) {
         try {
-          value = set.call(this, v, value, flexo.cancel);
+          value = set.call(this, v, value, flexo.fail);
         } catch (e) {
-          if (e !== "cancel") {
+          if (e !== "fail") {
             throw e;
           }
         }
@@ -566,11 +566,11 @@
 
   // This function gets passed to input and output value functions so that the
   // input or output can be cancelled. If called with no parameter or a single
-  // parameter evaluating to a truthy value, throw a cancel exception;
+  // parameter evaluating to a truthy value, throw a "fail" exception;
   // otherwise, return false.
-  flexo.cancel = function (p) {
+  flexo.fail = function (p) {
     if (arguments.length === 0 || !!p) {
-      throw "cancel";
+      throw "fail";
     }
     return false;
   };

@@ -8,7 +8,7 @@
   </property>
   <view>
     <html:p>
-      Hello, world!
+      Hello, XML properties!
     </html:p>
   </view>
 </component>

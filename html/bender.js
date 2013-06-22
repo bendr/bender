@@ -1,4 +1,5 @@
 (function (bender) {
+  "use strict";
 
   bender.version = "0.8.2-h";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
@@ -24,6 +25,9 @@
   bender.Environment = function (document) {
     this.document = document || window.document;
     this.urls = {};
+    this.vertices = [vortex];
+    this.queue = [];
+    this.traverse_graph_bound = this.traverse_graph.bind(this);
   };
 
   // Load a component from an URL in the environment and return a promise. If
@@ -100,6 +104,44 @@
     return new flexo.Promise().fulfill(e).append_children(elem, this);
   };
 
+  bender.Environment.prototype.visit = function (vertex, value) {
+    if (!this.visit_timeout) {
+      this.visit_timeout = setTimeout(this.traverse_graph_bound, 0);
+    }
+    this.queue.push([vertex, value]);
+  };
+
+  bender.Environment.prototype.traverse_graph = function () {
+    var queue = this.queue.slice();
+    this.queue = [];
+    delete this.visit_timeout;
+    for (var visited = [], i = 0; i < queue.length; ++i) {
+      var q = queue[i];
+      var vertex = q[0];
+      var value = q[1];
+      if (vertex.hasOwnProperty("__visited_value")) {
+        if (vertex.__visited_value !== value) {
+          this.visit(vertex, value);
+        }
+      } else {
+        vertex.__visited_value = value;
+        visited.push(vertex);
+        vertex.outgoing.forEach(function (edge) {
+          try {
+            queue.push([edge.dest, edge.visit(value)]);
+          } catch (e) {
+            if (e !== "fail") {
+              throw e;
+            }
+          }
+        }, this);
+      }
+    }
+    visited.forEach(function (vertex) {
+      delete vertex.__visited_value;
+    });
+  };
+
   // Helper function for deserialize to handle all children of `elem` in the
   // environment `env`, whether the result of deserialization is a promise
   // (e.g., a component) or an immediate value (a Bender object.)
@@ -118,8 +160,23 @@
     });
   };
 
+  // Add a vertex to the watch graph and return it. If a matching vertex was
+  // found, just return the previous vertex.
+  bender.Environment.prototype.add_vertex = function (v) {
+    var v_ = flexo.find_first(this.vertices, function (w) {
+      return v.match(w);
+    });
+    if (v_) {
+      return v_;
+    }
+    v.index = this.vertices.length;
+    this.vertices.push(v);
+    return v;
+  };
+
   bender.Component = function (environment) {
     this.environment = environment;
+    this.own_properties = {};
     this.properties = {};
     this.links = [];
     this.children = [];
@@ -153,7 +210,7 @@
         this.view = child;
       }
     } else if (child instanceof bender.Property) {
-      this.properties[child.name] = child;
+      this.own_properties[child.name] = child;
     } else {
       return;
     }
@@ -165,23 +222,49 @@
   // view (e.g., scripts need to finish loading before the view can be rendered)
   bender.Component.prototype.render = function (target) {
     var pending_links = 0;
-    var render_view = function () {
+    this.links.forEach(function (link) {
+      var p = link.render(target);
+      if (p) {
+        p.then(render_next);
+      }
+    });
+    var render_next = function () {
       if (arguments.length > 0) {
         --pending_links;
       }
       if (pending_links == 0) {
-        if (this.view) {
-          this.view.render(target);
-        }
+        this.render_properties();
+        this.render_view(target);
       }
     }.bind(this);
-    this.links.forEach(function (link) {
-      var p = link.render(target);
-      if (p) {
-        p.then(render_view);
+    render_next();
+  };
+
+  // Render the properties of the prototype of this component, then this
+  // component’s properties
+  bender.Component.prototype.render_properties = function () {
+    var components = [];
+    for (var c = this; c; c = c.$prototype) {
+      components.push(c);
+    }
+    for (var i = components.length - 1; i >= 0; --i) {
+      for (var property in components[i].own_properties) {
+        this.render_property(components[i].own_properties[property]);
       }
-    });
-    render_view();
+    }
+  };
+
+  // Render a property for this component
+  bender.Component.prototype.render_property = function (property) {
+    var vertex = this.environment
+      .add_vertex(new bender.PropertyVertex(this, property));
+    define_own_property(this, vertex);
+  };
+
+  bender.Component.prototype.render_view = function (target) {
+    if (this.view) {
+      this.view.render(target);
+    }
   };
 
   bender.Link = function (rel, href) {
@@ -319,15 +402,85 @@
       return;
     }
     var property = new bender.Property(name, elem.getAttribute("as"));
-    if (!/\S/.test(elem.textContent)) {
-      property.value = elem.getAttribute("value");
-      return property;
+    return new flexo.Promise().fulfill(property).append_children(elem, this)
+      .then(function (p) {
+        p.set_declared_value(elem.getAttribute("value"));
+        return p;
+      });
+  };
+
+  bender.Property.prototype.set_declared_value = function (value) {
+    if (this.as == "xml") {
+      this.value = this.children;
+    } else if (typeof value == "string") {
+      if (this.as == "boolean") {
+        this.value = flexo.is_true(value);
+      } else if (this.as == "number") {
+        this.value = flexo.to_number(value);
+      } else if (this.as == "string") {
+        this.value = value;
+      } else if (this.as == "json") {
+        try {
+          this.value = JSON.parse(value);
+        } catch (e) {
+          console.warn("Could not parse “%0” as JSON for property %1"
+              .fmt(value, this.name));
+        }
+      } else if (this.as == "dynamic") {
+        try {
+          this.value = new Function("return " + value);
+        } catch (e) {
+          console.warn("Could not parse “%0” as Javascript for property %1"
+              .fmt(value, this.name));
+        }
+      }
     }
-    return new flexo.Promise().fulfill(property).append_children(elem, this);
   };
 
   bender.Property.prototype.append_child = bender.View.prototype.append_child;
 
+  bender.Vortex = function () {
+    this.incoming = [];
+    this.outgoing = [];
+  };
+
+  bender.Vortex.prototype.match = function () {
+    return false;
+  };
+
+  var vortex = new bender.Vortex;
+
+  bender.PropertyVertex = function (component, property) {
+    this.component = component;
+    this.name = property.name;
+    if (property.hasOwnProperty("value")) {
+      this.value = property.value;
+    }
+  };
+
+  bender.PropertyVertex.prototype = new bender.Vortex;
+
+  bender.PropertyVertex.prototype.match = function (v) {
+    return (v instanceof bender.PropertyVertex) &&
+      (this.component == v.component) && (this.name == v.name);
+  };
+
+  // Define the getter/setter for a component’s own property with a previously
+  // created PropertyVertex.
+  function define_own_property(component, vertex) {
+    Object.defineProperty(component.properties, vertex.name, {
+      enumerable: true,
+      get: function () {
+        return vertex.value;
+      },
+      set: function (value) {
+        if (value !== vertex.value) {
+          vertex.value = value;
+          component.environment.visit(vertex, value);
+        }
+      }
+    });
+  }
 
   // Normalize the “as” property of an element so that it matches a known value.
   // Set to “dynamic” as default.
