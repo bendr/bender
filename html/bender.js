@@ -91,16 +91,15 @@
   // Deserialize a foreign element and its contents (attribute and children),
   // creating a generic DOM element object.
   bender.Environment.prototype.deserialize_foreign = function (elem) {
-    var attrs = {};
+    var e = new bender.DOMElement(elem.namespaceURI, elem.localName);
     for (var i = 0, n = elem.attributes.length; i < n; ++i) {
       var attr = elem.attributes[i];
       var ns = attr.namespaceURI || "";
-      if (!attrs.hasOwnProperty(ns)) {
-        attrs[ns] = {};
+      if (!e.attrs.hasOwnProperty(ns)) {
+        e.attrs[ns] = {};
       }
-      attrs[ns][attr.localName] = attr.value;
+      e.attrs[ns][attr.localName] = attr.value;
     }
-    var e = new bender.DOMElement(elem.namespaceURI, elem.localName, attrs);
     return new flexo.Promise().fulfill(e).append_children(elem, this);
   };
 
@@ -174,13 +173,32 @@
     return v;
   };
 
+  // Base for Bender content elements (except Link)
+  bender.Element = function () {};
+
+  bender.Element.prototype.init = function () {
+    this.children = [];
+    this.enabled = true;
+    this.id = "";
+  };
+
+  bender.Element.prototype.append_child = function (child) {
+    if (child instanceof bender.Element) {
+      this.children.push(child);
+      child.parent = this;
+      return child;
+    }
+  };
+
   bender.Component = function (environment) {
+    this.init();
     this.environment = environment;
     this.own_properties = {};
     this.properties = {};
     this.links = [];
-    this.children = [];
   };
+
+  bender.Component.prototype = new bender.Element;
 
   bender.Environment.prototype.deserialize.component = function (elem) {
     var component = new bender.Component(this);
@@ -267,6 +285,7 @@
     }
   };
 
+  // Link is not a content element
   bender.Link = function (rel, href) {
     this.rel = flexo.safe_trim(rel).toLowerCase();
     this.href = href;
@@ -321,20 +340,14 @@
   };
 
   bender.View = function () {
-    this.children = [];
+    this.init();
   };
+
+  bender.View.prototype = new bender.Element;
 
   bender.Environment.prototype.deserialize.view = function (elem) {
     return new flexo.Promise().fulfill(new bender.View).append_children(elem,
         this);
-  };
-
-  bender.View.prototype.append_child = function (child) {
-    if (child instanceof bender.DOMElement ||
-        child instanceof bender.DOMTextNode) {
-      this.children.push(child);
-      child.parent = this;
-    }
   };
 
   bender.View.prototype.render = function (target) {
@@ -343,12 +356,14 @@
     });
   };
 
-  bender.DOMElement = function (ns, name, attrs, children) {
+  bender.DOMElement = function (ns, name) {
+    this.init();
     this.ns = ns;
     this.name = name;
-    this.attrs = attrs || {};
-    this.children = children || [];
+    this.attrs = {};
   };
+
+  bender.DOMElement.prototype = new bender.Element;
 
   bender.DOMElement.prototype.render = function (target) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
@@ -363,9 +378,8 @@
     target.appendChild(elem);
   };
 
-  bender.DOMElement.prototype.append_child = bender.View.prototype.append_child;
-
   bender.DOMTextNode = function (text) {
+    this.init();
     Object.defineProperty(this, "text", { enumerable: true,
       get: function () {
         return text;
@@ -383,6 +397,8 @@
     this.rendered = [];
   };
 
+  bender.DOMTextNode.prototype = new bender.Element;
+
   bender.DOMTextNode.prototype.render = function (target) {
     var t = target.ownerDocument.createTextNode(this.text);
     target.appendChild(t);
@@ -390,10 +406,12 @@
   };
 
   bender.Property = function (name, as) {
+    this.init();
     this.name = name;
     this.as = normalize_as(as);
-    this.children = [];
   };
+
+  bender.Property.prototype = new bender.Element;
 
   bender.Environment.prototype.deserialize.property = function (elem) {
     var name = elem.getAttribute("name");
@@ -437,20 +455,22 @@
     }
   };
 
-  bender.Property.prototype.append_child = bender.View.prototype.append_child;
+  bender.Vortex = function () {};
 
-  bender.Vortex = function () {
+  bender.Vortex.prototype.init = function () {
     this.incoming = [];
     this.outgoing = [];
+    return this;
   };
 
   bender.Vortex.prototype.match = function () {
     return false;
   };
 
-  var vortex = new bender.Vortex;
+  var vortex = new bender.Vortex().init();
 
   bender.PropertyVertex = function (component, property) {
+    this.init();
     this.component = component;
     this.name = property.name;
     if (property.hasOwnProperty("value")) {
@@ -463,6 +483,81 @@
   bender.PropertyVertex.prototype.match = function (v) {
     return (v instanceof bender.PropertyVertex) &&
       (this.component == v.component) && (this.name == v.name);
+  };
+
+  bender.Watch = function () {
+    this.init();
+    this.gets = [];
+    this.sets = [];
+  };
+
+  bender.Watch.prototype = new bender.Element;
+
+  bender.Environment.prototype.deserialize.watch = function (elem) {
+    var watch = new bender.Watch;
+    if (elem.hasAttribute("id")) {
+      watch.id = elem.getAttribute("id");
+    }
+    if (elem.hasAttribute("enabled")) {
+      watch.enabled = flexo.is_true(elem.getAttribute("enabled"));
+    }
+    return flexo.Promise().fulfill(component).append_children(elem, this);
+  };
+
+  bender.Watch.prototype.append_child = function (child) {
+    if (child instanceof bender.Get) {
+      this.gets.push(child);
+    } else if (child instanceof bender.Set) {
+      this.sets.push(child);
+    }
+  };
+
+  bender.Get = function () {};
+
+  bender.Get.prototype = new bender.Element;
+
+  bender.GetDOMEvent = function (event) {
+    this.init();
+    this.event = event;
+  };
+
+  bender.GetDOMEvent.prototype = new bender.Get;
+
+  bender.GetEvent = function (event) {
+    this.init();
+    this.event = event;
+  };
+
+  bender.GetEvent.prototype = new bender.Get;
+
+  bender.GetProperty = function (property) {
+    this.init();
+    this.property = property;
+  };
+
+  bender.GetProperty.prototype = new bender.Get;
+
+  bender.Environment.prototype.deserialize.get = function (elem) {
+    var get;
+    if (elem.hasAttribute("dom-event")) {
+      get = new GetDOMEvent(elem.getAttribute("dom-event"));
+    } else if (elem.hasAttribute("event")) {
+      get = new GetEvent(elem.getAttribute("dom-event"));
+    } else if (elem.hasAttribute("property")) {
+      get = new GetProperty(elem.getAttribute("property"));
+    }
+    if (get) {
+      get.as = normalize_as(elem.getAttribute("as"));
+      get.select = elem.getAttribute("select");
+      return flexo.Promise().fulfill(get).append_children(elem, this);
+    }
+  };
+
+  bender.Set = function () {};
+
+  bender.Set.prototype = new bender.Element;
+
+  bender.Environment.prototype.deserialize.set = function (elem) {
   };
 
   // Define the getter/setter for a component’s own property with a previously
