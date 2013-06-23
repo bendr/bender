@@ -24,6 +24,7 @@
   // Create a new environment in a document, or window.document by default.
   bender.Environment = function (document) {
     this.document = document || window.document;
+    this.scope = { $document: this.document, $environment: this };
     this.urls = {};
     this.vertices = [];
     this.add_vertex(new bender.Vortex().init());
@@ -170,6 +171,7 @@
       return v_;
     }
     v.index = this.vertices.length;
+    v.environment = this;
     this.vertices.push(v);
     return v;
   };
@@ -298,13 +300,14 @@
   };
 
   // Link is not a content element
-  bender.Link = function (rel, href) {
+  bender.Link = function (environment, rel, href) {
+    this.environment = environment;
     this.rel = flexo.safe_trim(rel).toLowerCase();
     this.href = href;
   };
 
   bender.Environment.prototype.deserialize.link = function (elem) {
-    return new bender.Link(elem.getAttribute("rel"),
+    return new bender.Link(this, elem.getAttribute("rel"),
         flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")));
   };
 
@@ -312,6 +315,10 @@
   // the rest of the rendering, return a promise then fulfill it with a value to
   // resume rendering (see script rendering below.)
   bender.Link.prototype.render = function (target) {
+    if (this.environment.urls[this.href]) {
+      return;
+    }
+    this.environment.urls[this.href] = this;
     var render = bender.Link.prototype.render[this.rel];
     if (typeof render == "function") {
       return render.call(this, target);
@@ -499,6 +506,29 @@
       (this.component == v.component) && (this.name == v.name);
   };
 
+  bender.DOMEventVertex = function (get) {
+    this.init();
+    this.get = get;
+    target.addEventListener(get.type, this, false);
+  };
+
+  bender.DOMEventVertex.handleEvent = function (e) {
+    if (this.get.prevent_default) {
+      e.preventDefault();
+    }
+    if (this.get.stop_propagation) {
+      e.stopPropagation();
+    }
+    this.environment.visit(this, e);
+  };
+
+  bender.DOMEventVertex.prototype = new bender.Vortex;
+
+  bender.DOMEventVertex.prototype.match = function (v) {
+    return (v instanceof bender.DOMEventVertex) &&
+      (this.target == v.target) && (this.type == v.type);
+  };
+
   bender.Watch = function () {
     this.init();
     this.gets = [];
@@ -539,12 +569,16 @@
 
   bender.Get.prototype = new bender.Element;
 
-  bender.GetDOMEvent = function (event) {
+  bender.GetDOMEvent = function (type) {
     this.init();
-    this.event = event;
+    this.type = type;
   };
 
   bender.GetDOMEvent.prototype = new bender.Get;
+
+  bender.GetDOMEvent.prototype.render = function (component) {
+    component.environment.add_vertex(new bender.DOMEventVertex(this));
+  };
 
   bender.GetEvent = function (event) {
     this.init();
@@ -564,6 +598,9 @@
     var get;
     if (elem.hasAttribute("dom-event")) {
       get = new GetDOMEvent(elem.getAttribute("dom-event"));
+      get.prevent_default = flexo.is_true(elem.getAttribute("prevent-default"));
+      get.stop_propagation =
+        flexo.is_true(elem.getAttribute("stop-propagation"));
     } else if (elem.hasAttribute("event")) {
       get = new GetEvent(elem.getAttribute("dom-event"));
     } else if (elem.hasAttribute("property")) {
@@ -582,6 +619,22 @@
 
   bender.Environment.prototype.deserialize.set = function (elem) {
   };
+
+  // Add id to scope for abstract element (and possibly concrete element too)
+  function add_id_to_scope(scope, id, abstract, concrete) {
+    if (id) {
+      scope = Object.getPrototypeOf(scope);
+      var aid = "#" + id;
+      if (!scope.hasOwnProperty(aid)) {
+        scope[aid] = abstract;
+        if (concrete) {
+          scope["@" + id] = concrete;
+        }
+        return;
+      }
+      console.warn("Id %0 already defined in scope".fmt(id));
+    }
+  }
 
   // Define the getter/setter for a component’s own property with a previously
   // created PropertyVertex.
