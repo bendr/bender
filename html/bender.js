@@ -26,6 +26,7 @@
     this.document = document || window.document;
     this.scope = { $document: this.document, $environment: this };
     this.urls = {};
+    this.components = [];
     this.vertices = [];
     this.vortex = this.add_vertex(new bender.Vortex().init());
     this.queue = [];
@@ -197,12 +198,35 @@
     }
   };
 
+  bender.Element.prototype.remove_children = function () {
+    this.children.forEach(function (ch) {
+      delete ch.parent;
+    });
+    this.children = [];
+  };
+
+  // TODO clone the children? Do we need the parent relation?
+  // Or make a fragment and actually move nodes around? How to handle id?
+  bender.Element.prototype.insert_children = function (children, index) {
+    if (index == null) {
+      index = 0;
+    } else if (index < 0) {
+      index += this.children.length + 1;
+    }
+    for (var i = children.length - 1; i >= 0; --i) {
+      this.children.splice(index, 0, children[i]);
+    }
+  };
+
   bender.Component = function (environment) {
     this.init();
     this.environment = environment;
+    this.index = environment.components.length;
+    environment.components.push(this);
     this.scope = Object.create(environment.scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
+    this.concrete = [];
     this.own_properties = {};
     this.properties = {};
     this.links = [];
@@ -292,12 +316,15 @@
   bender.Component.prototype.render_component = function (target) {
     var concrete = {
       component: this,
+      index: this.environment.components.length,
       properties: {},
       scope: Object.create(this.scope, {
         $target: { enumerable: true, value: target },
         $that: { enumerable: true, value: this }
       })
     };
+    this.concrete.push(concrete);
+    this.environment.components.push(concrete);
     concrete.scope.$this = concrete;
     render_properties(concrete);
     render_view(concrete);
@@ -660,10 +687,28 @@
     }
   };
 
+  bender.SetInsert = function (insert) {
+    this.init();
+    this.insert = insert == "first" || insert == "last" || insert == "fill"
+      || insert == "before" || insert == "after" ? insert : "replace";
+  };
+
+  bender.SetInsert.prototype = new bender.Set;
+
+  bender.SetInsert.prototype.render = function (component) {
+    var target = component.scope[this.select];
+    if (target) {
+      return new bender.InsertEdge(target, this.insert,
+          component.scope.$environment);
+    }
+  };
+
   bender.Environment.prototype.deserialize.set = function (elem) {
     var set;
     if (elem.hasAttribute("dom-property")) {
       set = new bender.SetDOMProperty(elem.getAttribute("dom-property"));
+    } else if (elem.hasAttribute("insert")) {
+      set = new bender.SetInsert(elem.getAttribute("insert"));
     }
     if (set) {
       set.as = normalize_as(elem.getAttribute("as"));
@@ -756,6 +801,38 @@
   bender.DOMPropertyEdge.prototype.visit = function (input) {
     this.target[this.property] = input;
     return input;
+  };
+
+  bender.InsertEdge = function (target, insert, environment) {
+    this.target = target;
+    this.insert = insert;
+    this.set_dest(environment.vortex);
+  };
+
+  bender.InsertEdge.prototype = new bender.Edge;
+
+  bender.InsertEdge.prototype.visit = function (input) {
+    if (this.insert == "first") {
+      this.target.insert_children(input);
+    } else if (this.insert == "last") {
+      this.target.insert_children(input, -1);
+    } else if (this.insert == "fill") {
+      this.target.remove_children();
+      this.target.insert_children(input);
+    } else {
+      var parent = this.target.parent;
+      if (this.insert == "replace") {
+        parent.remove_children();
+        parent.insert_children(input);
+      } else {
+        var index = parent.children.indexOf(this.target);
+        if (this.insert == "before") {
+          parent.insert_children(input, index);
+        } else if (this.insert == "after") {
+          parent.insert_children(input, index + 1);
+        }
+      }
+    }
   };
 
   // Normalize the “as” property of an element so that it matches a known value.
