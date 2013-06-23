@@ -25,7 +25,8 @@
   bender.Environment = function (document) {
     this.document = document || window.document;
     this.urls = {};
-    this.vertices = [vortex];
+    this.vertices = [];
+    this.add_vertex(new bender.Vortex().init());
     this.queue = [];
     this.traverse_graph_bound = this.traverse_graph.bind(this);
   };
@@ -196,6 +197,7 @@
     this.own_properties = {};
     this.properties = {};
     this.links = [];
+    this.watches = [];
   };
 
   bender.Component.prototype = new bender.Element;
@@ -229,6 +231,8 @@
       }
     } else if (child instanceof bender.Property) {
       this.own_properties[child.name] = child;
+    } else if (child instanceof bender.Watch) {
+      this.watches.push(child);
     } else {
       return;
     }
@@ -240,12 +244,6 @@
   // view (e.g., scripts need to finish loading before the view can be rendered)
   bender.Component.prototype.render = function (target) {
     var pending_links = 0;
-    this.links.forEach(function (link) {
-      var p = link.render(target);
-      if (p) {
-        p.then(render_next);
-      }
-    });
     var render_next = function () {
       if (arguments.length > 0) {
         --pending_links;
@@ -253,8 +251,16 @@
       if (pending_links == 0) {
         this.render_properties();
         this.render_view(target);
+        this.render_watches();
       }
     }.bind(this);
+    this.links.forEach(function (link) {
+      var p = link.render(target);
+      if (p) {
+        ++pending_links;
+        p.then(render_next);
+      }
+    });
     render_next();
   };
 
@@ -274,15 +280,21 @@
 
   // Render a property for this component
   bender.Component.prototype.render_property = function (property) {
-    var vertex = this.environment
+    property.vertex = this.environment
       .add_vertex(new bender.PropertyVertex(this, property));
-    define_own_property(this, vertex);
+    define_own_property(this, property.vertex);
   };
 
   bender.Component.prototype.render_view = function (target) {
     if (this.view) {
       this.view.render(target);
     }
+  };
+
+  bender.Component.prototype.render_watches = function () {
+    this.watches.forEach(function (watch) {
+      watch.render(this);
+    }, this);
   };
 
   // Link is not a content element
@@ -302,12 +314,14 @@
   bender.Link.prototype.render = function (target) {
     var render = bender.Link.prototype.render[this.rel];
     if (typeof render == "function") {
-      render.call(this, target);
+      return render.call(this, target);
     } else {
       console.warn("Cannot render “%0” link".fmt(this.rel));
     }
   };
 
+  // Scripts are handled for HTML only by default. Override this method to
+  // handle other types of documents.
   bender.Link.prototype.render.script = function (target) {
     var document = target.ownerDocument;
     var ns = document.documentElement.namespaceURI;
@@ -326,6 +340,8 @@
     }
   };
 
+  // Stylesheets are handled for HTML only by default. Override this method to
+  // handle other types of documents.
   bender.Link.prototype.render.stylesheet = function () {
     var document = target.ownerDocument;
     var ns = document.documentElement.namespaceURI;
@@ -467,8 +483,6 @@
     return false;
   };
 
-  var vortex = new bender.Vortex().init();
-
   bender.PropertyVertex = function (component, property) {
     this.init();
     this.component = component;
@@ -510,6 +524,15 @@
     } else if (child instanceof bender.Set) {
       this.sets.push(child);
     }
+  };
+
+  bender.Watch.prototype.render = function (component) {
+    this.gets.forEach(function (get) {
+      get.render(component);
+    });
+    this.sets.forEach(function (set) {
+      set.render(component);
+    });
   };
 
   bender.Get = function () {};
