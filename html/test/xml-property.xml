@@ -1,17 +1,22 @@
 <component xmlns="http://bender.igel.co.jp"
   xmlns:html="http://www.w3.org/1999/xhtml">
+
   <property name="view-content" as="xml">
     <html:p>
-      Hello from an XML property!
+      Here is the XML property!
     </html:p>
   </property>
+
   <view>
     <html:p>
-      Hello below:
+      The XML property should appear below:
     </html:p>
+    <html:div style="background-color: yellow">
+      <html:p>
+        Inside this yellow box:
+      </html:p>
+      <get property="view-content"/>
+    </html:div>
   </view>
-  <watch>
-    <get property="view-content"/>
-    <set select="$view" insert="last"/>
-  </watch>
+
 </component>

@@ -205,8 +205,8 @@
     this.children = [];
   };
 
-  // TODO clone the children? Do we need the parent relation?
-  // Or make a fragment and actually move nodes around? How to handle id?
+  // Insert the list of children at the given index (may be negative to start
+  // from the end; e.g., -1 to append)
   bender.Element.prototype.insert_children = function (children, index) {
     if (index == null) {
       index = 0;
@@ -214,7 +214,13 @@
       index += this.children.length + 1;
     }
     for (var i = children.length - 1; i >= 0; --i) {
+      children[i].parent = this;
       this.children.splice(index, 0, children[i]);
+    }
+    for (var p = this; p && typeof p.inserted_children != "function";
+        p = p.parent);
+    if (p && typeof p.inserted_children == "function") {
+      p.inserted_children(this, index, children.length);
     }
   };
 
@@ -446,10 +452,31 @@
         this);
   };
 
-  bender.View.prototype.render = function (scope) {
+  bender.View.prototype.render = function (scope, ref) {
     this.children.forEach(function (ch) {
-      ch.render(scope.$target, scope);
+      ch.render(scope, scope.$target, ref);
     });
+  };
+
+  bender.View.prototype.inserted_children = function (elem, index, count) {
+    if (this.parent) {
+      var path = [];
+      for (var e = elem; e != this; e = e.parent) {
+        path.push(e.parent.children.indexOf(e));
+      }
+      this.parent.concrete.forEach(function (concrete) {
+        var target = concrete.scope.$first;
+        for (var i = path.length - 1; i >= 0; --i) {
+          for (var j = 0; j < path[i]; ++j) {
+            target = target.nextSibling;
+          }
+          target = target.firstChild;
+        }
+        for (var i = 0; i < count; ++i) {
+          elem.children[index + i].render(target, concrete.scope);
+        }
+      });
+    }
   };
 
   bender.DOMElement = function (ns, name) {
@@ -461,7 +488,7 @@
 
   bender.DOMElement.prototype = new bender.Element;
 
-  bender.DOMElement.prototype.render = function (target, scope) {
+  bender.DOMElement.prototype.render = function (scope, target, ref) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
@@ -471,10 +498,13 @@
     if (this.id) {
       scope["@" + this.id] = elem;
     }
+    if (!scope.$first) {
+      scope.$first = elem;
+    }
     this.children.forEach(function (ch) {
-      ch.render(elem, scope);
+      ch.render(scope, elem);
     });
-    target.appendChild(elem);
+    target.insertBefore(elem, ref);
   };
 
   bender.DOMTextNode = function (text) {
@@ -498,12 +528,15 @@
 
   bender.DOMTextNode.prototype = new bender.Element;
 
-  bender.DOMTextNode.prototype.render = function (target, scope) {
+  bender.DOMTextNode.prototype.render = function (scope, target, ref) {
     var t = target.ownerDocument.createTextNode(this.text);
     if (this.id) {
       scope["@" + this.id] = t;
     }
-    target.appendChild(t);
+    if (!scope.$first) {
+      scope.$first = t;
+    }
+    target.insertBefore(t, ref);
     this.rendered.push(t);
   };
 
