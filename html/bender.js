@@ -110,7 +110,7 @@
     return new flexo.Promise().fulfill(e).append_children(elem, this);
   };
 
-  bender.Environment.prototype.visit = function (vertex, value) {
+  bender.Environment.prototype.visit_vertex = function (vertex, value) {
     if (!this.visit_timeout) {
       this.visit_timeout = setTimeout(this.traverse_graph_bound, 0);
     }
@@ -125,22 +125,24 @@
       var q = queue[i];
       var vertex = q[0];
       var value = q[1];
-      if (vertex.hasOwnProperty("__visited_value")) {
-        if (vertex.__visited_value !== value) {
-          this.visit(vertex, value);
+      if (typeof vertex.match != "function" || vertex.match(value)) {
+        if (typeof vertex.value == "function") {
+          value = vertex.value(value);
         }
-      } else {
-        vertex.__visited_value = value;
-        visited.push(vertex);
-        vertex.outgoing.forEach(function (edge) {
-          try {
-            queue.push([edge.dest, edge.visit(value)]);
-          } catch (e) {
-            if (e !== "fail") {
-              throw e;
-            }
+        if (vertex.hasOwnProperty("__visited_value")) {
+          if (vertex.__visited_value !== value) {
+            this.visit_vertex(vertex, value);
           }
-        }, this);
+        } else {
+          vertex.__visited_value = value;
+          visited.push(vertex);
+          vertex.outgoing.forEach(function (edge) {
+            var output = edge.visit(value);
+            if (output) {
+              queue.push(output);
+            }
+          }, this);
+        }
       }
     }
     visited.forEach(function (vertex) {
@@ -170,7 +172,7 @@
   // found, just return the previous vertex.
   bender.Environment.prototype.add_vertex = function (v) {
     var v_ = flexo.find_first(this.vertices, function (w) {
-      return v.match(w);
+      return v.match_vertex(w);
     });
     if (v_) {
       return v_;
@@ -357,7 +359,7 @@
       set: function (value) {
         if (value !== vertex.value) {
           vertex.value = value;
-          component.scope.$environment.visit(vertex, value);
+          component.scope.$environment.visit_vertex(vertex, value);
         }
       }
     });
@@ -686,7 +688,7 @@
       }
       var env = vertex.component.scope.$environment;
       vertex.add_edge(new bender.InlinePropertyEdge(elem, ref, env));
-      env.visit(vertex, vertex.value);
+      env.visit_vertex(vertex, vertex.value);
     }
   };
 
@@ -704,6 +706,12 @@
     }
     if (get) {
       get.as = normalize_as(elem.getAttribute("as"));
+      if (elem.hasAttribute("value") && get.as != "xml") {
+        var value = get_set_value(elem.getAttribute("value"), get.as);
+        if (typeof value == "function") {
+          get.value = value;
+        }
+      }
       get.select = elem.hasAttribute("select") ?
         elem.getAttribute("select") : "$this";
       return new flexo.Promise().fulfill(get).append_children(elem, this);
@@ -724,8 +732,15 @@
   bender.SetDOMProperty.prototype.render = function (component) {
     var target = component.scope[this.select];
     if (target) {
-      return new bender.DOMPropertyEdge(this, target,
+      var edge = new bender.DOMPropertyEdge(this, target,
           component.scope.$environment);
+      if (this.match) {
+        edge.match = this.match;
+      }
+      if (this.value) {
+        edge.value = this.value;
+      }
+      return edge;
     }
   };
 
@@ -754,6 +769,12 @@
     }
     if (set) {
       set.as = normalize_as(elem.getAttribute("as"));
+      if (elem.hasAttribute("value") && set.as != "xml") {
+        var value = get_set_value(elem.getAttribute("value"), set.as);
+        if (typeof value == "function") {
+          set.value = value;
+        }
+      }
       set.select = elem.hasAttribute("select") ?
         elem.getAttribute("select") : "$this";
       return new flexo.Promise().fulfill(set).append_children(elem, this);
@@ -770,7 +791,7 @@
 
   bender.Vortex.prototype.added = function () {};
 
-  bender.Vortex.prototype.match = function () {
+  bender.Vortex.prototype.match_vertex = function () {
     return false;
   };
 
@@ -793,11 +814,11 @@
   bender.PropertyVertex.prototype.added = function () {
     var v = this.component.properties[this.name];
     if (v != null) {
-      this.environment.visit(this, v);
+      this.environment.visit_vertex(this, v);
     }
   };
 
-  bender.PropertyVertex.prototype.match = function (v) {
+  bender.PropertyVertex.prototype.match_vertex = function (v) {
     return (v instanceof bender.PropertyVertex) &&
       (this.component == v.component) && (this.name == v.name);
   };
@@ -817,10 +838,10 @@
     if (this.get.stop_propagation) {
       e.stopPropagation();
     }
-    this.environment.visit(this, e);
+    this.environment.visit_vertex(this, e);
   };
 
-  bender.DOMEventVertex.prototype.match = function (v) {
+  bender.DOMEventVertex.prototype.match_vertex = function (v) {
     return (v instanceof bender.DOMEventVertex) &&
       (this.target == v.target) && (this.type == v.type);
   };
@@ -841,8 +862,11 @@
   bender.DOMPropertyEdge.prototype = new bender.Edge;
 
   bender.DOMPropertyEdge.prototype.visit = function (input) {
-    this.target[this.property] = input;
-    return input;
+    if (!this.match || this.match(input)) {
+      var value = this.value && this.value(input) || input;
+      this.target[this.property] = value;
+      return [this.dest, value];
+    }
   };
 
   bender.InsertEdge = function (target, insert, environment) {
@@ -891,6 +915,17 @@
       ch.render(this.source.component.scope, this.target, this.ref);
     }, this);
   };
+
+  function get_set_value(value, as) {
+    try {
+      return as == "string" ? flexo.funcify(value) :
+        as == "number" ? flexo.funcify(flexo.to_number(value)) :
+        as == "boolean" ? flexo.funcify(flexo.is_true(value)) :
+        as == "json" ? flexo.funcify(JSON.parse(value)) :
+          new Function("input", "return " + value);
+    } catch (e) {
+    }
+  }
 
   // Normalize the “as” property of an element so that it matches a known value.
   // Set to “dynamic” as default.

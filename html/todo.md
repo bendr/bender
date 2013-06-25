@@ -1,6 +1,6 @@
 # TODO List
 
-Bender v0.8.2-h, 24 June 2013
+Bender v0.8.2-h, 25 June 2013
 
 ## TODO
 
@@ -9,6 +9,11 @@ Bender v0.8.2-h, 24 June 2013
   render into
 * **g** element to distribute attributes to all its children
 * **match** attribute for get (default: "true")
+* watch combinators: or, and, then (?)
+
+## Bugs
+
+* Loops in loading components
 
 ## In progress
 
