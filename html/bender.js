@@ -672,12 +672,21 @@
 
   bender.GetProperty.prototype = new bender.Get;
 
-  bender.GetProperty.prototype.render = function (component) {
-    var target = component.scope[this.select];
+  // Render can be called from within a watch, with the first parameter being a
+  // component, or from within a view, with the first parameter actually being a
+  // scope
+  bender.GetProperty.prototype.render = function (component, elem, ref) {
+    var target = (component.scope || component)[this.select];
     if (target) {
       var properties = target.own_properties || target.component.own_properties;
-      return flexo.find_first(properties[this.property].vertices,
+      var vertex = flexo.find_first(properties[this.property].vertices,
           function (v) { return v.component == target; })
+      if (!elem) {
+        return vertex;
+      }
+      var env = vertex.component.scope.$environment;
+      vertex.add_edge(new bender.InlinePropertyEdge(elem, ref, env));
+      env.visit(vertex, vertex.value);
     }
   };
 
@@ -866,6 +875,21 @@
         }
       }
     }
+  };
+
+  bender.InlinePropertyEdge = function (target, ref, environment) {
+    this.target = target;
+    this.ref = ref;
+    this.last = ref && ref.precedingSibling || target.lastChild;
+    this.set_dest(environment.vortex);
+  };
+
+  bender.InlinePropertyEdge.prototype = new bender.Edge;
+
+  bender.InlinePropertyEdge.prototype.visit = function (input) {
+    input.forEach(function (ch) {
+      ch.render(this.source.component.scope, this.target, this.ref);
+    }, this);
   };
 
   // Normalize the “as” property of an element so that it matches a known value.

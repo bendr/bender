@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 22 June 2013 -->
+  <!-- Bender v0.8.2, 25 June 2013 -->
 
   <start>
     <ref name="component"/>
@@ -79,6 +79,18 @@
         <ref name="get-dom-event"/>
         <ref name="get-event"/>
       </choice>
+      <optional>
+        <choice>
+          <ref name="value"/>
+          <text/>
+        </choice>
+      </optional>
+    </element>
+  </define>
+
+  <define name="get-inline">
+    <element name="get">
+      <ref name="get-property"/>
       <optional>
         <choice>
           <ref name="value"/>
@@ -231,6 +243,9 @@
       </optional>
       <zeroOrMore>
         <ref name="foreign-view-content"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="get-inline"/>
       </zeroOrMore>
       <zeroOrMore>
         <ref name="text"/>

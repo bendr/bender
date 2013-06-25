@@ -13,6 +13,7 @@ Bender v0.8.2-h, 24 June 2013
 ## In progress
 
 * XML properties
+* Inline get (**get** inside a **view** element)
 
 ## Done
 
