@@ -1,0 +1,24 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <view>
+    <html:p>
+      The XML property should appear below:
+    </html:p>
+    <html:div style="background-color: yellow" id="yello">
+      <html:p>
+        Inside this yellow box:
+      </html:p>
+    </html:div>
+  </view>
+
+  <watch>
+    <get event="!rendered"/>
+    <set select="@yello" insert="indirect" as="xml">
+      <html:p>
+        Here is the XML property!
+      </html:p>
+    </set>
+  </watch>
+
+</component>

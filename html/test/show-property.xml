@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="x" as="string" value="7"/>
+  <property name="x" as="string" value="✌"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       x = <html:span id="val"
@@ -7,7 +7,7 @@
     </html:p>
   </view>
   <watch>
-    <get property="x"/>
-    <set select="@val" dom-property="textContent" value="input + input + input"/>
+    <get property="x" value="input + input + input"/>
+    <set select="@val" dom-property="textContent"/>
   </watch>
 </component>

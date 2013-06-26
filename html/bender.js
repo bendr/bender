@@ -125,24 +125,19 @@
       var q = queue[i];
       var vertex = q[0];
       var value = q[1];
-      if (typeof vertex.match != "function" || vertex.match(value)) {
-        if (typeof vertex.value == "function") {
-          value = vertex.value(value);
+      if (vertex.hasOwnProperty("__visited_value")) {
+        if (vertex.__visited_value !== value) {
+          this.visit_vertex(vertex, value);
         }
-        if (vertex.hasOwnProperty("__visited_value")) {
-          if (vertex.__visited_value !== value) {
-            this.visit_vertex(vertex, value);
+      } else {
+        vertex.__visited_value = value;
+        visited.push(vertex);
+        vertex.outgoing.forEach(function (edge) {
+          var output = edge.follow(value);
+          if (output) {
+            queue.push(output);
           }
-        } else {
-          vertex.__visited_value = value;
-          visited.push(vertex);
-          vertex.outgoing.forEach(function (edge) {
-            var output = edge.visit(value);
-            if (output) {
-              queue.push(output);
-            }
-          }, this);
-        }
+        }, this);
       }
     }
     visited.forEach(function (vertex) {
@@ -565,6 +560,7 @@
       });
   };
 
+  // TODO merge this with get_set_value
   bender.Property.prototype.set_declared_value = function (value) {
     if (this.as == "xml") {
       this.value = this.children;
@@ -620,23 +616,26 @@
     }
   };
 
+  // Render the watch by rendering a vertex for the watch, then a vertex for
+  // each of the get elements with an edge to the watch vertex, then an edge
+  // from the watch vertex for all set elements
   bender.Watch.prototype.render = function (component) {
-    var vertices = [];
+    var watch_vertex = new bender.WatchVertex(this, component);
+    var get_vertices = [];
     this.gets.forEach(function (get) {
       var vertex = get.render(component);
       if (vertex) {
-        vertices.push(vertex);
+        vertex.add_edge(new bender.WatchEdge(get, component, watch_vertex));
+        get_vertices.push(vertex);
       }
     });
     this.sets.forEach(function (set) {
       var edge = set.render(component);
       if (edge) {
-        vertices.forEach(function (vertex) {
-          vertex.add_edge(edge);
-        });
+        watch_vertex.add_edge(edge);
       }
     });
-    vertices.forEach(function (v) {
+    get_vertices.forEach(function (v) {
       v.added();
     });
   };
@@ -704,18 +703,7 @@
     } else if (elem.hasAttribute("property")) {
       get = new bender.GetProperty(elem.getAttribute("property"));
     }
-    if (get) {
-      get.as = normalize_as(elem.getAttribute("as"));
-      if (elem.hasAttribute("value") && get.as != "xml") {
-        var value = get_set_value(elem.getAttribute("value"), get.as);
-        if (typeof value == "function") {
-          get.value = value;
-        }
-      }
-      get.select = elem.hasAttribute("select") ?
-        elem.getAttribute("select") : "$this";
-      return new flexo.Promise().fulfill(get).append_children(elem, this);
-    }
+    return get_set_attributes(get, elem);
   };
 
   bender.Set = function () {};
@@ -732,8 +720,7 @@
   bender.SetDOMProperty.prototype.render = function (component) {
     var target = component.scope[this.select];
     if (target) {
-      var edge = new bender.DOMPropertyEdge(this, target,
-          component.scope.$environment);
+      var edge = new bender.DOMPropertyEdge(this, target, component);
       if (this.match) {
         edge.match = this.match;
       }
@@ -767,18 +754,7 @@
     } else if (elem.hasAttribute("insert")) {
       set = new bender.SetInsert(elem.getAttribute("insert"));
     }
-    if (set) {
-      set.as = normalize_as(elem.getAttribute("as"));
-      if (elem.hasAttribute("value") && set.as != "xml") {
-        var value = get_set_value(elem.getAttribute("value"), set.as);
-        if (typeof value == "function") {
-          set.value = value;
-        }
-      }
-      set.select = elem.hasAttribute("select") ?
-        elem.getAttribute("select") : "$this";
-      return new flexo.Promise().fulfill(set).append_children(elem, this);
-    }
+    return get_set_attributes(set, elem);
   };
 
   bender.Vortex = function () {};
@@ -798,6 +774,19 @@
   bender.Vortex.prototype.add_edge = function (edge) {
     this.outgoing.push(edge);
     edge.source = this;
+  };
+
+  bender.WatchVertex = function (watch, component) {
+    this.init();
+    this.watch = watch;
+    this.component = component;
+    this.enabled = watch.enabled;
+  };
+
+  bender.WatchVertex.prototype = new bender.Vortex;
+
+  bender.WatchVertex.prototype.match_vertex = function (v) {
+    return v instanceof bender.WatchVertex && v.watch == this.watch;
   };
 
   bender.PropertyVertex = function (component, property) {
@@ -853,17 +842,43 @@
     dest.incoming.push(this);
   };
 
-  bender.DOMPropertyEdge = function (set, target, environment) {
+  // Edge from the vertex rendered for a get for a component
+  bender.WatchEdge = function (get, component, dest) {
+    this.get = get;
+    this.enabled = get.enabled;
+    this.component = component;
+    this.set_dest(dest);
+  };
+
+  bender.WatchEdge.prototype = new bender.Edge;
+
+  // Follow a watch edge, provided that:
+  //   * the parent watch is enabled;
+  //   * the associated get is enabled;
+  //   * the input value passes the match function of the get (if any)
+  bender.WatchEdge.prototype.follow = function (input) {
+    if (this.dest.enabled && this.enabled &&
+        (!this.get.match || this.get.match.call(this.component, input))) {
+      return [this.dest,
+        this.get.value && this.get.value.call(this.component, input) || input];
+    }
+  };
+
+  bender.DOMPropertyEdge = function (set, target, component) {
+    this.set = set;
     this.target = target;
     this.property = set.property;
-    this.set_dest(environment.vortex);
+    this.component = component;
+    this.enabled = this.set.enabled;
+    this.set_dest(component.scope.$environment.vortex);
   };
 
   bender.DOMPropertyEdge.prototype = new bender.Edge;
 
-  bender.DOMPropertyEdge.prototype.visit = function (input) {
-    if (!this.match || this.match(input)) {
-      var value = this.value && this.value(input) || input;
+  bender.DOMPropertyEdge.prototype.follow = function (input) {
+    if (this.enabled && (!this.set.match || this.set.match.call(input))) {
+      var value = this.set.value && this.set.value.call(component, input) ||
+        input;
       this.target[this.property] = value;
       return [this.dest, value];
     }
@@ -877,7 +892,7 @@
 
   bender.InsertEdge.prototype = new bender.Edge;
 
-  bender.InsertEdge.prototype.visit = function (input) {
+  bender.InsertEdge.prototype.follow = function (input) {
     if (this.insert == "first") {
       this.target.insert_children(input);
     } else if (this.insert == "last") {
@@ -910,12 +925,39 @@
 
   bender.InlinePropertyEdge.prototype = new bender.Edge;
 
-  bender.InlinePropertyEdge.prototype.visit = function (input) {
+  bender.InlinePropertyEdge.prototype.follow = function (input) {
     input.forEach(function (ch) {
       ch.render(this.source.component.scope, this.target, this.ref);
     }, this);
   };
 
+
+  function get_set_attributes(gs, elem) {
+    if (!gs) {
+      return;
+    }
+    gs.as = normalize_as(elem.getAttribute("as"));
+    if (elem.hasAttribute("match")) {
+      var src = "return " + elem.getAttribute("match");
+      try {
+        gs.match = new Function("input", src);
+      } catch (e) {
+        console.warn("Cannot compile match function \"%0\":".fmt(src), e);
+      }
+    }
+    if (elem.hasAttribute("value") && gs.as != "xml") {
+      var value = get_set_value(elem.getAttribute("value"), gs.as);
+      if (typeof value == "function") {
+        gs.value = value;
+      }
+    }
+    gs.select = elem.hasAttribute("select") ? elem.getAttribute("select") :
+      "$this";
+    return new flexo.Promise().fulfill(gs).append_children(elem, this);
+  }
+
+
+  // Parse a value attribute for a get or set given its `as` attribute
   function get_set_value(value, as) {
     try {
       return as == "string" ? flexo.funcify(value) :
@@ -924,10 +966,11 @@
         as == "json" ? flexo.funcify(JSON.parse(value)) :
           new Function("input", "return " + value);
     } catch (e) {
+      console.log("Could not parse value \"%0\" as %1".fmt(value, as));
     }
   }
 
-  // Normalize the “as” property of an element so that it matches a known value.
+  // Normalize the `as` property of an element so that it matches a known value.
   // Set to “dynamic” as default.
   function normalize_as(as) {
     as = flexo.safe_trim(as).toLowerCase();
