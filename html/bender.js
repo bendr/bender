@@ -111,8 +111,9 @@
   };
 
   bender.Environment.prototype.visit_vertex = function (vertex, value) {
-    if (!this.visit_timeout) {
-      this.visit_timeout = setTimeout(this.traverse_graph_bound, 0);
+    if (!this.scheduled) {
+      this.scheduled = true;
+      flexo.asap(this.traverse_graph_bound);
     }
     this.queue.push([vertex, value]);
   };
@@ -120,7 +121,7 @@
   bender.Environment.prototype.traverse_graph = function () {
     var queue = this.queue.slice();
     this.queue = [];
-    delete this.visit_timeout;
+    this.scheduled = false;
     for (var visited = [], i = 0; i < queue.length; ++i) {
       var q = queue[i];
       var vertex = q[0];

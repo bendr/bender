@@ -10,10 +10,12 @@ Bender v0.8.2-h, 25 June 2013
 * **g** element to distribute attributes to all its children
 * **match** attribute for get (default: "true")
 * watch combinators: or, and, then (?)
+* VSD support
 
 ## Bugs
 
 * Loops in loading components
+* on()
 
 ## In progress
 

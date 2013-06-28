@@ -1,27 +1,58 @@
+"use strict";
+
+// Simple format function for messages and templates. Use %0, %1... as slots
+// for parameters; %(n) can also be used to avoid possible ambiguities (e.g.
+// "x * 10 = %(0)0".) %% is also replaced by %. Null and undefined are
+// replaced by an empty string.
+String.prototype.fmt = function () {
+  var args = arguments;
+  return this.replace(/%(\d+|%|\((\d+)\))/g, function (_, p, pp) {
+    var p_ = parseInt(pp || p, 10);
+    return p === "%" ? "%" : args[p_] == null ? "" : args[p_];
+  });
+};
+
+if (typeof Function.prototype.bind !== "function") {
+  Function.prototype.bind = function (x) {
+    var f = this;
+    var args = slice.call(arguments, 1);
+    return function () {
+      return f.apply(x, args.concat(slice.call(arguments)));
+    };
+  };
+}
+
 (function (flexo) {
   "use strict";
 
+  flexo.VERSION = "0.2.0";
+
   var foreach = Array.prototype.forEach;
   var map = Array.prototype.map;
+  var push = Array.prototype.push;
+  var reduce = Array.prototype.reduce;
   var slice = Array.prototype.slice;
   var splice = Array.prototype.splice;
 
-  var browserp = typeof window === "object";
+  var browserp = typeof window == "object";
+  var global_ = browserp ? window : global;
 
-  if (typeof Function.prototype.bind !== "function") {
-    Function.prototype.bind = function (x) {
-      var f = this;
-      var args = slice.call(arguments, 1);
-      return function () {
-        return f.apply(x, args.concat(slice.call(arguments)));
-      };
-    };
-    Function.prototype.bind.native = false;
+  // Define π as a global
+  global_.π = Math.PI;
+
+  // requestAnimationFrame
+  if (browserp && !window.requestAnimationFrame) {
+    window.requestAnimationFrame = (window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function (f) {
+        return window.setTimeout(function () {
+          f(Date.now());
+        }, 15);
+      }).bind(window);
+    window.cancelAnimationFrame = (window.webkitCancelAnimationFrame ||
+      window.mozCancelAnimationFrame || window.msCancelAnimationFrame ||
+      window.clearTimeout).bind(window);
   }
-
-  Function.prototype.delay = function () {
-    setTimeout(this.apply(null, arguments), 0);
-  };
 
 
   // Objects
@@ -36,16 +67,17 @@
   // Define a property named `name` on object `obj` and make it read-only (i.e.
   // it only has a get.)
   flexo.make_readonly = function (obj, name, get) {
-    Object.defineProperty(obj, name, { enumerable: true,
-      get: typeof get === "function" ? get : function () { return get; }
+    Object.defineProperty(obj, name, {
+      enumerable: true,
+      get: flexo.funcify(get)
     });
   };
 
   // Define a property named `name` on object `obj` with the custom setter `set`
   // The setter gets three parameters (<new value>, <current value>, <cancel>)
-  // and returns the new value to be set. If cancel is called with no value or a
-  // true value, there is no update. An initial value may be provided, that does
-  // not trigger the setter.
+  // and returns the new value to be set. An initial value may be provided,
+  // which does not trigger the setter. `fail` may be called with a truthy value
+  // to cancel the setter.
   flexo.make_property = function (obj, name, set, value) {
     Object.defineProperty(obj, name, { enumerable: true,
       get: function () { return value; },
@@ -61,12 +93,6 @@
     });
   };
 
-  flexo.safe = function (x, f) {
-    if (x != null && f in x) {
-      return x[f].apply(x, slice.call(arguments, 2));
-    }
-  };
-
   // Safe call to toString(); when obj is null or undefined, return an empty
   // string.
   flexo.safe_string = function (obj) {
@@ -78,17 +104,6 @@
 
 
   // Strings
-
-  // Simple format function for messages and templates. Use %0, %1... as slots
-  // for parameters. %% is also replaced by %. Null and undefined are replaced
-  // by an empty string.
-  // TODO "%(0)0".fmt(1) should be "10"
-  String.prototype.fmt = function () {
-    var args = arguments;
-    return this.replace(/%(\d+|%)/g, function (_, p) {
-      return p === "%" ? "%" : args[p] == null ? "" : args[p];
-    });
-  };
 
   // Chop the last character of a string iff it's a newline
   flexo.chomp = function (string) {
@@ -114,8 +129,8 @@
     return l > 0 ? (Array(l).join(padding)) + string : string;
   };
 
-  // Quote a string, escaping quotes properly. Uses " by default, but can be
-  // changed to '
+  // Quote a string, escaping quotes and newlines properly. Uses " by default,
+  // but can be changed to '
   flexo.quote = function (string, q) {
     q = q || '"';
     return "%0%1%0".fmt(q, string.replace(new RegExp(q, "g"), "\\" + q)
@@ -244,7 +259,7 @@
     for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i);
     return a[i];
   };
-  
+
   // Foreach in reverse
   flexo.hcaErof = function (a, f, that) {
     for (var i = a.length - 1; i >= 0; --i) {
@@ -266,6 +281,17 @@
   // Return a random element from an array
   flexo.random_element = function (a) {
     return a[flexo.random_int(a.length - 1)];
+  };
+
+  // Remove the first element from the array that matches the predicate p
+  flexo.remove_first_from_array = function (a, p, that) {
+    if (!Array.isArray(a)) {
+      return;
+    }
+    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i);
+    if (i < n) {
+      return a.splice(i, 1)[0];
+    }
   };
 
   // Remove an item from an array
@@ -303,10 +329,6 @@
     return shuffled;
   };
 
-  // Pick random elements from an array and remove them from the array. When the
-  // array is empty, recreate the initial array. The urn can also be emptied at
-  // any moment, which resets is state completely.
-
   // Create a new urn to pick from. The first argument is the array for the urn,
   // then a flag to prevent successive repeating values when the urn is refilled
   // (defaults to false.)
@@ -314,31 +336,44 @@
     flexo.make_property(this, "array", function (a_) {
       this.empty();
       return a_;
-    }, a);
-    flexo.make_readonly(this, "is_empty", function () {
-      return this.remaining && this.remaining.length == 0;
-    });
+    }, a || []);
     this.non_repeatable = !!non_repeatable;
   };
 
-  flexo.Urn.prototype.pick = function () {
-    if (!this.remaining || this.remaining.length === 0) {
-      this.remaining = slice.call(this.array);
-    }
-    var i = flexo.random_int(this.remaining.length - 1);
-    if (this.non_repeatable && this.array.length > 1) {
-      while (this.remaining[i] === this.last_pick) {
-        i = flexo.random_int(this.remaining.length - 1);
+  flexo.Urn.prototype = {
+
+    // Pick random elements from an array and remove them from the array. When
+    // the array is empty, recreate the initial array.
+    pick: function () {
+      if (!this.remaining || this.remaining.length == 0) {
+        this.remaining = slice.call(this.array);
+      }
+      var i = flexo.random_int(this.remaining.length - 1);
+      if (this.non_repeatable && this.array.length > 1) {
+        while (this.remaining[i] === this.last_pick) {
+          i = flexo.random_int(this.remaining.length - 1);
+        }
+      }
+      this.last_pick = this.remaining.splice(i, 1)[0];
+      return this.last_pick;
+    },
+
+    // The urn can also be emptied at any moment, which resets is state
+    // completely.
+    empty: function () {
+      delete this.remaining;
+      delete this.last_pick;
+      return this;
+    },
+
+    // Add an item to the urn
+    add: function (item) {
+      this.array.push(item);
+      if (this.remaining) {
+        this.remaining.push(item);
       }
     }
-    this.last_pick = this.remaining.splice(i, 1)[0];
-    return this.last_pick;
-  };
 
-  flexo.Urn.prototype.empty = function () {
-    delete this.remaining;
-    delete this.last_pick;
-    return this;
   };
 
   // Return all the values of an object (presumably used as a dictionary)
@@ -457,20 +492,20 @@
     return flexo.unsplit_uri(uri);
   };
 
-  // Make an asynchronous XMLHttpRequest for `uri`, with optional parameters
-  // `params` (known parameters: method, responseType, headers, data.) Return a
-  // promise which will be fulfilled with the result response, or rejected with
-  // an object containing a reason and the request that was made.
+  // Make an XMLHttpRequest with optional params and return a promise
   flexo.ez_xhr = function (uri, params) {
     var req = new XMLHttpRequest;
-    if (!params) {
+    if (typeof uri == "object") {
+      params = uri;
+      uri = params.uri;
+    } else if (typeof params != "object") {
       params = {};
     }
     req.open(params.method || "GET", uri);
-    if ("responseType" in params) {
+    if (params.hasOwnProperty("responseType")) {
       req.responseType = params.responseType;
     }
-    if (typeof params.headers == "object") {
+    if (params.hasOwnProperty("headers")) {
       for (var h in params.headers) {
         req.setRequestHeader(h, params.headers[h]);
       }
@@ -483,15 +518,19 @@
         promise.reject({ reason: "missing response", request: req });
       }
     };
-    req.onerror = promise.reject.bind(promise,
-        { reason: "XHR error", request: req });
+    req.onerror = promise.reject.bind(promise, { reason: "XHR error",
+      request: req });
     req.send(params.data || "");
     return promise;
   };
 
   // Get args from an URI
   flexo.get_args = function (defaults, argstr) {
-    var sep, args = defaults || {};
+    var args = defaults || {};
+    var types = {};
+    for (var a in args) {
+      types[a] = typeof args[a];
+    }
     if (!argstr) {
       argstr = typeof window === "object" &&
         typeof window.location === "object" &&
@@ -502,8 +541,21 @@
       if (!q) {
         return;
       }
-      sep = q.indexOf("=");
-      args[q.substr(0, sep)] = decodeURIComponent(q.substr(sep + 1));
+      var sep = q.indexOf("=");
+      var arg = q.substr(0, sep);
+      var val = decodeURIComponent(q.substr(sep + 1));
+      if (types.hasOwnProperty(arg)) {
+        if (types[arg] === "number") {
+          var n = flexo.to_number(val);
+          args[arg] = isNaN(n) ? val : n;
+        } else if (types[arg] === "boolean") {
+          args[arg] = flexo.is_true(val);
+        } else {
+          args[arg] = val;
+        }
+      } else {
+        args[arg] = val;
+      }
     });
     return args;
   };
@@ -512,7 +564,7 @@
   // Custom events
 
   function call_listener(listener, e) {
-    if (typeof listener.handleEvent === "function") {
+    if (typeof listener.handleEvent == "function") {
       listener.handleEvent.call(listener, e);
     } else {
       listener(e);
@@ -548,9 +600,11 @@
     } else {
       e = source;
     }
-    if (e.source.hasOwnProperty(e.type)) {
-      e.source[e.type].slice().forEach(function (listener) {
-        call_listener(listener, e);
+    if (e.type in e.source) {
+      flexo.asap(function () {
+        e.source[e.type].slice().forEach(function (listener) {
+          call_listener(listener, e);
+        });
       });
     }
   };
@@ -564,16 +618,28 @@
 
   // Functions and Asynchronicity
 
-  // This function gets passed to input and output value functions so that the
-  // input or output can be cancelled. If called with no parameter or a single
-  // parameter evaluating to a truthy value, throw a "fail" exception;
-  // otherwise, return false.
-  flexo.fail = function (p) {
-    if (arguments.length === 0 || !!p) {
-      throw "fail";
-    }
-    return false;
-  };
+  // Hack using postMessage to provide a setImmediate replacement; inspired by
+  // https://github.com/NobleJS/setImmediate
+  flexo.asap = global_.setImmediate ? global_.setImmediate.bind(global_) :
+    window.postMessage ? (function () {
+      var queue = [];
+      var key = "asap{0}".fmt(Math.random());
+      window.addEventListener("message", function (e) {
+        if (e.data === key) {
+          var q = queue.slice();
+          queue = [];
+          for (var i = 0, n = q.length; i < n; ++i) {
+            q[i]();
+          }
+        }
+      }, false);
+      return function (f) {
+        queue.push(f);
+        window.postMessage(key, "*");
+      };
+    }()) : function (f) {
+      setTimeout(f, 0);
+    };
 
   // Return a function that discards its arguments. An optional parameter allows
   // to keep at most n arguments (defaults to 0 of course.)
@@ -583,11 +649,19 @@
     };
   };
 
-  // Make a function returning the given value
+  // This function can be called to fail early. If called with no parameter or a
+  // single parameter evaluating to a truthy value, throw a "fail" exception;
+  // otherwise, return false.
+  flexo.fail = function (p) {
+    if (arguments.length === 0 || !!p) {
+      throw "fail";
+    }
+    return false;
+  };
+
+  // Turn a value into a 0-ary function returning that value
   flexo.funcify = function (x) {
-    return function () {
-      return x;
-    };
+    return typeof x == "function" ? x : function () { return x; };
   };
 
   // Identity function
@@ -599,57 +673,80 @@
   flexo.nop = function () {
   };
 
-  // Promises
+  // Trampoline calls, adapted from
+  // http://github.com/spencertipping/js-in-ten-minutes
+
+  // Use a trampoline to call a function; we expect a thunk to be returned
+  // through the get_thunk() function below. Return nothing to step off the
+  // trampoline (e.g. to wait for an event before continuing.)
+  function apply_thunk(thunk) {
+    var escape = thunk[1][thunk[1].length - 1];
+    var self = thunk[0];
+    while (thunk && thunk[0] !== escape) {
+      thunk = thunk[0].apply(self, thunk[1]);
+    }
+    if (thunk) {
+      return escape.apply(self, thunk[1]);
+    }
+  }
+
+  Function.prototype.trampoline = function () {
+    return apply_thunk([this, arguments]);
+  };
+
+  // Return a thunk suitable for the trampoline function above.
+  Function.prototype.get_thunk = function() {
+    return [this, arguments];
+  };
+
+  // Promises (see http://promisesaplus.com/)
   flexo.Promise = function () {
-    this._then = [];
+    this._queue = [];
+    this._resolved = resolved_promise.bind(this);
   };
 
-  flexo.Promise.prototype.then = function (on_fulfilled, on_rejected) {
-    var p = new flexo.Promise;
-    this._then.push([p, on_fulfilled, on_rejected]);
-    if (this.hasOwnProperty("value") || this.hasOwnProperty("reason")) {
-      setTimeout(this._resolved.bind(this), 0);
+  flexo.Promise.prototype = {
+
+    then: function (on_fulfilled, on_rejected) {
+      var p = new flexo.Promise;
+      this._queue.push([p, on_fulfilled, on_rejected]);
+      if (this.hasOwnProperty("value") || this.hasOwnProperty("reason")) {
+        flexo.asap(this._resolved);
+      }
+      return p;
+    },
+
+    fulfill: function (value) {
+      return resolve_promise.call(this, "value", value);
+    },
+
+    reject: function (reason) {
+      return resolve_promise.call(this, "reason", reason);
+    },
+
+    each: function (xs, f) {
+      return reduce.call(xs, function (p, x) {
+        return p.then(function (v) {
+          return f(x, v);
+        });
+      }, this);
     }
-    return p;
+
   };
 
-  flexo.Promise.prototype.each = function (xs, f) {
-    return Array.prototype.reduce.call(xs, function (p, x) {
-      return p.then(function (v) {
-        return f(x, v);
-      });
-    }, this);
-  };
-
-  flexo.Promise.prototype.fulfill = function (value) {
-    if (this.hasOwnProperty("value")) {
-      console.error("Cannot fulfill promise: already fulfilled:", this.value);
-    } else if (this.hasOwnProperty("reason")) {
-      console.error("Cannot fulfill promise: already rejected:", this.reason);
-    } else {
-      this.value = value;
+  function resolve_promise(resolution, value) {
+    if (!this.hasOwnProperty("value") && !this.hasOwnProperty("reason")) {
+      this[resolution] = value;
       this._resolved();
     }
     return this;
-  };
+  }
 
-  flexo.Promise.prototype.reject = function (reason) {
-    if (this.hasOwnProperty("value")) {
-      console.error("Cannot reject promise: already fulfilled:", this.value);
-    } else if (this.hasOwnProperty("reason")) {
-      console.error("Cannot reject promise: already rejected:", this.reason);
-    } else {
-      this.reason = reason;
-      this._resolved();
-    }
-    return this;
-  };
-
-  flexo.Promise.prototype._resolved = function () {
+  function resolved_promise() {
     var resolution = this.hasOwnProperty("value") ? "value" : "reason";
     var on = this.hasOwnProperty("value") ? 1 : 2;
-    for (var i = 0, n = this._then.length; i < n; ++i) {
-      var p = this._then[i];
+    for (var i = 0; i < this._queue.length; ++i) {
+      var p = this._queue[i];
       if (typeof p[on] == "function") {
         try {
           var v = p[on](this[resolution]);
@@ -669,22 +766,73 @@
         p[0][resolution == "value" ? "fulfill" : "reject"](this[resolution]);
       }
     }
-    this._then = [];
-  };
-
-  if (browserp) {
-    flexo.request_animation_frame = (window.requestAnimationFrame ||
-      window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame ||
-      window.msRequestAnimationFrame || function (f) {
-        return window.setTimeout(function () {
-          f(Date.now());
-        }, 16);
-      }).bind(window);
-    flexo.cancel_animation_frame = (window.cancelAnimationFrame ||
-      window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame ||
-      window.msCancelAnimationFrame || window.clearTimeout).bind(window);
+    this._queue = [];
   }
 
+  // Create a promise that loads an image. `attrs` is a dictionary of attribute
+  // for the image and should contain a `src` property, or can simply be the
+  // source attribute value itself. The promise has a pointer to the `img`
+  // element.
+  flexo.promise_img = function (attrs) {
+    var promise = new flexo.Promise;
+    var img = promise.img = new Image;
+    if (typeof attrs == "object") {
+      for (var attr in attrs) {
+        img.setAttribute(attr, attrs[attr]);
+      }
+    } else {
+      img.src = attrs;
+    }
+    if (img.complete) {
+      promise.fulfill(img);
+    } else {
+      img.onload = function () {
+        promise.fulfill(img);
+      };
+      img.onerror = function (e) {
+        promise.reject(e);
+      }
+    }
+    return promise;
+  };
+
+  flexo.Par = function (array, tolerate_rejections) {
+    var promise = this._promise = new flexo.Promise;
+    var pending = 0;
+    var result = new Array(array.length);
+    flexo.make_readonly(this, "pending", function () {
+      return pending > 0;
+    });
+    var check_done = function (decr) {
+      pending -= decr;
+      if (pending == 0) {
+        promise.fulfill(result);
+      }
+    };
+    array.forEach(function (p, i) {
+      if (p && typeof p.then == "function") {
+        ++pending;
+        p.then(function (value) {
+          result[i] = value;
+          check_done(1);
+        }, function (reason) {
+          if (!!tolerate_rejections) {
+            result[i] = reason;
+            check_done(1);
+          } else {
+            promise.reject(reason);
+          }
+        });
+      } else {
+        result[i] = p;
+      }
+    });
+    check_done(0);
+  };
+
+  flexo.Par.prototype.then = function (on_fulfilled, on_rejected) {
+    return this._promise.then(on_fulfilled, on_rejected);
+  };
 
   // DOM
 
@@ -958,7 +1106,7 @@
       var v_ = Math.round(v * 255);
       return [v_, v_, v_];
     } else {
-      h = (((h * 180 / Math.PI) + 360) % 360) / 60;
+      h = (((h * 180 / π) + 360) % 360) / 60;
       var i = Math.floor(h);
       var f = h - i;
       var p = v * (1 - s);
@@ -1022,7 +1170,7 @@
   };
 
   flexo.deg2rad = function (degrees) {
-    return degrees * Math.PI / 180;
+    return degrees * π / 180;
   };
 
   // Make a list of points for a regular polygon with `sides` sides (should be
@@ -1034,7 +1182,7 @@
     x = x || 0;
     y = y || 0;
     var points = [];
-    for (var i = 0, ph = 2 * Math.PI / sides; i < sides; ++i) {
+    for (var i = 0, ph = 2 * π / sides; i < sides; ++i) {
       points.push(x + r * Math.cos(phase + ph * i));
       points.push(y - r * Math.sin(phase + ph * i));
     }
@@ -1081,7 +1229,7 @@
             phase: phase + 360 / branches }));
     }
     phase = flexo.deg2rad(phase);
-    for (var i = 0, ph = 4 * Math.PI / branches; i < branches; ++i) {
+    for (var i = 0, ph = 4 * π / branches; i < branches; ++i) {
       points.push(x + r * Math.cos(phase + ph * i));
       points.push(y - r * Math.sin(phase + ph * i));
     }

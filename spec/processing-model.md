@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8, 8 April 2013
+Bender v0.8.2, 28 June 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -13,22 +13,42 @@ The role of the runtime is to maintain the consistency of the rendered
 components when their data changes.
 
 The runtime maintains an *environment*, which keeps track of loaded components
-and external resources, which should both be loaded only once.
-In a DOM-based runtime, the environment is hosted by a document, and renders
+and external resources, as they should both be loaded only once.
+In a DOM-based runtime, the environment is hosted by a DOM document, and renders
 components in an element node of this document.
 
-The steps of rendering a component *C* in the environment *E* in an element node
-*N* are:
+The environment manages a *render tree* (more acurately, a forest; but it is
+simpler to consider a single tree without any loss of generality) and a *watch
+graph*.
+The render tree represents the output of the views of the component that is to
+be displayed by the runtime, while the watch graph is the internal
+representation of the watches of all the rendered components.
 
-1. render the links of *C*;
-2. render the view of *C*;
-3. render the watches of *C*;
-4. send a `!rendered` event notification;
-5. render the properties of *C*.
+A component *C* is rendered in the environment *E* in the following manner:
+
+1. the links of *C* are rendered;
+2. *C* sends a **!will-render** event;
+3. the properties of *C* are rendered into the watch graph *E*;
+4. the view of *C* and its child components are rendered into the render tree of
+   *C*;
+5. the watches of *C* and its child components are rendered into the watch graph
+   of *E*;
+6. *C* sends a **!did-render** event;
+7. the properties of *C* are initialized;
+8. *C* sends an **!init** event;
+9. the properties of the child components of *C* are initialized;
+10. *C* sends a **!ready** event.
+11. Lastly, if *C* is a top-level component, its render tree is added to the
+    target, as well as the render tree of *E*; then *C* and its child components
+    each send a **!display** event.
+
+These steps mean that the render tree and watch graph are built *bottom-up*,
+while the properties of the components are initialized *top-down*.
 
 ### Links rendering
 
-If *C* has a prototype *P*, then the links of the prototype *P* are rendered.
+If *C* has a prototype *P*, then the links of the prototype *P* are rendered
+first.
 Then, for every link *L* of *C*:
 
 * if the link was already loaded in *E*, do nothing;
@@ -37,6 +57,13 @@ Then, for every link *L* of *C*:
   For instance, if the run-time runs in a HTML document, a stylesheet link
   should be rendered as a HTML `link` element in the head of the document, and a
   script link should be rendered as a `script` element.
+  The scripts are executed in order of loading, which means that the scripts of
+  *P* are guaranteed to have run when the scripts of *C* run.
+  Order of execution is not guaranteed when it comes to child components, so a
+  component should not rely on any other component’s scripts beside its own and
+  those of its prototype.
+  The run-time environment may provide scripts that are guaranteed to have run
+  when the component is rendered; these are implementation-dependent.
 
 ### View rendering
 
@@ -51,7 +78,7 @@ The view stack of *C* is constructed by the following steps:
 1. Get the view stack *S* of the prototype *P* of *C*. If *C* has no prototype,
    then the stack *S* is empty.
 2. add *C* to the stack *S*, taking into account the stacking mode of its view:
-     * if *C* has no view, or its view has the “top” stacking mode, then add it
+     * if *C* has no view, or its view has the “top” stacking mode, then add *C*
        at the end of *S*;
      * if the view of *C* has the “bottom” stacking mode, then add *C* at the
        beginning of *S*;
@@ -61,46 +88,54 @@ The view stack of *C* is constructed by the following steps:
 #### Rendering the view stack
 
 Let *i* be the index of the first component in the view stack such that the
-component *C<sub>i</sub>* has a view *V<sub>i</sub>* with an empty identifier.
+component *C<sub>i</sub>* has a view *V<sub>i</sub>*.
 This view is rendered into *E* by rendering its children in order in *E*.
 
 * A DOM text node *T* is rendered by appending a new text node with the text
   content of *T* to the target element *E*.
 * A DOM element node *N* is rendered by appending a new DOM element *N’* with
-  the same namespace URI and local name as *E*. The attributes of *E’* are the
-  same as *E*, with the exception of the `id` attribute which is not rendered.
+  the same namespace URI and local name as *E*.
+  The attributes of *E’* are the same as *E*, with the exception of the **id**
+  attribute, which is not rendered.
   The children of *E* are then rendered into *E’*.
 * A child component is rendered by the component rendering rule.
 * A Bender attribute node *A* is rendered by setting an attribute on the target
-  element *E*. The local name and namespace URI of the attributes are given by
-  the corresponding properties of *A*. The value of the attribute is a
-  concatenation of the renderings of the child nodes.
+  element *E*.
+  The local name and namespace URI of the attributes are given by the
+  corresponding properties of *A*.
+  The value of the attribute is a concatenation of the renderings of the child
+  nodes.
 * A Bender text node *T* is rendered by appending a new text node with the text
-  content of *T* to the target element *E*. This differs from a regular text
-  node only in the fact that a Bender text node may have an identifier so that
-  it can be referred to by watches, as described below. Note that if *T* is a
-  child of a Bender attribute node *A*, then instead of a DOM text node, a
-  string is built.
-* A content slot *S* with identifier *I* is rendered according to the contents
-  of the view stack. Let *j* be the index of the first component in the view
-  stack such that *j* > *i* and component *C<sub>j</sub>* has a view
-  *V<sub>j</sub>* with identifier *I*.
+  content of *T* to the target element *E*.
+  This differs from a regular text node only in the fact that a Bender text node
+  may have an identifier so that it can be referred to by watches, as described
+  below.
+  Note that if *T* is a child of a Bender attribute node *A*, then instead of a
+  DOM text node, a string is built.
+* A content slot *S* is rendered according to the contents of the view stack.
+  Let *j* be the index of the first component in the view stack such that *j* >
+  *i* and component *C<sub>j</sub>* has a view *V<sub>j</sub>*.
     * If such a *j* exists, then render the children of *V<sub>j</sub>* in *E*.
     * Otherwise, render the children of *S* in *E*.
 
-**TODO** describe main scenarios for using views: framing, split view, &c.
+
+### Properties and watches rendering
+
+Properties and watches of a component are rendered into the environment’s *watch
+graph*.
+A watch, along with its inputs and outputs, is rendered into *vertices* and
+*edges* in this graph.
+
+#### Vertices
+
+Vertices represent properties, watch inputs and watch themselves.
+
+#### Edges
+
+Edges represent the outputs of watches.
 
 
-### Watches rendering
-
-Watches of a component are rendered into the environment’s *watch graph*.
-Each watch is rendered into *vertices* and *edges* in this graph.
-
-#### Rendering inputs
-
-#### Rendering outputs
-
-### Properties rendering
+#### Properties rendering
 
 The set of properties of a component is the union of the component’s own
 properties and the set of properties of its prototype (or the empty set if the
