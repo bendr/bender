@@ -12,11 +12,11 @@
     var args = flexo.get_args(typeof defaults == "object" ? defaults :
       { href: defaults });
     if (args.href) {
-      if (!env) {
+      if (!(env instanceof bender.Environment)) {
         env = new bender.Environment;
       }
-      return env
-        .load_component(flexo.absolute_uri(env.document.baseURI, args.href));
+      var url = flexo.absolute_uri(env.document.baseURI, args.href);
+      return env.load_component(url);
     }
     return new flexo.Promise().reject("No href argument for component.");
   };
@@ -222,19 +222,20 @@
     }
   };
 
+  // Create a new component within an environment
   bender.Component = function (environment) {
     this.init();
-    this.environment = environment;
     this.index = environment.components.length;
     environment.components.push(this);
     this.scope = Object.create(environment.scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
-    this.concrete = [];
+    this.rendered = [];
     this.own_properties = {};
     this.properties = {};
     this.links = [];
     this.watches = [];
+    this.on = {};
   };
 
   bender.Component.prototype = new bender.Element;
@@ -318,7 +319,10 @@
 
   // Render this component to a concrete component for the given target
   bender.Component.prototype.render_component = function (target) {
-    var concrete = {
+    this.handle_on("before-render", target);
+    var rendered = new bender.RenderedComponent(this, target);
+    this.rendered.push(rendered);
+    /*var concrete = {
       component: this,
       index: this.environment.components.length,
       properties: {},
@@ -332,7 +336,34 @@
     concrete.scope.$this = concrete;
     render_properties(concrete);
     render_view(concrete);
-    render_watches(concrete);
+    render_watches(concrete);*/
+    this.handle_on("ready");
+  };
+
+  bender.RenderedComponent = function (component, target) {
+    this.component = component;
+    this.scope = Object.create(component.scope, {
+      $target: { enumerable: true, value: target },
+      $that: { enumerable: true, value: component }
+    });
+    this.properties = {};
+  };
+
+  var slice = Array.prototype.slice;
+
+  function handle_on(on, type, args) {
+    if (type in on) {
+      flexo.notify(this, "!" + type, args.length > 0 && { args: args });
+      on[type].apply(this, args);
+    }
+  }
+
+  bender.Component.prototype.handle_on = function (type) {
+    handle_on.call(this, this.on, type, slice.call(arguments, 1));
+  };
+
+  bender.RenderedComponent.prototype.handle_on = function (type) {
+    handle_on.call(this, this.component.on, type, slice.call(arguments, 1));
   };
 
   // Render the properties of a concrete component

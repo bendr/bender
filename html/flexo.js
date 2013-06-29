@@ -336,7 +336,8 @@ if (typeof Function.prototype.bind !== "function") {
     flexo.make_property(this, "array", function (a_) {
       this.empty();
       return a_;
-    }, a || []);
+    });
+    this.array = a || [];
     this.non_repeatable = !!non_repeatable;
   };
 
@@ -345,7 +346,7 @@ if (typeof Function.prototype.bind !== "function") {
     // Pick random elements from an array and remove them from the array. When
     // the array is empty, recreate the initial array.
     pick: function () {
-      if (!this.remaining || this.remaining.length == 0) {
+      if (this.remaining.length == 0) {
         this.remaining = slice.call(this.array);
       }
       var i = flexo.random_int(this.remaining.length - 1);
@@ -361,7 +362,7 @@ if (typeof Function.prototype.bind !== "function") {
     // The urn can also be emptied at any moment, which resets is state
     // completely.
     empty: function () {
-      delete this.remaining;
+      this.remaining = [];
       delete this.last_pick;
       return this;
     },
@@ -369,9 +370,17 @@ if (typeof Function.prototype.bind !== "function") {
     // Add an item to the urn
     add: function (item) {
       this.array.push(item);
-      if (this.remaining) {
-        this.remaining.push(item);
+      this.remaining.push(item);
+      return this;
+    },
+
+    // Remove an item from the urn
+    remove: function (item) {
+      var removed = flexo.remove_from_array(this.array, item);
+      if (removed) {
+        flexo.remove_from_array(this.remaining, item);
       }
+      return removed;
     }
 
   };
@@ -716,6 +725,16 @@ if (typeof Function.prototype.bind !== "function") {
       return p;
     },
 
+    timeout: function (dur_ms) {
+      if (this._timeout) {
+        clearTimeout(this._timeout);
+      }
+      this._timeout = setTimeout(function () {
+        this.reject("Timeout");
+      }.bind(this), dur_ms);
+      return this;
+    },
+
     fulfill: function (value) {
       return resolve_promise.call(this, "value", value);
     },
@@ -736,6 +755,10 @@ if (typeof Function.prototype.bind !== "function") {
 
   function resolve_promise(resolution, value) {
     if (!this.hasOwnProperty("value") && !this.hasOwnProperty("reason")) {
+      if (this._timeout) {
+        clearTimeout(this._timeout);
+        delete this._timeout;
+      }
       this[resolution] = value;
       this._resolved();
     }
