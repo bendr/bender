@@ -33,6 +33,15 @@
     this.traverse_graph_bound = this.traverse_graph.bind(this);
   };
 
+  // Create a new Bender component
+  bender.Environment.prototype.component = function () {
+    var component = new bender.Component(this.scope);
+    component.environment = this;
+    component.index = this.components.length;
+    this.components.push(this);
+    return component;
+  };
+
   // Load a component from an URL in the environment and return a promise. If
   // loading fails, return an object with a reason, the current environment, and
   // possibly the original XHMLHttpRequest or the response from said request.
@@ -222,12 +231,10 @@
     }
   };
 
-  // Create a new component within an environment
-  bender.Component = function (environment) {
+  // Create a new component within a scope
+  bender.Component = function (scope) {
     this.init();
-    this.index = environment.components.length;
-    environment.components.push(this);
-    this.scope = Object.create(environment.scope, {
+    this.scope = Object.create(scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
     this.rendered = [];
@@ -241,7 +248,7 @@
   bender.Component.prototype = new bender.Element;
 
   bender.Environment.prototype.deserialize.component = function (elem) {
-    var component = new bender.Component(this);
+    var component = this.component();
     // TODO attributes to set properties; enabled/id?
     // TODO make a list of dependencies so that we don’t block if there is a
     // loop (loop in content should be OK once there is <replicate>; for
@@ -337,6 +344,9 @@
     render_properties(concrete);
     render_view(concrete);
     render_watches(concrete);*/
+    this.handle_on("after-render");
+    this.handle_on("before-init");
+    this.handle_on("after-init");
     this.handle_on("ready");
   };
 
@@ -353,9 +363,9 @@
 
   function handle_on(on, type, args) {
     if (type in on) {
-      flexo.notify(this, "!" + type, args.length > 0 && { args: args });
       on[type].apply(this, args);
     }
+    flexo.notify(this, type + "!", args.length > 0 && { args: args });
   }
 
   bender.Component.prototype.handle_on = function (type) {

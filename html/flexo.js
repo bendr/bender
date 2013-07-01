@@ -25,7 +25,7 @@ if (typeof Function.prototype.bind !== "function") {
 (function (flexo) {
   "use strict";
 
-  flexo.VERSION = "0.2.0";
+  flexo.VERSION = "0.2.1";
 
   var foreach = Array.prototype.forEach;
   var map = Array.prototype.map;
@@ -265,6 +265,21 @@ if (typeof Function.prototype.bind !== "function") {
     for (var i = a.length - 1; i >= 0; --i) {
       f.call(that, a[i], i, a);
     }
+  };
+
+  // Interspers the separator `sep` in the array a
+  flexo.intersperse = function (a, sep) {
+    var n = a.length;
+    if (n == 0) {
+      return [];
+    }
+    var j = new Array(2 * n - 1);
+    j[2 * (--n)] = a[n];
+    for (var i = 0; i < n; ++i) {
+      j[2 * i] = a[i];
+      j[2 * i + 1] = sep;
+    }
+    return j;
   };
 
   // Partition `a` according to predicate `p` and return and array of two arrays
@@ -630,10 +645,10 @@ if (typeof Function.prototype.bind !== "function") {
   // Hack using postMessage to provide a setImmediate replacement; inspired by
   // https://github.com/NobleJS/setImmediate
   flexo.asap = global_.setImmediate ? global_.setImmediate.bind(global_) :
-    window.postMessage ? (function () {
+    global_.postMessage ? (function () {
       var queue = [];
       var key = "asap{0}".fmt(Math.random());
-      window.addEventListener("message", function (e) {
+      global_.addEventListener("message", function (e) {
         if (e.data === key) {
           var q = queue.slice();
           queue = [];
@@ -644,7 +659,7 @@ if (typeof Function.prototype.bind !== "function") {
       }, false);
       return function (f) {
         queue.push(f);
-        window.postMessage(key, "*");
+        global_.postMessage(key, "*");
       };
     }()) : function (f) {
       setTimeout(f, 0);

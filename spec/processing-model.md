@@ -1,6 +1,6 @@
 # The Bender processing model
 
-Bender v0.8.2, 28 June 2013
+Bender v0.8.2, 1 July 2013
 
 ## An informal sketch of the operational semantics of Bender
 
@@ -27,20 +27,20 @@ representation of the watches of all the rendered components.
 A component *C* is rendered in the environment *E* in the following manner:
 
 1. the links of *C* are rendered;
-2. *C* sends a **!will-render** event;
+2. *C* sends a **before-render** notification;
 3. the properties of *C* are rendered into the watch graph *E*;
 4. the view of *C* and its child components are rendered into the render tree of
    *C*;
 5. the watches of *C* and its child components are rendered into the watch graph
    of *E*;
-6. *C* sends a **!did-render** event;
+6. *C* sends an **after-render** notification;
 7. the properties of *C* are initialized;
-8. *C* sends an **!init** event;
+8. *C* sends a **before-init** notification;
 9. the properties of the child components of *C* are initialized;
-10. *C* sends a **!ready** event.
+10. *C* sends an **after-init** notification.
 11. Lastly, if *C* is a top-level component, its render tree is added to the
     target, as well as the render tree of *E*; then *C* and its child components
-    each send a **!display** event.
+    each send a **ready** notification.
 
 These steps mean that the render tree and watch graph are built *bottom-up*,
 while the properties of the components are initialized *top-down*.
