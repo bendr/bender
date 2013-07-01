@@ -304,7 +304,7 @@
 
   // Render the links, then the view. Link rendering may delay rendering the
   // view (e.g., scripts need to finish loading before the view can be rendered)
-  bender.Component.prototype.render = function (target) {
+  bender.Component.prototype.render = function (target, ref) {
     var pending_links = 0;
     var render_next = function () {
       if (arguments.length > 0) {
@@ -325,35 +325,53 @@
   };
 
   // Render this component to a concrete component for the given target
-  bender.Component.prototype.render_component = function (target) {
+  bender.Component.prototype.render_component = function (target, ref) {
     this.handle_on("before-render", target);
-    var rendered = new bender.RenderedComponent(this, target);
-    this.rendered.push(rendered);
-    /*var concrete = {
-      component: this,
-      index: this.environment.components.length,
-      properties: {},
-      scope: Object.create(this.scope, {
-        $target: { enumerable: true, value: target },
-        $that: { enumerable: true, value: this }
-      })
-    };
-    this.concrete.push(concrete);
-    this.environment.components.push(concrete);
-    concrete.scope.$this = concrete;
-    render_properties(concrete);
-    render_view(concrete);
-    render_watches(concrete);*/
+    // render component bottom-up
+    for (var chain = [], prev, p = this; p; prev = p, p = p.$prototype) {
+      var r = new bender.RenderedComponent(p);
+      chain.push(r);
+      if (prev) {
+        prev.$prototype = r;
+      }
+    }
+    // render properties
+    var fragment = this.scope.$document.createDocumentFragment();
+    this.render_view(chain, fragment);
+    // render watches
     this.handle_on("after-render");
+    // init properties top-down
     this.handle_on("before-init");
     this.handle_on("after-init");
+    target.insertBefore(fragment, ref);
     this.handle_on("ready");
   };
 
-  bender.RenderedComponent = function (component, target) {
+  bender.Component.prototype.render_view = function (chain, target) {
+    var stack = [];
+    flexo.hcaErof(chain, function (c) {
+      var mode = c.scope.$view ? c.scope.$view.stack : "top";
+      if (mode == "replace") {
+        stack = [c];
+      } else if (mode == "top") {
+        stack.push(c);
+      } else {
+        stack.unshift(c);
+      }
+    });
+    stack.i = 0;
+    for (var n = stack.length; stack.i < n && !stack[stack.i].scope.$view;
+        ++stack.i);
+    if (stack.i < n && stack[stack.i].scope.$view) {
+      var rendered = stack[stack.i];
+      rendered.scope.$target = target;
+      rendered.scope.$view.render(stack, target);
+    }
+  };
+
+  bender.RenderedComponent = function (component) {
     this.component = component;
     this.scope = Object.create(component.scope, {
-      $target: { enumerable: true, value: target },
       $that: { enumerable: true, value: component }
     });
     this.properties = {};
@@ -401,21 +419,6 @@
       }
     });
   }
-
-  // Render the view of a concrete component in scope.$target
-  function render_view(concrete) {
-    if (concrete.scope.$view) {
-      concrete.scope.$view.render(concrete.scope);
-    }
-  };
-
-  // Render the watches of a component (either abstract or concrete)
-  function render_watches(component) {
-    (component.watches || component.component.watches)
-      .forEach(function (watch) {
-        watch.render(component);
-      });
-  };
 
   // Link is not a content element
   bender.Link = function (environment, rel, href) {
@@ -491,9 +494,9 @@
         this);
   };
 
-  bender.View.prototype.render = function (scope, ref) {
+  bender.View.prototype.render = function (stack, target) {
     this.children.forEach(function (ch) {
-      ch.render(scope, scope.$target, ref);
+      ch.render(stack, target);
     });
   };
 
@@ -527,7 +530,7 @@
 
   bender.DOMElement.prototype = new bender.Element;
 
-  bender.DOMElement.prototype.render = function (scope, target, ref) {
+  bender.DOMElement.prototype.render = function (stack, target) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
@@ -535,15 +538,15 @@
       }
     }
     if (this.id) {
-      scope["@" + this.id] = elem;
+      stack[stack.i].scope["@" + this.id] = elem;
     }
-    if (!scope.$first) {
-      scope.$first = elem;
+    if (!stack[stack.i].scope.$first) {
+      stack[stack.i].scope.$first = elem;
     }
     this.children.forEach(function (ch) {
-      ch.render(scope, elem);
+      ch.render(stack, elem);
     });
-    target.insertBefore(elem, ref);
+    target.appendChild(elem);
   };
 
   bender.DOMTextNode = function (text) {
@@ -567,15 +570,15 @@
 
   bender.DOMTextNode.prototype = new bender.Element;
 
-  bender.DOMTextNode.prototype.render = function (scope, target, ref) {
+  bender.DOMTextNode.prototype.render = function (stack, target) {
     var t = target.ownerDocument.createTextNode(this.text);
     if (this.id) {
-      scope["@" + this.id] = t;
+      stack[stack.i].scope["@" + this.id] = t;
     }
-    if (!scope.$first) {
-      scope.$first = t;
+    if (!stack[stack.i].scope.$first) {
+      stack[stack.i].scope.$first = t;
     }
-    target.insertBefore(t, ref);
+    target.appendChild(t);
     this.rendered.push(t);
   };
 

@@ -28,9 +28,30 @@
     });
   });
 
-  describe("Rendering process", function () {
+  describe("bender.Component", function () {
     var env = new bender.Environment;
     var component = env.component();
+    describe("environment.component()", function () {
+      it("creates a new component in the scope of its environment", function () {
+        assert.ok(component instanceof bender.Component);
+        assert.strictEqual(component.scope.$environment, env);
+      });
+    });
+    describe("component.append_child()", function () {
+      it("sets the view of the component when adding a view", function () {
+        var view = new bender.View;
+        component.append_child(view);
+        assert.strictEqual(component.scope.$view, view);
+      });
+      it("the view can be sent only once (setting another view is ignored with a warning)", function () {
+        var view = new bender.View;
+        component.append_child(view);
+        assert.ok(component.scope.$view, view);
+      });
+    });
+  });
+
+  function test_render(component) {
     var before_render = new flexo.Promise();
     component.on["before-render"] = function () {
       flexo.listen(component, "before-render!", function () {
@@ -77,7 +98,7 @@
         }
       });
     };
-    component.render(document.createDocumentFragment());
+    component.render(flexo.$div());
     it("render links (todo)");
     it("send a before-render notification", function (done) {
       before_render.then(flexo.discard(done), done);
@@ -93,6 +114,23 @@
     });
     it("send a ready notification", function (done) {
       ready.then(flexo.discard(done), done);
+    });
+  }
+
+  describe("Rendering process", function () {
+    var env = new bender.Environment;
+    describe("empty component", function () {
+      test_render(env.component());
+    });
+    describe("component with a simple view", function () {
+      var component = env.component();
+      component.append_child(new bender.View);
+      it("the component has a view", function () {
+        assert.ok(component.scope.$view instanceof bender.View);
+      });
+      component.scope.$view
+        .append_child(new bender.DOMTextNode("Hello, world!"));
+      test_render(component);
     });
   });
 
