@@ -237,6 +237,7 @@
     this.scope = Object.create(scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
+    this.derived = [];
     this.rendered = [];
     this.own_properties = {};
     this.properties = {};
@@ -257,11 +258,27 @@
       this.load_component(flexo.absolute_uri(elem.baseURI,
           elem.getAttribute("href")))
         .then(function (prototype) {
-          component.$prototype = prototype;
-          return component;
+          return component.set_prototype(prototype);
         }) : new flexo.Promise().fulfill(component))
       .append_children(elem, this);
   };
+
+  bender.Component.prototype.set_prototype = function (prototype) {
+    this.$prototype = prototype;
+    prototype.derived.push(prototype);
+    render_inherited_properties(this);
+    return this;
+  };
+
+  function render_inherited_property(component) {
+    for (var c = this; c; c = c.$prototype) {
+      for (var p in c.own_properties) {
+        if (!component.properties.hasOwnProperty(p)) {
+          render_inherited_property(component, c.own_properties[p]);
+        }
+      }
+    }
+  }
 
   bender.Component.prototype.append_child = function (child) {
     if (child instanceof bender.Link) {
@@ -275,7 +292,7 @@
       }
     } else if (child instanceof bender.Property) {
       this.own_properties[child.name] = child;
-      render_property(this, child);
+      render_own_property(this, child);
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
     } else {
@@ -396,16 +413,16 @@
 
   // Render the properties of a concrete component
   function render_properties(concrete) {
-    for (var property in concrete.component.own_properties) {
-      render_property(concrete, concrete.component.own_properties[property]);
+    var own = concrete.component.own_properties;
+    for (var property in concrete.own) {
+      render_own_property(concrete, own[property]);
     }
   }
 
   // Render a property for a component (either abstract or concrete)
-  function render_property(component, property) {
-    var vertex = component.scope.$environment
-      .add_vertex(new bender.PropertyVertex(component, property));
-    property.vertices.push(vertex);
+  function render_own_property(component, property) {
+    var vertex = property.vertex = component.scope.$environment.add_vertex(new
+        bender.PropertyVertex(component, property));
     Object.defineProperty(component.properties, property.name, {
       enumerable: true,
       get: function () {
@@ -416,6 +433,30 @@
           vertex.value = value;
           component.scope.$environment.visit_vertex(vertex, value);
         }
+      }
+    });
+  }
+
+  // Render an inherited property [need the original component]
+  function render_inherited_property(component, property) {
+    var vertex = component.scope.$environment.add_vertex(new
+        bender.PropertyVertex(component, property));
+    Object.defineProperty(component.properties, property.name, {
+      enumerable: true,
+      configurable: true,
+      get: function () {
+        return property.vertex.value;
+      },
+      set: function (value) {
+        var edges = flexo.partition(property.vertex.out_edges, function (edge) {
+          return edge.__vertex == vertex;
+        });
+        property.vertex.out_edges = edges[1];
+        edges[0].forEach(function (edge) {
+          delete edge.__vertex;
+          propert.vertex.add_edge(edge);
+        });
+        render_own_property(component, property);
       }
     });
   }
@@ -584,7 +625,6 @@
 
   bender.Property = function (name, as) {
     this.init();
-    this.vertices = [];
     this.name = name;
     this.as = normalize_as(as);
   };
@@ -834,13 +874,12 @@
     return v instanceof bender.WatchVertex && v.watch == this.watch;
   };
 
+  // Create a new property vertex; component and value are set later when adding
+  // the property to a component or rendering that component.
   bender.PropertyVertex = function (component, property) {
     this.init();
     this.component = component;
-    this.name = property.name;
-    if (property.hasOwnProperty("value")) {
-      this.value = property.value;
-    }
+    this.property = property;
   };
 
   bender.PropertyVertex.prototype = new bender.Vortex;
@@ -854,7 +893,7 @@
 
   bender.PropertyVertex.prototype.match_vertex = function (v) {
     return (v instanceof bender.PropertyVertex) &&
-      (this.component == v.component) && (this.name == v.name);
+      (this.component == v.component) && (this.property == v.property);
   };
 
   bender.DOMEventVertex = function (get, target) {

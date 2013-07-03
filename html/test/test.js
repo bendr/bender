@@ -43,10 +43,17 @@
         component.append_child(view);
         assert.strictEqual(component.scope.$view, view);
       });
-      it("the view can be sent only once (setting another view is ignored with a warning)", function () {
+      it("the view can be set only once (setting another view is ignored with a warning)", function () {
         var view = new bender.View;
         component.append_child(view);
         assert.ok(component.scope.$view, view);
+      });
+      it("creates a new property vertex when a property child is added", function () {
+        var property_x = new bender.Property("x");
+        component.append_child(property_x);
+        assert.strictEqual(component.own_properties.x, property_x);
+        assert.ok(component.properties.hasOwnProperty("x"));
+        assert.ok(property_x.vertex instanceof bender.PropertyVertex);
       });
     });
   });
