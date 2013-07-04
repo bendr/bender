@@ -265,13 +265,13 @@
 
   bender.Component.prototype.set_prototype = function (prototype) {
     this.$prototype = prototype;
-    prototype.derived.push(prototype);
+    prototype.derived.push(this);
     render_inherited_properties(this);
     return this;
   };
 
-  function render_inherited_property(component) {
-    for (var c = this; c; c = c.$prototype) {
+  function render_inherited_properties(component) {
+    for (var c = component.$prototype; c; c = c.$prototype) {
       for (var p in c.own_properties) {
         if (!component.properties.hasOwnProperty(p)) {
           render_inherited_property(component, c.own_properties[p]);
@@ -293,6 +293,9 @@
     } else if (child instanceof bender.Property) {
       this.own_properties[child.name] = child;
       render_own_property(this, child);
+      this.derived.forEach(function (derived) {
+        render_inherited_property(derived, child);
+      });
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
     } else {

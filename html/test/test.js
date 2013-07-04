@@ -30,11 +30,35 @@
 
   describe("bender.Component", function () {
     var env = new bender.Environment;
+    var proto = env.component();
+    proto.append_child(new bender.Property("a"));
+    proto.append_child(new bender.Property("b"));
     var component = env.component();
     describe("environment.component()", function () {
       it("creates a new component in the scope of its environment", function () {
+        assert.ok(proto instanceof bender.Component);
         assert.ok(component instanceof bender.Component);
         assert.strictEqual(component.scope.$environment, env);
+      });
+    });
+    describe("component.set_prototype()", function () {
+      var c = component.set_prototype(proto);
+      it("sets the $prototype property of a component", function () {
+        assert.strictEqual(component.$prototype, proto);
+      });
+      it("adds the component to the list of derived components of its prototype", function () {
+        assert.ok(component.$prototype.derived.indexOf(component) >= 0);
+      });
+      it("returns the component itself (for chaining)", function () {
+        assert.strictEqual(c, component);
+      });
+      it("the component inherits the properties of its prototype", function () {
+        assert.ok(proto.properties.hasOwnProperty("a"), "Proto has property a");
+        assert.ok(component.properties.hasOwnProperty("a"),
+          "Component inherits property a");
+        assert.ok(proto.properties.hasOwnProperty("b"), "Proto has property b");
+        assert.ok(component.properties.hasOwnProperty("b"),
+          "Component inherits property b");
       });
     });
     describe("component.append_child()", function () {
@@ -54,6 +78,11 @@
         assert.strictEqual(component.own_properties.x, property_x);
         assert.ok(component.properties.hasOwnProperty("x"));
         assert.ok(property_x.vertex instanceof bender.PropertyVertex);
+      });
+      it("creates property vertices for the derived components as well", function () {
+        proto.append_child(new bender.Property("c"));
+        assert.ok(component.properties.hasOwnProperty("c"),
+          "new prototype property c is inherited by the component");
       });
     });
   });
