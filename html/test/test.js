@@ -34,6 +34,8 @@
     proto.append_child(new bender.Property("a"));
     proto.append_child(new bender.Property("b"));
     var component = env.component();
+    var watch = new bender.Watch;
+    watch.id = "watch-1";
     describe("environment.component()", function () {
       it("creates a new component in the scope of its environment", function () {
         assert.ok(proto instanceof bender.Component);
@@ -99,6 +101,10 @@
         });
       });
       describe("append a watch", function () {
+        it("is added to the list of watches", function () {
+          component.append_child(watch);
+          assert.ok(component.watches.indexOf(watch) >= 0);
+        });
       });
       describe("effects", function () {
         it("sets the parent property of the added child", function () {
@@ -106,8 +112,11 @@
           assert.strictEqual(link_stylesheet.parent, component);
           assert.strictEqual(view.parent, component);
           assert.strictEqual(property_x.parent, component);
+          assert.strictEqual(watch.parent, component);
         });
-        it("the child is added to the scope of the component");
+        it("adds children with id (and their descendants with id) to the scope of the component", function () {
+          assert.strictEqual(component.scope["#watch-1"], watch);
+        });
       });
     });
   });
