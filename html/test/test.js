@@ -62,27 +62,52 @@
       });
     });
     describe("component.append_child()", function () {
-      it("sets the view of the component when adding a view", function () {
-        var view = new bender.View;
-        component.append_child(view);
-        assert.strictEqual(component.scope.$view, view);
+      var link_script = new bender.Link(env, "script", "test-link.js");
+      var link_stylesheet = new bender.Link(env, "stylesheet", "test-link.css");
+      var view = new bender.View;
+      var property_x = new bender.Property("x");
+      describe("append a link", function () {
+        it("adds to the .links array of the component", function () {
+          component.append_child(link_script);
+          component.append_child(link_stylesheet);
+          assert.ok(component.links.indexOf(link_script) >= 0);
+          assert.ok(component.links.indexOf(link_stylesheet) >= 0);
+        });
       });
-      it("the view can be set only once (setting another view is ignored with a warning)", function () {
-        var view = new bender.View;
-        component.append_child(view);
-        assert.ok(component.scope.$view, view);
+      describe("append a view", function () {
+        it("sets the view of the component when adding a view", function () {
+          component.append_child(view);
+          assert.strictEqual(component.scope.$view, view);
+        });
+        it("the view can be set only once (setting another view is ignored with a warning)", function () {
+          var view = new bender.View;
+          component.append_child(view);
+          assert.ok(component.scope.$view, view);
+        });
       });
-      it("creates a new property vertex when a property child is added", function () {
-        var property_x = new bender.Property("x");
-        component.append_child(property_x);
-        assert.strictEqual(component.own_properties.x, property_x);
-        assert.ok(component.properties.hasOwnProperty("x"));
-        assert.ok(property_x.vertex instanceof bender.PropertyVertex);
+      describe("append a property", function () {
+        it("creates a new property vertex when a property child is added", function () {
+          component.append_child(property_x);
+          assert.strictEqual(component.own_properties.x, property_x);
+          assert.ok(component.properties.hasOwnProperty("x"));
+          assert.ok(property_x.vertex instanceof bender.PropertyVertex);
+        });
+        it("creates property vertices for the derived components as well", function () {
+          proto.append_child(new bender.Property("c"));
+          assert.ok(component.properties.hasOwnProperty("c"),
+            "new prototype property c is inherited by the component");
+        });
       });
-      it("creates property vertices for the derived components as well", function () {
-        proto.append_child(new bender.Property("c"));
-        assert.ok(component.properties.hasOwnProperty("c"),
-          "new prototype property c is inherited by the component");
+      describe("append a watch", function () {
+      });
+      describe("effects", function () {
+        it("sets the parent property of the added child", function () {
+          assert.strictEqual(link_script.parent, component);
+          assert.strictEqual(link_stylesheet.parent, component);
+          assert.strictEqual(view.parent, component);
+          assert.strictEqual(property_x.parent, component);
+        });
+        it("the child is added to the scope of the component");
       });
     });
   });
