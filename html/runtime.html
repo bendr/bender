@@ -7,11 +7,6 @@
 body {
   font-family: Univers, "Helvetica Neue", Helvetica, sans-serif;
 }
-
-a {
-  text-decoration: none;
-  color: #ff4040;
-}
     </style>
   </head>
   <body>
@@ -23,9 +18,9 @@ bender.load_component().then(function (component) {
   console.log("*** Got component:", component);
   window.ENV = component.environment;
   window.APP = component;
-  setTimeout(function () {
+  flexo.asap(function () {
     component.render(document.body);
-  }, 0);
+  });
 }, function (reason) {
   if (reason && reason.environment) {
     window.ENV = reason.environment;

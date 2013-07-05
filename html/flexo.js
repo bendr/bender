@@ -617,7 +617,8 @@ if (typeof Function.prototype.bind !== "function") {
   // after being called once (see listen_once below.)
   // If the same listener was already added for the same target and event type,
   // just update the once flag, which stays true if and only if it still set.
-  // TODO if target is null or undefined, listen to all sources
+  // Set the target to null to listen to notifications of `type` from all
+  // events.
   flexo.listen = function (target, type, listener) {
     return listen(target, type, listener, false);
   }
@@ -630,6 +631,9 @@ if (typeof Function.prototype.bind !== "function") {
   function listen(target, type, listener, once) {
     if (!listener || typeof type != "string" || !type) {
       return;
+    }
+    if (target === undefined) {
+      target = null;
     }
     if (!events.hasOwnProperty(type)) {
       events[type] = [[target, [listener, once]]];
@@ -644,10 +648,10 @@ if (typeof Function.prototype.bind !== "function") {
         if (l) {
           l[1] = l[1] && once;
         } else {
-          t.push([target, once]);
+          t.push([listener, once]);
         }
       } else {
-        events[type].push([target, [target, once]]);
+        events[type].push([target, [listener, once]]);
       }
     }
     return listener;
@@ -670,23 +674,31 @@ if (typeof Function.prototype.bind !== "function") {
 
   function notify(e) {
     if (events.hasOwnProperty(e.type)) {
-      var t = flexo.find_first(events[e.type], function (t) {
+      notify_listeners(e, flexo.find_first(events[e.type], function (t) {
         return t[0] === e.source;
-      });
-      if (t) {
-        t.slice(1).forEach(function (l) {
-          if (l[1]) {
-            flexo.remove_from_array(t, l);
-            if (t.length == 1) {
-              flexo.remove_from_array(events[e.type], t);
-              if (events[e.type].length == 0) {
-                delete events[e.type];
-              }
+      }));
+      if (e.source) {
+        notify_listeners(e, flexo.find_first(events[e.type], function (t) {
+          return t[0] === null;
+        }));
+      }
+    }
+  }
+
+  function notify_listeners(e, t) {
+    if (t) {
+      t.slice(1).forEach(function (l) {
+        if (l[1]) {
+          flexo.remove_from_array(t, l);
+          if (t.length == 1) {
+            flexo.remove_from_array(events[e.type], t);
+            if (events[e.type].length == 0) {
+              delete events[e.type];
             }
           }
-          call_listener(l[0], e);
-        });
-      }
+        }
+        call_listener(l[0], e);
+      });
     }
   }
 

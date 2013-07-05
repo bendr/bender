@@ -198,11 +198,9 @@
   };
 
   bender.Element.prototype.append_child = function (child) {
-    if (child instanceof bender.Element) {
-      this.children.push(child);
-      child.parent = this;
-      return child;
-    }
+    this.children.push(child);
+    child.parent = this;
+    return child;
   };
 
   bender.Element.prototype.remove_children = function () {
@@ -231,19 +229,21 @@
     }
   };
 
-  // Create a new component within a scope
+  // Create a new component in a scope
   bender.Component = function (scope) {
     this.init();
-    this.scope = Object.create(scope, {
+    var parent_scope = scope.hasOwnProperty("$environment") ?
+      Object.create(scope) : scope;
+    this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
-    this.derived = [];
+    this.on = {};              // on-* attributes
+    this.own_properties = {};  // property nodes
+    this.links = [];           // link nodes
+    this.watches = [];         // watch nodes
+    this.properties = {};      // property values (with associated vertices)
+    this.derived = [];         // derived components
     this.rendered = [];
-    this.own_properties = {};
-    this.properties = {};
-    this.links = [];
-    this.watches = [];
-    this.on = {};
   };
 
   bender.Component.prototype = new bender.Element;
@@ -288,6 +288,7 @@
         console.warn("Component already has a view");
         return;
       } else {
+        // TODO import child components and merge scopes
         this.scope.$view = child;
       }
     } else if (child instanceof bender.Property) {
@@ -301,19 +302,26 @@
     } else {
       return;
     }
-    child.parent = this;
     this.add_to_scope(child);
-    return child;
+    return bender.Element.prototype.append_child.call(this, child);
+  };
+
+  // Component children of the view are added as child components
+  // with a parent_component link
+  // scopes are merged into the tree scope
+  // environment scope > tree scope > component scope
+  bender.Component.prototype.add_child_component = function (child) {
   };
 
   bender.Component.prototype.add_to_scope = function (elem) {
+    var scope = Object.getPrototypeOf(this.scope);
     var queue = [elem];
     while (queue.length > 0) {
       var e = queue.shift();
       if (e.id) {
         var id = "#" + e.id;
-        if (!this.scope.hasOwnProperty(id)) {
-          this.scope[id] = e;
+        if (!scope.hasOwnProperty(id)) {
+          scope[id] = e;
         } else {
           console.warn("Id %0 already defined in scope".fmt(e.id));
         }
@@ -1046,7 +1054,6 @@
       "$this";
     return new flexo.Promise().fulfill(gs).append_children(elem, this);
   }
-
 
   // Parse a value attribute for a get or set given its `as` attribute
   function get_set_value(value, as) {

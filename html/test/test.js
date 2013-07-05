@@ -41,6 +41,8 @@
         assert.ok(proto instanceof bender.Component);
         assert.ok(component instanceof bender.Component);
         assert.strictEqual(component.scope.$environment, env);
+        assert.strictEqual(env.scope,
+          Object.getPrototypeOf(Object.getPrototypeOf(component.scope)));
       });
     });
     describe("component.set_prototype()", function () {
@@ -73,7 +75,9 @@
           component.append_child(link_script);
           component.append_child(link_stylesheet);
           assert.ok(component.links.indexOf(link_script) >= 0);
+          assert.ok(component.children.indexOf(link_script) >= 0);
           assert.ok(component.links.indexOf(link_stylesheet) >= 0);
+          assert.ok(component.children.indexOf(link_stylesheet) >= 0);
         });
       });
       describe("append a view", function () {
@@ -115,6 +119,9 @@
           assert.strictEqual(watch.parent, component);
         });
         it("adds children with id (and their descendants with id) to the scope of the component", function () {
+          assert.ok(Object.getPrototypeOf(component.scope)
+            .hasOwnProperty("#watch-1"));
+          assert.ok("#watch-1" in component.scope);
           assert.strictEqual(component.scope["#watch-1"], watch);
         });
       });
@@ -122,59 +129,62 @@
   });
 
   function test_render(component) {
-    var before_render = new flexo.Promise();
+    var promises = {
+      before_render: new flexo.Promise,
+      after_render: new flexo.Promise,
+      before_init: new flexo.Promise,
+      after_init: new flexo.Promise,
+      ready: new flexo.Promise
+    };
     component.on["before-render"] = function () {
-      before_render.fulfill("ok");
+      promises.before_render.fulfill("ok");
     };
-    var after_render = new flexo.Promise();
     component.on["after-render"] = function () {
-      if (before_render.value == "ok") {
-        after_render.fulfill("ok");
+      if (promises.before_render.value == "ok") {
+        promises.after_render.fulfill("ok");
       } else {
-        ready.reject("not ready");
+        promises.ready.reject("not ready");
       }
     };
-    var before_init = new flexo.Promise();
     component.on["before-init"] = function () {
-      if (after_render.value == "ok") {
-        before_init.fulfill("ok");
+      if (promises.after_render.value == "ok") {
+        promises.before_init.fulfill("ok");
       } else {
-        ready.reject("not ready");
+        promises.ready.reject("not ready");
       }
     };
-    var after_init = new flexo.Promise();
     component.on["after-init"] = function () {
-      if (before_init.value == "ok") {
-        after_init.fulfill("ok");
+      if (promises.before_init.value == "ok") {
+        promises.after_init.fulfill("ok");
       } else {
-        ready.reject("not ready");
+        promises.ready.reject("not ready");
       }
     };
-    var ready = new flexo.Promise();
     component.on.ready = function () {
-      if (after_init.value == "ok") {
-        ready.fulfill("ok");
+      if (promises.after_init.value == "ok") {
+        promises.ready.fulfill("ok");
       } else {
-        ready.reject("not ready");
+        promises.ready.reject("not ready");
       }
     };
     component.render(flexo.$div());
     it("render links (todo)");
     it("send a before-render notification", function (done) {
-      before_render.then(flexo.discard(done), done);
+      promises.before_render.then(flexo.discard(done), done);
     });
     it("send an after-render notification", function (done) {
-      after_render.then(flexo.discard(done), done);
+      promises.after_render.then(flexo.discard(done), done);
     });
     it("send a before-init notification", function (done) {
-      before_init.then(flexo.discard(done), done);
+      promises.before_init.then(flexo.discard(done), done);
     });
     it("send an after-init notification", function (done) {
-      after_init.then(flexo.discard(done), done);
+      promises.after_init.then(flexo.discard(done), done);
     });
     it("send a ready notification", function (done) {
-      ready.then(flexo.discard(done), done);
+      promises.ready.then(flexo.discard(done), done);
     });
+    return promises;
   }
 
   describe("Rendering process", function () {
