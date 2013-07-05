@@ -115,49 +115,39 @@
   function test_render(component) {
     var before_render = new flexo.Promise();
     component.on["before-render"] = function () {
-      flexo.listen(component, "before-render!", function () {
-        before_render.fulfill("ok");
-      });
+      before_render.fulfill("ok");
     };
     var after_render = new flexo.Promise();
     component.on["after-render"] = function () {
-      flexo.listen(component, "after-render!", function () {
-        if (before_render.value == "ok") {
-          after_render.fulfill("ok");
-        } else {
-          ready.reject("not ready");
-        }
-      });
+      if (before_render.value == "ok") {
+        after_render.fulfill("ok");
+      } else {
+        ready.reject("not ready");
+      }
     };
     var before_init = new flexo.Promise();
     component.on["before-init"] = function () {
-      flexo.listen(component, "before-init!", function () {
-        if (after_render.value == "ok") {
-          before_init.fulfill("ok");
-        } else {
-          ready.reject("not ready");
-        }
-      });
+      if (after_render.value == "ok") {
+        before_init.fulfill("ok");
+      } else {
+        ready.reject("not ready");
+      }
     };
     var after_init = new flexo.Promise();
     component.on["after-init"] = function () {
-      flexo.listen(component, "after-init!", function () {
-        if (before_init.value == "ok") {
-          after_init.fulfill("ok");
-        } else {
-          ready.reject("not ready");
-        }
-      });
+      if (before_init.value == "ok") {
+        after_init.fulfill("ok");
+      } else {
+        ready.reject("not ready");
+      }
     };
     var ready = new flexo.Promise();
     component.on.ready = function () {
-      flexo.listen(component, "ready!", function () {
-        if (after_init.value == "ok") {
-          ready.fulfill("ok");
-        } else {
-          ready.reject("not ready");
-        }
-      });
+      if (after_init.value == "ok") {
+        ready.fulfill("ok");
+      } else {
+        ready.reject("not ready");
+      }
     };
     component.render(flexo.$div());
     it("render links (todo)");

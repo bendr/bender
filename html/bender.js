@@ -403,7 +403,11 @@
     if (type in on) {
       on[type].apply(this, args);
     }
-    flexo.notify(this, type + "!", args.length > 0 && { args: args });
+    notify(this, type, args.length > 0 && { args: args });
+  }
+
+  // TODO use the watch graph directly for notifications
+  function notify(source, type, e) {
   }
 
   bender.Component.prototype.handle_on = function (type) {

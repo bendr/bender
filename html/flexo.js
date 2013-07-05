@@ -587,32 +587,71 @@ if (typeof Function.prototype.bind !== "function") {
 
   // Custom events
 
+  // Listeners for events indexed by type of event, then by target. Store
+  // listeners with an additional "once" flag, so that they are removed
+  // immediately when notified for the first time if the flag is set.
+  // `events` looks like: {
+  //   type: [ [target, [listener, once], [listener, once], ...],
+  //           [target, [listener, once], ...],
+  //           ... ],
+  //   type: [ [target, ...], [target, ...] ],
+  //   type: [ ... ],
+  //   ...
+  // }
+  // TODO universal hashing for JS values so that target can be used as a key
+  var events = {};
+
+  // Call an event listener, which may be a function or an object with a
+  // `handleEvent` function; if it’s neither, do nothing
   function call_listener(listener, e) {
     if (typeof listener.handleEvent == "function") {
       listener.handleEvent.call(listener, e);
-    } else {
+    } else if (typeof listener == "function") {
       listener(e);
     }
   }
 
-  // Listen to a custom event. Listener is a function or an object whose
-  // "handleEvent" function will then be invoked. The listener is returned.
+  // Listen to a custom event. Listener is a function or an object with a
+  // `handleEvent` function which will then be invoked. The listener is
+  // returned. An additional flag can be set if the listener is to be removed
+  // after being called once (see listen_once below.)
+  // If the same listener was already added for the same target and event type,
+  // just update the once flag, which stays true if and only if it still set.
+  // TODO if target is null or undefined, listen to all sources
   flexo.listen = function (target, type, listener) {
-    if (!(target.hasOwnProperty(type))) {
-      target[type] = [];
-    }
-    target[type].push(listener);
-    return listener;
-  };
+    return listen(target, type, listener, false);
+  }
 
   // Listen to an event only once. The listener is returned.
   flexo.listen_once = function (target, type, listener) {
-    var h = function (e) {
-      flexo.unlisten(target, type, h);
-      call_listener(listener, e);
-    };
-    return flexo.listen(target, type, h);
+    return listen(target, type, listener, true);
   };
+
+  function listen(target, type, listener, once) {
+    if (!listener || typeof type != "string" || !type) {
+      return;
+    }
+    if (!events.hasOwnProperty(type)) {
+      events[type] = [[target, [listener, once]]];
+    } else {
+      var t = flexo.find_first(events[type], function (t) {
+        return t[0] === target;
+      });
+      if (t) {
+        var l = flexo.find_first(t, function (l) {
+          return l[0] === l;
+        });
+        if (l) {
+          l[1] = l[1] && once;
+        } else {
+          t.push([target, once]);
+        }
+      } else {
+        events[type].push([target, [target, once]]);
+      }
+    }
+    return listener;
+  }
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
   flexo.notify = function (source, type, e) {
@@ -624,19 +663,54 @@ if (typeof Function.prototype.bind !== "function") {
     } else {
       e = source;
     }
-    if (e.type in e.source) {
-      flexo.asap(function () {
-        e.source[e.type].slice().forEach(function (listener) {
-          call_listener(listener, e);
-        });
-      });
-    }
+    return flexo.asap(function () {
+      notify(e);
+    });
   };
+
+  function notify(e) {
+    if (events.hasOwnProperty(e.type)) {
+      var t = flexo.find_first(events[e.type], function (t) {
+        return t[0] === e.source;
+      });
+      if (t) {
+        t.slice(1).forEach(function (l) {
+          if (l[1]) {
+            flexo.remove_from_array(t, l);
+            if (t.length == 1) {
+              flexo.remove_from_array(events[e.type], t);
+              if (events[e.type].length == 0) {
+                delete events[e.type];
+              }
+            }
+          }
+          call_listener(l[0], e);
+        });
+      }
+    }
+  }
 
   // Stop listening and return the removed listener. If the listener was not set
   // in the first place, do and return nothing.
   flexo.unlisten = function (target, type, listener) {
-    return flexo.remove_from_array(target[type], listener);
+    if (events.hasOwnProperty(type)) {
+      for (var i = 0, n = events[type].length;
+          i < n && events[type][i][0] !== target; ++i);
+      if (i < n) {
+        for (var j = 1, m = events[type][i].length;
+            j < m && events[type][i][j][0] !== listener; ++j);
+        if (j < m) {
+          events[type][i].splice(j, 1);
+          if (events[type][i].length == 1) {
+            events[type].splice(i, 1);
+            if (events[type].length == 0) {
+              delete events[type];
+            }
+          }
+          return listener;
+        }
+      }
+    }
   };
 
 
@@ -743,10 +817,13 @@ if (typeof Function.prototype.bind !== "function") {
     timeout: function (dur_ms) {
       if (this._timeout) {
         clearTimeout(this._timeout);
+        delete this._timeout;
       }
-      this._timeout = setTimeout(function () {
-        this.reject("Timeout");
-      }.bind(this), dur_ms);
+      if (typeof dur_ms == "number" && dur_ms > 0) {
+        this._timeout = setTimeout(function () {
+          this.reject("Timeout");
+        }.bind(this), dur_ms);
+      }
       return this;
     },
 
