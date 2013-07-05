@@ -237,13 +237,13 @@
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
-    this.on = {};              // on-* attributes
-    this.own_properties = {};  // property nodes
-    this.links = [];           // link nodes
-    this.watches = [];         // watch nodes
-    this.properties = {};      // property values (with associated vertices)
-    this.derived = [];         // derived components
-    this.rendered = [];
+    this.on = {};                // on-* attributes
+    this.own_properties = {};    // property nodes
+    this.links = [];             // link nodes
+    this.watches = [];           // watch nodes
+    this.child_components = [];  // all child components (in views/properties)
+    this.properties = {};        // property values (with associated vertices)
+    this.derived = [];           // derived components
   };
 
   bender.Component.prototype = new bender.Element;
@@ -302,7 +302,7 @@
     } else {
       return;
     }
-    this.add_to_scope(child);
+    this.add_descendants(child);
     return bender.Element.prototype.append_child.call(this, child);
   };
 
@@ -313,7 +313,10 @@
   bender.Component.prototype.add_child_component = function (child) {
   };
 
-  bender.Component.prototype.add_to_scope = function (elem) {
+  // Add ids to scope when a child is added, and add top-level components as
+  // child components (other already have these components as parents so they
+  // don’t get added)
+  bender.Component.prototype.add_descendants = function (elem) {
     var scope = Object.getPrototypeOf(this.scope);
     var queue = [elem];
     while (queue.length > 0) {
@@ -325,6 +328,10 @@
         } else {
           console.warn("Id %0 already defined in scope".fmt(e.id));
         }
+      }
+      if (e instanceof bender.Component && !e.parent_component) {
+        e.parent_component = this;
+        this.child_components.push(e);
       }
       Array.prototype.unshift.apply(queue, e.children);
     }
@@ -548,6 +555,13 @@
   bender.Environment.prototype.deserialize.view = function (elem) {
     return new flexo.Promise().fulfill(new bender.View).append_children(elem,
         this);
+  };
+
+  bender.View.prototype.append_child = function(child) {
+    if (child instanceof bender.Component) {
+      // set parent_component if the view has a parent
+    }
+    return bender.Element.prototype.append_child.call(this, child);
   };
 
   bender.View.prototype.render = function (stack, target) {
