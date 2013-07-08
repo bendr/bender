@@ -306,11 +306,25 @@
     return bender.Element.prototype.append_child.call(this, child);
   };
 
-  // Component children of the view are added as child components
-  // with a parent_component link
-  // scopes are merged into the tree scope
-  // environment scope > tree scope > component scope
+  // Component children of the view are added as child components with a
+  // parent_component link; scopes are merged.
   bender.Component.prototype.add_child_component = function (child) {
+    child.parent_component = this;
+    this.child_components.push(child);
+    var scope = Object.getPrototypeOf(this.scope);
+    var old_scope = Object.getPrototypeOf(child.scope);
+    for (var key in Object.keys(old_scope)) {
+      if (key in scope) {
+        console.error("Redefinition of %0 in scope".fmt(key));
+      } else {
+        scope[key] = old_scope[key];
+      }
+    }
+    var new_scope = Object.create(scope);
+    for (var key in Object.keys(child.scope)) {
+      new_scope[key] = child.scope[key];
+    }
+    child.scope = new_scope;
   };
 
   // Add ids to scope when a child is added, and add top-level components as
@@ -330,8 +344,7 @@
         }
       }
       if (e instanceof bender.Component && !e.parent_component) {
-        e.parent_component = this;
-        this.child_components.push(e);
+        this.add_child_component(e);
       }
       Array.prototype.unshift.apply(queue, e.children);
     }
@@ -557,12 +570,18 @@
         this);
   };
 
-  bender.View.prototype.append_child = function(child) {
+  // Append child for view and its children
+  function append_view_child(child) {
     if (child instanceof bender.Component) {
-      // set parent_component if the view has a parent
+      var p = parent_component(this);
+      if (p) {
+        p.add_child_component(child);
+      }
     }
     return bender.Element.prototype.append_child.call(this, child);
-  };
+  }
+
+  bender.View.prototype.append_child = append_view_child;
 
   bender.View.prototype.render = function (stack, target) {
     this.children.forEach(function (ch) {
@@ -599,6 +618,8 @@
   };
 
   bender.DOMElement.prototype = new bender.Element;
+
+  bender.DOMElement.prototype.append_child = append_view_child;
 
   bender.DOMElement.prototype.render = function (stack, target) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
@@ -1088,6 +1109,15 @@
     as = flexo.safe_trim(as).toLowerCase();
     return as == "string" || as == "number" || as == "boolean" ||
       as == "json" || as == "xml" ? as : "dynamic";
+  }
+
+  // Find the closest ancestor of node (including self) that is a component and
+  // return it if found
+  function parent_component(node) {
+    for (; node && !(node instanceof bender.Component); node = node.parent);
+    if (node) {
+      return node;
+    }
   }
 
 }(this.bender = {}));

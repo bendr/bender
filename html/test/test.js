@@ -128,6 +128,36 @@
     });
   });
 
+  describe("bender.View", function () {
+    describe("new bender.View", function () {
+      it("creates a new view, with no children and no id", function () {
+        var v = new bender.View;
+        assert.ok(v instanceof bender.View);
+        assert.deepEqual(v.children, []);
+        assert.strictEqual(v.id, "");
+      });
+    });
+    describe("view.append_child", function () {
+      it("appends child components to the parent component of the view, if any", function () {
+        var env = new bender.Environment;
+        var ch1 = env.component();
+        var ch2 = env.component();
+        var parent = env.component();
+        var view = new bender.View;
+        view.append_child(ch1);
+        assert.strictEqual(ch1.parent, view);
+        assert.strictEqual(ch1.parent_component, undefined);
+        parent.append_child(view);
+        assert.strictEqual(view.parent, parent);
+        assert.strictEqual(ch1.parent_component, parent);
+        view.append_child(ch2);
+        assert.strictEqual(ch2.parent, view);
+        assert.strictEqual(ch2.parent_component, parent);
+        assert.strictEqual(parent.child_components.length, 2);
+      });
+    });
+  });
+
   function test_render(component) {
     var promises = {
       before_render: new flexo.Promise,
