@@ -194,7 +194,11 @@
   bender.Element.prototype.init = function () {
     this.children = [];
     this.enabled = true;
-    this.id = "";
+    flexo.make_property(this, "id", function (id, cancel) {
+      cancel(typeof id != "string" || id == this.id);
+      update_scope(this, id);
+      return id;
+    }, "");
   };
 
   bender.Element.prototype.append_child = function (child) {
@@ -313,17 +317,18 @@
     this.child_components.push(child);
     var scope = Object.getPrototypeOf(this.scope);
     var old_scope = Object.getPrototypeOf(child.scope);
-    for (var key in Object.keys(old_scope)) {
+    Object.keys(old_scope).forEach(function (key) {
       if (key in scope) {
+        // TODO check why this occurs in a test
         console.error("Redefinition of %0 in scope".fmt(key));
       } else {
         scope[key] = old_scope[key];
       }
-    }
+    });
     var new_scope = Object.create(scope);
-    for (var key in Object.keys(child.scope)) {
+    Object.keys(child.scope).forEach(function (key) {
       new_scope[key] = child.scope[key];
-    }
+    });
     child.scope = new_scope;
   };
 
@@ -1117,6 +1122,20 @@
     for (; node && !(node instanceof bender.Component); node = node.parent);
     if (node) {
       return node;
+    }
+  }
+
+  // Update the scope of the parent component of node (if any)
+  function update_scope(node, id) {
+    var p = parent_component(node);
+    if (p) {
+      var scope = Object.getPrototypeOf(p.scope);
+      var h = "#" + id;
+      if (h in scope) {
+        console.error("Id %0 already in scope".fmt(h));
+      } else {
+        scope[h] = node;
+      }
     }
   }
 

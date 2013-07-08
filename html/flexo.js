@@ -74,16 +74,16 @@ if (typeof Function.prototype.bind !== "function") {
   };
 
   // Define a property named `name` on object `obj` with the custom setter `set`
-  // The setter gets three parameters (<new value>, <current value>, <cancel>)
-  // and returns the new value to be set. An initial value may be provided,
-  // which does not trigger the setter. `fail` may be called with a truthy value
-  // to cancel the setter.
+  // The setter gets two parameters (<value>, <cancel>) and returns the new
+  // value to be set. An initial value may be provided, which does not trigger
+  // the setter. `cancel` may be called with a truthy value to cancel the
+  // setter.
   flexo.make_property = function (obj, name, set, value) {
     Object.defineProperty(obj, name, { enumerable: true,
       get: function () { return value; },
       set: function (v) {
         try {
-          value = set.call(this, v, value, flexo.fail);
+          value = set.call(this, v, flexo.fail);
         } catch (e) {
           if (e !== "fail") {
             throw e;
@@ -352,32 +352,46 @@ if (typeof Function.prototype.bind !== "function") {
       this.empty();
       return a_;
     });
+    flexo.make_readonly(this, "remaining", function () {
+      return this._remaining.length;
+    });
     this.array = a || [];
     this.non_repeatable = !!non_repeatable;
   };
 
   flexo.Urn.prototype = {
 
-    // Pick random elements from an array and remove them from the array. When
+    // Pick a random element from an array and remove them from the array. When
     // the array is empty, recreate the initial array.
     pick: function () {
-      if (this.remaining.length == 0) {
-        this.remaining = slice.call(this.array);
+      if (this._remaining.length == 0) {
+        this._remaining = slice.call(this.array);
       }
-      var i = flexo.random_int(this.remaining.length - 1);
+      var i = flexo.random_int(this._remaining.length - 1);
       if (this.non_repeatable && this.array.length > 1) {
-        while (this.remaining[i] === this.last_pick) {
-          i = flexo.random_int(this.remaining.length - 1);
+        while (this._remaining[i] === this.last_pick) {
+          i = flexo.random_int(this._remaining.length - 1);
         }
       }
-      this.last_pick = this.remaining.splice(i, 1)[0];
+      this.last_pick = this._remaining.splice(i, 1)[0];
       return this.last_pick;
+    },
+
+    picks: function (n, unique) {
+      if (!!unique && n > this._remaining.length) {
+        this.empty();
+      }
+      var picks = [];
+      for (var i = 0; i < n; ++i) {
+        picks.push(this.pick());
+      }
+      return picks;
     },
 
     // The urn can also be emptied at any moment, which resets is state
     // completely.
     empty: function () {
-      this.remaining = [];
+      this._remaining = [];
       delete this.last_pick;
       return this;
     },
@@ -385,7 +399,7 @@ if (typeof Function.prototype.bind !== "function") {
     // Add an item to the urn
     add: function (item) {
       this.array.push(item);
-      this.remaining.push(item);
+      this._remaining.push(item);
       return this;
     },
 
@@ -393,7 +407,7 @@ if (typeof Function.prototype.bind !== "function") {
     remove: function (item) {
       var removed = flexo.remove_from_array(this.array, item);
       if (removed) {
-        flexo.remove_from_array(this.remaining, item);
+        flexo.remove_from_array(this._remaining, item);
       }
       return removed;
     }
@@ -659,17 +673,15 @@ if (typeof Function.prototype.bind !== "function") {
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
   flexo.notify = function (source, type, e) {
-    if (e) {
+    if (typeof e == "object") {
       e.source = source;
       e.type = type;
-    } else if (type) {
+    } else if (typeof type == "string") {
       e = { source: source, type: type };
     } else {
       e = source;
     }
-    return flexo.asap(function () {
-      notify(e);
-    });
+    return flexo.asap(notify.bind(this, e));
   };
 
   function notify(e) {
@@ -763,7 +775,7 @@ if (typeof Function.prototype.bind !== "function") {
   // single parameter evaluating to a truthy value, throw a "fail" exception;
   // otherwise, return false.
   flexo.fail = function (p) {
-    if (arguments.length === 0 || !!p) {
+    if (!arguments.length || p) {
       throw "fail";
     }
     return false;

@@ -126,6 +126,34 @@
         });
       });
     });
+    describe("Scope", function () {
+      it("contains all ids in the scope of a component", function () {
+        var parent = env.component();
+        parent.id = "A";
+        assert.strictEqual(parent.scope["#A"], parent);
+        var child = env.component();
+        child.id = "B";
+        assert.strictEqual(child.scope["#B"], child);
+        var view = new bender.View;
+        view.append_child(child);
+        parent.append_child(view);
+        assert.strictEqual(parent.scope.$view, view);
+        assert.strictEqual(parent.scope["#A"], parent);
+        assert.strictEqual(parent.scope["#B"], child);
+        assert.strictEqual(child.scope.$view, undefined);
+        assert.strictEqual(child.scope["#A"], parent);
+        assert.strictEqual(child.scope["#B"], child);
+        var sibling = env.component();
+        sibling.id = "C";
+        view.append_child(sibling);
+        assert.strictEqual(sibling.scope.$view, undefined);
+        assert.strictEqual(sibling.scope["#A"], parent);
+        assert.strictEqual(sibling.scope["#B"], child);
+        assert.strictEqual(parent.scope["#C"], sibling);
+        // assert.strictEqual(child.scope["#C"], sibling);
+        // assert.strictEqual(sibling.scope["#C"], sibling);
+      });
+    });
   });
 
   describe("bender.View", function () {
