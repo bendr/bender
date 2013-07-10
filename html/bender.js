@@ -381,6 +381,7 @@
   bender.Component.prototype.render_component = function (target, ref) {
     this.handle_on("before-render", target);
     // render component bottom-up
+    // TODO keep track of rendered components to set @ids
     for (var chain = [], prev, p = this; p; prev = p, p = p.$prototype) {
       var r = new bender.RenderedComponent(p);
       chain.push(r);
@@ -397,7 +398,7 @@
     this.handle_on("before-init");
     this.handle_on("after-init");
     target.insertBefore(fragment, ref);
-    this.handle_on("ready");
+    this.handle_on("ready", this, chain[0]);
   };
 
   bender.Component.prototype.render_view = function (chain, target) {
@@ -427,20 +428,19 @@
     this.scope = Object.create(component.scope, {
       $that: { enumerable: true, value: component }
     });
+    if (component.id) {
+      this.scope["@" + component.id] = this;
+    }
     this.properties = {};
   };
 
   var slice = Array.prototype.slice;
 
   function handle_on(on, type, args) {
-    if (type in on) {
+    if (typeof on[type] == "function") {
       on[type].apply(this, args);
     }
-    notify(this, type, args.length > 0 && { args: args });
-  }
-
-  // TODO use the watch graph directly for notifications
-  function notify(source, type, e) {
+    // TODO notify
   }
 
   bender.Component.prototype.handle_on = function (type) {

@@ -40,6 +40,7 @@
       it("creates a new component in the scope of its environment", function () {
         assert.ok(proto instanceof bender.Component);
         assert.ok(component instanceof bender.Component);
+        assert.ok(component instanceof bender.Element);
         assert.strictEqual(component.scope.$environment, env);
         assert.strictEqual(env.scope,
           Object.getPrototypeOf(Object.getPrototypeOf(component.scope)));
@@ -150,8 +151,27 @@
         assert.strictEqual(sibling.scope["#A"], parent);
         assert.strictEqual(sibling.scope["#B"], child);
         assert.strictEqual(parent.scope["#C"], sibling);
-        // assert.strictEqual(child.scope["#C"], sibling);
-        // assert.strictEqual(sibling.scope["#C"], sibling);
+        assert.strictEqual(child.scope["#C"], sibling);
+        assert.strictEqual(sibling.scope["#C"], sibling);
+      });
+    });
+    describe("component.render(target[, ref])", function () {
+      var env = new bender.Environment;
+      var component = env.component();
+      var rendered;
+      it("renders the component in the target", function (done) {
+        component.id = "k";
+        var fragment = component.scope.$document.createDocumentFragment();
+        component.on.ready = function (k, r) {
+          assert.strictEqual(k, component);
+          assert.ok(r instanceof bender.RenderedComponent);
+          rendered = r;
+          done();
+        };
+        component.render(fragment);
+      });
+      it("sets the ids for the rendered component", function () {
+        assert.strictEqual(rendered.scope["@k"], rendered);
       });
     });
   });
@@ -182,6 +202,43 @@
         assert.strictEqual(ch2.parent, view);
         assert.strictEqual(ch2.parent_component, parent);
         assert.strictEqual(parent.child_components.length, 2);
+      });
+    });
+  });
+
+  describe("bender.DOMElement", function () {
+    describe("new bender.DOMElement(ns, name)", function () {
+      it("creates a new element node with the given namespace and local name", function () {
+        var elem = new bender.DOMElement(flexo.ns.html, "p");
+        assert.ok(elem instanceof bender.DOMElement);
+        assert.deepEqual(elem.children, []);
+        assert.strictEqual(elem.id, "");
+        assert.strictEqual(elem.ns, flexo.ns.html);
+        assert.strictEqual(elem.name, "p");
+      });
+    });
+    describe("elem.append_child", function () {
+      it("appends child components to the parent component, if any", function () {
+        var env = new bender.Environment;
+        var a = env.component();
+        a.id = "a";
+        var b = env.component();
+        b.id = "b";
+        var c = env.component();
+        var div = new bender.DOMElement(flexo.ns.html, "div");
+        var view = new bender.View;
+        view.append_child(div);
+        div.append_child(b);
+        a.append_child(view);
+        div.append_child(c);
+        c.id = "c";
+        assert.strictEqual(b.parent, div);
+        assert.strictEqual(b.parent_component, a);
+        assert.strictEqual(c.parent, div);
+        assert.strictEqual(c.parent_component, a);
+        assert.strictEqual(a.scope["#b"], b);
+        assert.strictEqual(b.scope["#c"], c);
+        assert.strictEqual(c.scope["#a"], a);
       });
     });
   });
