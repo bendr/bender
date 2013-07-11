@@ -241,13 +241,15 @@
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
-    this.on = {};                // on-* attributes
-    this.own_properties = {};    // property nodes
-    this.links = [];             // link nodes
-    this.watches = [];           // watch nodes
-    this.child_components = [];  // all child components (in views/properties)
-    this.properties = {};        // property values (with associated vertices)
-    this.derived = [];           // derived components
+    this.on = {};                 // on-* attributes
+    this.own_properties = {};     // property nodes
+    this.links = [];              // link nodes
+    this.watches = [];            // watch nodes
+    this.child_components = [];   // all child components (in views/properties)
+    this.property_vertices = {};  // property vertices for each property
+    this.properties = {};         // property values (with associated vertices)
+    this.derived = [];            // derived components
+    this.rendered = [];           // rendered instances
   };
 
   bender.Component.prototype = new bender.Element;
@@ -270,15 +272,15 @@
   bender.Component.prototype.set_prototype = function (prototype) {
     this.$prototype = prototype;
     prototype.derived.push(this);
-    render_inherited_properties(this);
+    render_derived_properties(this);
     return this;
   };
 
-  function render_inherited_properties(component) {
+  function render_derived_properties(component) {
     for (var c = component.$prototype; c; c = c.$prototype) {
       for (var p in c.own_properties) {
         if (!component.properties.hasOwnProperty(p)) {
-          render_inherited_property(component, c.own_properties[p]);
+          render_derived_property(component, c.own_properties[p]);
         }
       }
     }
@@ -299,7 +301,7 @@
       this.own_properties[child.name] = child;
       render_own_property(this, child);
       this.derived.forEach(function (derived) {
-        render_inherited_property(derived, child);
+        render_derived_property(derived, child);
       });
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
@@ -381,7 +383,6 @@
   bender.Component.prototype.render_component = function (target, ref) {
     this.handle_on("before-render", target);
     // render component bottom-up
-    // TODO keep track of rendered components to set @ids
     for (var chain = [], prev, p = this; p; prev = p, p = p.$prototype) {
       var r = new bender.RenderedComponent(p);
       chain.push(r);
@@ -389,16 +390,33 @@
         prev.$prototype = r;
       }
     }
-    // render properties
-    var fragment = this.scope.$document.createDocumentFragment();
-    this.render_view(chain, fragment);
-    // render watches
+    this.render_properties(chain);
+    this.render_view(chain, target);
+    this.render_watches(chain);
     this.handle_on("after-render");
-    // init properties top-down
+    this.init_properties(chain);
     this.handle_on("before-init");
     this.handle_on("after-init");
-    target.insertBefore(fragment, ref);
     this.handle_on("ready", this, chain[0]);
+  };
+
+  var push = Array.prototype.push;
+
+  bender.Component.prototype.render_properties = function (chain) {
+    var n = chain.length - 1;
+    for (var i = n; i >= 0; --i) {
+      var r = chain[i];
+      for (var p in r.component.properties) {
+        if (p in r.component.own_properties) {
+          render_derived_property(r, r.component.own_properties[p]);
+        } else {
+          var pv = chain[i + 1].property_vertices[p];
+          var v = render_derived_property(r, pv.property, pv);
+          v.protovertices.push(chain[i + 1].component.property_vertices[p]);
+          push.apply(v.protovertices, pv.protovertices);
+        }
+      }
+    }
   };
 
   bender.Component.prototype.render_view = function (chain, target) {
@@ -423,14 +441,22 @@
     }
   };
 
+  bender.Component.prototype.render_watches = function (chain) {
+  };
+
+  bender.Component.prototype.init_properties = function (chain) {
+  };
+
   bender.RenderedComponent = function (component) {
     this.component = component;
+    component.rendered.push(this);
     this.scope = Object.create(component.scope, {
       $that: { enumerable: true, value: component }
     });
     if (component.id) {
       this.scope["@" + component.id] = this;
     }
+    this.property_vertices = {};
     this.properties = {};
   };
 
@@ -463,6 +489,12 @@
   function render_own_property(component, property) {
     var vertex = property.vertex = component.scope.$environment.add_vertex(new
         bender.PropertyVertex(component, property));
+    render_property_property(component, property, vertex);
+  }
+
+  // Render a Javascript property with Object.defineProperty for a Bender
+  // property
+  function render_property_property(component, property, vertex) {
     Object.defineProperty(component.properties, property.name, {
       enumerable: true,
       get: function () {
@@ -477,28 +509,36 @@
     });
   }
 
-  // Render an inherited property [need the original component]
-  function render_inherited_property(component, property) {
+  // Render a derived property for a component (*not* the parent of the
+  // property, obviously) and a protovertex, which is the vertex of the property
+  // by default. The protovertex is used for the value of the property until it
+  // is set for the component, in which case the link with the protovertex is
+  // severed and edges are redirected (and a new vertex is created.)
+  function render_derived_property(component, property, protovertex) {
+    if (!protovertex) {
+      protovertex = property.vertex;
+    }
     var vertex = component.scope.$environment.add_vertex(new
         bender.PropertyVertex(component, property));
+    vertex.protovertices = [protovertex];
     Object.defineProperty(component.properties, property.name, {
       enumerable: true,
       configurable: true,
       get: function () {
-        return property.vertex.value;
+        return protovertex.value;
       },
       set: function (value) {
-        var edges = flexo.partition(property.vertex.out_edges, function (edge) {
-          return edge.__vertex == vertex;
+        vertex.protovertices.forEach(function (v) {
+          v.out_edges = v.out_edges.filter(function (edge) {
+            return edge.__vertex != vertex;
+          });
         });
-        property.vertex.out_edges = edges[1];
-        edges[0].forEach(function (edge) {
-          delete edge.__vertex;
-          propert.vertex.add_edge(edge);
-        });
-        render_own_property(component, property);
+        delete vertex.protovertices;
+        render_property_property(component, property, vertex);
+        component.properties[property.name] = value;
       }
     });
+    return vertex;
   }
 
   // Link is not a content element
@@ -935,6 +975,7 @@
     this.init();
     this.component = component;
     this.property = property;
+    component.property_vertices[property.name] = this;
   };
 
   bender.PropertyVertex.prototype = new bender.Vortex;

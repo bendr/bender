@@ -98,11 +98,15 @@
           assert.strictEqual(component.own_properties.x, property_x);
           assert.ok(component.properties.hasOwnProperty("x"));
           assert.ok(property_x.vertex instanceof bender.PropertyVertex);
+          assert.strictEqual(component.property_vertices[property_x.name],
+            property_x.vertex);
         });
         it("creates property vertices for the derived components as well", function () {
           proto.append_child(new bender.Property("c"));
           assert.ok(component.properties.hasOwnProperty("c"),
             "new prototype property c is inherited by the component");
+          assert.ok(component.property_vertices.c instanceof
+            bender.PropertyVertex);
         });
       });
       describe("append a watch", function () {
@@ -171,7 +175,38 @@
         component.render(fragment);
       });
       it("sets the ids for the rendered component", function () {
+        assert.strictEqual(component.rendered.length, 1);
+        assert.strictEqual(component.rendered[0], rendered);
         assert.strictEqual(rendered.scope["@k"], rendered);
+      });
+      it("renders property vertices", function (done) {
+        var env = new bender.Environment;
+        var a = env.component();
+        a.append_child(new bender.Property("x"));
+        var b = env.component();
+        b.append_child(new bender.Property("y"));
+        b.set_prototype(a);
+        var c = env.component();
+        c.set_prototype(b);
+        c.append_child(new bender.Property("x"));
+        var d = env.component();
+        d.set_prototype(c);
+        d.on.ready = function (k, r) {
+          assert.strictEqual(k, d);
+          assert.ok(a.property_vertices.x instanceof bender.PropertyVertex);
+          assert.ok(b.property_vertices.x instanceof bender.PropertyVertex);
+          assert.ok(b.property_vertices.y instanceof bender.PropertyVertex);
+          assert.ok(c.property_vertices.x instanceof bender.PropertyVertex);
+          assert.ok(c.property_vertices.y instanceof bender.PropertyVertex);
+          assert.ok(d.property_vertices.x instanceof bender.PropertyVertex);
+          assert.ok(d.property_vertices.y instanceof bender.PropertyVertex);
+          assert.ok(r.property_vertices.x instanceof bender.PropertyVertex);
+          assert.ok(r.property_vertices.y instanceof bender.PropertyVertex);
+          assert.strictEqual(r.property_vertices.x.protovertices.length, 3);
+          assert.strictEqual(r.property_vertices.y.protovertices.length, 5);
+          done();
+        };
+        d.render(d.scope.$document.createDocumentFragment());
       });
     });
   });
