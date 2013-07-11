@@ -383,40 +383,38 @@
   bender.Component.prototype.render_component = function (target, ref) {
     this.handle_on("before-render", target);
     // render component bottom-up
-    for (var chain = [], prev, p = this; p; prev = p, p = p.$prototype) {
+    for (var chain = [], p = this; p; p = p.$prototype) {
       var r = new bender.RenderedComponent(p);
-      chain.push(r);
-      if (prev) {
-        prev.$prototype = r;
+      if (chain.length > 0) {
+        chain[chain.length - 1].$prototype = r;
       }
+      chain.push(r);
     }
     this.render_properties(chain);
     this.render_view(chain, target);
     this.render_watches(chain);
-    this.handle_on("after-render");
+    this.handle_on("after-render", chain[0]);
     this.init_properties(chain);
-    this.handle_on("before-init");
-    this.handle_on("after-init");
-    this.handle_on("ready", this, chain[0]);
+    this.handle_on("before-init", chain[0]);
+    this.handle_on("after-init", chain[0]);
+    this.handle_on("ready", chain[0]);
   };
 
   var push = Array.prototype.push;
 
   bender.Component.prototype.render_properties = function (chain) {
-    var n = chain.length - 1;
-    for (var i = n; i >= 0; --i) {
-      var r = chain[i];
+    flexo.hcaErof(chain, function (r) {
       for (var p in r.component.properties) {
         if (p in r.component.own_properties) {
           render_derived_property(r, r.component.own_properties[p]);
         } else {
-          var pv = chain[i + 1].property_vertices[p];
+          var pv = r.$prototype.property_vertices[p];
           var v = render_derived_property(r, pv.property, pv);
-          v.protovertices.push(chain[i + 1].component.property_vertices[p]);
+          v.protovertices.push(r.$prototype.component.property_vertices[p]);
           push.apply(v.protovertices, pv.protovertices);
         }
       }
-    }
+    });
   };
 
   bender.Component.prototype.render_view = function (chain, target) {

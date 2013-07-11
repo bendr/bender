@@ -166,12 +166,11 @@
       it("renders the component in the target", function (done) {
         component.id = "k";
         var fragment = component.scope.$document.createDocumentFragment();
-        component.on.ready = function (k, r) {
-          assert.strictEqual(k, component);
+        component.on["after-render"] = function (r) {
           assert.ok(r instanceof bender.RenderedComponent);
           rendered = r;
-          done();
         };
+        component.on.ready = flexo.discard(done);
         component.render(fragment);
       });
       it("sets the ids for the rendered component", function () {
@@ -191,8 +190,7 @@
         c.append_child(new bender.Property("x"));
         var d = env.component();
         d.set_prototype(c);
-        d.on.ready = function (k, r) {
-          assert.strictEqual(k, d);
+        d.on["after-render"] = function (r) {
           assert.ok(a.property_vertices.x instanceof bender.PropertyVertex);
           assert.ok(b.property_vertices.x instanceof bender.PropertyVertex);
           assert.ok(b.property_vertices.y instanceof bender.PropertyVertex);
@@ -204,8 +202,8 @@
           assert.ok(r.property_vertices.y instanceof bender.PropertyVertex);
           assert.strictEqual(r.property_vertices.x.protovertices.length, 3);
           assert.strictEqual(r.property_vertices.y.protovertices.length, 5);
-          done();
         };
+        d.on.ready = flexo.discard(done);
         d.render(d.scope.$document.createDocumentFragment());
       });
     });
