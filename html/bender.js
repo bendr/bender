@@ -207,6 +207,11 @@
     return child;
   };
 
+  bender.Element.prototype.child = function (child) {
+    this.append_child(child);
+    return this;
+  };
+
   bender.Element.prototype.remove_children = function () {
     this.children.forEach(function (ch) {
       delete ch.parent;
@@ -254,6 +259,14 @@
 
   bender.Component.prototype = new bender.Element;
 
+  bender.Component.prototype.view = function (view) {
+    if (arguments.length == 0) {
+      return this.scope.$view;
+    }
+    this.append_child(view);
+    return this;
+  };
+
   bender.Environment.prototype.deserialize.component = function (elem) {
     var component = this.component();
     // TODO attributes to set properties; enabled/id?
@@ -291,24 +304,79 @@
       chain.push(r);
     }
     chain[0].__chain = chain;
-    this.handle_on("will-render", chain[0]);
     this.render_properties(chain);
     this.render_view(chain, target);
     this.render_watches(chain);
-    this.handle_on("did-render", chain[0]);
     return chain[0];
   };
 
-  bender.Component.prototype.render_init = function (concrete) {
-    this.handle_on("will-init", concrete);
-    flexo.hcaErof(concrete.__chain, function (r) {
-      // init properties
+  function on(concrete, type) {
+    if (typeof concrete.component.on[type] == "function") {
+      concrete.component.on[type](concrete);
+    }
+  }
+
+  var push = Array.prototype.push;
+
+  bender.Component.prototype.render_properties = function (chain) {
+    flexo.hcaErof(chain, function (r) {
+      on(r, "will-render");
+      for (var p in r.component.properties) {
+        if (p in r.component.own_properties) {
+          render_derived_property(r, r.component.own_properties[p]);
+        } else {
+          var pv = r.$prototype.property_vertices[p];
+          var v = render_derived_property(r, pv.property, pv);
+          v.protovertices.push(r.$prototype.component.property_vertices[p]);
+          push.apply(v.protovertices, pv.protovertices);
+        }
+      }
     });
-    this.handle_on("did-init", concrete);
+  };
+
+  bender.Component.prototype.render_view = function (chain, target) {
+    var stack = [];
+    flexo.hcaErof(chain, function (c) {
+      var mode = c.scope.$view ? c.scope.$view.stack : "top";
+      if (mode == "replace") {
+        stack = [c];
+      } else if (mode == "top") {
+        stack.push(c);
+      } else {
+        stack.unshift(c);
+      }
+    });
+    stack.i = 0;
+    for (var n = stack.length; stack.i < n && !stack[stack.i].scope.$view;
+        ++stack.i);
+    if (stack.i < n && stack[stack.i].scope.$view) {
+      var rendered = stack[stack.i];
+      rendered.scope.$target = target;
+      rendered.scope.$view.render(stack, target);
+    }
+  };
+
+  bender.Component.prototype.render_watches = function (chain) {
+    flexo.hcaErof(chain, function (r) {
+      r.component.watches.forEach(function (w) {
+        w.render(r);
+      });
+      on(r, "did-render");
+    });
+  };
+
+  bender.Component.prototype.render_init = function (concrete) {
+    flexo.hcaErof(concrete.__chain, function (r) {
+      on(r, "will-init");
+      // init properties
+      on(r, "did-init");
+    });
     concrete.child_components.forEach(function (ch) {
       ch.component.init_component(ch);
     });
-    this.handle_on("ready", concrete);
+    flexo.hcaErof(concrete.__chain, function (r) {
+      on(r, "ready");
+    });
     delete concrete.__chain;
   };
 
@@ -400,51 +468,6 @@
     }
   };
 
-  var push = Array.prototype.push;
-
-  bender.Component.prototype.render_properties = function (chain) {
-    flexo.hcaErof(chain, function (r) {
-      for (var p in r.component.properties) {
-        if (p in r.component.own_properties) {
-          render_derived_property(r, r.component.own_properties[p]);
-        } else {
-          var pv = r.$prototype.property_vertices[p];
-          var v = render_derived_property(r, pv.property, pv);
-          v.protovertices.push(r.$prototype.component.property_vertices[p]);
-          push.apply(v.protovertices, pv.protovertices);
-        }
-      }
-    });
-  };
-
-  bender.Component.prototype.render_view = function (chain, target) {
-    var stack = [];
-    flexo.hcaErof(chain, function (c) {
-      var mode = c.scope.$view ? c.scope.$view.stack : "top";
-      if (mode == "replace") {
-        stack = [c];
-      } else if (mode == "top") {
-        stack.push(c);
-      } else {
-        stack.unshift(c);
-      }
-    });
-    stack.i = 0;
-    for (var n = stack.length; stack.i < n && !stack[stack.i].scope.$view;
-        ++stack.i);
-    if (stack.i < n && stack[stack.i].scope.$view) {
-      var rendered = stack[stack.i];
-      rendered.scope.$target = target;
-      rendered.scope.$view.render(stack, target);
-    }
-  };
-
-  bender.Component.prototype.render_watches = function (chain) {
-  };
-
-  bender.Component.prototype.init_properties = function (chain) {
-  };
-
   bender.RenderedComponent = function (component) {
     this.component = component;
     component.rendered.push(this);
@@ -457,23 +480,6 @@
     this.child_components = [];
     this.property_vertices = {};
     this.properties = {};
-  };
-
-  var slice = Array.prototype.slice;
-
-  function handle_on(on, type, args) {
-    if (typeof on[type] == "function") {
-      on[type].apply(this, args);
-    }
-    // TODO notify
-  }
-
-  bender.Component.prototype.handle_on = function (type) {
-    handle_on.call(this, this.on, type, slice.call(arguments, 1));
-  };
-
-  bender.RenderedComponent.prototype.handle_on = function (type) {
-    handle_on.call(this, this.component.on, type, slice.call(arguments, 1));
   };
 
   // Render the properties of a concrete component
@@ -797,19 +803,19 @@
 
   // Render the watch by rendering a vertex for the watch, then a vertex for
   // each of the get elements with an edge to the watch vertex, then an edge
-  // from the watch vertex for all set elements
-  bender.Watch.prototype.render = function (component) {
-    var watch_vertex = new bender.WatchVertex(this, component);
+  // from the watch vertex for all set elements for a concrete component
+  bender.Watch.prototype.render = function (concrete) {
+    var watch_vertex = new bender.WatchVertex(this, concrete);
     var get_vertices = [];
     this.gets.forEach(function (get) {
-      var vertex = get.render(component);
+      var vertex = get.render(concrete);
       if (vertex) {
-        vertex.add_edge(new bender.WatchEdge(get, component, watch_vertex));
+        vertex.add_edge(new bender.WatchEdge(get, concrete, watch_vertex));
         get_vertices.push(vertex);
       }
     });
     this.sets.forEach(function (set) {
-      var edge = set.render(component);
+      var edge = set.render(concrete);
       if (edge) {
         watch_vertex.add_edge(edge);
       }

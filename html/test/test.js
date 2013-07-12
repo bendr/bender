@@ -206,6 +206,26 @@
         d.on.ready = flexo.discard(done);
         d.render(d.scope.$document.createDocumentFragment());
       });
+      it("child links in concrete components", function (done) {
+        var env = new bender.Environment;
+        var d = env.component();
+        var c = env.component().view(new bender.View().child(d));
+        var b = env.component();
+        var a = env.component().view(new bender.View().child(b).child(c));
+        a.render(a.scope.$document.createDocumentFragment());
+        assert.ok(a.scope.$view instanceof bender.View);
+        assert.strictEqual(a.child_components.length, 2);
+        assert.strictEqual(c.child_components.length, 1);
+        a.on["did-render"] = function (r) {
+          try {
+            assert.strictEqual(r.component, a);
+            assert.strictEqual(r.child_components.length, 2);
+          } catch (e) {
+            done(e);
+          }
+        };
+        a.on.ready = flexo.discard(done);
+      });
     });
   });
 
