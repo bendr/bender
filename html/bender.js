@@ -269,6 +269,12 @@
       .append_children(elem, this);
   };
 
+  bender.Component.prototype.render_component = function (target, ref) {
+    this.render(target, ref, function (chain) {
+      this.handle_on("ready");
+    }.bind(this));
+  };
+
   bender.Component.prototype.set_prototype = function (prototype) {
     this.$prototype = prototype;
     prototype.derived.push(this);
@@ -359,14 +365,14 @@
 
   // Render the links, then the view. Link rendering may delay rendering the
   // view (e.g., scripts need to finish loading before the view can be rendered)
-  bender.Component.prototype.render = function (target, ref) {
+  bender.Component.prototype.render = function (target, ref, k) {
     var pending_links = 0;
     var render_next = function () {
       if (arguments.length > 0) {
         --pending_links;
       }
       if (pending_links == 0) {
-        this.render_component(target);
+        this.render_concrete(target, ref, k);
       }
     }.bind(this);
     this.links.forEach(function (link) {
@@ -380,9 +386,7 @@
   };
 
   // Render this component to a concrete component for the given target
-  bender.Component.prototype.render_component = function (target, ref) {
-    this.handle_on("before-render", target);
-    // render component bottom-up
+  bender.Component.prototype.render_concrete = function (target, ref, k) {
     for (var chain = [], p = this; p; p = p.$prototype) {
       var r = new bender.RenderedComponent(p);
       if (chain.length > 0) {
@@ -390,14 +394,14 @@
       }
       chain.push(r);
     }
+    this.handle_on("will-render", chain[0]);
     this.render_properties(chain);
     this.render_view(chain, target);
     this.render_watches(chain);
-    this.handle_on("after-render", chain[0]);
-    this.init_properties(chain);
-    this.handle_on("before-init", chain[0]);
-    this.handle_on("after-init", chain[0]);
-    this.handle_on("ready", chain[0]);
+    this.handle_on("did-render", chain[0]);
+    if (typeof k == "function") {
+      k(chain);
+    }
   };
 
   var push = Array.prototype.push;

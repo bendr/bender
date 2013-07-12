@@ -166,12 +166,12 @@
       it("renders the component in the target", function (done) {
         component.id = "k";
         var fragment = component.scope.$document.createDocumentFragment();
-        component.on["after-render"] = function (r) {
+        component.on["did-render"] = function (r) {
           assert.ok(r instanceof bender.RenderedComponent);
           rendered = r;
         };
         component.on.ready = flexo.discard(done);
-        component.render(fragment);
+        component.render_component(fragment);
       });
       it("sets the ids for the rendered component", function () {
         assert.strictEqual(component.rendered.length, 1);
@@ -190,7 +190,7 @@
         c.append_child(new bender.Property("x"));
         var d = env.component();
         d.set_prototype(c);
-        d.on["after-render"] = function (r) {
+        d.on["did-render"] = function (r) {
           assert.ok(a.property_vertices.x instanceof bender.PropertyVertex);
           assert.ok(b.property_vertices.x instanceof bender.PropertyVertex);
           assert.ok(b.property_vertices.y instanceof bender.PropertyVertex);
@@ -204,7 +204,7 @@
           assert.strictEqual(r.property_vertices.y.protovertices.length, 5);
         };
         d.on.ready = flexo.discard(done);
-        d.render(d.scope.$document.createDocumentFragment());
+        d.render_component(d.scope.$document.createDocumentFragment());
       });
     });
   });
@@ -276,6 +276,7 @@
     });
   });
 
+  /*
   function test_render(component) {
     var promises = {
       before_render: new flexo.Promise,
@@ -371,5 +372,6 @@
       });
     });
   });
+  */
 
 }());
