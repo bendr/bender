@@ -269,10 +269,47 @@
       .append_children(elem, this);
   };
 
-  bender.Component.prototype.render_component = function (target, ref) {
-    this.render(target, ref, function (chain) {
-      this.handle_on("ready");
+  bender.Component.prototype.render = function (target, ref) {
+    this.render_links().then(function () {
+      this.render_init(this.render_concrete(target, ref));
     }.bind(this));
+  };
+
+  // Render links: render prototype links (furthest ancestor first), then own
+  // links, the links of child components
+  bender.Component.prototype.render_links = function () {
+    return new flexo.Promise().fulfill("TODO");
+  };
+
+  // Render this component to a concrete component for the given target
+  bender.Component.prototype.render_concrete = function (target, ref) {
+    for (var chain = [], p = this; p; p = p.$prototype) {
+      var r = new bender.RenderedComponent(p);
+      if (chain.length > 0) {
+        chain[chain.length - 1].$prototype = r;
+      }
+      chain.push(r);
+    }
+    chain[0].__chain = chain;
+    this.handle_on("will-render", chain[0]);
+    this.render_properties(chain);
+    this.render_view(chain, target);
+    this.render_watches(chain);
+    this.handle_on("did-render", chain[0]);
+    return chain[0];
+  };
+
+  bender.Component.prototype.render_init = function (concrete) {
+    this.handle_on("will-init", concrete);
+    flexo.hcaErof(concrete.__chain, function (r) {
+      // init properties
+    });
+    this.handle_on("did-init", concrete);
+    concrete.child_components.forEach(function (ch) {
+      ch.component.init_component(ch);
+    });
+    this.handle_on("ready", concrete);
+    delete concrete.__chain;
   };
 
   bender.Component.prototype.set_prototype = function (prototype) {
@@ -363,47 +400,6 @@
     }
   };
 
-  // Render the links, then the view. Link rendering may delay rendering the
-  // view (e.g., scripts need to finish loading before the view can be rendered)
-  bender.Component.prototype.render = function (target, ref, k) {
-    var pending_links = 0;
-    var render_next = function () {
-      if (arguments.length > 0) {
-        --pending_links;
-      }
-      if (pending_links == 0) {
-        this.render_concrete(target, ref, k);
-      }
-    }.bind(this);
-    this.links.forEach(function (link) {
-      var p = link.render(target);
-      if (p) {
-        ++pending_links;
-        p.then(render_next);
-      }
-    });
-    render_next();
-  };
-
-  // Render this component to a concrete component for the given target
-  bender.Component.prototype.render_concrete = function (target, ref, k) {
-    for (var chain = [], p = this; p; p = p.$prototype) {
-      var r = new bender.RenderedComponent(p);
-      if (chain.length > 0) {
-        chain[chain.length - 1].$prototype = r;
-      }
-      chain.push(r);
-    }
-    this.handle_on("will-render", chain[0]);
-    this.render_properties(chain);
-    this.render_view(chain, target);
-    this.render_watches(chain);
-    this.handle_on("did-render", chain[0]);
-    if (typeof k == "function") {
-      k(chain);
-    }
-  };
-
   var push = Array.prototype.push;
 
   bender.Component.prototype.render_properties = function (chain) {
@@ -458,6 +454,7 @@
     if (component.id) {
       this.scope["@" + component.id] = this;
     }
+    this.child_components = [];
     this.property_vertices = {};
     this.properties = {};
   };

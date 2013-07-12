@@ -171,7 +171,7 @@
           rendered = r;
         };
         component.on.ready = flexo.discard(done);
-        component.render_component(fragment);
+        component.render(fragment);
       });
       it("sets the ids for the rendered component", function () {
         assert.strictEqual(component.rendered.length, 1);
@@ -204,7 +204,7 @@
           assert.strictEqual(r.property_vertices.y.protovertices.length, 5);
         };
         d.on.ready = flexo.discard(done);
-        d.render_component(d.scope.$document.createDocumentFragment());
+        d.render(d.scope.$document.createDocumentFragment());
       });
     });
   });
@@ -276,41 +276,40 @@
     });
   });
 
-  /*
   function test_render(component) {
     var promises = {
-      before_render: new flexo.Promise,
-      after_render: new flexo.Promise,
-      before_init: new flexo.Promise,
-      after_init: new flexo.Promise,
+      will_render: new flexo.Promise,
+      did_render: new flexo.Promise,
+      will_init: new flexo.Promise,
+      did_init: new flexo.Promise,
       ready: new flexo.Promise
     };
-    component.on["before-render"] = function () {
-      promises.before_render.fulfill("ok");
+    component.on["will-render"] = function () {
+      promises.will_render.fulfill("ok");
     };
-    component.on["after-render"] = function () {
-      if (promises.before_render.value == "ok") {
-        promises.after_render.fulfill("ok");
+    component.on["did-render"] = function () {
+      if (promises.will_render.value == "ok") {
+        promises.did_render.fulfill("ok");
       } else {
         promises.ready.reject("not ready");
       }
     };
-    component.on["before-init"] = function () {
-      if (promises.after_render.value == "ok") {
-        promises.before_init.fulfill("ok");
+    component.on["will-init"] = function () {
+      if (promises.did_render.value == "ok") {
+        promises.will_init.fulfill("ok");
       } else {
         promises.ready.reject("not ready");
       }
     };
-    component.on["after-init"] = function () {
-      if (promises.before_init.value == "ok") {
-        promises.after_init.fulfill("ok");
+    component.on["did-init"] = function () {
+      if (promises.will_init.value == "ok") {
+        promises.did_init.fulfill("ok");
       } else {
         promises.ready.reject("not ready");
       }
     };
     component.on.ready = function () {
-      if (promises.after_init.value == "ok") {
+      if (promises.did_init.value == "ok") {
         promises.ready.fulfill("ok");
       } else {
         promises.ready.reject("not ready");
@@ -318,17 +317,17 @@
     };
     component.render(flexo.$div());
     it("render links (todo)");
-    it("send a before-render notification", function (done) {
-      promises.before_render.then(flexo.discard(done), done);
+    it("send a will-render notification", function (done) {
+      promises.will_render.then(flexo.discard(done), done);
     });
-    it("send an after-render notification", function (done) {
-      promises.after_render.then(flexo.discard(done), done);
+    it("send a did-render notification", function (done) {
+      promises.did_render.then(flexo.discard(done), done);
     });
-    it("send a before-init notification", function (done) {
-      promises.before_init.then(flexo.discard(done), done);
+    it("send a will-init notification", function (done) {
+      promises.will_init.then(flexo.discard(done), done);
     });
-    it("send an after-init notification", function (done) {
-      promises.after_init.then(flexo.discard(done), done);
+    it("send a did-init notification", function (done) {
+      promises.did_init.then(flexo.discard(done), done);
     });
     it("send a ready notification", function (done) {
       promises.ready.then(flexo.discard(done), done);
@@ -372,6 +371,5 @@
       });
     });
   });
-  */
 
 }());
