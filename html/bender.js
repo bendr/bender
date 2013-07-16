@@ -108,7 +108,7 @@
       var attr = elem.attributes[i];
       var ns = attr.namespaceURI || "";
       if (ns == "" && attr.localName == "id") {
-        e.id = attr.value;
+        e.id(attr.value);
       } else {
         if (!e.attrs.hasOwnProperty(ns)) {
           e.attrs[ns] = {};
@@ -194,12 +194,19 @@
   bender.Element.prototype.init = function () {
     this.children = [];
     this.enabled = true;
-    flexo.make_property(this, "id", function (id, cancel) {
-      cancel(typeof id != "string" || id == this.id);
-      update_scope(this, id);
-      return id;
-    }, "");
+    this._id = "";
   };
+
+  bender.Element.prototype.id = function (id) {
+    if (typeof id == "string") {
+      if (id != this._id) {
+        this._id = id;
+        update_scope(this, id);
+      }
+      return this;
+    }
+    return this._id;
+  }
 
   bender.Element.prototype.append_child = function (child) {
     this.children.push(child);
@@ -277,21 +284,22 @@
       this.load_component(flexo.absolute_uri(elem.baseURI,
           elem.getAttribute("href")))
         .then(function (prototype) {
-          return component.set_prototype(prototype);
+          return component.extends(prototype);
         }) : new flexo.Promise().fulfill(component))
       .append_children(elem, this);
   };
 
   bender.Component.prototype.render_component = function (target, ref) {
-    this.render_init(this.render(target));
+    var concrete = this.render(target);
+    this.initialize(concrete);
   };
 
   // Render this component to a concrete component for the given target
   bender.Component.prototype.render = function (target, stack) {
-    for (var chain = [], p = this; p; p = p.$prototype) {
+    for (var chain = [], p = this; p; p = p._prototype) {
       var r = new bender.RenderedComponent(p);
       if (chain.length > 0) {
-        chain[chain.length - 1].$prototype = r;
+        chain[chain.length - 1]._prototype = r;
       }
       chain.push(r);
     }
@@ -330,9 +338,9 @@
         if (p in r.component.own_properties) {
           render_derived_property(r, r.component.own_properties[p]);
         } else {
-          var pv = r.$prototype.property_vertices[p];
+          var pv = r._prototype.property_vertices[p];
           var v = render_derived_property(r, pv.property, pv);
-          v.protovertices.push(r.$prototype.component.property_vertices[p]);
+          v.protovertices.push(r._prototype.component.property_vertices[p]);
           push.apply(v.protovertices, pv.protovertices);
         }
       }
@@ -340,6 +348,7 @@
   };
 
   bender.Component.prototype.render_view = function (chain, target) {
+    console.log("--- render view: %0".fmt(this._id));
     var stack = [];
     flexo.hcaErof(chain, function (c) {
       var mode = c.scope.$view ? c.scope.$view.stack : "top";
@@ -370,14 +379,15 @@
     });
   };
 
-  bender.Component.prototype.render_init = function (concrete) {
+  bender.Component.prototype.initialize = function (concrete) {
+    console.log("--- initialize component: %0".fmt(this._id), concrete.__chain);
     flexo.hcaErof(concrete.__chain, function (r) {
       on(r, "will-init");
       // init properties
       on(r, "did-init");
     });
     concrete.child_components.forEach(function (ch) {
-      ch.component.render_init(ch);
+      ch.component.initialize(ch);
     });
     flexo.hcaErof(concrete.__chain, function (r) {
       on(r, "ready");
@@ -385,15 +395,21 @@
     delete concrete.__chain;
   };
 
-  bender.Component.prototype.set_prototype = function (prototype) {
-    this.$prototype = prototype;
-    prototype.derived.push(this);
-    render_derived_properties(this);
-    return this;
+  bender.Component.prototype.extends = function (prototype) {
+    if (prototype instanceof bender.Component) {
+      // TODO check for cycle here
+      if (this._prototype != prototype ) {
+        this._prototype = prototype;
+        prototype.derived.push(this);
+        render_derived_properties(this);
+      }
+      return this;
+    }
+    return this._prototype;
   };
 
   function render_derived_properties(component) {
-    for (var c = component.$prototype; c; c = c.$prototype) {
+    for (var c = component._prototype; c; c = c._prototype) {
       for (var p in c.own_properties) {
         if (!component.properties.hasOwnProperty(p)) {
           render_derived_property(component, c.own_properties[p]);
@@ -407,7 +423,7 @@
       this.links.push(child);
     } else if (child instanceof bender.View) {
       if (this.scope.$view) {
-        console.warn("Component already has a view");
+        console.error("Component already has a view");
         return;
       } else {
         // TODO import child components and merge scopes
@@ -457,12 +473,12 @@
     var queue = [elem];
     while (queue.length > 0) {
       var e = queue.shift();
-      if (e.id) {
-        var id = "#" + e.id;
+      if (e._id) {
+        var id = "#" + e._id;
         if (!scope.hasOwnProperty(id)) {
           scope[id] = e;
         } else {
-          console.warn("Id %0 already defined in scope".fmt(e.id));
+          console.warn("Id %0 already defined in scope".fmt(e._id));
         }
       }
       if (e instanceof bender.Component && !e.parent_component) {
@@ -478,8 +494,8 @@
     this.scope = Object.create(component.scope, {
       $that: { enumerable: true, value: component }
     });
-    if (component.id) {
-      this.scope["@" + component.id] = this;
+    if (component._id) {
+      this.scope["@" + component._id] = this;
     }
     this.child_components = [];
     this.property_vertices = {};
@@ -680,8 +696,8 @@
         elem.setAttributeNS(ns, a, this.attrs[ns][a]);
       }
     }
-    if (this.id) {
-      stack[stack.i].scope["@" + this.id] = elem;
+    if (this._id) {
+      stack[stack.i].scope["@" + this._id] = elem;
     }
     if (!stack[stack.i].scope.$first) {
       stack[stack.i].scope.$first = elem;
@@ -715,8 +731,8 @@
 
   bender.DOMTextNode.prototype.render = function (target, stack) {
     var t = target.ownerDocument.createTextNode(this.text);
-    if (this.id) {
-      stack[stack.i].scope["@" + this.id] = t;
+    if (this._id) {
+      stack[stack.i].scope["@" + this._id] = t;
     }
     if (!stack[stack.i].scope.$first) {
       stack[stack.i].scope.$first = t;
@@ -787,7 +803,7 @@
   bender.Environment.prototype.deserialize.watch = function (elem) {
     var watch = new bender.Watch;
     if (elem.hasAttribute("id")) {
-      watch.id = elem.getAttribute("id");
+      watch.id(elem.getAttribute("id"));
     }
     if (elem.hasAttribute("enabled")) {
       watch.enabled = flexo.is_true(elem.getAttribute("enabled"));

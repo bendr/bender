@@ -30,12 +30,10 @@
 
   describe("bender.Component", function () {
     var env = new bender.Environment;
-    var proto = env.component();
-    proto.append_child(new bender.Property("a"));
-    proto.append_child(new bender.Property("b"));
+    var proto = env.component().child(new bender.Property("a"))
+      .child(new bender.Property("b"));
     var component = env.component();
-    var watch = new bender.Watch;
-    watch.id = "watch-1";
+    var watch = new bender.Watch().id("watch-1");
     describe("environment.component()", function () {
       it("creates a new component in the scope of its environment", function () {
         assert.ok(proto instanceof bender.Component);
@@ -46,13 +44,13 @@
           Object.getPrototypeOf(Object.getPrototypeOf(component.scope)));
       });
     });
-    describe("component.set_prototype()", function () {
-      var c = component.set_prototype(proto);
-      it("sets the $prototype property of a component", function () {
-        assert.strictEqual(component.$prototype, proto);
+    describe("component.extends()", function () {
+      var c = component.extends(proto);
+      it("sets the prototype of a component", function () {
+        assert.strictEqual(component.extends(), proto);
       });
       it("adds the component to the list of derived components of its prototype", function () {
-        assert.ok(component.$prototype.derived.indexOf(component) >= 0);
+        assert.ok(component.extends().derived.indexOf(component) >= 0);
       });
       it("returns the component itself (for chaining)", function () {
         assert.strictEqual(c, component);
@@ -133,11 +131,9 @@
     });
     describe("Scope", function () {
       it("contains all ids in the scope of a component", function () {
-        var parent = env.component();
-        parent.id = "A";
+        var parent = env.component().id("A");
         assert.strictEqual(parent.scope["#A"], parent);
-        var child = env.component();
-        child.id = "B";
+        var child = env.component().id("B");
         assert.strictEqual(child.scope["#B"], child);
         var view = new bender.View;
         view.append_child(child);
@@ -148,8 +144,7 @@
         assert.strictEqual(child.scope.$view, undefined);
         assert.strictEqual(child.scope["#A"], parent);
         assert.strictEqual(child.scope["#B"], child);
-        var sibling = env.component();
-        sibling.id = "C";
+        var sibling = env.component().id("C");
         view.append_child(sibling);
         assert.strictEqual(sibling.scope.$view, undefined);
         assert.strictEqual(sibling.scope["#A"], parent);
@@ -164,7 +159,7 @@
       var component = env.component();
       var rendered;
       it("renders the component in the target", function (done) {
-        component.id = "k";
+        component.id("k");
         var fragment = component.scope.$document.createDocumentFragment();
         component.on["did-render"] = function (r) {
           assert.ok(r instanceof bender.RenderedComponent);
@@ -184,16 +179,10 @@
       });
       it("renders property vertices", function (done) {
         var env = new bender.Environment;
-        var a = env.component();
-        a.append_child(new bender.Property("x"));
-        var b = env.component();
-        b.append_child(new bender.Property("y"));
-        b.set_prototype(a);
-        var c = env.component();
-        c.set_prototype(b);
-        c.append_child(new bender.Property("x"));
-        var d = env.component();
-        d.set_prototype(c);
+        var a = env.component().child(new bender.Property("x"));
+        var b = env.component().extends(a).child(new bender.Property("y"));
+        var c = env.component().extends(b).child(new bender.Property("x"));
+        var d = env.component().extends(c);
         d.on["did-render"] = function (r) {
           assert.ok(a.property_vertices.x instanceof bender.PropertyVertex);
           assert.ok(b.property_vertices.x instanceof bender.PropertyVertex);
@@ -212,17 +201,14 @@
       });
       it("parent/child components relationships are maintained in concrete components", function (done) {
         var env = new bender.Environment;
-        var d = env.component();
-        d.id = "dddd";
-        var c = env.component().view(new bender.View().child(d));
-        c.id = "cccc";
-        var b = env.component();
-        b.id = "bbbb";
-        var a = env.component().view(new bender.View().child(b).child(c));
-        a.id = "aaaa";
-        a.render_component(a.scope.$document.createDocumentFragment());
+        var d = env.component().id("D");
+        var c = env.component().id("C").view(new bender.View().child(d));
+        var b = env.component().id("B");
+        var a = env.component().id("A").view(new bender.View().child(b)
+          .child(c));
         assert.ok(a.scope.$view instanceof bender.View);
         assert.strictEqual(a.child_components.length, 2);
+        assert.strictEqual(b.child_components.length, 0);
         assert.strictEqual(c.child_components.length, 1);
         a.on["did-render"] = function (r) {
           try {
@@ -233,6 +219,7 @@
           }
         };
         a.on.ready = flexo.discard(done);
+        a.render_component(a.scope.$document.createDocumentFragment());
       });
     });
   });
@@ -254,7 +241,7 @@
         var v = new bender.View;
         assert.ok(v instanceof bender.View);
         assert.deepEqual(v.children, []);
-        assert.strictEqual(v.id, "");
+        assert.strictEqual(v.id(), "");
       });
     });
     describe("view.append_child", function () {
@@ -284,7 +271,7 @@
         var elem = new bender.DOMElement(flexo.ns.html, "p");
         assert.ok(elem instanceof bender.DOMElement);
         assert.deepEqual(elem.children, []);
-        assert.strictEqual(elem.id, "");
+        assert.strictEqual(elem.id(), "");
         assert.strictEqual(elem.ns, flexo.ns.html);
         assert.strictEqual(elem.name, "p");
       });
@@ -292,10 +279,8 @@
     describe("elem.append_child", function () {
       it("appends child components to the parent component, if any", function () {
         var env = new bender.Environment;
-        var a = env.component();
-        a.id = "a";
-        var b = env.component();
-        b.id = "b";
+        var a = env.component().id("a");
+        var b = env.component().id("b");
         var c = env.component();
         var div = new bender.DOMElement(flexo.ns.html, "div");
         var view = new bender.View;
@@ -303,7 +288,7 @@
         div.append_child(b);
         a.append_child(view);
         div.append_child(c);
-        c.id = "c";
+        c.id("c");
         assert.strictEqual(b.parent, div);
         assert.strictEqual(b.parent_component, a);
         assert.strictEqual(c.parent, div);
