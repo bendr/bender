@@ -283,15 +283,7 @@
   };
 
   bender.Component.prototype.render_component = function (target, ref) {
-    this.render_links().then(function () {
-      this.render_init(this.render(target));
-    }.bind(this));
-  };
-
-  // Render links: render prototype links (furthest ancestor first), then own
-  // links, the links of child components
-  bender.Component.prototype.render_links = function () {
-    return new flexo.Promise().fulfill("TODO");
+    this.render_init(this.render(target));
   };
 
   // Render this component to a concrete component for the given target
@@ -305,9 +297,10 @@
     }
     chain[0].__chain = chain;
     if (stack) {
-      chain[0].parent_component = stack[i];
-      stack[i].child_components.push(chain[0]);
+      chain[0].parent_component = stack[stack.i];
+      stack[stack.i].child_components.push(chain[0]);
     }
+    this.render_links(chain, target);
     this.render_properties(chain);
     this.render_view(chain, target);
     this.render_watches(chain);
@@ -322,9 +315,17 @@
 
   var push = Array.prototype.push;
 
-  bender.Component.prototype.render_properties = function (chain) {
+  bender.Component.prototype.render_links = function (chain, target) {
     flexo.hcaErof(chain, function (r) {
       on(r, "will-render");
+      for (var link in r.component.links) {
+        link.render_properties(target);
+      }
+    });
+  }
+
+  bender.Component.prototype.render_properties = function (chain) {
+    flexo.hcaErof(chain, function (r) {
       for (var p in r.component.properties) {
         if (p in r.component.own_properties) {
           render_derived_property(r, r.component.own_properties[p]);
@@ -376,7 +377,7 @@
       on(r, "did-init");
     });
     concrete.child_components.forEach(function (ch) {
-      ch.component.init_component(ch);
+      ch.component.render_init(ch);
     });
     flexo.hcaErof(concrete.__chain, function (r) {
       on(r, "ready");
@@ -435,8 +436,7 @@
     var scope = Object.getPrototypeOf(this.scope);
     var old_scope = Object.getPrototypeOf(child.scope);
     Object.keys(old_scope).forEach(function (key) {
-      if (key in scope) {
-        // TODO check why this occurs in a test
+      if (key in scope && scope[key] != old_scope[key]) {
         console.error("Redefinition of %0 in scope".fmt(key));
       } else {
         scope[key] = old_scope[key];
@@ -567,6 +567,7 @@
   // resume rendering (see script rendering below.)
   bender.Link.prototype.render = function (target) {
     if (this.environment.urls[this.href]) {
+      // TODO send notification
       return;
     }
     this.environment.urls[this.href] = this;
@@ -581,18 +582,15 @@
   // Scripts are handled for HTML only by default. Override this method to
   // handle other types of documents.
   bender.Link.prototype.render.script = function (target) {
-    var document = target.ownerDocument;
-    var ns = document.documentElement.namespaceURI;
+    var ns = target.ownerDocument.documentElement.namespaceURI;
     if (ns == flexo.ns.html) {
       var script = target.ownerDocument.createElement("script");
       script.src = this.href;
       script.async = false;
-      var promise = new flexo.Promise;
       script.onload = function () {
-        promise.fulfill(script);
+        // TODO send notification
       }
-      document.head.appendChild(script);
-      return promise;
+      target.ownerDocument.head.appendChild(script);
     } else {
       console.warn("Cannot render script link for namespace %0".fmt(ns));
     }

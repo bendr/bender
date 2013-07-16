@@ -15,11 +15,10 @@ body {
     <script>
 "use strict";
 bender.load_component().then(function (component) {
-  console.log("*** Got component:", component);
   window.ENV = component.environment;
   window.APP = component;
   flexo.asap(function () {
-    component.render(document.body);
+    component.render_component(document.body);
   });
 }, function (reason) {
   if (reason && reason.environment) {

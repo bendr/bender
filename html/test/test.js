@@ -173,6 +173,10 @@
         component.on.ready = flexo.discard(done);
         component.render_component(fragment);
       });
+      it("renders links (scripts and stylesheets) first", function () {
+        var env = new bender.Environment;
+        var a = env.component();
+      });
       it("sets the ids for the rendered component", function () {
         assert.strictEqual(component.rendered.length, 1);
         assert.strictEqual(component.rendered[0], rendered);
@@ -206,12 +210,16 @@
         d.on.ready = flexo.discard(done);
         d.render_component(d.scope.$document.createDocumentFragment());
       });
-      it("child links in concrete components", function (done) {
+      it("parent/child components relationships are maintained in concrete components", function (done) {
         var env = new bender.Environment;
         var d = env.component();
+        d.id = "dddd";
         var c = env.component().view(new bender.View().child(d));
+        c.id = "cccc";
         var b = env.component();
+        b.id = "bbbb";
         var a = env.component().view(new bender.View().child(b).child(c));
+        a.id = "aaaa";
         a.render_component(a.scope.$document.createDocumentFragment());
         assert.ok(a.scope.$view instanceof bender.View);
         assert.strictEqual(a.child_components.length, 2);
@@ -225,6 +233,17 @@
           }
         };
         a.on.ready = flexo.discard(done);
+      });
+    });
+  });
+
+  describe("bender.Link", function () {
+    var env = new bender.Environment;
+    describe("new bender.Link(environment, rel, href)", function () {
+      it("creates a new link in the environment", function () {
+        var l = new bender.Link(env, "script", "a1.js");
+        assert.ok(l instanceof bender.Link);
+        assert.strictEqual(l.rel, "script");
       });
     });
   });
