@@ -282,9 +282,9 @@
       .append_children(elem, this);
   };
 
-  bender.Component.prototype.render = function (target, ref) {
+  bender.Component.prototype.render_component = function (target, ref) {
     this.render_links().then(function () {
-      this.render_init(this.render_concrete(target, ref));
+      this.render_init(this.render(target));
     }.bind(this));
   };
 
@@ -295,7 +295,7 @@
   };
 
   // Render this component to a concrete component for the given target
-  bender.Component.prototype.render_concrete = function (target, ref) {
+  bender.Component.prototype.render = function (target, stack) {
     for (var chain = [], p = this; p; p = p.$prototype) {
       var r = new bender.RenderedComponent(p);
       if (chain.length > 0) {
@@ -304,6 +304,10 @@
       chain.push(r);
     }
     chain[0].__chain = chain;
+    if (stack) {
+      chain[0].parent_component = stack[i];
+      stack[i].child_components.push(chain[0]);
+    }
     this.render_properties(chain);
     this.render_view(chain, target);
     this.render_watches(chain);
@@ -352,7 +356,7 @@
     if (stack.i < n && stack[stack.i].scope.$view) {
       var rendered = stack[stack.i];
       rendered.scope.$target = target;
-      rendered.scope.$view.render(stack, target);
+      rendered.scope.$view.render(target, stack);
     }
   };
 
@@ -633,9 +637,9 @@
 
   bender.View.prototype.append_child = append_view_child;
 
-  bender.View.prototype.render = function (stack, target) {
+  bender.View.prototype.render = function (target, stack) {
     this.children.forEach(function (ch) {
-      ch.render(stack, target);
+      ch.render(target, stack);
     });
   };
 
@@ -671,7 +675,7 @@
 
   bender.DOMElement.prototype.append_child = append_view_child;
 
-  bender.DOMElement.prototype.render = function (stack, target) {
+  bender.DOMElement.prototype.render = function (target, stack) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
@@ -685,7 +689,7 @@
       stack[stack.i].scope.$first = elem;
     }
     this.children.forEach(function (ch) {
-      ch.render(stack, elem);
+      ch.render(elem, stack);
     });
     target.appendChild(elem);
   };
@@ -711,7 +715,7 @@
 
   bender.DOMTextNode.prototype = new bender.Element;
 
-  bender.DOMTextNode.prototype.render = function (stack, target) {
+  bender.DOMTextNode.prototype.render = function (target, stack) {
     var t = target.ownerDocument.createTextNode(this.text);
     if (this.id) {
       stack[stack.i].scope["@" + this.id] = t;

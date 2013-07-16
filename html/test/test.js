@@ -159,7 +159,7 @@
         assert.strictEqual(sibling.scope["#C"], sibling);
       });
     });
-    describe("component.render(target[, ref])", function () {
+    describe("component.render_component(target[, ref])", function () {
       var env = new bender.Environment;
       var component = env.component();
       var rendered;
@@ -171,7 +171,7 @@
           rendered = r;
         };
         component.on.ready = flexo.discard(done);
-        component.render(fragment);
+        component.render_component(fragment);
       });
       it("sets the ids for the rendered component", function () {
         assert.strictEqual(component.rendered.length, 1);
@@ -204,7 +204,7 @@
           assert.strictEqual(r.property_vertices.y.protovertices.length, 5);
         };
         d.on.ready = flexo.discard(done);
-        d.render(d.scope.$document.createDocumentFragment());
+        d.render_component(d.scope.$document.createDocumentFragment());
       });
       it("child links in concrete components", function (done) {
         var env = new bender.Environment;
@@ -212,7 +212,7 @@
         var c = env.component().view(new bender.View().child(d));
         var b = env.component();
         var a = env.component().view(new bender.View().child(b).child(c));
-        a.render(a.scope.$document.createDocumentFragment());
+        a.render_component(a.scope.$document.createDocumentFragment());
         assert.ok(a.scope.$view instanceof bender.View);
         assert.strictEqual(a.child_components.length, 2);
         assert.strictEqual(c.child_components.length, 1);
@@ -335,7 +335,7 @@
         promises.ready.reject("not ready");
       }
     };
-    component.render(flexo.$div());
+    component.render_component(flexo.$div());
     it("render links (todo)");
     it("send a will-render notification", function (done) {
       promises.will_render.then(flexo.discard(done), done);
@@ -387,7 +387,7 @@
         component.on.ready = function () {
           done();
         };
-        component.render(flexo.$div());
+        component.render_component(flexo.$div());
       });
     });
   });
