@@ -30,8 +30,7 @@
 
   describe("bender.Component", function () {
     var env = new bender.Environment;
-    var proto = env.component().child(new bender.Property("a"))
-      .child(new bender.Property("b"));
+    var proto = env.component().property("a").property("b");
     var component = env.component();
     var watch = new bender.Watch().id("watch-1");
     describe("environment.component()", function () {
@@ -204,8 +203,7 @@
         var d = env.component().id("D");
         var c = env.component().id("C").view(new bender.View().child(d));
         var b = env.component().id("B");
-        var a = env.component().id("A").view(new bender.View().child(b)
-          .child(c));
+        var a = env.component().id("A").view().view(b, c);
         assert.ok(a.scope.$view instanceof bender.View);
         assert.strictEqual(a.child_components.length, 2);
         assert.strictEqual(b.child_components.length, 0);
