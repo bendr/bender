@@ -17,9 +17,9 @@ body {
 bender.load_component().then(function (component) {
   window.ENV = component.environment;
   window.APP = component;
-  flexo.asap(function () {
-    component.render_component(document.body);
-  });
+  flexo.then(component.render_component(document.body), function (instance) {
+    console.log("Rendered instance:", instance);
+  }, flexo.asap);
 }, function (reason) {
   if (reason && reason.environment) {
     window.ENV = reason.environment;

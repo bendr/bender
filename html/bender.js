@@ -1,7 +1,7 @@
 (function (bender) {
   "use strict";
 
-  bender.version = "0.8.2-h";
+  bender.version = "0.8.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
   // Load a component and return a promise. The defaults object should contain
@@ -334,11 +334,12 @@
     return this;
   };
 
-  // Render and initialize the component, then return the concrete instance.
+  // Render and initialize the component, then return the concrete instance...
+  // or the promise of one (if there are links that are not loaded yet.)
   bender.Component.prototype.render_component = function (target, ref) {
-    var concrete = this.render(target);
-    this.initialize(concrete);
-    return concrete;
+    return flexo.then(this.render(target), function (concrete) {
+      this.initialize(concrete);
+    }.bind(this));
   };
 
   // Render this component to a concrete component for the given target
@@ -377,7 +378,17 @@
     }
   }
 
-  var push = Array.prototype.push;
+  function render_link(instance, target, i) {
+    if (i >= instance.component.links.length) {
+      return;
+    }
+    instance.component.links[i].render(target)
+  }
+
+  function render_links(instance, target) {
+    // TODO prototype
+    render_link(instance, target, 0);
+  }
 
   bender.Component.prototype.render_links = function (chain, target) {
     flexo.hcaErof(chain, function (r) {
@@ -386,6 +397,8 @@
       });
     });
   }
+
+  var push = Array.prototype.push;
 
   bender.Component.prototype.render_properties = function (chain) {
     flexo.hcaErof(chain, function (r) {
@@ -657,14 +670,7 @@
   bender.Link.prototype.render.script = function (target) {
     var ns = target.ownerDocument.documentElement.namespaceURI;
     if (ns == flexo.ns.html) {
-      var script = target.ownerDocument.createElement("script");
-      script.src = this.href;
-      script.async = false;
-      script.onload = function () {
-        console.log("<<< loaded script: %0".fmt(script.src), script);
-      }
-      console.log(">>> loading script: %0".fmt(script.src), script);
-      target.ownerDocument.head.appendChild(script);
+      return flexo.promise_script(this.href, target.ownerDocument.head);
     } else {
       console.warn("Cannot render script link for namespace %0".fmt(ns));
     }
@@ -672,7 +678,7 @@
 
   // Stylesheets are handled for HTML only by default. Override this method to
   // handle other types of documents.
-  bender.Link.prototype.render.stylesheet = function () {
+  bender.Link.prototype.render.stylesheet = function (target) {
     var document = target.ownerDocument;
     var ns = document.documentElement.namespaceURI;
     if (ns == flexo.ns.html) {

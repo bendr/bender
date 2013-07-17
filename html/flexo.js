@@ -915,6 +915,22 @@ if (typeof Function.prototype.bind != "function") {
     this._queue = [];
   }
 
+  // Wrapper for then when a value may be either a promise-like object (with its
+  // own .then() method) or an actual value which can be used straight away. The
+  // first argument is returned. (Not the return value of f!)
+  flexo.then = function (maybe_promise, f, delay) {
+    if (maybe_promise && typeof maybe_promise.then == "function") {
+      maybe_promise.then(f);
+    } else if (delay) {
+      flexo.asap(function () {
+        f(maybe_promise);
+      });
+    } else {
+      f(maybe_promise);
+    }
+    return maybe_promise;
+  };
+
   // Create a promise that loads an image. `attrs` is a dictionary of attribute
   // for the image and should contain a `src` property, or can simply be the
   // source attribute value itself. The promise has a pointer to the `img`
@@ -932,13 +948,21 @@ if (typeof Function.prototype.bind != "function") {
     if (img.complete) {
       promise.fulfill(img);
     } else {
-      img.onload = function () {
-        promise.fulfill(img);
-      };
-      img.onerror = function (e) {
-        promise.reject(e);
-      }
+      img.onload = promise.fulfill.bind(promise, img);
+      img.onerror = promise.reject.bind(promise);
     }
+    return promise;
+  };
+
+  // Create a promise that loads a script at `src` by adding it to `target`.
+  flexo.promise_script = function (src, target) {
+    var promise = new flexo.Promise;
+    var script = target.ownerDocument.createElement("script");
+    script.src = src;
+    script.async = false;
+    script.onload = promise.fulfill.bind(promise, script);
+    script.onerror = promise.reject.bind(promise);
+    target.appendChild(script);
     return promise;
   };
 
