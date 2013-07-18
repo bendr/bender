@@ -341,6 +341,7 @@
     return this.render(fragment).then(function (instance) {
       instance.component.initialize(instance);
       target.insertBefore(fragment, ref);
+      return instance;
     });
   };
 
