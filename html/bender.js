@@ -261,7 +261,7 @@
     this.property_vertices = {};  // property vertices for each property
     this.properties = {};         // property values (with associated vertices)
     this.derived = [];            // derived components
-    this.rendered = [];           // rendered instances
+    this.instances = [];          // rendered instances
   };
 
   bender.Component.prototype = new bender.Element;
@@ -334,18 +334,20 @@
     return this;
   };
 
-  // Render and initialize the component, then return the concrete instance...
-  // or the promise of one (if there are links that are not loaded yet.)
+  // Render and initialize the component, returning the promise of a concrete
+  // instance.
   bender.Component.prototype.render_component = function (target, ref) {
-    return flexo.then(this.render(target), function (concrete) {
-      this.initialize(concrete);
-    }.bind(this));
+    var fragment = target.ownerDocument.createDocumentFragment();
+    return this.render(fragment).then(function (instance) {
+      instance.component.initialize(instance);
+      target.insertBefore(fragment, ref);
+    });
   };
 
-  // Render this component to a concrete component for the given target
+  // Render this component to a concrete instance for the given target
   bender.Component.prototype.render = function (target, stack) {
     for (var chain = [], p = this; p; p = p._prototype) {
-      var r = new bender.RenderedComponent(p);
+      var r = new bender.ConcreteInstance(p);
       if (chain.length > 0) {
         chain[chain.length - 1]._prototype = r;
       }
@@ -356,66 +358,51 @@
       chain[0].parent_component = stack[stack.i];
       stack[stack.i].child_components.push(chain[0]);
     }
-    this.render_links(chain, target);
-    this.render_properties(chain);
-    this.render_view(chain, target);
-    this.render_watches(chain);
-    return chain[0];
+    return this.render_links(chain, target).then(function () {
+      this.render_properties(chain);
+      return this.render_view(chain, target).then(function () {
+        return this.render_watches(chain);
+      }.bind(this));
+    }.bind(this));
   };
-
-  function on(concrete, type) {
-    if (typeof concrete.component.on[type] == "string") {
-      try {
-        concrete.component.on[type] = new Function("concrete",
-          concrete.component.on[type]);
-      } catch (e) {
-        console.error("Cannot create handler for on-%0:".fmt(type), e);
-        delete concrete.component.on[type];
-      }
-    }
-    if (typeof concrete.component.on[type] == "function") {
-      concrete.component.on[type](concrete);
-    }
-  }
-
-  function render_link(instance, target, i) {
-    if (i >= instance.component.links.length) {
-      return;
-    }
-    instance.component.links[i].render(target)
-  }
-
-  function render_links(instance, target) {
-    // TODO prototype
-    render_link(instance, target, 0);
-  }
-
-  bender.Component.prototype.render_links = function (chain, target) {
-    flexo.hcaErof(chain, function (r) {
-      r.component.links.forEach(function (link) {
-        link.render(target);
-      });
-    });
-  }
 
   var push = Array.prototype.push;
 
+  // Render all links for the chain, from the further ancestor down to the
+  // component instance itself. Return a promise that is fulfilled once all
+  // links have been loaded in sequence.
+  bender.Component.prototype.render_links = function (chain, target) {
+    var promises = [];
+    flexo.hcaErof(chain, function (instance) {
+      push.apply(promises, instance.component.links.map(function (link) {
+        return link.render(target);
+      }));
+    });
+    return new flexo.Seq(promises);
+  };
+
+  // Render all properties for the chain, from the furthest ancestor down to the
+  // component instance itself.
   bender.Component.prototype.render_properties = function (chain) {
-    flexo.hcaErof(chain, function (r) {
-      on(r, "will-render");
-      for (var p in r.component.properties) {
-        if (p in r.component.own_properties) {
-          render_derived_property(r, r.component.own_properties[p]);
+    flexo.hcaErof(chain, function (instance) {
+      on(instance, "will-render");
+      for (var p in instance.component.properties) {
+        if (p in instance.component.own_properties) {
+          render_derived_property(instance,
+            instance.component.own_properties[p]);
         } else {
-          var pv = r._prototype.property_vertices[p];
-          var v = render_derived_property(r, pv.property, pv);
-          v.protovertices.push(r._prototype.component.property_vertices[p]);
+          var pv = instance._prototype.property_vertices[p];
+          var v = render_derived_property(instance, pv.property, pv);
+          v.protovertices
+            .push(instance._prototype.component.property_vertices[p]);
           push.apply(v.protovertices, pv.protovertices);
         }
       }
     });
   };
 
+  // Build the stack from the chain into the target (always appending) and
+  // return a promise (the value is irrelevant.)
   bender.Component.prototype.render_view = function (chain, target) {
     var stack = [];
     flexo.hcaErof(chain, function (c) {
@@ -432,35 +419,53 @@
     for (var n = stack.length; stack.i < n && !stack[stack.i].scope.$view;
         ++stack.i);
     if (stack.i < n && stack[stack.i].scope.$view) {
-      var rendered = stack[stack.i];
-      rendered.scope.$target = target;
-      rendered.scope.$view.render(target, stack);
+      var instance = stack[stack.i];
+      instance.scope.$target = target;
+      return instance.scope.$view.render(target, stack);
     }
+    return new flexo.Promise().fulfill();
   };
 
+  // Render watches from the chain
   bender.Component.prototype.render_watches = function (chain) {
-    flexo.hcaErof(chain, function (r) {
-      r.component.watches.forEach(function (w) {
-        w.render(r);
+    flexo.hcaErof(chain, function (instance) {
+      instance.component.watches.forEach(function (watch) {
+        watch.render(instance);
       });
-      on(r, "did-render");
+      on(instance, "did-render");
     });
+    return chain[0];
   };
+
+  function on(instance, type) {
+    if (typeof instance.component.on[type] == "string") {
+      try {
+        instance.component.on[type] = new Function("instance",
+          instance.component.on[type]);
+      } catch (e) {
+        console.error("Cannot create handler for on-%0:".fmt(type), e);
+        delete instance.component.on[type];
+      }
+    }
+    if (typeof instance.component.on[type] == "function") {
+      instance.component.on[type](instance);
+    }
+  }
 
   // Initialize the component properties after it has been rendered
-  bender.Component.prototype.initialize = function (concrete) {
-    flexo.hcaErof(concrete.__chain, function (r) {
-      on(r, "will-init");
+  bender.Component.prototype.initialize = function (instance) {
+    flexo.hcaErof(instance.__chain, function (i) {
+      on(i, "will-init");
       // init properties
-      on(r, "did-init");
+      on(i, "did-init");
     });
-    concrete.child_components.forEach(function (ch) {
+    instance.child_components.forEach(function (ch) {
       ch.component.initialize(ch);
     });
-    flexo.hcaErof(concrete.__chain, function (r) {
-      on(r, "ready");
+    flexo.hcaErof(instance.__chain, function (i) {
+      on(i, "ready");
     });
-    delete concrete.__chain;
+    delete instance.__chain;
   };
 
   // Set the prototype of this component (the component extends its prototype)
@@ -558,9 +563,9 @@
     }
   };
 
-  bender.RenderedComponent = function (component) {
+  bender.ConcreteInstance = function (component) {
     this.component = component;
-    component.rendered.push(this);
+    component.instances.push(this);
     this.scope = Object.create(component.scope, {
       $that: { enumerable: true, value: component }
     });
@@ -572,11 +577,11 @@
     this.properties = {};
   };
 
-  // Render the properties of a concrete component
-  function render_properties(concrete) {
-    var own = concrete.component.own_properties;
-    for (var property in concrete.own) {
-      render_own_property(concrete, own[property]);
+  // Render the properties of a concrete instance
+  function render_properties(instance) {
+    var own = instance.component.own_properties;
+    for (var property in instance.own) {
+      render_own_property(instance, own[property]);
     }
   }
 
@@ -653,7 +658,6 @@
   // resume rendering (see script rendering below.)
   bender.Link.prototype.render = function (target) {
     if (this.environment.urls[this.href]) {
-      // TODO send notification
       return;
     }
     this.environment.urls[this.href] = this;
@@ -715,10 +719,13 @@
 
   bender.View.prototype.append_child = append_view_child;
 
+  // Render the contents of the view by appending into the target, passing the
+  // stack of views further down for the <content> element. Return a
+  // promise-like Seq object.
   bender.View.prototype.render = function (target, stack) {
-    this.children.forEach(function (ch) {
+    return new flexo.Seq(this.children.map(function (ch) {
       ch.render(target, stack);
-    });
+    }));
   };
 
   bender.View.prototype.inserted_children = function (elem, index, count) {
@@ -727,8 +734,8 @@
       for (var e = elem; e != this; e = e.parent) {
         path.push(e.parent.children.indexOf(e));
       }
-      this.parent.concrete.forEach(function (concrete) {
-        var target = concrete.scope.$first;
+      this.parent.instance.forEach(function (instance) {
+        var target = instance.scope.$first;
         for (var i = path.length - 1; i >= 0; --i) {
           for (var j = 0; j < path[i]; ++j) {
             target = target.nextSibling;
@@ -736,7 +743,7 @@
           target = target.firstChild;
         }
         for (var i = 0; i < count; ++i) {
-          elem.children[index + i].render(target, concrete.scope);
+          elem.children[index + i].render(target, instance.scope);
         }
       });
     }
@@ -753,6 +760,8 @@
 
   bender.DOMElement.prototype.append_child = append_view_child;
 
+  // Render this element and its children in the target. Return a promise-like
+  // Seq object.
   bender.DOMElement.prototype.render = function (target, stack) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
@@ -766,10 +775,11 @@
     if (!stack[stack.i].scope.$first) {
       stack[stack.i].scope.$first = elem;
     }
-    this.children.forEach(function (ch) {
-      ch.render(elem, stack);
+    return new flexo.Seq(this.children.map(function (ch) {
+      return ch.render(elem, stack);
+    })).then(function () {
+      target.appendChild(elem);
     });
-    target.appendChild(elem);
   };
 
   bender.DOMTextNode = function (text) {
@@ -782,13 +792,13 @@
         new_text = flexo.safe_string(new_text);
         if (new_text != text) {
           text = new_text;
-          this.rendered.forEach(function (d) {
+          this.instances.forEach(function (d) {
             d.textContent = new_text;
           });
         }
       }
     });
-    this.rendered = [];
+    this.instances = [];
   };
 
   bender.DOMTextNode.prototype = new bender.Element;
@@ -802,7 +812,7 @@
       stack[stack.i].scope.$first = t;
     }
     target.appendChild(t);
-    this.rendered.push(t);
+    this.instances.push(t);
   };
 
   bender.Property = function (name, as) {
@@ -886,18 +896,18 @@
   // Render the watch by rendering a vertex for the watch, then a vertex for
   // each of the get elements with an edge to the watch vertex, then an edge
   // from the watch vertex for all set elements for a concrete component
-  bender.Watch.prototype.render = function (concrete) {
-    var watch_vertex = new bender.WatchVertex(this, concrete);
+  bender.Watch.prototype.render = function (instance) {
+    var watch_vertex = new bender.WatchVertex(this, instance);
     var get_vertices = [];
     this.gets.forEach(function (get) {
-      var vertex = get.render(concrete);
+      var vertex = get.render(instance);
       if (vertex) {
-        vertex.add_edge(new bender.WatchEdge(get, concrete, watch_vertex));
+        vertex.add_edge(new bender.WatchEdge(get, instance, watch_vertex));
         get_vertices.push(vertex);
       }
     });
     this.sets.forEach(function (set) {
-      var edge = set.render(concrete);
+      var edge = set.render(instance);
       if (edge) {
         watch_vertex.add_edge(edge);
       }

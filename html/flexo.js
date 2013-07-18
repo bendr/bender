@@ -931,6 +931,12 @@ if (typeof Function.prototype.bind != "function") {
     return maybe_promise;
   };
 
+  flexo.while_p = function (p, f) {
+    while (p()) {
+      f();
+    }
+  };
+
   // Create a promise that loads an image. `attrs` is a dictionary of attribute
   // for the image and should contain a `src` property, or can simply be the
   // source attribute value itself. The promise has a pointer to the `img`
@@ -1001,6 +1007,42 @@ if (typeof Function.prototype.bind != "function") {
   };
 
   flexo.Par.prototype.then = function (on_fulfilled, on_rejected) {
+    return this._promise.then(on_fulfilled, on_rejected);
+  };
+
+  flexo.Seq = function (array, f) {
+    var promise = this._promise = new flexo.Promise;
+    array = array.slice();
+    var n = array.length;
+    if (typeof f == "function") {
+      var result = [];
+    }
+    var g = function (i) {
+      if (i == n) {
+        promise.fulfill(result);
+      } else {
+        var v = array[i];
+        if (v && typeof v.then == "function") {
+          v.then(function (value) {
+            if (result) {
+              result.push(f(value));
+            }
+            g(i + 1);
+          }, function (reason) {
+            promise.reject(reason);
+          });
+        } else {
+          if (result) {
+            result.push(f(v));
+          }
+          g(i + 1);
+        }
+      }
+    };
+    g(0);
+  };
+
+  flexo.Seq.prototype.then = function (on_fulfilled, on_rejected) {
     return this._promise.then(on_fulfilled, on_rejected);
   };
 

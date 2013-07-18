@@ -156,25 +156,25 @@
     describe("component.render_component(target[, ref])", function () {
       var env = new bender.Environment;
       var component = env.component();
-      var rendered;
+      var instance;
       it("renders the component in the target", function (done) {
         component.id("k");
         var fragment = component.scope.$document.createDocumentFragment();
-        component.on["did-render"] = function (r) {
-          assert.ok(r instanceof bender.RenderedComponent);
-          rendered = r;
+        component.on["did-render"] = function (i) {
+          assert.ok(i instanceof bender.ConcreteInstance);
+          instance = i;
         };
         component.on.ready = flexo.discard(done);
-        component.render_component(fragment);
+        component.render_component(fragment).then(null, done);
       });
       it("renders links (scripts and stylesheets) first", function () {
         var env = new bender.Environment;
         var a = env.component();
       });
-      it("sets the ids for the rendered component", function () {
-        assert.strictEqual(component.rendered.length, 1);
-        assert.strictEqual(component.rendered[0], rendered);
-        assert.strictEqual(rendered.scope["@k"], rendered);
+      it("sets the ids for the concrete instance", function () {
+        assert.strictEqual(component.instances.length, 1);
+        assert.strictEqual(component.instances[0], instance);
+        assert.strictEqual(instance.scope["@k"], instance);
       });
       it("renders property vertices", function (done) {
         var env = new bender.Environment;
