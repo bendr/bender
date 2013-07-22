@@ -560,10 +560,10 @@ if (typeof Function.prototype.bind != "function") {
       if (req.response != null) {
         promise.fulfill(req.response);
       } else {
-        promise.reject({ reason: "missing response", request: req });
+        promise.reject({ message: "missing response", request: req });
       }
     };
-    req.onerror = promise.reject.bind(promise, { reason: "XHR error",
+    req.onerror = promise.reject.bind(promise, { message: "XHR error",
       request: req });
     req.send(params.data || "");
     return promise;
@@ -1003,31 +1003,32 @@ if (typeof Function.prototype.bind != "function") {
     check_done(0);
   };
 
+  flexo.Par.prototype.then = function (on_fulfilled, on_rejected) {
+    return this.promise.then(on_fulfilled, on_rejected);
+  };
+
   flexo.Seq = function (xs, f, z) {
-    var promise = this.promise = new flexo.Promise;
+    var promise = new flexo.Promise;
     if (typeof f != "function") {
       f = flexo.nop;
     }
-    var g = function (z, i) {
+    var g = function (z, x, i) {
       if (i == xs.length) {
         promise.fulfill(z);
       } else {
-        var x = xs[i];
         if (x && typeof x.then == "function") {
           x.then(function (y) {
-            g(f(z, y, i, xs), i + 1);
+            g(f(z, y, i, xs), xs[i + 1], i + 1);
           });
+        } else if (typeof x == "function") {
+          g(z, x(z), i);
         } else {
-          g(f(z, x, i, xs), i + 1);
+          g(f(z, x, i, xs), xs[i + 1], i + 1);
         }
       }
     };
-    g(z, 0);
-  };
-
-  flexo.Par.prototype.then =
-  flexo.Seq.prototype.then = function (on_fulfilled, on_rejected) {
-    return this.promise.then(on_fulfilled, on_rejected);
+    g(z, xs[0], 0);
+    return promise;
   };
 
   // DOM

@@ -15,17 +15,13 @@ body {
     <script>
 "use strict";
 bender.load_component().then(function (component) {
-  window.ENV = component.environment;
   window.APP = component;
   component.render_component(document.body).then(function (instance) {
     console.log("[%0] Rendered instance #%1"
       .fmt(instance.component.index, instance.index));
   });
 }, function (reason) {
-  if (reason && reason.environment) {
-    window.ENV = reason.environment;
-  }
-  alert(reason && reason.reason || reason);
+  alert(reason && reason.message || reason);
 });
     </script>
   </body>

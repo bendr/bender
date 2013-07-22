@@ -55,19 +55,24 @@
     }
     var response_;
     var promise = this.urls[url] = new flexo.Promise;
-    return flexo.ez_xhr(url, { responseType: "document" })
+    flexo.ez_xhr(url, { responseType: "document" })
       .then(function (response) {
         response_ = response;
         return this.deserialize(response.documentElement, promise);
-      }.bind(this)).then(function (d) {
+      }.bind(this), function (reason) {
+        promise.reject(reason);
+      }).then(function (d) {
         if (d instanceof bender.Component) {
           d.url = url;
+          delete promise.component;
           promise.fulfill(d);
           return d;
         } else {
-          throw { response: response_, reason: "not a Bender component" };
+          promise.reject({ response: response_,
+            message: "not a Bender component" });
         }
       });
+    return promise;
   };
 
   // Deserialize an XML node. Unknown nodes (non-Bender elements, or nodes other
