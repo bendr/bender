@@ -972,62 +972,59 @@ if (typeof Function.prototype.bind != "function") {
     return promise;
   };
 
-  flexo.Par = function (array, tolerate_rejections) {
-    var promise = this.promise = new flexo.Promise;
-    var pending = 0;
-    var result = new Array(array.length);
-    var check_done = function (decr) {
-      pending -= decr;
-      if (pending == 0) {
-        promise.fulfill(result);
+  flexo.promise_map = function (xs, f, that, tolerant) {
+    if (arguments.length < 4 && typeof that == "boolean") {
+      tolerant = that;
+      that = undefined;
+    }
+    var promise = new flexo.Promise;
+    var ys = new Array(xs.length);
+    var pending = 1;
+    var check_pending = function (decr) {
+      if (--pending == 0) {
+        promise.fulfill(ys);
       }
-    };
-    array.forEach(function (p, i) {
-      if (p && typeof p.then == "function") {
+    }
+    xs.forEach(function (x, i) {
+      var y = f.call(that, x, i, xs);
+      if (y && typeof y.then == "function") {
         ++pending;
-        p.then(function (value) {
-          result[i] = value;
-          check_done(1);
-        }, function (reason) {
-          if (tolerate_rejections) {
-            result[i] = reason;
-            check_done(1);
+        y.then(function (y_) {
+          ys[i] = y_;
+          check_pending();
+        }, function (y_) {
+          if (tolerant) {
+            ys[i] = y_;
+            check_pending();
           } else {
             promise.reject(reason);
           }
         });
       } else {
-        result[i] = p;
+        ys[i] = y;
       }
     });
-    check_done(0);
+    check_pending();
+    return promise;
   };
 
-  flexo.Par.prototype.then = function (on_fulfilled, on_rejected) {
-    return this.promise.then(on_fulfilled, on_rejected);
-  };
-
-  flexo.Seq = function (xs, f, z) {
+  flexo.promise_fold = function (xs, f, z) {
     var promise = new flexo.Promise;
-    if (typeof f != "function") {
-      f = flexo.nop;
-    }
-    var g = function (z, x, i) {
+    var g = function (z, i) {
       if (i == xs.length) {
         promise.fulfill(z);
       } else {
-        if (x && typeof x.then == "function") {
-          x.then(function (y) {
-            g(f(z, y, i, xs), xs[i + 1], i + 1);
+        var y = f(z, xs[i], i, xs);
+        if (y && typeof y.then == "function") {
+          y.then(function (y_) {
+            g(y_, i + 1);
           });
-        } else if (typeof x == "function") {
-          g(z, x(z), i);
         } else {
-          g(f(z, x, i, xs), xs[i + 1], i + 1);
+          g(y, i + 1);
         }
       }
     };
-    g(z, xs[0], 0);
+    g(z, 0);
     return promise;
   };
 

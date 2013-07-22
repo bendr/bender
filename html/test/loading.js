@@ -60,18 +60,15 @@ describe("Loading components", function () {
         });
     });
     it("rejects the promise if the resource was loaded but is not a well-formed XML document with the message “missing response”", function (done) {
-      // TODO replace with Seq
-      env.load_component(flexo.normalize_uri(document.baseURI, "test.js"))
-        .then(done, function (reason) {
-          assert.strictEqual(reason.message, "missing response");
-          assert.ok("request" in reason);
-          env.load_component(flexo.normalize_uri(document.baseURI, "wrong-ill-formed.xml"))
-            .then(done, function (reason) {
-              assert.strictEqual(reason.message, "missing response");
-              assert.ok("request" in reason);
-              done();
-            })
-        });
+      var f = function (_, url) {
+        return env.load_component(flexo.normalize_uri(document.baseURI, url))
+          .then(done, function (reason) {
+            assert.strictEqual(reason.message, "missing response");
+            assert.ok("request" in reason);
+          });
+      };
+      flexo.promise_fold(["test.js", "wrong-ill-formed.xml"], f)
+        .then(flexo.discard(done));
     });
     it("rejects the promise if an XML resource was loaded but is not a Bender component", function (done) {
       env.load_component(flexo.normalize_uri(document.baseURI, "wrong-not-component.xml"))
@@ -82,5 +79,9 @@ describe("Loading components", function () {
         });
     });
   });
+
+});
+
+describe("Deserialization", function () {
 
 });
