@@ -42,48 +42,48 @@
     return component;
   };
 
-  // Load a component from an URL in the environment and return a promise. If
-  // loading fails, return an object with a reason, the current environment, and
-  // possibly the original XHMLHttpRequest or the response from said request.
+  // Load a component from an URL in the environment and return a promise which
+  // is fulfilled once the component has been loaded and deserialized (which may
+  // lead to load additional components, for its prototype as well as its
+  // children.) Once the component is loaded and deserialization starts, store
+  // the incomplete component in the promise so that it can already be referred
+  // to (e.g., to check for cycles in the prototype chain.)
   bender.Environment.prototype.load_component = function (url) {
+    url = flexo.normalize_uri(url);
     if (this.urls[url]) {
       return this.urls[url];
     }
     var response_;
-    this.urls[url] = new flexo.Promise;
+    var promise = this.urls[url] = new flexo.Promise;
     return flexo.ez_xhr(url, { responseType: "document" })
       .then(function (response) {
         response_ = response;
-        return this.deserialize(response.documentElement);
+        return this.deserialize(response.documentElement, promise);
       }.bind(this)).then(function (d) {
         if (d instanceof bender.Component) {
           d.url = url;
-          this.urls[url].fulfill(d);
+          promise.fulfill(d);
           return d;
         } else {
-          var reason = { response: response_, reason: "not a Bender component",
-            environment: this };
-          this.urls[url].reject(reason);
-          throw reason;
+          throw { response: response_, reason: "not a Bender component" };
         }
-      }.bind(this), function (reason) {
-        reason.environment = this;
-        this.urls[url].reject(reason);
-        throw reason;
-      }.bind(this));
+      });
   };
 
   // Deserialize an XML node. Unknown nodes (non-Bender elements, or nodes other
   // than elements, text and CDATA) are simply skipped, possibly with a warning
   // in the case of unknown Bender elements (as it probably means that another
-  // namespace was meant; or a deprecated tag was used.)
-  bender.Environment.prototype.deserialize = function (node) {
+  // namespace was meant; or a deprecated tag was used.) Deserializing a
+  // component that was just loaded should set the component field of the
+  // promise that was created to load this component so it passed as an extra
+  // parameter to deserialize.
+  bender.Environment.prototype.deserialize = function (node, promise) {
     if (node instanceof window.Node) {
       if (node.nodeType == window.Node.ELEMENT_NODE) {
         if (node.namespaceURI == bender.ns) {
           var f = bender.Environment.prototype.deserialize[node.localName];
           if (typeof f == "function") {
-            return f.call(this, node);
+            return f.call(this, node, promise);
           } else {
             console.warn("Unknow element in Bender namespace: %0"
                 .fmt(node.localName));
@@ -166,7 +166,7 @@
           parent.append_child(d);
           return parent;
         });
-      } else {
+      } else if (p) {
         parent.append_child(p);
         return parent;
       }
@@ -268,8 +268,11 @@
 
   var foreach = Array.prototype.forEach;
 
-  bender.Environment.prototype.deserialize.component = function (elem) {
+  bender.Environment.prototype.deserialize.component = function (elem, p) {
     var component = this.component();
+    if (p) {
+      p.component = component;
+    }
     foreach.call(elem.attributes, function (attr) {
       if (attr.localName.substr(0, 3) == "on-") {
         component.on[attr.localName.substr(3)] = attr.value;
@@ -359,9 +362,13 @@
       chain[0].parent_component = stack[stack.i];
       stack[stack.i].child_components.push(chain[0]);
     }
+    console.log("[%0] Render links".fmt(this.index));
     return this.render_links(chain, target).then(function () {
+      console.log("[%0] Render properties".fmt(this.index));
       this.render_properties(chain);
+      console.log("[%0] Render view".fmt(this.index));
       return this.render_view(chain, target).then(function () {
+        console.log("[%0] Render watches; done".fmt(this.index));
         return this.render_watches(chain);
       }.bind(this));
     }.bind(this));
@@ -441,7 +448,7 @@
   function on(instance, type) {
     if (typeof instance.component.on[type] == "string") {
       try {
-        instance.component.on[type] = new Function("instance",
+        instance.component.on[type] = new Function("instance", "type",
           instance.component.on[type]);
       } catch (e) {
         console.error("Cannot create handler for on-%0:".fmt(type), e);
@@ -449,7 +456,7 @@
       }
     }
     if (typeof instance.component.on[type] == "function") {
-      instance.component.on[type](instance);
+      instance.component.on[type](instance, type);
     }
   }
 
@@ -576,6 +583,8 @@
     this.child_components = [];
     this.property_vertices = {};
     this.properties = {};
+    this.index = this.scope.$environment.components.length;
+    this.scope.$environment.components.push(this);
   };
 
   // Render the properties of a concrete instance

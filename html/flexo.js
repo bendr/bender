@@ -521,7 +521,7 @@ if (typeof Function.prototype.bind != "function") {
   //   * escaped letters, digits, hyphen, period and underscore are unescaped
   //   * remove port 80 from authority
   flexo.normalize_uri = function (base, ref) {
-    var uri = flexo.split_uri(flexo.absolute_uri(base, ref)
+    var uri = flexo.split_uri(flexo.absolute_uri(base, ref || "")
       .replace(/%([0-9a-f][0-9a-f])/gi, function (m, n) {
         n = parseInt(n, 16);
         return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
@@ -973,12 +973,9 @@ if (typeof Function.prototype.bind != "function") {
   };
 
   flexo.Par = function (array, tolerate_rejections) {
-    var promise = this._promise = new flexo.Promise;
+    var promise = this.promise = new flexo.Promise;
     var pending = 0;
     var result = new Array(array.length);
-    flexo.make_readonly(this, "pending", function () {
-      return pending > 0;
-    });
     var check_done = function (decr) {
       pending -= decr;
       if (pending == 0) {
@@ -992,7 +989,7 @@ if (typeof Function.prototype.bind != "function") {
           result[i] = value;
           check_done(1);
         }, function (reason) {
-          if (!!tolerate_rejections) {
+          if (tolerate_rejections) {
             result[i] = reason;
             check_done(1);
           } else {
@@ -1006,44 +1003,31 @@ if (typeof Function.prototype.bind != "function") {
     check_done(0);
   };
 
-  flexo.Par.prototype.then = function (on_fulfilled, on_rejected) {
-    return this._promise.then(on_fulfilled, on_rejected);
-  };
-
-  flexo.Seq = function (array, f) {
-    var promise = this._promise = new flexo.Promise;
-    array = array.slice();
-    var n = array.length;
-    if (typeof f == "function") {
-      var result = [];
+  flexo.Seq = function (xs, f, z) {
+    var promise = this.promise = new flexo.Promise;
+    if (typeof f != "function") {
+      f = flexo.nop;
     }
-    var g = function (i) {
-      if (i == n) {
-        promise.fulfill(result);
+    var g = function (z, i) {
+      if (i == xs.length) {
+        promise.fulfill(z);
       } else {
-        var v = array[i];
-        if (v && typeof v.then == "function") {
-          v.then(function (value) {
-            if (result) {
-              result.push(f(value));
-            }
-            g(i + 1);
-          }, function (reason) {
-            promise.reject(reason);
+        var x = xs[i];
+        if (x && typeof x.then == "function") {
+          x.then(function (y) {
+            g(f(z, y, i, xs), i + 1);
           });
         } else {
-          if (result) {
-            result.push(f(v));
-          }
-          g(i + 1);
+          g(f(z, x, i, xs), i + 1);
         }
       }
     };
-    g(0);
+    g(z, 0);
   };
 
+  flexo.Par.prototype.then =
   flexo.Seq.prototype.then = function (on_fulfilled, on_rejected) {
-    return this._promise.then(on_fulfilled, on_rejected);
+    return this.promise.then(on_fulfilled, on_rejected);
   };
 
   // DOM
