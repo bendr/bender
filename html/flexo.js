@@ -972,6 +972,25 @@ if (typeof Function.prototype.bind != "function") {
     return promise;
   };
 
+  flexo.promise_each = function (xs, f, that) {
+    var promise = new flexo.Promise;
+    var pending = 1;
+    var check_pending = function () {
+      if (--pending == 0) {
+        promise.fulfill();
+      }
+    }
+    foreach.call(xs, function (x, i) {
+      var y = f.call(that, x, i, xs);
+      if (y && typeof y.then == "function") {
+        ++pending;
+        y.then(check_pending, promise.reject.bind(promise));
+      }
+    });
+    check_pending();
+    return promise;
+  };
+
   flexo.promise_map = function (xs, f, that, tolerant) {
     if (arguments.length < 4 && typeof that == "boolean") {
       tolerant = that;
@@ -985,7 +1004,7 @@ if (typeof Function.prototype.bind != "function") {
         promise.fulfill(ys);
       }
     }
-    xs.forEach(function (x, i) {
+    foreach.call(xs, function (x, i) {
       var y = f.call(that, x, i, xs);
       if (y && typeof y.then == "function") {
         ++pending;

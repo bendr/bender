@@ -83,5 +83,86 @@ describe("Loading components", function () {
 });
 
 describe("Deserialization", function () {
+  var env = new bender.Environment;
+  var doc = document.implementation.createDocument(bender.ns, "component",
+    null);
+
+  describe("bender.Environment.deserialize(node)", function () {
+    it("deserializes an XML text node into a Bender text node", function () {
+      var t = doc.createTextNode("test");
+      var tt = env.deserialize(t);
+      assert.ok(tt instanceof bender.DOMTextNode);
+      assert.strictEqual(tt.text, "test");
+    });
+    it("deserializes an XML CDATA section into a Bender text node as well", function () {
+      var t = doc.createCDATASection("<tags> & ampersands");
+      var tt = env.deserialize(t);
+      assert.ok(tt instanceof bender.DOMTextNode);
+      assert.strictEqual(tt.text, "<tags> & ampersands");
+    });
+    it("skips anything else", function () {
+      assert.strictEqual(env.deserialize(doc.createComment("skip this")));
+      assert.strictEqual(env.deserialize(doc
+          .createProcessingInstruction("xml-stylesheet",
+            "href='bender.css' type='text/css'")));
+    });
+  });
+
+  describe("bender.Environment.deserialize_foreign(elem)", function () {
+    it("deserializes a foreign elem (i.e., outside of the Bender namespace)", function (done) {
+      var elem = doc.createElementNS(flexo.ns.html, "p");
+      elem.setAttribute("class", "foo");
+      env.deserialize_foreign(elem).then(function (p) {
+        assert.ok(p instanceof bender.DOMElement);
+        assert.strictEqual(p.ns, flexo.ns.html);
+        assert.strictEqual(p.name, "p");
+        assert.strictEqual(Object.keys(p.attrs).length, 1);
+        assert.strictEqual(p.attrs[""].class, "foo");
+        done();
+      });
+    });
+    it("deserializes its contents as well", function (done) {
+      var p = doc.createElementNS(flexo.ns.html, "p");
+      p.appendChild(doc.createTextNode("test"));
+      var q = doc.createElementNS(flexo.ns.html, "p");
+      q.appendChild(doc.createTextNode("test again"));
+      var div = doc.createElementNS(flexo.ns.html, "div");
+      div.appendChild(doc.createComment("skip"));
+      div.appendChild(p);
+      div.appendChild(q);
+      env.deserialize_foreign(div).then(function (div_) {
+        assert.ok(div_ instanceof bender.DOMElement);
+        assert.strictEqual(div_.ns, flexo.ns.html);
+        assert.strictEqual(div_.name, "div");
+        assert.strictEqual(div_.children.length, 2);
+        assert.ok(div_.children[0] instanceof bender.DOMElement);
+        assert.ok(div_.children[0].name, "p");
+        assert.strictEqual(div_.children[1].children[0].text, "test again");
+        done();
+      });
+    });
+  });
+
+  describe("bender.Environment.deserialize.link(elem)", function () {
+    it("deserializes a link element", function () {
+      var elem = doc.createElementNS(bender.ns, "link");
+      var link = env.deserialize(elem);
+      assert.ok(link instanceof bender.Link);
+    });
+    it("sets the rel property from the rel attribute", function () {
+      var script = doc.createElementNS(bender.ns, "link");
+      script.setAttribute("rel", " script\n");
+      assert.strictEqual(env.deserialize(script).rel, "script");
+      var stylesheet = doc.createElementNS(bender.ns, "link");
+      stylesheet.setAttribute("rel", "\t  STYLEsheet\n");
+      assert.strictEqual(env.deserialize(stylesheet).rel, "stylesheet");
+    });
+    it("sets the href property from the href attribute, resolving the URL from that of the component", function () {
+      var script = doc.createElementNS(bender.ns, "link");
+      script.setAttribute("rel", "script");
+      script.setAttribute("href", "\nscript-1.js\n");
+      assert.strictEqual(env.deserialize(script).rel, "script");
+    });
+  });
 
 });

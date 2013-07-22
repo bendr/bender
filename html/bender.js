@@ -50,7 +50,6 @@
   // to (e.g., to check for cycles in the prototype chain.)
   bender.Environment.prototype.load_component = function (url) {
     url = flexo.normalize_uri(url);
-    console.log(">>> load component at %0".fmt(url));
     if (this.urls[url]) {
       return this.urls[url];
     }
@@ -61,13 +60,11 @@
         response_ = response;
         return this.deserialize(response.documentElement, promise);
       }.bind(this), function (reason) {
-        console.log("<<< error loading component at %0".fmt(url));
         promise.reject(reason);
       }).then(function (d) {
         if (d instanceof bender.Component) {
           delete promise.component;
           promise.fulfill(d);
-          console.log("<<< loaded component at %0".fmt(url));
           return d;
         } else {
           promise.reject({ response: response_,
@@ -107,6 +104,13 @@
     }
   };
 
+  function append_children(children, elem) {
+    var append = elem.append_child.bind(elem);
+    return flexo.promise_each(children, function (child) {
+      flexo.then(this.deserialize(child), append);
+    }, this).then(flexo.funcify(elem));
+  }
+
   // Deserialize a foreign element and its contents (attribute and children),
   // creating a generic DOM element object.
   bender.Environment.prototype.deserialize_foreign = function (elem) {
@@ -123,7 +127,7 @@
         e.attrs[ns][attr.localName] = attr.value;
       }
     }
-    return new flexo.Promise().fulfill(e).append_children(elem, this);
+    return append_children.call(this, elem.childNodes, e);
   };
 
   bender.Environment.prototype.visit_vertex = function (vertex, value) {
@@ -216,9 +220,11 @@
   }
 
   bender.Element.prototype.append_child = function (child) {
-    this.children.push(child);
-    child.parent = this;
-    return child;
+    if (typeof child == "object") {
+      this.children.push(child);
+      child.parent = this;
+      return child;
+    }
   };
 
   bender.Element.prototype.child = function (child) {
