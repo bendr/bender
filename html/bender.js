@@ -166,24 +166,6 @@
     });
   };
 
-  // Helper function for deserialize to handle all children of `elem` in the
-  // environment `env`, whether the result of deserialization is a promise
-  // (e.g., a component) or an immediate value (a Bender object.)
-  flexo.Promise.prototype.append_children = function (elem, env) {
-    return this.each(elem.childNodes, function (ch, parent) {
-      var p = env.deserialize(ch);
-      if (p instanceof flexo.Promise) {
-        return p.then(function (d) {
-          parent.append_child(d);
-          return parent;
-        });
-      } else if (p) {
-        parent.append_child(p);
-        return parent;
-      }
-    });
-  };
-
   // Add a vertex to the watch graph and return it. If a matching vertex was
   // found, just return the previous vertex.
   bender.Environment.prototype.add_vertex = function (v) {
@@ -281,27 +263,57 @@
 
   var foreach = Array.prototype.forEach;
 
+  // Deserialize a component from an element. A component is created and, if the
+  // second parameter p (which is a promise) is passed, its component property
+  // is set to the newly created component, so that further references can be
+  // made before the component is fully deserialized.
   bender.Environment.prototype.deserialize.component = function (elem, p) {
     var component = this.component();
     if (p) {
       p.component = component;
     }
     foreach.call(elem.attributes, function (attr) {
-      if (attr.localName.substr(0, 3) == "on-") {
-        component.on[attr.localName.substr(3)] = attr.value;
+      if (attr.namespaceURI === null) {
+        if (attr.localName.substr(0, 3) == "on-") {
+          component.on[attr.localName.substr(3)] = attr.value;
+        } else if (attr.localName != "href") {
+          // set property values
+        }
+      } else if (attr.namespaceURI == bender.ns) {
+        // set property values
       }
     });
-    // TODO attributes to set properties; enabled/id?
-    // TODO make a list of dependencies so that we don’t block if there is a
-    // loop (loop in content should be OK once there is <replicate>; for
-    // prototypes that’s still an error.)
-    return (elem.hasAttribute("href") ?
-      this.load_component(flexo.absolute_uri(elem.baseURI,
-          elem.getAttribute("href")))
-        .then(function (prototype) {
-          return component.extends(prototype);
-        }) : new flexo.Promise().fulfill(component))
-      .append_children(elem, this);
+    var children = append_children.call(this, elem.childNodes, component);
+    if (elem.hasAttribute("href")) {
+      var url = flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"));
+      var promise = this.urls[url];
+      if (promise) {
+        if (promise.value) {
+          try {
+            component.extends(promise.value);
+          } catch (e) {
+            return new flexo.Promise.reject(e);
+          }
+        } else if (promise.component) {
+          try {
+            component.extends(promise.component);
+            return flexo.promise_each([promise, children]);
+          } catch (e) {
+            return promise.reject(e);
+          }
+        } else {
+          return flexo.promise_each([promise.then(function (prototype) {
+            component.extends(prototype);
+          }), children]);
+        }
+      } else {
+        return flexo.promise_each([
+          this.load_component(url).then(function (prototype) {
+            component.extends(prototype);
+          }), children]);
+      }
+    }
+    return children;
   };
 
   // Append a new link and return the component for easy chaining.
@@ -493,11 +505,20 @@
   // TODO find a better name?
   bender.Component.prototype.extends = function (prototype) {
     if (prototype instanceof bender.Component) {
-      // TODO check for cycle here
       if (this._prototype != prototype ) {
-        this._prototype = prototype;
-        prototype.derived.push(this);
-        render_derived_properties(this);
+        this.__visited = true;
+        var visited = [this];
+        for (var p = prototype; p && !p.__visited; p = p._prototype);
+        visited.forEach(function (v) {
+          delete v.__visited;
+        });
+        if (!p) {
+          this._prototype = prototype;
+          prototype.derived.push(this);
+          render_derived_properties(this);
+        } else {
+          throw "Cycle in prototype chain";
+        }
       }
       return this;
     }

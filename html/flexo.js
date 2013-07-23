@@ -972,22 +972,29 @@ if (typeof Function.prototype.bind != "function") {
     return promise;
   };
 
-  flexo.promise_each = function (xs, f, that) {
+  flexo.promise_each = function (xs, f, that, z) {
     var promise = new flexo.Promise;
-    var pending = 1;
-    var check_pending = function () {
-      if (--pending == 0) {
-        promise.fulfill();
-      }
+    if (typeof f != "function") {
+      f = flexo.id;
     }
+    var pending = 0;
     foreach.call(xs, function (x, i) {
-      var y = f.call(that, x, i, xs);
+      var y = z = f.call(that, x, i, xs);
       if (y && typeof y.then == "function") {
         ++pending;
-        y.then(check_pending, promise.reject.bind(promise));
+        y.then(function (y_) {
+          if (i == xs.length) {
+            z = y_;
+          }
+          if (--pending == 0) {
+            promise.fulfill(z);
+          }
+        }, promise.reject.bind(promise));
       }
     });
-    check_pending();
+    if (pending == 0) {
+      promise.fulfill(z);
+    }
     return promise;
   };
 
