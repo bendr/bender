@@ -104,11 +104,13 @@
     }
   };
 
-  function append_children(children, elem) {
-    var append = elem.append_child.bind(elem);
+  // Deserialize then add every child in the list of children to the Bender
+  // element e, then return e
+  bender.Environment.prototype.deserialize_children = function (e, children) {
+    var append = e.append_child.bind(e);
     return flexo.promise_each(children, function (child) {
       flexo.then(this.deserialize(child), append);
-    }, this).then(flexo.funcify(elem));
+    }, this, e);
   }
 
   // Deserialize a foreign element and its contents (attribute and children),
@@ -127,7 +129,7 @@
         e.attrs[ns][attr.localName] = attr.value;
       }
     }
-    return append_children.call(this, elem.childNodes, e);
+    return this.deserialize_children(e, elem.childNodes);
   };
 
   bender.Environment.prototype.visit_vertex = function (vertex, value) {
@@ -283,7 +285,7 @@
         // set property values
       }
     });
-    var children = append_children.call(this, elem.childNodes, component);
+    var children = this.deserialize_children(component, elem.childNodes);
     if (elem.hasAttribute("href")) {
       var url = flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"));
       var promise = this.urls[url];
@@ -746,8 +748,16 @@
   bender.View.prototype = new bender.Element;
 
   bender.Environment.prototype.deserialize.view = function (elem) {
-    return new flexo.Promise().fulfill(new bender.View).append_children(elem,
-        this);
+    return this.deserialize_children(new
+        bender.View().stack(elem.getAttribute("stack")), elem.childNodes);
+  };
+
+  bender.View.prototype.stack = function (stack) {
+    if (arguments.length > 0) {
+      this._stack = normalize_stack(stack);
+      return this;
+    }
+    return this._stack || "top";
   };
 
   // Append child for view and its children
@@ -1291,11 +1301,18 @@
   }
 
   // Normalize the `as` property of an element so that it matches a known value.
-  // Set to “dynamic” as default.
+  // Set to “dynamic” by default.
   function normalize_as(as) {
     as = flexo.safe_trim(as).toLowerCase();
     return as == "string" || as == "number" || as == "boolean" ||
       as == "json" || as == "xml" ? as : "dynamic";
+  }
+
+  // Normalize the `stack` property of an element so that it matches a known
+  // value. Set to “top” by default.
+  function normalize_stack(stack) {
+    stack = flexo.safe_trim(stack).toLowerCase();
+    return stack == "bottom" || stack == "replace" ? stack : "top";
   }
 
   // Find the closest ancestor of node (including self) that is a component and

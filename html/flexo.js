@@ -978,22 +978,23 @@ if (typeof Function.prototype.bind != "function") {
       f = flexo.id;
     }
     var pending = 0;
+    var last;
     foreach.call(xs, function (x, i) {
-      var y = z = f.call(that, x, i, xs);
+      var y = last = f.call(that, x, i, xs);
       if (y && typeof y.then == "function") {
         ++pending;
         y.then(function (y_) {
           if (i == xs.length - 1) {
-            z = y_;
+            last = y_;
           }
           if (--pending == 0) {
-            promise.fulfill(z);
+            promise.fulfill(arguments.length > 3 ? z : last);
           }
         }, promise.reject.bind(promise));
       }
     });
     if (pending == 0) {
-      promise.fulfill(z);
+      promise.fulfill(arguments.length > 3 ? z : last);
     }
     return promise;
   };

@@ -129,12 +129,10 @@ describe("Deserialization", function () {
     });
     it("deserializes its contents", function (done) {
       env.deserialize(flexo.$("bender:component", { href: "empty.xml" },
-          flexo.$("bender:link", { rel: "stylesheet", href: "style.css" })))
-        .then(function (component) {
-          assert.ok(component._prototype instanceof bender.Component);
-          assert.ok(component._prototype != component);
-          assert.ok(component._prototype.derived.indexOf(component) >= 0);
+          flexo.$("bender:link", { rel: "stylesheet", href: "style.css" }),
+          flexo.$("bender:view", "Hello!"))).then(function (component) {
           assert.strictEqual(component.links.length, 1);
+          assert.ok(component.scope.$view instanceof bender.View);
         }).then(flexo.discard(done), done);
     });
     it("stores the component as soon as it is created in the promise so that a component can be referred to before it is completely deserialized", flexo.nop);
@@ -159,6 +157,25 @@ describe("Deserialization", function () {
       script.setAttribute("rel", "script");
       script.setAttribute("href", "\nscript-1.js\n");
       assert.strictEqual(env.deserialize(script).rel, "script");
+    });
+  });
+
+  describe("bender.Environment.deserialize.view(elem)", function () {
+    it("deserializes a view element and its children", function (done) {
+      env.deserialize(flexo.$("bender:view",
+          flexo.$p("Hello there!"))).then(function (view) {
+          assert.ok(view instanceof bender.View);
+          assert.strictEqual(view.stack(), "top");
+          assert.strictEqual(view.children.length, 1);
+        }).then(flexo.discard(done), done);
+    });
+    it("deserializes and normalizes the stack attribute", function (done) {
+      env.deserialize(flexo.$("bender:view", { stack: "REPLACE " },
+          flexo.$p("Hello there!"))).then(function (view) {
+          assert.ok(view instanceof bender.View);
+          assert.strictEqual(view.stack(), "replace");
+          assert.strictEqual(view.children.length, 1);
+        }).then(flexo.discard(done), done);
     });
   });
 
