@@ -108,8 +108,62 @@ describe("Deserialization", function () {
     });
   });
 
+  describe("bender.Environment.deserialize.component(elem, promise)", function () {
+    it("deserializes a component from the given element elem", function (done) {
+      env.deserialize(flexo.$("bender:component"))
+        .then(function (component) {
+          assert.ok(component instanceof bender.Component);
+          assert.strictEqual(component.scope.$environment, env);
+          assert.strictEqual(component.scope.$this, component);
+          done();
+        });
+    });
+    it("deserializes its prototype if the element has a href attribute", function (done) {
+      env.deserialize(flexo.$("bender:component", { href: "empty.xml" }))
+        .then(function (component) {
+          assert.ok(component._prototype instanceof bender.Component);
+          assert.ok(component._prototype != component);
+          assert.ok(component._prototype.derived.indexOf(component) >= 0);
+          done();
+        });
+    });
+    it("deserializes its contents", function (done) {
+      env.deserialize(flexo.$("bender:component", { href: "empty.xml" },
+          flexo.$("bender:link", { rel: "stylesheet", href: "style.css" })))
+        .then(function (component) {
+          assert.ok(component._prototype instanceof bender.Component);
+          assert.ok(component._prototype != component);
+          assert.ok(component._prototype.derived.indexOf(component) >= 0);
+          assert.strictEqual(component.links.length, 1);
+        }).then(flexo.discard(done), done);
+    });
+    it("stores the component as soon as it is created in the promise so that a component can be referred to before it is completely deserialized", flexo.nop);
+  });
+
+  describe("bender.Environment.deserialize.link(elem)", function () {
+    it("deserializes a link element", function () {
+      var elem = doc.createElementNS(bender.ns, "link");
+      var link = env.deserialize(elem);
+      assert.ok(link instanceof bender.Link);
+    });
+    it("sets the rel property from the rel attribute", function () {
+      var script = doc.createElementNS(bender.ns, "link");
+      script.setAttribute("rel", " script\n");
+      assert.strictEqual(env.deserialize(script).rel, "script");
+      var stylesheet = doc.createElementNS(bender.ns, "link");
+      stylesheet.setAttribute("rel", "\t  STYLEsheet\n");
+      assert.strictEqual(env.deserialize(stylesheet).rel, "stylesheet");
+    });
+    it("sets the href property from the href attribute, resolving the URL from that of the component", function () {
+      var script = doc.createElementNS(bender.ns, "link");
+      script.setAttribute("rel", "script");
+      script.setAttribute("href", "\nscript-1.js\n");
+      assert.strictEqual(env.deserialize(script).rel, "script");
+    });
+  });
+
   describe("bender.Environment.deserialize_foreign(elem)", function () {
-    it("deserializes a foreign elem (i.e., outside of the Bender namespace)", function (done) {
+    it("deserializes a foreign element (i.e., outside of the Bender namespace) elem", function (done) {
       var elem = doc.createElementNS(flexo.ns.html, "p");
       elem.setAttribute("class", "foo");
       env.deserialize_foreign(elem).then(function (p) {
@@ -140,28 +194,6 @@ describe("Deserialization", function () {
         assert.strictEqual(div_.children[1].children[0].text, "test again");
         done();
       });
-    });
-  });
-
-  describe("bender.Environment.deserialize.link(elem)", function () {
-    it("deserializes a link element", function () {
-      var elem = doc.createElementNS(bender.ns, "link");
-      var link = env.deserialize(elem);
-      assert.ok(link instanceof bender.Link);
-    });
-    it("sets the rel property from the rel attribute", function () {
-      var script = doc.createElementNS(bender.ns, "link");
-      script.setAttribute("rel", " script\n");
-      assert.strictEqual(env.deserialize(script).rel, "script");
-      var stylesheet = doc.createElementNS(bender.ns, "link");
-      stylesheet.setAttribute("rel", "\t  STYLEsheet\n");
-      assert.strictEqual(env.deserialize(stylesheet).rel, "stylesheet");
-    });
-    it("sets the href property from the href attribute, resolving the URL from that of the component", function () {
-      var script = doc.createElementNS(bender.ns, "link");
-      script.setAttribute("rel", "script");
-      script.setAttribute("href", "\nscript-1.js\n");
-      assert.strictEqual(env.deserialize(script).rel, "script");
     });
   });
 

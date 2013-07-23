@@ -983,7 +983,7 @@ if (typeof Function.prototype.bind != "function") {
       if (y && typeof y.then == "function") {
         ++pending;
         y.then(function (y_) {
-          if (i == xs.length) {
+          if (i == xs.length - 1) {
             z = y_;
           }
           if (--pending == 0) {
