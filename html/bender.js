@@ -201,7 +201,16 @@
       return this;
     }
     return this._id;
-  }
+  };
+
+  bender.Element.prototype.render_id = function (node, stack) {
+    if (this._id) {
+      stack[stack.i].scope["@" + this._id] = node;
+    }
+    if (!stack[stack.i].scope.$first) {
+      stack[stack.i].scope.$first = node;
+    }
+  };
 
   bender.Element.prototype.append_child = function (child) {
     if (typeof child == "object") {
@@ -803,6 +812,65 @@
     }
   };
 
+  bender.Attribute = function (ns, name) {
+    this.init();
+    this.ns = flexo.safe_string(ns);
+    this.name = name;
+  };
+
+  bender.Attribute.prototype = new bender.Element;
+
+  bender.Environment.prototype.deserialize.attribute = function (elem) {
+    var attr = new bender.Attribute(elem.getAttribute(ns),
+        elem.getAttribute(name)).id(elem.getAttribute(id));
+    return this.deserialize_children(attr, elem.childNodes);
+  };
+
+  bender.Attribute.prototype.append_child = function (child) {
+    if (child instanceof bender.DOMTextNode || child instanceof bender.Text) {
+      bender.Element.appendChild.call(this, child);
+    }
+  };
+
+  bender.Attribute.prototype.render = function (target, stack) {
+    if (target.nodeType == window.Node.ELEMENT_NODE) {
+      var contents = this.children.reduce(function (t, node) {
+        t += node.textContent;
+      }, "");
+      var attr = target.createAttributeNS(this.ns, this.name, contents);
+      this.render_id(attr, stack);
+      return target.appendChild(attr);
+    }
+  };
+
+  // Bender Text element. Although it can only contain text, it can also have an
+  // id so that it can be referred to by a watch.
+  bender.Text = function (text) {
+    this._id = "";
+    this._text = text;
+  };
+
+  bender.Environment.prototype.deserialize.text = function (elem) {
+    return new bender.Text(elem.textContent).id(elem.getAttribute("id"));
+  };
+
+  bender.Text.prototype.id = bender.Element.prototype.id;
+  bender.Text.prototype.render_id = bender.Element.prototype.render_id;
+
+  bender.Text.prototype.text = function (text) {
+    if (arguments.length > 0) {
+      this._text = flexo.safe_string(text);
+      return this;
+    }
+    return this._text;
+  };
+
+  bender.Text.prototype.render = function (target, stack) {
+    var node = target.ownerDocument.createTextNode(this._text);
+    this.render_id(node, stack);
+    return target.appendChild(node);
+  };
+
   bender.DOMElement = function (ns, name) {
     this.init();
     this.ns = ns;
@@ -823,12 +891,7 @@
         elem.setAttributeNS(ns, a, this.attrs[ns][a]);
       }
     }
-    if (this._id) {
-      stack[stack.i].scope["@" + this._id] = elem;
-    }
-    if (!stack[stack.i].scope.$first) {
-      stack[stack.i].scope.$first = elem;
-    }
+    this.render_id(elem, stack);
     return new flexo.Seq(this.children.map(function (ch) {
       return ch.render(elem, stack);
     })).then(function () {
@@ -858,15 +921,10 @@
   bender.DOMTextNode.prototype = new bender.Element;
 
   bender.DOMTextNode.prototype.render = function (target, stack) {
-    var t = target.ownerDocument.createTextNode(this.text);
-    if (this._id) {
-      stack[stack.i].scope["@" + this._id] = t;
-    }
-    if (!stack[stack.i].scope.$first) {
-      stack[stack.i].scope.$first = t;
-    }
-    target.appendChild(t);
-    this.instances.push(t);
+    var node = target.ownerDocument.createTextNode(this.text);
+    target.appendChild(node);
+    this.instances.push(node);
+    return node;
   };
 
   bender.Property = function (name, as) {
