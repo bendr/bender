@@ -59,18 +59,11 @@ describe("Loading components", function () {
           done();
         });
     });
-    it("rejects the promise if the resource was loaded but is not a well-formed XML document with the message “missing response”", function (done) {
-      var f = function (_, url) {
-        return env.load_component(flexo.normalize_uri(document.baseURI, url))
-          .then(done, function (reason) {
-            assert.strictEqual(reason.message, "missing response");
-            assert.ok("request" in reason);
-          });
-      };
-      flexo.promise_fold(["test.js", "wrong-ill-formed.xml"], f)
-        .then(flexo.discard(done));
+    it("rejects the promise if the resource was loaded but is not a well-formed XML document", function (done) {
+      env.load_component(flexo.normalize_uri(document.baseURI,
+          "wrong-ill-formed.xml")).then(done, flexo.discard(done));
     });
-    it("rejects the promise if an XML resource was loaded but is not a Bender component", function (done) {
+    it("rejects the promise if an XML resource was loaded and parsed correctly but is not a Bender component", function (done) {
       env.load_component(flexo.normalize_uri(document.baseURI, "wrong-not-component.xml"))
         .then(done, function (reason) {
           assert.strictEqual(reason.message, "not a Bender component");

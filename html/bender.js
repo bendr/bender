@@ -55,7 +55,7 @@
     }
     var response_;
     var promise = this.urls[url] = new flexo.Promise;
-    flexo.ez_xhr(url, { responseType: "document" })
+    flexo.ez_xhr(url, { responseType: "document", mimeType: "text/xml" })
       .then(function (response) {
         response_ = response;
         return this.deserialize(response.documentElement, promise);

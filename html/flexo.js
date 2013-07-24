@@ -538,6 +538,7 @@ if (typeof Function.prototype.bind != "function") {
   };
 
   // Make an XMLHttpRequest with optional params and return a promise
+  // Set a mimeType parameter to override the MIME type of the request
   flexo.ez_xhr = function (uri, params) {
     var req = new XMLHttpRequest;
     if (typeof uri == "object") {
@@ -549,6 +550,9 @@ if (typeof Function.prototype.bind != "function") {
     req.open(params.method || "GET", uri);
     if (params.hasOwnProperty("responseType")) {
       req.responseType = params.responseType;
+    }
+    if (params.hasOwnProperty("mimeType")) {
+      req.overrideMimeType(params.mimeType);
     }
     if (params.hasOwnProperty("headers")) {
       for (var h in params.headers) {
@@ -563,9 +567,14 @@ if (typeof Function.prototype.bind != "function") {
         promise.reject({ message: "missing response", request: req });
       }
     };
-    req.onerror = promise.reject.bind(promise, { message: "XHR error",
-      request: req });
-    req.send(params.data || "");
+    req.onerror = function (error) {
+      promise.reject({ message: "XHR error", request: req, error: error });
+    };
+    try {
+      req.send(params.data || "");
+    } catch (e) {
+      promise.reject({ message: "XHR error", request: req, exception: e });
+    }
     return promise;
   };
 
