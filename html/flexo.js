@@ -425,7 +425,7 @@ if (typeof Function.prototype.bind != "function") {
   // have a leading "?") Fields not in the URI are undefined. Return nothing if
   // the input URI does not match.
   flexo.split_uri = function (uri) {
-    var m = typeof uri == "string" && uri.match(
+    var m = flexo.safe_string(uri).match(
       /^(?:([^:\/?#]+):)?(?:\/\/([^\/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/
     );
     if (m) {
@@ -521,7 +521,7 @@ if (typeof Function.prototype.bind != "function") {
   //   * escaped letters, digits, hyphen, period and underscore are unescaped
   //   * remove port 80 from authority
   flexo.normalize_uri = function (base, ref) {
-    var uri = flexo.split_uri(flexo.absolute_uri(base, ref || "")
+    var uri = flexo.split_uri(flexo.absolute_uri(base, ref)
       .replace(/%([0-9a-f][0-9a-f])/gi, function (m, n) {
         n = parseInt(n, 16);
         return (n >= 0x41 && n <= 0x5a) || (n >= 0x61 && n <= 0x7a) ||
