@@ -172,6 +172,17 @@ describe("Deserialization", function () {
     });
   });
 
+  describe("bender.Environment.deserialize.content(elem)", function () {
+    it("deserializes a content element its children", function (done) {
+      env.deserialize(flexo.$("bender:content", { id: "unnecessary" },
+          flexo.$p("Default content"))).then(function (content) {
+          assert.ok(content instanceof bender.Content);
+          assert.strictEqual(content.id(), "unnecessary");
+          assert.strictEqual(content.children.length, 1);
+        }).then(flexo.discard(done), done);
+    });
+  });
+
   describe("bender.Environment.deserialize_foreign(elem)", function () {
     it("deserializes a foreign element (i.e., outside of the Bender namespace) elem", function (done) {
       var elem = doc.createElementNS(flexo.ns.html, "p");

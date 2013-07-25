@@ -812,6 +812,30 @@
     }
   };
 
+  bender.Content = function () {
+    this.init();
+  };
+
+  bender.Content.prototype = new bender.Element();
+
+  bender.Environment.prototype.deserialize.content = function (elem) {
+    return this.deserialize_children(new bender.Content()
+        .id(elem.getAttribute("id")), elem.childNodes);
+  };
+
+  bender.Content.prototype.render = function (target, stack) {
+    for (var i = stack.i, n = stack.length; i < n; ++i) {
+      if (stack[i].scope.$view) {
+        var j = stack.i;
+        stack.i = i + 1;
+        var render = stack[i].scope.$view.render(target, stack);
+        stack.i = j;
+        return render;
+      }
+    }
+    return bender.View.prototype.render.call(this, target, stack);
+  };
+
   bender.Attribute = function (ns, name) {
     this.init();
     this.ns = flexo.safe_string(ns);

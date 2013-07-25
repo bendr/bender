@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 25 June 2013 -->
+  <!-- Bender v0.8.2, 25 July 2013 -->
 
   <start>
     <ref name="component"/>
@@ -52,6 +52,9 @@
 
   <define name="content">
     <element name="content">
+      <optional>
+        <ref name="id"/>
+      </optional>
       <ref name="view-content"/>
     </element>
   </define>
@@ -223,6 +226,9 @@
 
   <define name="view">
     <element name="view">
+      <optional>
+        <ref name="id"/>
+      </optional>
       <optional>
         <ref name="stack"/>
       </optional>
