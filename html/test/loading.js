@@ -184,7 +184,8 @@ describe("Deserialization", function () {
   });
 
   describe("bender.Environment.deserialize.attribute(elem)", function () {
-    it("deserializes a Bender attribute element and its children", function (done) {
+
+    it("deserializes a Bender attribute element and its children (local name)", function (done) {
       env.deserialize(flexo.$("bender:attribute", { name: "foo" }, "bar"))
         .then(function (attribute) {
           assert.ok(attribute instanceof bender.Attribute);
@@ -192,6 +193,42 @@ describe("Deserialization", function () {
           assert.strictEqual(attribute.name(), "foo");
           assert.strictEqual(attribute.id(), "");
           assert.strictEqual(attribute._children.length, 1);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a Bender attribute element and its children (namespace and local name)", function (done) {
+      env.deserialize(flexo.$("bender:attribute", { ns: bender.ns, name: "bar" }))
+        .then(function (attribute) {
+          assert.ok(attribute instanceof bender.Attribute);
+          assert.strictEqual(attribute.ns(), bender.ns);
+          assert.strictEqual(attribute.name(), "bar");
+          assert.strictEqual(attribute.id(), "");
+          assert.strictEqual(attribute._children.length, 0);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a Bender attribute element and its children (id)", function (done) {
+      env.deserialize(flexo.$("bender:attribute",
+          { id: "baz-attr", name: "baz" })).then(function (attribute) {
+          assert.ok(attribute instanceof bender.Attribute);
+          assert.strictEqual(attribute.ns(), "");
+          assert.strictEqual(attribute.name(), "baz");
+          assert.strictEqual(attribute.id(), "baz-attr");
+          assert.strictEqual(attribute._children.length, 0);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("adds only text content to its children", function (done) {
+      env.deserialize(flexo.$("bender:attribute", { name: "quux" },
+          "x",
+          flexo.$("bender:text", { id: "y" }),
+          flexo.$("bender:attribute", { name: "quuuux" })))
+        .then(function (attribute) {
+          assert.ok(attribute instanceof bender.Attribute);
+          assert.strictEqual(attribute.ns(), "");
+          assert.strictEqual(attribute.name(), "quux");
+          assert.strictEqual(attribute.id(), "");
+          assert.strictEqual(attribute._children.length, 2);
         }).then(flexo.discard(done), done);
     });
   });

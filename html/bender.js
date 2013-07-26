@@ -8,15 +8,25 @@
   // parameter to get the current value, or the default value if not set. It can
   // be called with a parameter to set a new value (converted to a string if
   // necessary) and return the object itself for chaining purposes.
+  // The default_value parameter may be a function, in which case it used to
+  // normalize the input value and generate the default value from the empty
+  // string (e.g., cf. normalize_*.)
   function make_string_accessor(object, name, default_value) {
     var property = "_" + name;
-    object[name] = function (value) {
-      if (arguments.length > 0) {
-        this[property] = flexo.safe_string(value);
-        return this;
-      }
-      return this[property] || default_value || "";
-    };
+    object[name] = typeof default_value == "function" ?
+      function (value) {
+        if (arguments.length > 0) {
+          this[property] = default_value(value);
+          return this;
+        }
+        return this[property] || default_value("");
+      } : function (value) {
+        if (arguments.length > 0) {
+          this[property] = flexo.safe_string(value);
+          return this;
+        }
+        return this[property] || default_value || "";
+      };
   }
 
   // Load a component and return a promise. The defaults object should contain
@@ -119,11 +129,11 @@
     }
   };
 
-  // Deserialize then add every child in the list of children to the Bender
+  // Deserialize then add every child of p in the list of children to the Bender
   // element e, then return e
-  bender.Environment.prototype.deserialize_children = function (e, children) {
+  bender.Environment.prototype.deserialize_children = function (e, p) {
     var append = e.append_child.bind(e);
-    return flexo.promise_each(children, function (child) {
+    return flexo.promise_each(p.childNodes, function (child) {
       flexo.then(this.deserialize(child), append);
     }, this, e);
   }
@@ -144,7 +154,7 @@
         e.attrs[ns][attr.localName] = attr.value;
       }
     }
-    return this.deserialize_children(e, elem.childNodes);
+    return this.deserialize_children(e, elem);
   };
 
   bender.Environment.prototype.visit_vertex = function (vertex, value) {
@@ -293,7 +303,7 @@
         // set property values
       }
     });
-    var children = this.deserialize_children(component, elem.childNodes);
+    var children = this.deserialize_children(component, elem);
     if (elem.hasAttribute("href")) {
       var url = flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"));
       var promise = this.urls[url];
@@ -757,16 +767,10 @@
 
   bender.Environment.prototype.deserialize.view = function (elem) {
     return this.deserialize_children(new
-        bender.View().stack(elem.getAttribute("stack")), elem.childNodes);
+        bender.View().stack(elem.getAttribute("stack")), elem);
   };
 
-  bender.View.prototype.stack = function (value) {
-    if (arguments.length > 0) {
-      this._stack = normalize_stack(value);
-      return this;
-    }
-    return this._stack || normalize_stack("");
-  };
+  make_string_accessor(bender.View.prototype, "stack", normalize_stack);
 
   // Append child for view and its children
   function append_view_child(child) {
@@ -819,7 +823,7 @@
 
   bender.Environment.prototype.deserialize.content = function (elem) {
     return this.deserialize_children(new bender.Content()
-        .id(elem.getAttribute("id")), elem.childNodes);
+        .id(elem.getAttribute("id")), elem);
   };
 
   bender.Content.prototype.render = function (target, stack) {
@@ -854,15 +858,17 @@
   bender.Environment.prototype.deserialize.attribute = function (elem) {
     var attr = new bender.Attribute(elem.getAttribute("ns"),
         elem.getAttribute("name")).id(elem.getAttribute("id"));
-    return this.deserialize_children(attr, elem.childNodes);
+    return this.deserialize_children(attr, elem);
   };
 
+  // Only add text content (DOM text nodes or bender Text elements)
   bender.Attribute.prototype.append_child = function (child) {
     if (child instanceof bender.DOMTextNode || child instanceof bender.Text) {
-      bender.Element.prototype.append_child.call(this, child);
+      return bender.Element.prototype.append_child.call(this, child);
     }
   };
 
+  // Render as an attribute of the target
   bender.Attribute.prototype.render = function (target, stack) {
     if (target.nodeType == window.Node.ELEMENT_NODE) {
       var contents = this._children.reduce(function (t, node) {
