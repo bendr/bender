@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 25 July 2013 -->
+  <!-- Bender v0.8.2, 26 July 2013 -->
 
   <start>
     <ref name="component"/>
@@ -149,9 +149,6 @@
           </optional>
         </group>
         <group>
-          <attribute name="as">
-            <value>xml</value>
-          </attribute>
           <optional>
             <ref name="stack"/>
           </optional>

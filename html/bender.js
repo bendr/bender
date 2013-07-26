@@ -4,6 +4,21 @@
   bender.version = "0.8.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+  // Make a string accessor for a property. The accessor can be called with no
+  // parameter to get the current value, or the default value if not set. It can
+  // be called with a parameter to set a new value (converted to a string if
+  // necessary) and return the object itself for chaining purposes.
+  function make_string_accessor(object, name, default_value) {
+    var property = "_" + name;
+    object[name] = function (value) {
+      if (arguments.length > 0) {
+        this[property] = flexo.safe_string(value);
+        return this;
+      }
+      return this[property] || default_value || "";
+    };
+  }
+
   // Load a component and return a promise. The defaults object should contain
   // the defaults, including a href property for the URL of the component to
   // load; alternatively, a URL as string may be provided. If no environment
@@ -186,68 +201,52 @@
   // Base for Bender content elements (except Link)
   bender.Element = function () {};
 
-  bender.Element.prototype.init = function () {
-    this.children = [];
-    this.enabled = true;
-    this._id = "";
-  };
-
+  // All elements may have an id. If the id is modified, the scope for this
+  // element gets updated.
+  // TODO limit the range of ids? Currently any string goes.
   bender.Element.prototype.id = function (id) {
-    if (typeof id == "string") {
+    if (arguments.length > 0) {
+      id = flexo.safe_string(id);
       if (id != this._id) {
         this._id = id;
         update_scope(this, id);
       }
       return this;
     }
-    return this._id;
+    return this._id || "";
   };
 
+  // Initialize a new element with its basic properties (only children so far;
+  // id is set when needed.)
+  bender.Element.prototype.init = function () {
+    this._children = [];
+    return this;
+  };
+
+  // Generic append child method, should be overloaded to manage contents.
+  // Return the appended child (similar to the DOM appendChild method.)
+  bender.Element.prototype.append_child = function (child) {
+    if (child instanceof bender.Element) {
+      this._children.push(child);
+      child._parent = this;
+      return child;
+    }
+  };
+
+  // Convenience method for chaining calls to append_child; do not return the
+  // appended child but the parent element.
+  bender.Element.prototype.child = function (child) {
+    this.append_child(child);
+    return this;
+  };
+
+  // Add a concrete node to the scope when the element is rendered
   bender.Element.prototype.render_id = function (node, stack) {
     if (this._id) {
       stack[stack.i].scope["@" + this._id] = node;
     }
     if (!stack[stack.i].scope.$first) {
       stack[stack.i].scope.$first = node;
-    }
-  };
-
-  bender.Element.prototype.append_child = function (child) {
-    if (typeof child == "object") {
-      this.children.push(child);
-      child.parent = this;
-      return child;
-    }
-  };
-
-  bender.Element.prototype.child = function (child) {
-    this.append_child(child);
-    return this;
-  };
-
-  bender.Element.prototype.remove_children = function () {
-    this.children.forEach(function (ch) {
-      delete ch.parent;
-    });
-    this.children = [];
-  };
-
-  // Insert the list of children at the given index (may be negative to start
-  // from the end; e.g., -1 to append)
-  bender.Element.prototype.insert_children = function (children, index) {
-    if (index == null) {
-      index = 0;
-    } else if (index < 0) {
-      index += this.children.length + 1;
-    }
-    for (var i = children.length - 1; i >= 0; --i) {
-      children[i].parent = this;
-      this.children.splice(index, 0, children[i]);
-    }
-    for (var p = this; p && typeof p.inserted_children != "function";
-        p = p.parent);
-    if (p && typeof p.inserted_children == "function") {
-      p.inserted_children(this, index, children.length);
     }
   };
 
@@ -450,7 +449,7 @@
   bender.Component.prototype.render_view = function (chain, target) {
     var stack = [];
     flexo.hcaErof(chain, function (c) {
-      var mode = c.scope.$view ? c.scope.$view.stack : "top";
+      var mode = c.scope.$view ? c.scope.$view.stack() : "top";
       if (mode == "replace") {
         stack = [c];
       } else if (mode == "top") {
@@ -612,7 +611,7 @@
       if (e instanceof bender.Component && !e.parent_component) {
         this.add_child_component(e);
       }
-      Array.prototype.unshift.apply(queue, e.children);
+      Array.prototype.unshift.apply(queue, e._children);
     }
   };
 
@@ -761,12 +760,12 @@
         bender.View().stack(elem.getAttribute("stack")), elem.childNodes);
   };
 
-  bender.View.prototype.stack = function (stack) {
+  bender.View.prototype.stack = function (value) {
     if (arguments.length > 0) {
-      this._stack = normalize_stack(stack);
+      this._stack = normalize_stack(value);
       return this;
     }
-    return this._stack || "top";
+    return this._stack || normalize_stack("");
   };
 
   // Append child for view and its children
@@ -786,18 +785,18 @@
   // stack of views further down for the <content> element. Return a
   // promise-like Seq object.
   bender.View.prototype.render = function (target, stack) {
-    return new flexo.Seq(this.children.map(function (ch) {
+    return new flexo.Seq(this._children.map(function (ch) {
       ch.render(target, stack);
     }));
   };
 
   bender.View.prototype.inserted_children = function (elem, index, count) {
-    if (this.parent) {
+    if (this._parent) {
       var path = [];
-      for (var e = elem; e != this; e = e.parent) {
-        path.push(e.parent.children.indexOf(e));
+      for (var e = elem; e != this; e = e._parent) {
+        path.push(e._parent._children.indexOf(e));
       }
-      this.parent.instance.forEach(function (instance) {
+      this._parent.instance.forEach(function (instance) {
         var target = instance.scope.$first;
         for (var i = path.length - 1; i >= 0; --i) {
           for (var j = 0; j < path[i]; ++j) {
@@ -806,7 +805,7 @@
           target = target.firstChild;
         }
         for (var i = 0; i < count; ++i) {
-          elem.children[index + i].render(target, instance.scope);
+          elem._children[index + i].render(target, instance.scope);
         }
       });
     }
@@ -836,29 +835,37 @@
     return bender.View.prototype.render.call(this, target, stack);
   };
 
+  // Create a new attribute with an optional namespace and a name
   bender.Attribute = function (ns, name) {
     this.init();
-    this.ns = flexo.safe_string(ns);
-    this.name = name;
+    if (arguments.length < 2) {
+      this._name = flexo.safe_string(ns);
+    } else {
+      this._ns = flexo.safe_string(ns);
+      this._name = flexo.safe_string(name);
+    }
   };
 
   bender.Attribute.prototype = new bender.Element;
 
+  make_string_accessor(bender.Attribute.prototype, "name");
+  make_string_accessor(bender.Attribute.prototype, "ns");
+
   bender.Environment.prototype.deserialize.attribute = function (elem) {
-    var attr = new bender.Attribute(elem.getAttribute(ns),
-        elem.getAttribute(name)).id(elem.getAttribute(id));
+    var attr = new bender.Attribute(elem.getAttribute("ns"),
+        elem.getAttribute("name")).id(elem.getAttribute("id"));
     return this.deserialize_children(attr, elem.childNodes);
   };
 
   bender.Attribute.prototype.append_child = function (child) {
     if (child instanceof bender.DOMTextNode || child instanceof bender.Text) {
-      bender.Element.appendChild.call(this, child);
+      bender.Element.prototype.append_child.call(this, child);
     }
   };
 
   bender.Attribute.prototype.render = function (target, stack) {
     if (target.nodeType == window.Node.ELEMENT_NODE) {
-      var contents = this.children.reduce(function (t, node) {
+      var contents = this._children.reduce(function (t, node) {
         t += node.textContent;
       }, "");
       var attr = target.createAttributeNS(this.ns, this.name, contents);
@@ -871,7 +878,7 @@
   // id so that it can be referred to by a watch.
   bender.Text = function (text) {
     this._id = "";
-    this._text = text;
+    this._text = flexo.safe_string(text);
   };
 
   bender.Environment.prototype.deserialize.text = function (elem) {
@@ -881,13 +888,7 @@
   bender.Text.prototype.id = bender.Element.prototype.id;
   bender.Text.prototype.render_id = bender.Element.prototype.render_id;
 
-  bender.Text.prototype.text = function (text) {
-    if (arguments.length > 0) {
-      this._text = flexo.safe_string(text);
-      return this;
-    }
-    return this._text;
-  };
+  make_string_accessor(bender.Text.prototype, "text", "");
 
   bender.Text.prototype.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode(this._text);
@@ -916,7 +917,7 @@
       }
     }
     this.render_id(elem, stack);
-    return new flexo.Seq(this.children.map(function (ch) {
+    return new flexo.Seq(this._children.map(function (ch) {
       return ch.render(elem, stack);
     })).then(function () {
       target.appendChild(elem);
@@ -976,7 +977,7 @@
   // TODO merge this with get_set_value
   bender.Property.prototype.set_declared_value = function (value) {
     if (this.as == "xml") {
-      this.value = this.children;
+      this.value = this._children;
     } else if (typeof value == "string") {
       if (this.as == "boolean") {
         this.value = flexo.is_true(value);
@@ -1144,28 +1145,10 @@
     }
   };
 
-  bender.SetInsert = function (insert) {
-    this.init();
-    this.insert = insert == "first" || insert == "last" || insert == "fill"
-      || insert == "before" || insert == "after" ? insert : "replace";
-  };
-
-  bender.SetInsert.prototype = new bender.Set;
-
-  bender.SetInsert.prototype.render = function (component) {
-    var target = component.scope[this.select];
-    if (target) {
-      return new bender.InsertEdge(target, this.insert,
-          component.scope.$environment);
-    }
-  };
-
   bender.Environment.prototype.deserialize.set = function (elem) {
     var set;
     if (elem.hasAttribute("dom-property")) {
       set = new bender.SetDOMProperty(elem.getAttribute("dom-property"));
-    } else if (elem.hasAttribute("insert")) {
-      set = new bender.SetInsert(elem.getAttribute("insert"));
     }
     return get_set_attributes(set, elem);
   };
@@ -1297,38 +1280,6 @@
     }
   };
 
-  bender.InsertEdge = function (target, insert, environment) {
-    this.target = target;
-    this.insert = insert;
-    this.set_dest(environment.vortex);
-  };
-
-  bender.InsertEdge.prototype = new bender.Edge;
-
-  bender.InsertEdge.prototype.follow = function (input) {
-    if (this.insert == "first") {
-      this.target.insert_children(input);
-    } else if (this.insert == "last") {
-      this.target.insert_children(input, -1);
-    } else if (this.insert == "fill") {
-      this.target.remove_children();
-      this.target.insert_children(input);
-    } else {
-      var parent = this.target.parent;
-      if (this.insert == "replace") {
-        parent.remove_children();
-        parent.insert_children(input);
-      } else {
-        var index = parent.children.indexOf(this.target);
-        if (this.insert == "before") {
-          parent.insert_children(input, index);
-        } else if (this.insert == "after") {
-          parent.insert_children(input, index + 1);
-        }
-      }
-    }
-  };
-
   bender.InlinePropertyEdge = function (target, ref, environment) {
     this.target = target;
     this.ref = ref;
@@ -1400,7 +1351,7 @@
   // Find the closest ancestor of node (including self) that is a component and
   // return it if found
   function parent_component(node) {
-    for (; node && !(node instanceof bender.Component); node = node.parent);
+    for (; node && !(node instanceof bender.Component); node = node._parent);
     if (node) {
       return node;
     }

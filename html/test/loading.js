@@ -159,7 +159,7 @@ describe("Deserialization", function () {
           flexo.$p("Hello there!"))).then(function (view) {
           assert.ok(view instanceof bender.View);
           assert.strictEqual(view.stack(), "top");
-          assert.strictEqual(view.children.length, 1);
+          assert.strictEqual(view._children.length, 1);
         }).then(flexo.discard(done), done);
     });
     it("deserializes and normalizes the stack attribute", function (done) {
@@ -167,7 +167,7 @@ describe("Deserialization", function () {
           flexo.$p("Hello there!"))).then(function (view) {
           assert.ok(view instanceof bender.View);
           assert.strictEqual(view.stack(), "replace");
-          assert.strictEqual(view.children.length, 1);
+          assert.strictEqual(view._children.length, 1);
         }).then(flexo.discard(done), done);
     });
   });
@@ -178,7 +178,20 @@ describe("Deserialization", function () {
           flexo.$p("Default content"))).then(function (content) {
           assert.ok(content instanceof bender.Content);
           assert.strictEqual(content.id(), "unnecessary");
-          assert.strictEqual(content.children.length, 1);
+          assert.strictEqual(content._children.length, 1);
+        }).then(flexo.discard(done), done);
+    });
+  });
+
+  describe("bender.Environment.deserialize.attribute(elem)", function () {
+    it("deserializes a Bender attribute element and its children", function (done) {
+      env.deserialize(flexo.$("bender:attribute", { name: "foo" }, "bar"))
+        .then(function (attribute) {
+          assert.ok(attribute instanceof bender.Attribute);
+          assert.strictEqual(attribute.ns(), "");
+          assert.strictEqual(attribute.name(), "foo");
+          assert.strictEqual(attribute.id(), "");
+          assert.strictEqual(attribute._children.length, 1);
         }).then(flexo.discard(done), done);
     });
   });
@@ -209,10 +222,10 @@ describe("Deserialization", function () {
         assert.ok(div_ instanceof bender.DOMElement);
         assert.strictEqual(div_.ns, flexo.ns.html);
         assert.strictEqual(div_.name, "div");
-        assert.strictEqual(div_.children.length, 2);
-        assert.ok(div_.children[0] instanceof bender.DOMElement);
-        assert.ok(div_.children[0].name, "p");
-        assert.strictEqual(div_.children[1].children[0].text, "test again");
+        assert.strictEqual(div_._children.length, 2);
+        assert.ok(div_._children[0] instanceof bender.DOMElement);
+        assert.ok(div_._children[0].name, "p");
+        assert.strictEqual(div_._children[1]._children[0].text, "test again");
         done();
       });
     });
