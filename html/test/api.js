@@ -6,60 +6,162 @@ var flexo = typeof require == "function" && require("flexo") || window.flexo;
 
 describe("Javascript API", function () {
 
-  describe("bender.Element", function() {
+  describe("Environment", function () {
 
-    it("is the base class for all Bender elements that have content (i.e., all elements except Link)", flexo.nop);
+    describe("new bender.Environment([document])", function () {
 
-    it("has an id property", function () {
-      var elem = new bender.Element;
-      assert.strictEqual(elem.id(), "");
+      it("creates a new Bender environment in the given document", function () {
+        var doc = document.implementation.createDocument(flexo.ns.html, "html",
+          null);
+        var env = new bender.Environment(doc);
+        assert.strictEqual(env.scope.$document, doc);
+      });
+
+      it("creates a new Bender environment in the current document by default", function () {
+        var env = new bender.Environment();
+        assert.strictEqual(env.scope.$document, window.document);
+      });
+
     });
 
-    it("should be init()ed before use", function () {
-      var elem = new bender.Element().init();
-      assert.deepEqual(elem._children, []);
-    });
-
-    it("can have Element children, added with append_child(child) which returns the child element", function () {
-      var parent = new bender.Element().init();
-      var ch1 = parent.append_child(new bender.Element().init());
-      var ch2 = parent.append_child(new bender.Element().init());
-      assert.deepEqual(parent._children, [ch1, ch2]);
-      assert.strictEqual(ch1._parent, parent);
-      assert.strictEqual(ch2._parent, parent);
-    });
-
-    it("can have Element children, added with child(child) which returns the element itself (for chaining)", function () {
-      var ch1 = new bender.Element().init();
-      var ch2 = new bender.Element().init();
-      var parent = new bender.Element().init().child(ch1).child(ch2);
-      assert.deepEqual(parent._children, [ch1, ch2]);
-      assert.strictEqual(ch1._parent, parent);
-      assert.strictEqual(ch2._parent, parent);
-    });
   });
 
-  describe("bender.Attribute", function () {
+  describe("Elements", function () {
 
-    it("inherits from bender.Element", function () {
-      var attr = new bender.Attribute;
-      assert.ok(attr instanceof bender.Attribute);
-      assert.ok(attr instanceof bender.Element);
+    describe("bender.Element", function() {
+
+      it("is the base class for all Bender elements that have content (i.e., all elements except Link and Text)", flexo.nop);
+
+      it("has an id property with accessor id([value])", function () {
+        var elem = new bender.Element;
+        assert.strictEqual(elem.id(), "");
+        assert.strictEqual(elem.id("x"), elem);
+        assert.strictEqual(elem.id(), "x");
+      });
+
+      it("should be init()ed before use", function () {
+        var elem = new bender.Element().init();
+        assert.deepEqual(elem._children, []);
+      });
+
+      it("can have Element or Text children, added with append_child(child) which returns the child element", function () {
+        var parent = new bender.Element().init();
+        var ch1 = parent.append_child(new bender.Element().init());
+        var ch2 = parent.append_child(new bender.Element().init());
+        var t = parent.append_child(new bender.Text("foo"));
+        assert.deepEqual(parent._children, [ch1, ch2, t]);
+        assert.strictEqual(ch1._parent, parent);
+        assert.strictEqual(ch2._parent, parent);
+        assert.strictEqual(t._parent, parent);
+      });
+
+      it("can have Element children, added with child(child) which returns the element itself (for chaining)", function () {
+        var ch1 = new bender.Element().init();
+        var ch2 = new bender.Element().init();
+        var parent = new bender.Element().init().child(ch1).child(ch2);
+        assert.deepEqual(parent._children, [ch1, ch2]);
+        assert.strictEqual(ch1._parent, parent);
+        assert.strictEqual(ch2._parent, parent);
+      });
     });
 
-    it("is created with a local name and no namespace URI with new bender.Attribute(name)", function () {
-      var attr = new bender.Attribute("foo");
-      assert.deepEqual(attr._children, []);
-      assert.strictEqual(attr.ns(), "");
-      assert.strictEqual(attr.name(), "foo");
+    describe("bender.Attribute", function () {
+
+      it("inherits from bender.Element", function () {
+        var attr = new bender.Attribute;
+        assert.ok(attr instanceof bender.Attribute);
+        assert.ok(attr instanceof bender.Element);
+        assert.strictEqual(typeof attr.id, "function");
+      });
+
+      it("is created with a local name and no namespace URI with new bender.Attribute(name)", function () {
+        var attr = new bender.Attribute("foo");
+        assert.deepEqual(attr._children, []);
+        assert.strictEqual(attr.id(), "");
+        assert.strictEqual(attr.ns(), "");
+        assert.strictEqual(attr.name(), "foo");
+      });
+
+      it("is created with a namespace URI and a local name with new bender.Attribute(ns, name)", function () {
+        var attr = new bender.Attribute(bender.ns, "bar");
+        assert.deepEqual(attr._children, []);
+        assert.strictEqual(attr.ns(), bender.ns);
+        assert.strictEqual(attr.name(), "bar");
+      });
     });
 
-    it("is created with a namespace URI and a local name with new bender.Attribute(ns, name)", function () {
-      var attr = new bender.Attribute(bender.ns, "bar");
-      assert.deepEqual(attr._children, []);
-      assert.strictEqual(attr.ns(), bender.ns);
-      assert.strictEqual(attr.name(), "bar");
+    describe("bender.Component", function () {
+      it("is pending");
     });
+
+    describe("bender.Content", function () {
+      it("is pending");
+    });
+
+    describe("bender.DOMElement", function () {
+      it("is pending");
+    });
+
+    describe("bender.DOMTextNode", function () {
+      it("is pending");
+    });
+
+    describe("bender.Get", function () {
+      it("is pending");
+    });
+
+    describe("bender.Link", function () {
+      it("is pending");
+    });
+
+    describe("bender.Property", function () {
+
+      it("is created with a name with new bender.Property(name)", function () {
+        var prop = new bender.Property("x");
+        assert.ok(prop instanceof bender.Property);
+        assert.strictEqual(prop._name, "x");
+      });
+
+    });
+
+    describe("bender.Set", function () {
+      it("is pending");
+    });
+
+    describe("bender.Text", function () {
+
+      it("is created with text content with new bender.Text(text)", function () {
+        var text = new bender.Text("hello");
+        assert.ok(text instanceof bender.Text);
+        assert.strictEqual(text.text(), "hello");
+        assert.strictEqual(text.id(), "");
+      });
+
+      it("can get/set an id with text.id([value])", function () {
+        var text = new bender.Text;
+        assert.strictEqual(text.text(), "");
+        assert.strictEqual(text.id(), "");
+        assert.strictEqual(text.id("hi"), text);
+        assert.strictEqual(text.id(), "hi");
+      });
+
+      it("can get/set the text content with text.text([value])", function () {
+        var text = new bender.Text;
+        assert.strictEqual(text.text(), "");
+        assert.strictEqual(text.text("new text"), text);
+        assert.strictEqual(text.text(), "new text");
+      });
+
+    });
+
+    describe("bender.View", function () {
+      it("is pending");
+    });
+
+    describe("bender.Watch", function () {
+      it("is pending");
+    });
+
   });
 
 });

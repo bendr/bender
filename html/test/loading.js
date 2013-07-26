@@ -132,24 +132,32 @@ describe("Deserialization", function () {
   });
 
   describe("bender.Environment.deserialize.link(elem)", function () {
-    it("deserializes a link element", function () {
-      var elem = doc.createElementNS(bender.ns, "link");
-      var link = env.deserialize(elem);
-      assert.ok(link instanceof bender.Link);
+
+    it("deserializes a link element", function (done) {
+      env.deserialize(flexo.$("bender:link")).then(function (link) {
+        assert.ok(link instanceof bender.Link);
+      }).then(flexo.discard(done), done);
     });
-    it("sets the rel property from the rel attribute", function () {
-      var script = doc.createElementNS(bender.ns, "link");
-      script.setAttribute("rel", " script\n");
-      assert.strictEqual(env.deserialize(script).rel, "script");
-      var stylesheet = doc.createElementNS(bender.ns, "link");
-      stylesheet.setAttribute("rel", "\t  STYLEsheet\n");
-      assert.strictEqual(env.deserialize(stylesheet).rel, "stylesheet");
+
+    it("sets the rel property from the rel attribute (script)", function (done) {
+      env.deserialize(flexo.$("bender:link", { rel: " script\n" }))
+        .then(function (link) {
+          assert.strictEqual(link._rel, "script");
+        }).then(flexo.discard(done), done);
     });
-    it("sets the href property from the href attribute, resolving the URL from that of the component", function () {
-      var script = doc.createElementNS(bender.ns, "link");
-      script.setAttribute("rel", "script");
-      script.setAttribute("href", "\nscript-1.js\n");
-      assert.strictEqual(env.deserialize(script).rel, "script");
+
+    it("sets the rel property from the rel attribute (stylesheet)", function (done) {
+      env.deserialize(flexo.$("bender:link", { rel: "\t  STYLEsheet\n" }))
+        .then(function (link) {
+          assert.strictEqual(link._rel, "stylesheet");
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets the href property from the href attribute, resolving the URL from that of the component", function (done) {
+      env.deserialize(flexo.$("bender:link",
+          { rel: "script", href: "script-1.js" })).then(function (link) {
+          assert.strictEqual(link._rel, "script");
+        }).then(flexo.discard(done), done);
     });
   });
 
@@ -230,6 +238,19 @@ describe("Deserialization", function () {
           assert.strictEqual(attribute.id(), "");
           assert.strictEqual(attribute._children.length, 2);
         }).then(flexo.discard(done), done);
+    });
+  });
+
+  describe("bender.Environment.deserialize.text(elem)", function () {
+
+    it("deserializes a Bender text element and its text node children", function (done) {
+      env.deserialize(flexo.$("bender:text", { id: "foo" }, "x", "y",
+          flexo.$p("skip this"), "z")).then(function (text) {
+        assert.ok(text instanceof bender.Text);
+        assert.strictEqual(text.text(), "xyz");
+        assert.strictEqual(text.id(), "foo");
+        assert.strictEqual(text._children.length, 4);
+      }).then(flexo.discard(done), done);
     });
   });
 

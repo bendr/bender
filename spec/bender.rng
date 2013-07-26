@@ -91,18 +91,6 @@
     </element>
   </define>
 
-  <define name="get-inline">
-    <element name="get">
-      <ref name="get-property"/>
-      <optional>
-        <choice>
-          <ref name="value"/>
-          <text/>
-        </choice>
-      </optional>
-    </element>
-  </define>
-
   <define name="get-property">
     <optional>
       <ref name="select"/>
@@ -139,22 +127,15 @@
   <define name="property">
     <element name="property">
       <ref name="property-name"/>
-      <choice>
-        <group>
-          <optional>
-            <ref name="value"/>
-          </optional>
-          <optional>
-            <ref name="as"/>
-          </optional>
-        </group>
-        <group>
-          <optional>
-            <ref name="stack"/>
-          </optional>
-          <ref name="view-content"/>
-        </group>
-      </choice>
+      <optional>
+        <ref name="as"/>
+      </optional>
+      <optional>
+        <choice>
+          <ref name="value"/>
+          <text/>
+        </choice>
+      </optional>
     </element>
   </define>
 
@@ -246,9 +227,6 @@
       </optional>
       <zeroOrMore>
         <ref name="foreign-view-content"/>
-      </zeroOrMore>
-      <zeroOrMore>
-        <ref name="get-inline"/>
       </zeroOrMore>
       <zeroOrMore>
         <ref name="text"/>

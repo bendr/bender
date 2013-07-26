@@ -4,14 +4,14 @@
   bender.version = "0.8.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  // Make a string accessor for a property. The accessor can be called with no
+  // Make an accessor for a property. The accessor can be called with no
   // parameter to get the current value, or the default value if not set. It can
   // be called with a parameter to set a new value (converted to a string if
   // necessary) and return the object itself for chaining purposes.
   // The default_value parameter may be a function, in which case it used to
-  // normalize the input value and generate the default value from the empty
-  // string (e.g., cf. normalize_*.)
-  function make_string_accessor(object, name, default_value) {
+  // normalize the input value and generate the default value from an undefined
+  // value (e.g., cf. normalize_*.)
+  function make_accessor(object, name, default_value) {
     var property = "_" + name;
     object[name] = typeof default_value == "function" ?
       function (value) {
@@ -19,13 +19,13 @@
           this[property] = default_value(value);
           return this;
         }
-        return this[property] || default_value("");
+        return this[property] || default_value();
       } : function (value) {
         if (arguments.length > 0) {
-          this[property] = flexo.safe_string(value);
+          this[property] = value;
           return this;
         }
-        return this[property] || default_value || "";
+        return this[property] || default_value;
       };
   }
 
@@ -43,14 +43,13 @@
       env = new bender.Environment;
     }
     return env.load_component(
-      flexo.absolute_uri(env.document.baseURI, args.href)
+      flexo.absolute_uri(env.scope.$document.baseURI, args.href)
     );
   };
 
   // Create a new environment in a document, or window.document by default.
   bender.Environment = function (document) {
-    this.document = document || window.document;
-    this.scope = { $document: this.document, $environment: this };
+    this.scope = { $document: document || window.document, $environment: this };
     this.urls = {};
     this.components = [];
     this.vertices = [];
@@ -208,7 +207,7 @@
     return v;
   };
 
-  // Base for Bender content elements (except Link)
+  // Base for Bender elements with no content
   bender.Element = function () {};
 
   // All elements may have an id. If the id is modified, the scope for this
@@ -338,8 +337,7 @@
 
   // Append a new link and return the component for easy chaining.
   bender.Component.prototype.link = function (rel, href) {
-    this.append_child(new bender.Link(this.scope.$environment, rel, href));
-    return this;
+    return this.child(new bender.Link(this.scope.$environment, rel, href));
   };
 
   // Create a new property with the given name and value (the value is set
@@ -705,16 +703,19 @@
     return vertex;
   }
 
-  // Link is not a content element
   bender.Link = function (environment, rel, href) {
+    this.init();
     this.environment = environment;
-    this.rel = flexo.safe_trim(rel).toLowerCase();
-    this.href = href;
+    this._rel = flexo.safe_trim(rel).toLowerCase();
+    this._href = href;
   };
 
+  bender.Link.prototype = new bender.Element;
+
   bender.Environment.prototype.deserialize.link = function (elem) {
-    return new bender.Link(this, elem.getAttribute("rel"),
-        flexo.absolute_uri(elem.baseURI, elem.getAttribute("href")));
+    return this.deserialize_children(new bender.Link(this,
+          elem.getAttribute("rel"),
+          flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"))), elem);
   };
 
   // Render links according to their rel attribute. If a link requires delaying
@@ -770,7 +771,7 @@
         bender.View().stack(elem.getAttribute("stack")), elem);
   };
 
-  make_string_accessor(bender.View.prototype, "stack", normalize_stack);
+  make_accessor(bender.View.prototype, "stack", normalize_stack);
 
   // Append child for view and its children
   function append_view_child(child) {
@@ -852,8 +853,8 @@
 
   bender.Attribute.prototype = new bender.Element;
 
-  make_string_accessor(bender.Attribute.prototype, "name");
-  make_string_accessor(bender.Attribute.prototype, "ns");
+  make_accessor(bender.Attribute.prototype, "name", flexo.safe_string);
+  make_accessor(bender.Attribute.prototype, "ns", flexo.safe_string);
 
   bender.Environment.prototype.deserialize.attribute = function (elem) {
     var attr = new bender.Attribute(elem.getAttribute("ns"),
@@ -883,18 +884,25 @@
   // Bender Text element. Although it can only contain text, it can also have an
   // id so that it can be referred to by a watch.
   bender.Text = function (text) {
-    this._id = "";
+    this.init();
     this._text = flexo.safe_string(text);
   };
 
+  bender.Text.prototype = new bender.Element;
+
+  make_accessor(bender.Text.prototype, "text", flexo.safe_string);
+
   bender.Environment.prototype.deserialize.text = function (elem) {
-    return new bender.Text(elem.textContent).id(elem.getAttribute("id"));
+    var text = "";
+    foreach.call(elem.childNodes, function (ch) {
+      if (ch.nodeType == window.Node.TEXT_NODE ||
+        ch.nodeType == window.Node.CDATA_SECTION_NODE) {
+        text += ch.textContent;
+      }
+    });
+    return this.deserialize_children(new bender.Text(text)
+        .id(elem.getAttribute("id")), elem);
   };
-
-  bender.Text.prototype.id = bender.Element.prototype.id;
-  bender.Text.prototype.render_id = bender.Element.prototype.render_id;
-
-  make_string_accessor(bender.Text.prototype, "text", "");
 
   bender.Text.prototype.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode(this._text);
@@ -958,13 +966,15 @@
     return node;
   };
 
-  bender.Property = function (name, as) {
+  bender.Property = function (name) {
     this.init();
-    this.name = name;
-    this.as = normalize_as(as);
+    this._name = flexo.safe_string(name);
   };
 
   bender.Property.prototype = new bender.Element;
+
+  make_accessor(bender.Property.prototype, "as", normalize_as);
+  make_accessor(bender.Property.prototype, "value");
 
   bender.Environment.prototype.deserialize.property = function (elem) {
     var name = elem.getAttribute("name");
@@ -972,12 +982,12 @@
       console.warn("Property with no name:", elem);
       return;
     }
-    var property = new bender.Property(name, elem.getAttribute("as"));
-    return new flexo.Promise().fulfill(property).append_children(elem, this)
-      .then(function (p) {
-        p.set_declared_value(elem.getAttribute("value"));
-        return p;
-      });
+    var promise = this.deserialize_children(new bender.Property(name)
+        .as(elem.getAttribute("as"))
+        .id(elem.getAttribute("id")));
+    return elem.hasAttribute("value") ?  promise.then(function (property) {
+        return property.value(elem.getAttribute("value"));
+      }) : promise;
   };
 
   // TODO merge this with get_set_value
