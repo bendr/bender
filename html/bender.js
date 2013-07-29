@@ -893,14 +893,7 @@
   make_accessor(bender.Text.prototype, "text", flexo.safe_string);
 
   bender.Environment.prototype.deserialize.text = function (elem) {
-    var text = "";
-    foreach.call(elem.childNodes, function (ch) {
-      if (ch.nodeType == window.Node.TEXT_NODE ||
-        ch.nodeType == window.Node.CDATA_SECTION_NODE) {
-        text += ch.textContent;
-      }
-    });
-    return this.deserialize_children(new bender.Text(text)
+    return this.deserialize_children(new bender.Text(shallow_text(elem))
         .id(elem.getAttribute("id")), elem);
   };
 
@@ -968,7 +961,7 @@
 
   bender.Property = function (name) {
     this.init();
-    this._name = flexo.safe_string(name);
+    flexo.make_readonly(this, "name", flexo.safe_string(name));
   };
 
   bender.Property.prototype = new bender.Element;
@@ -978,21 +971,12 @@
 
   bender.Environment.prototype.deserialize.property = function (elem) {
     var name = elem.getAttribute("name");
-    if (!name) {
-      console.warn("Property with no name:", elem);
-      return;
-    }
-    var promise = this.deserialize_children(new bender.Property(name)
+    return this.deserialize_children(new bender.Property(name)
         .as(elem.getAttribute("as"))
-        .id(elem.getAttribute("id")));
-    return elem.hasAttribute("value") ?  promise.then(function (property) {
-        return property.value(elem.getAttribute("value"));
-      }) : promise;
-  };
-
-  bender.Property.prototype.value_from_string = function () {
-    return typeof this._value == "string"?
-      value_from_string(this._value, this._as) : this._value;
+        .id(elem.getAttribute("id")), elem).then(function (property) {
+      return property.value(value_from_string(elem.hasAttribute("value") ?
+          elem.getAttribute("value") : shallow_text(elem), property._as));
+    });
   };
 
   bender.Watch = function () {
@@ -1349,6 +1333,18 @@
     }
   }
 
+  // Return the concatenation of all text children (and only children) of elem
+  function shallow_text(elem) {
+    var text = "";
+    for (var ch = elem.firstChild; ch; ch = ch.nextSibling) {
+      if (ch.nodeType == window.Node.TEXT_NODE ||
+          ch.nodeType == window.Node.CDATA_SECTION_NODE) {
+        text += ch.textContent;
+      }
+    }
+    return text;
+  }
+
   // Update the scope of the parent component of node (if any)
   function update_scope(node, id) {
     var p = parent_component(node);
@@ -1364,7 +1360,7 @@
   }
 
   function value_from_string(value, as) {
-    value = flexo.safe_string(this._value);
+    value = flexo.safe_string(value);
     if (as == "boolean") {
       return flexo.is_true(value);
     }
@@ -1375,8 +1371,7 @@
       try {
         var v = JSON.parse(value);
       } catch (e) {
-        console.warn("Could not parse “%0” as JSON for property %1"
-            .fmt(value, this.name));
+        console.warn("Could not parse “%0” as JSON".fmt(value));
       }
       return v;
     }
@@ -1384,8 +1379,7 @@
       try {
         v = new Function("return " + value);
       } catch (e) {
-        console.warn("Could not parse “%0” as Javascript for property %1"
-            .fmt(value, this.name));
+        console.warn("Could not parse “%0” as Javascript".fmt(value));
       }
       return v;
     }

@@ -161,6 +161,65 @@ describe("Deserialization", function () {
     });
   });
 
+  describe("bender.Environment.deserialize.property(elem)", function () {
+
+    it("deserializes a property element and its children", function (done) {
+      env.deserialize(flexo.$("bender:property", { name: "x" }))
+        .then(function (property) {
+          assert.ok(property instanceof bender.Property);
+          assert.strictEqual(property.name, "x");
+          assert.strictEqual(property.as(), "dynamic");
+          assert.strictEqual(typeof property.value(), "function");
+          assert.strictEqual(property.value()());
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a property element and its children (as=string)", function (done) {
+      env.deserialize(flexo.$("bender:property", { name: "x", as: "string",
+        value: "foo" })).then(function (property) {
+          assert.ok(property instanceof bender.Property);
+          assert.strictEqual(property.name, "x");
+          assert.strictEqual(property.as(), "string");
+          assert.strictEqual(typeof property.value(), "string");
+          assert.strictEqual(property.value(), "foo");
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a property element and its children (as=number)", function (done) {
+      env.deserialize(flexo.$("bender:property", { name: "x", as: "number",
+        value: "0x42" })).then(function (property) {
+          assert.ok(property instanceof bender.Property);
+          assert.strictEqual(property.name, "x");
+          assert.strictEqual(property.as(), "number");
+          assert.strictEqual(typeof property.value(), "number");
+          assert.strictEqual(property.value(), 0x42);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a property element and its children (as=json)", function (done) {
+      env.deserialize(flexo.$("bender:property", { name: "x", as: "json",
+        value: "[1, 2, [3, 4], 5]" })).then(function (property) {
+          assert.ok(property instanceof bender.Property);
+          assert.strictEqual(property.name, "x");
+          assert.strictEqual(property.as(), "json");
+          assert.deepEqual(property.value(), [1, 2, [3, 4], 5]);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a property element and its children (as=dynamic)", function (done) {
+      env.deserialize(flexo.$("bender:property", { name: "x", as: "dynamic",
+        value: "Math.random()" })).then(function (property) {
+          assert.ok(property instanceof bender.Property);
+          assert.strictEqual(property.name, "x");
+          assert.strictEqual(property.as(), "dynamic");
+          assert.strictEqual(typeof property.value(), "function");
+          var v = property.value()();
+          assert.ok(v >= 0 && v < 1);
+        }).then(flexo.discard(done), done);
+    });
+
+  });
+
   describe("bender.Environment.deserialize.view(elem)", function () {
     it("deserializes a view element and its children", function (done) {
       env.deserialize(flexo.$("bender:view",
