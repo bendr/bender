@@ -169,52 +169,29 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "dynamic");
-          assert.strictEqual(typeof property.value(), "function");
-          assert.strictEqual(property.value()());
+          assert.strictEqual(property.__value, "");
         }).then(flexo.discard(done), done);
     });
 
-    it("deserializes a property element and its children (as=string)", function (done) {
-      env.deserialize(flexo.$("bender:property", { name: "x", as: "string",
-        value: "foo" })).then(function (property) {
-          assert.ok(property instanceof bender.Property);
-          assert.strictEqual(property.name, "x");
-          assert.strictEqual(property.as(), "string");
-          assert.strictEqual(typeof property.value(), "string");
-          assert.strictEqual(property.value(), "foo");
-        }).then(flexo.discard(done), done);
-    });
-
-    it("deserializes a property element and its children (as=number)", function (done) {
+    it("gets the value from the value attribute of the element", function (done) {
       env.deserialize(flexo.$("bender:property", { name: "x", as: "number",
-        value: "0x42" })).then(function (property) {
+        value: "42" }, "Not this value!"))
+        .then(function (property) {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "number");
-          assert.strictEqual(typeof property.value(), "number");
-          assert.strictEqual(property.value(), 0x42);
+          assert.strictEqual(property.__value, "42");
         }).then(flexo.discard(done), done);
     });
 
-    it("deserializes a property element and its children (as=json)", function (done) {
-      env.deserialize(flexo.$("bender:property", { name: "x", as: "json",
-        value: "[1, 2, [3, 4], 5]" })).then(function (property) {
+    it("gets the value from the text nodes of the element if there is no value attribute", function (done) {
+      env.deserialize(flexo.$("bender:property", { name: "x", as: "number" },
+          "42", flexo.$p("Not this value either")))
+        .then(function (property) {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
-          assert.strictEqual(property.as(), "json");
-          assert.deepEqual(property.value(), [1, 2, [3, 4], 5]);
-        }).then(flexo.discard(done), done);
-    });
-
-    it("deserializes a property element and its children (as=dynamic)", function (done) {
-      env.deserialize(flexo.$("bender:property", { name: "x", as: "dynamic",
-        value: "Math.random()" })).then(function (property) {
-          assert.ok(property instanceof bender.Property);
-          assert.strictEqual(property.name, "x");
-          assert.strictEqual(property.as(), "dynamic");
-          assert.strictEqual(typeof property.value(), "function");
-          var v = property.value()();
-          assert.ok(v >= 0 && v < 1);
+          assert.strictEqual(property.as(), "number");
+          assert.strictEqual(property.__value, "42");
         }).then(flexo.discard(done), done);
     });
 

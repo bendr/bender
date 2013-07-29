@@ -91,7 +91,15 @@ describe("Javascript API", function () {
     });
 
     describe("bender.Component", function () {
-      it("is pending");
+
+      var env = new bender.Environment;
+
+      it("can define new properties with component.property(name[, value])", function () {
+        var component = env.component().property("x");
+        assert.ok(component._own_properties.x instanceof bender.Property);
+        assert.strictEqual(component._own_properties.x.value());
+      });
+
     });
 
     describe("bender.Content", function () {
@@ -116,10 +124,16 @@ describe("Javascript API", function () {
 
     describe("bender.Property", function () {
 
-      it("is created with a name with new bender.Property(name); defaults to a property with no value", function () {
+      it("is created with a name with new bender.Property(name); defaults to a property with no (undefined) value", function () {
         var prop = new bender.Property("x");
         assert.strictEqual(prop.name, "x");
         assert.strictEqual(prop.value());
+      });
+
+      it("can get/set the value property.value([value])", function () {
+        var prop = new bender.Property("x").value(42);
+        assert.strictEqual(prop.name, "x");
+        assert.strictEqual(prop.value(), 42);
       });
 
     });

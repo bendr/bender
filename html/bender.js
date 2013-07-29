@@ -268,7 +268,7 @@
       $this: { enumerable: true, writable: true, value: this }
     });
     this.on = {};                 // on-* attributes
-    this.own_properties = {};     // property nodes
+    this._own_properties = {};     // property nodes
     this.links = [];              // link nodes
     this.watches = [];            // watch nodes
     this.child_components = [];   // all child components (in views/properties)
@@ -343,11 +343,7 @@
   // Create a new property with the given name and value (the value is set
   // directly and not interpreted in any way)
   bender.Component.prototype.property = function (name, value) {
-    var property = new bender.Property(name);
-    property.as = "";
-    property.value = value;
-    this.append_child(property);
-    return this;
+    return this.child(new bender.Property(name).value(value));
   };
 
   // Set the view of the component and return the component. If a view is given,
@@ -438,9 +434,9 @@
     flexo.hcaErof(chain, function (instance) {
       on(instance, "will-render");
       for (var p in instance.component.properties) {
-        if (p in instance.component.own_properties) {
+        if (p in instance.component._own_properties) {
           render_derived_property(instance,
-            instance.component.own_properties[p]);
+            instance.component._own_properties[p]);
         } else {
           var pv = instance._prototype.property_vertices[p];
           var v = render_derived_property(instance, pv.property, pv);
@@ -545,9 +541,9 @@
 
   function render_derived_properties(component) {
     for (var c = component._prototype; c; c = c._prototype) {
-      for (var p in c.own_properties) {
+      for (var p in c._own_properties) {
         if (!component.properties.hasOwnProperty(p)) {
-          render_derived_property(component, c.own_properties[p]);
+          render_derived_property(component, c._own_properties[p]);
         }
       }
     }
@@ -565,7 +561,7 @@
         this.scope.$view = child;
       }
     } else if (child instanceof bender.Property) {
-      this.own_properties[child.name] = child;
+      this._own_properties[child.name] = child;
       render_own_property(this, child);
       this.derived.forEach(function (derived) {
         render_derived_property(derived, child);
@@ -641,7 +637,7 @@
 
   // Render the properties of a concrete instance
   function render_properties(instance) {
-    var own = instance.component.own_properties;
+    var own = instance.component._own_properties;
     for (var property in instance.own) {
       render_own_property(instance, own[property]);
     }
@@ -971,12 +967,12 @@
 
   bender.Environment.prototype.deserialize.property = function (elem) {
     var name = elem.getAttribute("name");
-    return this.deserialize_children(new bender.Property(name)
+    var property = new bender.Property(name);
+    property.__value = elem.hasAttribute("value") ?
+      elem.getAttribute("value") : shallow_text(elem);
+    return this.deserialize_children(property
         .as(elem.getAttribute("as"))
-        .id(elem.getAttribute("id")), elem).then(function (property) {
-      return property.value(value_from_string(elem.hasAttribute("value") ?
-          elem.getAttribute("value") : shallow_text(elem), property._as));
-    });
+        .id(elem.getAttribute("id")), elem);
   };
 
   bender.Watch = function () {
@@ -985,17 +981,14 @@
     this.sets = [];
   };
 
+  make_accessor(bender.Watch.prototype, "disabled");
+
   bender.Watch.prototype = new bender.Element;
 
   bender.Environment.prototype.deserialize.watch = function (elem) {
-    var watch = new bender.Watch;
-    if (elem.hasAttribute("id")) {
-      watch.id(elem.getAttribute("id"));
-    }
-    if (elem.hasAttribute("enabled")) {
-      watch.enabled = flexo.is_true(elem.getAttribute("enabled"));
-    }
-    return new flexo.Promise().fulfill(watch).append_children(elem, this);
+    return this.deserialize_children(new bender.Watch()
+        .id(elem.getAttribute("id"))
+        .disabled(flexo.is_true(elem.getAttribute("disabled"))));
   };
 
   bender.Watch.prototype.append_child = function (child) {
@@ -1069,7 +1062,8 @@
   bender.GetProperty.prototype.render = function (component, elem, ref) {
     var target = (component.scope || component)[this.select];
     if (target) {
-      var properties = target.own_properties || target.component.own_properties;
+      var properties = target._own_properties ||
+        target.component._own_properties;
       var vertex = flexo.find_first(properties[this.property].vertices,
           function (v) { return v.component == target; })
       if (!elem) {
@@ -1272,6 +1266,40 @@
   };
 
 
+  // Regular expressions to match property bindings, broken into smaller pieces
+  // for legibility
+  var RX_ID =
+    "(?:[$A-Z_a-z\x80-\uffff]|\\\\.)(?:[$0-9A-Z_a-z\x80-\uffff]|\\\\.)*";
+  var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
+  var RX_CONTEXT = "(?:([#@])(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK));
+  var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK), "g");
+
+  // Identify property bindings for a dynamic property value string. When there
+  // are none, return the string unchanged; otherwise, return the dictionary of
+  // bindings (indexed by id, then property); bindings[""] will be the new value
+  // for the set element of the watch to create.
+  function bindings_dynamic(value) {
+    var bindings = {};
+    var r = function (_, b, sigil, id, id_p, prop, prop_p) {
+      var i = (sigil || "") + (id || id_p || "$this").replace(/\\(.)/g, "$1");
+      if (!bindings.hasOwnProperty(i)) {
+        bindings[i] = {};
+      }
+      var p = (prop || prop_p).replace(/\\(.)/g, "$1");
+      bindings[i][p] = true;
+      return "%0scope[%1].properties[%2]"
+        .fmt(b, flexo.quote(i), flexo.quote(p));
+    };
+    var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
+    if (Object.keys(bindings).length == 0) {
+      return value;
+    }
+    bindings[""] = { value: v };
+    return bindings;
+  }
+
   function get_set_attributes(gs, elem) {
     if (!gs) {
       return;
@@ -1307,6 +1335,11 @@
     } catch (e) {
       console.log("Could not parse value \"%0\" as %1".fmt(value, as));
     }
+  }
+
+  // Check wheter x is true or false; may be a boolean or (should be) a string
+  function is_true(x) {
+    return typeof x == "boolean" ? x : flexo.is_true(x);
   }
 
   // Normalize the `as` property of an element so that it matches a known value.
@@ -1376,6 +1409,7 @@
       return v;
     }
     if (as == "dynamic") {
+      // TODO var bindings = bindings_dynamic(value);
       try {
         v = new Function("return " + value);
       } catch (e) {

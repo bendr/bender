@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 26 July 2013 -->
+  <!-- Bender v0.8.2, 29 July 2013 -->
 
   <start>
     <ref name="component"/>
@@ -236,6 +236,12 @@
   </define>
 
   <define name="watch">
+    <optional>
+      <ref name="id"/>
+    </optional>
+    <optional>
+      <ref name="disabled"/>
+    </optional>
     <element name="watch">
       <zeroOrMore>
         <ref name="get"/>
@@ -263,6 +269,15 @@
   <define name="attr">
     <attribute name="attr">
       <data type="token"/>
+    </attribute>
+  </define>
+
+  <define name="disabled">
+    <attribute name="disabled">
+      <choice>
+        <value>true</value>
+        <value>false</value>
+      </choice>
     </attribute>
   </define>
 
