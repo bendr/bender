@@ -116,10 +116,12 @@ describe("Javascript API", function () {
 
     describe("bender.Property", function () {
 
-      it("is created with a name with new bender.Property(name)", function () {
+      it("is created with a name with new bender.Property(name); defaults to a dynamic property with no value", function () {
         var prop = new bender.Property("x");
         assert.ok(prop instanceof bender.Property);
         assert.strictEqual(prop._name, "x");
+        assert.strictEqual(prop.as(), "dynamic");
+        assert.strictEqual(prop.value());
       });
 
     });

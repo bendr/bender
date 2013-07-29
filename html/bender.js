@@ -990,33 +990,9 @@
       }) : promise;
   };
 
-  // TODO merge this with get_set_value
-  bender.Property.prototype.set_declared_value = function (value) {
-    if (this.as == "xml") {
-      this.value = this._children;
-    } else if (typeof value == "string") {
-      if (this.as == "boolean") {
-        this.value = flexo.is_true(value);
-      } else if (this.as == "number") {
-        this.value = flexo.to_number(value);
-      } else if (this.as == "json") {
-        try {
-          this.value = JSON.parse(value);
-        } catch (e) {
-          console.warn("Could not parse “%0” as JSON for property %1"
-              .fmt(value, this.name));
-        }
-      } else if (this.as == "dynamic") {
-        try {
-          this.value = new Function("return " + value);
-        } catch (e) {
-          console.warn("Could not parse “%0” as Javascript for property %1"
-              .fmt(value, this.name));
-        }
-      } else {  // "string"
-        this.value == value;
-      }
-    }
+  bender.Property.prototype.value_from_string = function () {
+    return typeof this._value == "string"?
+      value_from_string(this._value, this._as) : this._value;
   };
 
   bender.Watch = function () {
@@ -1385,6 +1361,35 @@
         scope[h] = node;
       }
     }
+  }
+
+  function value_from_string(value, as) {
+    value = flexo.safe_string(this._value);
+    if (as == "boolean") {
+      return flexo.is_true(value);
+    }
+    if (as == "number") {
+      return flexo.to_number(value);
+    }
+    if (as == "json") {
+      try {
+        var v = JSON.parse(value);
+      } catch (e) {
+        console.warn("Could not parse “%0” as JSON for property %1"
+            .fmt(value, this.name));
+      }
+      return v;
+    }
+    if (as == "dynamic") {
+      try {
+        v = new Function("return " + value);
+      } catch (e) {
+        console.warn("Could not parse “%0” as Javascript for property %1"
+            .fmt(value, this.name));
+      }
+      return v;
+    }
+    return value;
   }
 
 }(this.bender = {}));
