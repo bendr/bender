@@ -981,9 +981,9 @@
     this.sets = [];
   };
 
-  make_accessor(bender.Watch.prototype, "disabled");
-
   bender.Watch.prototype = new bender.Element;
+
+  make_accessor(bender.Watch.prototype, "disabled");
 
   bender.Environment.prototype.deserialize.watch = function (elem) {
     return this.deserialize_children(new bender.Watch()

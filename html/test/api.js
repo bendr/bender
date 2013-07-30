@@ -173,7 +173,15 @@ describe("Javascript API", function () {
     });
 
     describe("bender.Watch", function () {
-      it("is pending");
+
+      it("is create with an empty list of gets and sets, and is initially enabled (i.e., not disabled)", function () {
+        var watch = new bender.Watch;
+        assert.ok(watch instanceof bender.Watch);
+        assert.strictEqual(watch.gets.length, 0);
+        assert.strictEqual(watch.sets.length, 0);
+        assert.strictEqual(!!watch.disabled(), false);
+      });
+
     });
 
   });
