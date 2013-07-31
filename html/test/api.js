@@ -179,7 +179,7 @@ describe("Javascript API", function () {
         assert.ok(watch instanceof bender.Watch);
         assert.strictEqual(watch.gets.length, 0);
         assert.strictEqual(watch.sets.length, 0);
-        assert.strictEqual(!!watch.disabled(), false);
+        assert.strictEqual(watch.disabled(), false);
       });
 
     });

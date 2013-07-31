@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 29 July 2013 -->
+  <!-- Bender v0.8.2, 31 July 2013 -->
 
   <start>
     <ref name="component"/>
@@ -78,10 +78,23 @@
   <define name="get">
     <element name="get">
       <choice>
-        <ref name="get-property"/>
         <ref name="get-dom-event"/>
         <ref name="get-event"/>
+        <ref name="get-property"/>
+        <ref name="get-attr"/>
       </choice>
+      <optional>
+        <ref name="id"/>
+      </optional>
+      <optional>
+        <ref name="disabled"/>
+      </optional>
+      <optional>
+        <ref name="select"/>
+      </optional>
+      <optional>
+        <ref name="as"/>
+      </optional>
       <optional>
         <choice>
           <ref name="value"/>
@@ -91,15 +104,11 @@
     </element>
   </define>
 
-  <define name="get-property">
-    <optional>
-      <ref name="select"/>
-    </optional>
+  <define name="get-attr">
     <ref name="property-ref"/>
   </define>
 
   <define name="get-dom-event">
-    <ref name="select"/>
     <ref name="dom-event"/>
     <optional>
       <ref name="prevent-default"/>
@@ -110,10 +119,15 @@
   </define>
 
   <define name="get-event">
-    <optional>
-      <ref name="select"/>
-    </optional>
     <ref name="event"/>
+  </define>
+
+  <define name="get-property">
+    <ref name="property-ref"/>
+  </define>
+
+  <define name="get-attr">
+    <ref name="attr"/>
   </define>
 
 
@@ -143,12 +157,25 @@
     <element name="set">
       <optional>
         <choice>
-          <ref name="set-property"/>
-          <ref name="set-event"/>
           <ref name="set-dom-event"/>
-          <ref name="set-dom-attribute"/>
+          <ref name="set-event"/>
           <ref name="set-dom-property"/>
+          <ref name="set-property"/>
+          <ref name="set-attribute"/>
+          <ref name="set-dom-attribute"/>
         </choice>
+      </optional>
+      <optional>
+        <ref name="disabled"/>
+      </optional>
+      <optional>
+        <ref name="as"/>
+      </optional>
+      <optional>
+        <ref name="id"/>
+      </optional>
+      <optional>
+        <ref name="select"/>
       </optional>
       <optional>
         <choice>
@@ -160,9 +187,6 @@
   </define>
 
   <define name="set-property">
-    <optional>
-      <ref name="select"/>
-    </optional>
     <ref name="property-ref"/>
   </define>
 
@@ -278,6 +302,12 @@
         <value>true</value>
         <value>false</value>
       </choice>
+    </attribute>
+  </define>
+
+  <define name="dom-attr">
+    <attribute name="dom-attr">
+      <data type="token"/>
     </attribute>
   </define>
 

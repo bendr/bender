@@ -1,44 +1,44 @@
-"use strict";
-
-// Simple format function for messages and templates. Use %0, %1... as slots
-// for parameters; %(n) can also be used to avoid possible ambiguities (e.g.
-// "x * 10 = %(0)0".) %% is also replaced by %. Null and undefined are
-// replaced by an empty string.
-String.prototype.fmt = function () {
-  var args = arguments;
-  return this.replace(/%(\d+|%|\((\d+)\))/g, function (_, p, pp) {
-    var p_ = parseInt(pp || p, 10);
-    return p == "%" ? "%" : args[p_] == null ? "" : args[p_];
-  });
-};
-
-if (typeof Function.prototype.bind != "function") {
-  Function.prototype.bind = function (x) {
-    var f = this;
-    var args = slice.call(arguments, 1);
-    return function () {
-      return f.apply(x, args.concat(slice.call(arguments)));
-    };
-  };
-}
-
 (function (flexo) {
   "use strict";
+
+  /* global exports, global, window, π */
 
   flexo.VERSION = "0.2.3";
 
   var foreach = Array.prototype.forEach;
   var map = Array.prototype.map;
-  var push = Array.prototype.push;
   var reduce = Array.prototype.reduce;
   var slice = Array.prototype.slice;
   var splice = Array.prototype.splice;
 
-  var browserp = typeof window == "object";
+  var browserp = typeof window === "object";
   var global_ = browserp ? window : global;
 
   // Define π as a global
   global_.π = Math.PI;
+
+  // Simple format function for messages and templates. Use %0, %1... as slots
+  // for parameters; %(n) can also be used to avoid possible ambiguities (e.g.
+  // "x * 10 = %(0)0".) %% is also replaced by %. Null and undefined are
+  // replaced by an empty string.
+  String.prototype.fmt = function () {
+    var args = arguments;
+    return this.replace(/%(\d+|%|\((\d+)\))/g, function (_, p, pp) {
+      // jshint unused: false, eqnull: true
+      var p_ = parseInt(pp || p, 10);
+      return p === "%" ? "%" : args[p_] == null ? "" : args[p_];
+    });
+  };
+
+  if (typeof Function.prototype.bind !== "function") {
+    Function.prototype.bind = function (x) {
+      var f = this;
+      var args = slice.call(arguments, 1);
+      return function () {
+        return f.apply(x, args.concat(slice.call(arguments)));
+      };
+    };
+  }
 
   // requestAnimationFrame
   if (browserp && !window.requestAnimationFrame) {
@@ -60,8 +60,8 @@ if (typeof Function.prototype.bind != "function") {
   // Test whether x is an instance of y (i.e. y is the prototype of x, or the
   // prototype of its prototype, or...)
   flexo.instance_of = function (x, y) {
-    var proto = typeof x == "object" && Object.getPrototypeOf(x);
-    return !!proto && (proto == y || flexo.instance_of(proto, y));
+    var proto = typeof x === "object" && Object.getPrototypeOf(x);
+    return !!proto && (proto === y || flexo.instance_of(proto, y));
   };
 
   // Define a property named `name` on object `obj` and make it read-only (i.e.
@@ -96,6 +96,7 @@ if (typeof Function.prototype.bind != "function") {
   // Safe call to toString(); when obj is null or undefined, return an empty
   // string.
   flexo.safe_string = function (obj) {
+    // jshint eqnull: true
     if (obj == null) {
       return "";
     }
@@ -126,7 +127,7 @@ if (typeof Function.prototype.bind != "function") {
       string = string.toString();
     }
     var l = length + 1 - string.length;
-    return l > 0 ? (Array(l).join(padding)) + string : string;
+    return l > 0 ? (new Array(l).join(padding)) + string : string;
   };
 
   // Quote a string, escaping quotes and newlines properly. Uses " by default,
@@ -140,14 +141,16 @@ if (typeof Function.prototype.bind != "function") {
   // Trim a string, or return the empty string if the argument was not a string
   // (for instance, null or undefined.)
   flexo.safe_trim = function (maybe_string) {
-    return typeof maybe_string == "string" ? maybe_string.trim() : "";
+    return typeof maybe_string === "string" ? maybe_string.trim() : "";
   };
 
   // Parse a number, using parseFloat first but defaulting to parseInt for
   // hexadecimal values (no octal parsing is done.)
   flexo.to_number = function (string) {
     var f = parseFloat(string);
-    return f == 0 ? parseInt(string) : f;
+    // Not passing a radix parameter allows parsing of hexadecimal as well
+    // jshint -W065
+    return f === 0 ? parseInt(string) : f;
   };
 
   // Convert a number to roman numerals (integer part only; n must be positive
@@ -170,7 +173,7 @@ if (typeof Function.prototype.bind != "function") {
         }
       }
       return r;
-    }
+    };
     if (typeof n === "number" && n >= 0) {
       n = Math.floor(n);
       if (n === 0) {
@@ -189,6 +192,7 @@ if (typeof Function.prototype.bind != "function") {
   // following letter (e.g., convert foo-bar to fooBar)
   flexo.undash = function (s) {
     return s.replace(/-+(.?)/g, function (_, p) {
+      // jshint unused: false
       return p.toUpperCase();
     });
   };
@@ -270,7 +274,7 @@ if (typeof Function.prototype.bind != "function") {
   // Interspers the separator `sep` in the array a
   flexo.intersperse = function (a, sep) {
     var n = a.length;
-    if (n == 0) {
+    if (n === 0) {
       return [];
     }
     var j = new Array(2 * n - 1);
@@ -311,7 +315,7 @@ if (typeof Function.prototype.bind != "function") {
 
   // Remove an item from an array
   flexo.remove_from_array = function (array, item) {
-    if (array && item != null) {
+    if (array) {
       var index = array.indexOf(item);
       if (index >= 0) {
         return array.splice(index, 1)[0];
@@ -322,7 +326,7 @@ if (typeof Function.prototype.bind != "function") {
   // Replace the first instance of old_item in array with new_item, and return
   // old_item on success
   flexo.replace_in_array = function (array, old_item, new_item) {
-    if (array && old_item != null) {
+    if (array) {
       var index = array.indexOf(old_item);
       if (index >= 0) {
         array[index] = new_item;
@@ -363,7 +367,7 @@ if (typeof Function.prototype.bind != "function") {
     // Pick an item from the urn, refilling it as necessary.
     pick: function () {
       var last;
-      if (this._remaining.length == 0) {
+      if (this._remaining.length === 0) {
         this._remaining = slice.call(this.items);
         if (this._remaining.length > 1 && this.hasOwnProperty("_last_pick")) {
           last = flexo.remove_from_array(this._remaining, this._last_pick);
@@ -441,7 +445,7 @@ if (typeof Function.prototype.bind != "function") {
 
   // Rebuild an URI string from an object as split by flexo.split_uri
   flexo.unsplit_uri = function (r) {
-    if (typeof r == "object") {
+    if (typeof r === "object") {
       return (r.scheme ? r.scheme + ":" : "") +
         (r.authority ? "//" + r.authority : "") +
         r.path +
@@ -540,11 +544,11 @@ if (typeof Function.prototype.bind != "function") {
   // Make an XMLHttpRequest with optional params and return a promise
   // Set a mimeType parameter to override the MIME type of the request
   flexo.ez_xhr = function (uri, params) {
-    var req = new XMLHttpRequest;
-    if (typeof uri == "object") {
+    var req = new window.XMLHttpRequest();
+    if (typeof uri === "object") {
       params = uri;
       uri = params.uri;
-    } else if (typeof params != "object") {
+    } else if (typeof params !== "object") {
       params = {};
     }
     req.open(params.method || "GET", uri);
@@ -559,9 +563,9 @@ if (typeof Function.prototype.bind != "function") {
         req.setRequestHeader(h, params.headers[h]);
       }
     }
-    var promise = new flexo.Promise;
+    var promise = new flexo.Promise();
     req.onload = function () {
-      if (req.response != null) {
+      if (req.response !== null) {
         promise.fulfill(req.response);
       } else {
         promise.reject({ message: "missing response", request: req });
@@ -634,9 +638,9 @@ if (typeof Function.prototype.bind != "function") {
   // Call an event listener, which may be a function or an object with a
   // `handleEvent` function; if it’s neither, do nothing
   function call_listener(listener, e) {
-    if (typeof listener.handleEvent == "function") {
+    if (typeof listener.handleEvent === "function") {
       listener.handleEvent.call(listener, e);
-    } else if (typeof listener == "function") {
+    } else if (typeof listener === "function") {
       listener(e);
     }
   }
@@ -651,7 +655,7 @@ if (typeof Function.prototype.bind != "function") {
   // events.
   flexo.listen = function (target, type, listener) {
     return listen(target, type, listener, false);
-  }
+  };
 
   // Listen to an event only once. The listener is returned.
   flexo.listen_once = function (target, type, listener) {
@@ -659,7 +663,7 @@ if (typeof Function.prototype.bind != "function") {
   };
 
   function listen(target, type, listener, once) {
-    if (!listener || typeof type != "string" || !type) {
+    if (!listener || typeof type !== "string" || !type) {
       return;
     }
     if (target === undefined) {
@@ -689,10 +693,10 @@ if (typeof Function.prototype.bind != "function") {
 
   // Can be called as notify(e), notify(source, type) or notify(source, type, e)
   flexo.notify = function (source, type, e) {
-    if (typeof e == "object") {
+    if (typeof e === "object") {
       e.source = source;
       e.type = type;
-    } else if (typeof type == "string") {
+    } else if (typeof type === "string") {
       e = { source: source, type: type };
     } else {
       e = source;
@@ -718,9 +722,9 @@ if (typeof Function.prototype.bind != "function") {
       t.slice(1).forEach(function (l) {
         if (l[1]) {
           flexo.remove_from_array(t, l);
-          if (t.length == 1) {
+          if (t.length === 1) {
             flexo.remove_from_array(events[e.type], t);
-            if (events[e.type].length == 0) {
+            if (events[e.type].length === 0) {
               delete events[e.type];
             }
           }
@@ -741,9 +745,9 @@ if (typeof Function.prototype.bind != "function") {
             j < m && events[type][i][j][0] !== listener; ++j);
         if (j < m) {
           events[type][i].splice(j, 1);
-          if (events[type][i].length == 1) {
+          if (events[type][i].length === 1) {
             events[type].splice(i, 1);
-            if (events[type].length == 0) {
+            if (events[type].length === 0) {
               delete events[type];
             }
           }
@@ -776,7 +780,7 @@ if (typeof Function.prototype.bind != "function") {
         global_.postMessage(key, "*");
       };
     }()) : function (f) {
-      setTimeout(f, 0);
+      global_.setTimeout(f, 0);
     };
 
   // Return a function that discards its arguments. An optional parameter allows
@@ -799,7 +803,7 @@ if (typeof Function.prototype.bind != "function") {
 
   // Turn a value into a 0-ary function returning that value
   flexo.funcify = function (x) {
-    return typeof x == "function" ? x : function () { return x; };
+    return typeof x === "function" ? x : function () { return x; };
   };
 
   // Identity function
@@ -846,7 +850,7 @@ if (typeof Function.prototype.bind != "function") {
   flexo.Promise.prototype = {
 
     then: function (on_fulfilled, on_rejected) {
-      var p = new flexo.Promise;
+      var p = new flexo.Promise();
       this._queue.push([p, on_fulfilled, on_rejected]);
       if (this.hasOwnProperty("value") || this.hasOwnProperty("reason")) {
         flexo.asap(this._resolved);
@@ -856,11 +860,11 @@ if (typeof Function.prototype.bind != "function") {
 
     timeout: function (dur_ms) {
       if (this._timeout) {
-        clearTimeout(this._timeout);
+        global_.clearTimeout(this._timeout);
         delete this._timeout;
       }
-      if (typeof dur_ms == "number" && dur_ms > 0) {
-        this._timeout = setTimeout(function () {
+      if (typeof dur_ms === "number" && dur_ms > 0) {
+        this._timeout = global_.setTimeout(function () {
           this.reject("Timeout");
         }.bind(this), dur_ms);
       }
@@ -868,11 +872,11 @@ if (typeof Function.prototype.bind != "function") {
     },
 
     fulfill: function (value) {
-      return resolve_promise.call(this, "value", value);
+      return resolve_promise(this, "value", value);
     },
 
     reject: function (reason) {
-      return resolve_promise.call(this, "reason", reason);
+      return resolve_promise(this, "reason", reason);
     },
 
     each: function (xs, f) {
@@ -885,32 +889,29 @@ if (typeof Function.prototype.bind != "function") {
 
   };
 
-  function resolve_promise(resolution, value) {
-    if (!this.hasOwnProperty("value") && !this.hasOwnProperty("reason")) {
-      if (this._timeout) {
-        clearTimeout(this._timeout);
-        delete this._timeout;
+  function resolve_promise(promise, resolution, value) {
+    if (!promise.hasOwnProperty("value") && !promise.hasOwnProperty("reason")) {
+      if (promise._timeout) {
+        global_.clearTimeout(promise._timeout);
+        delete promise._timeout;
       }
-      this[resolution] = value;
-      this._resolved();
+      promise[resolution] = value;
+      promise._resolved();
     }
-    return this;
+    return promise;
   }
 
   function resolved_promise() {
+    // jshint validthis:true
     var resolution = this.hasOwnProperty("value") ? "value" : "reason";
     var on = this.hasOwnProperty("value") ? 1 : 2;
     for (var i = 0; i < this._queue.length; ++i) {
       var p = this._queue[i];
-      if (typeof p[on] == "function") {
+      if (typeof p[on] === "function") {
         try {
           var v = p[on](this[resolution]);
-          if (v && typeof v.then == "function") {
-            v.then(function (value) {
-              p[0].fulfill(value);
-            }, function (reason) {
-              p[0].reject(reason);
-            });
+          if (v && typeof v.then === "function") {
+            v.then(p[0].fulfill.bind(p[0]), p[0].reject.bind(p[0]));
           } else {
             p[0].fulfill(v);
           }
@@ -918,7 +919,7 @@ if (typeof Function.prototype.bind != "function") {
           p[0].reject(e);
         }
       } else {
-        p[0][resolution == "value" ? "fulfill" : "reject"](this[resolution]);
+        p[0][resolution === "value" ? "fulfill" : "reject"](this[resolution]);
       }
     }
     this._queue = [];
@@ -928,7 +929,7 @@ if (typeof Function.prototype.bind != "function") {
   // own .then() method) or an actual value which can be used straight away. The
   // first argument is returned. (Not the return value of f!)
   flexo.then = function (maybe_promise, f, delay) {
-    if (maybe_promise && typeof maybe_promise.then == "function") {
+    if (maybe_promise && typeof maybe_promise.then === "function") {
       maybe_promise.then(f);
     } else if (delay) {
       flexo.asap(function () {
@@ -951,9 +952,9 @@ if (typeof Function.prototype.bind != "function") {
   // source attribute value itself. The promise has a pointer to the `img`
   // element.
   flexo.promise_img = function (attrs) {
-    var promise = new flexo.Promise;
-    var img = promise.img = new Image;
-    if (typeof attrs == "object") {
+    var promise = new flexo.Promise();
+    var img = promise.img = new window.Image();
+    if (typeof attrs === "object") {
       for (var attr in attrs) {
         img.setAttribute(attr, attrs[attr]);
       }
@@ -971,7 +972,7 @@ if (typeof Function.prototype.bind != "function") {
 
   // Create a promise that loads a script at `src` by adding it to `target`.
   flexo.promise_script = function (src, target) {
-    var promise = new flexo.Promise;
+    var promise = new flexo.Promise();
     var script = target.ownerDocument.createElement("script");
     script.src = src;
     script.async = false;
@@ -981,49 +982,53 @@ if (typeof Function.prototype.bind != "function") {
     return promise;
   };
 
+  // Apply function f (defaults to id) to all elements of array xs. Return a
+  // promise that gets fulfilled with the last value (or the provided z value)
+  // once all elements have finished.
   flexo.promise_each = function (xs, f, that, z) {
-    var promise = new flexo.Promise;
-    if (typeof f != "function") {
+    var promise = new flexo.Promise();
+    if (typeof f !== "function") {
       f = flexo.id;
     }
     var pending = 0;
     var last;
     foreach.call(xs, function (x, i) {
-      var y = last = f.call(that, x, i, xs);
-      if (y && typeof y.then == "function") {
+      var y = f.call(that, x, i, xs);
+      last = y;
+      if (y && typeof y.then === "function") {
         ++pending;
         y.then(function (y_) {
-          if (i == xs.length - 1) {
+          if (i === xs.length - 1) {
             last = y_;
           }
-          if (--pending == 0) {
+          if (--pending === 0) {
             promise.fulfill(arguments.length > 3 ? z : last);
           }
         }, promise.reject.bind(promise));
       }
     });
-    if (pending == 0) {
+    if (pending === 0) {
       promise.fulfill(arguments.length > 3 ? z : last);
     }
     return promise;
   };
 
   flexo.promise_map = function (xs, f, that, tolerant) {
-    if (arguments.length < 4 && typeof that == "boolean") {
+    if (arguments.length < 4 && typeof that === "boolean") {
       tolerant = that;
       that = undefined;
     }
-    var promise = new flexo.Promise;
+    var promise = new flexo.Promise();
     var ys = new Array(xs.length);
     var pending = 1;
-    var check_pending = function (decr) {
-      if (--pending == 0) {
+    var check_pending = function () {
+      if (--pending === 0) {
         promise.fulfill(ys);
       }
-    }
+    };
     foreach.call(xs, function (x, i) {
       var y = f.call(that, x, i, xs);
-      if (y && typeof y.then == "function") {
+      if (y && typeof y.then === "function") {
         ++pending;
         y.then(function (y_) {
           ys[i] = y_;
@@ -1033,7 +1038,7 @@ if (typeof Function.prototype.bind != "function") {
             ys[i] = y_;
             check_pending();
           } else {
-            promise.reject(reason);
+            promise.reject(y_);
           }
         });
       } else {
@@ -1045,13 +1050,13 @@ if (typeof Function.prototype.bind != "function") {
   };
 
   flexo.promise_fold = function (xs, f, z) {
-    var promise = new flexo.Promise;
+    var promise = new flexo.Promise();
     var g = function (z, i) {
-      if (i == xs.length) {
+      if (i === xs.length) {
         promise.fulfill(z);
       } else {
         var y = f(z, xs[i], i, xs);
-        if (y && typeof y.then == "function") {
+        if (y && typeof y.then === "function") {
           y.then(function (y_) {
             g(y_, i + 1);
           });
@@ -1083,6 +1088,7 @@ if (typeof Function.prototype.bind != "function") {
           // true and false/null/undefined act as special values: when true,
           // just output the attribute name (without any value); when false,
           // null or undefined, skip the attribute altogether
+          // jshint eqnull: true
           if (v != null && v !== false) {
             out += (v === true ? " %0" : " %0=\"%1\"").fmt(a, v);
           }
@@ -1141,7 +1147,7 @@ if (typeof Function.prototype.bind != "function") {
   // to the target document.
   flexo.create_element = function (name, attrs) {
     var contents;
-    if (typeof attrs === "object" && !(attrs instanceof Node) &&
+    if (typeof attrs === "object" && !(attrs instanceof window.Node) &&
         !Array.isArray(attrs)) {
       contents = slice.call(arguments, 2);
     } else {
@@ -1159,14 +1165,15 @@ if (typeof Function.prototype.bind != "function") {
     name = classes.shift();
     if (classes.length > 0) {
       attrs["class"] =
-        (typeof attrs["class"] === "string" ? attrs["class"] + " " : "")
-        + classes.join(" ");
+        (typeof attrs["class"] === "string" ? attrs["class"] + " " : "") +
+          classes.join(" ");
     }
     var m = name.match(/^(?:([^:]+):)?/);
     var ns = (m[1] && flexo.ns[m[1].toLowerCase()]) ||
       this.documentElement.namespaceURI;
     var elem = this.createElementNS(ns, m[1] ? name.substr(m[0].length) : name);
     for (var a in attrs) {
+      // jshint eqnull: true
       if (attrs[a] != null && attrs[a] !== false) {
         var sp = a.split(":");
         ns = sp[1] && flexo.ns[sp[0].toLowerCase()];
@@ -1241,37 +1248,40 @@ if (typeof Function.prototype.bind != "function") {
       "union", "uplimit", "variance", "vector", "vectorproduct", "xor"]
   };
 
-  if (browserp) {
+  (function () {
+    if (browserp) {
 
-    // Shorthand to create elements, e.g. flexo.$("svg#main.content")
-    flexo.$ = function () {
-      return flexo.create_element.apply(window.document, arguments);
-    };
+      // Shorthand to create elements, e.g. flexo.$("svg#main.content")
+      flexo.$ = function () {
+        return flexo.create_element.apply(window.document, arguments);
+      };
 
-    // Shorthand to create a document fragment
-    flexo.$$ = function () {
-      var fragment = window.document.createDocumentFragment();
-      foreach.call(arguments, function (ch) {
-        flexo.append_child(fragment, ch);
-      });
-      return fragment;
-    };
+      // Shorthand to create a document fragment
+      flexo.$$ = function () {
+        var fragment = window.document.createDocumentFragment();
+        foreach.call(arguments, function (ch) {
+          flexo.append_child(fragment, ch);
+        });
+        return fragment;
+      };
 
-    // Make shorthands for known HTML, SVG and MathML elements, e.g. flexo.$p,
-    // flexo.$fontFaceFormat (for svg:font-face-format), &c.
-    for (var ns in flexo.tags) {
-      flexo.tags[ns].forEach(function (tag) {
-        flexo["$" + flexo.undash(tag)] = flexo.create_element
-          .bind(window.document, "%0:%1".fmt(ns, tag));
-      });
+      // Make shorthands for known HTML, SVG and MathML elements, e.g. flexo.$p,
+      // flexo.$fontFaceFormat (for svg:font-face-format), &c.
+      for (var ns in flexo.tags) {
+        // jshint loopfunc: true
+        flexo.tags[ns].forEach(function (tag) {
+          flexo["$" + flexo.undash(tag)] = flexo.create_element
+            .bind(window.document, "%0:%1".fmt(ns, tag));
+        });
+      }
+    } else {
+      for (var ns_ in flexo.tags) {
+        flexo.tags[ns_].forEach(function (tag) {
+          flexo["$" + flexo.undash(tag)] = flexo.html_tag.bind(this, tag);
+        });
+      }
     }
-  } else {
-    for (var ns in flexo.tags) {
-      flexo.tags[ns].forEach(function (tag) {
-        flexo["$" + flexo.undash(tag)] = flexo.html_tag.bind(this, tag);
-      });
-    }
-  }
+  }());
 
   // Get clientX/clientY as an object { x: ..., y: ... } for events that may
   // be either a mouse event or a touch event, in which case the position of
@@ -1384,7 +1394,7 @@ if (typeof Function.prototype.bind != "function") {
     p.y = e.targetTouches ? e.targetTouches[0].clientY : e.clientY;
     try {
       return p.matrixTransform(svg.getScreenCTM().inverse());
-    } catch(e) {}
+    } catch(x) {}
   };
 
   // Find the closest <svg> ancestor for a given element
