@@ -7,9 +7,9 @@
   bender.version = "0.8.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  function inherit(proto, f) {
+  function inherit(Proto, f) {
     var constructor = f || function () {};
-    constructor.prototype = new proto();
+    constructor.prototype = new Proto();
     constructor.constructor = constructor;
     return constructor;
   }
@@ -1188,7 +1188,6 @@
           select);
     } else if (elem.hasAttribute("property")) {
       set = new bender.SetProperty(elem.getAttribute("property"), select);
-    }
     } else if (elem.hasAttribute("dom-attr")) {
       set = new bender.SetDOMAttribute(elem.getAttribute("dom-attr"), select);
     } else if (elem.hasAttribute("attr")) {
@@ -1358,6 +1357,7 @@
   function bindings_dynamic(value) {
     var bindings = {};
     var r = function (_, b, sigil, id, id_p, prop, prop_p) {
+      // jshint unused: false
       var i = (sigil || "") + (id || id_p || "$this").replace(/\\(.)/g, "$1");
       if (!bindings.hasOwnProperty(i)) {
         bindings[i] = {};
