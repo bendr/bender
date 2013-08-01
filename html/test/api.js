@@ -105,7 +105,21 @@ describe("Javascript API", function () {
     });
 
     describe("bender.Content", function () {
-      it("is pending");
+
+      it("is created with new bender.Content()", function () {
+        var view = new bender.Content();
+        assert.ok(view instanceof bender.Content);
+        assert.deepEqual(view._children, []);
+        assert.strictEqual(view.id(), "");
+      });
+
+      it("all its children are its content (even though some Bender content may have no effect on rendering)", function () {
+        var view = new bender.View()
+          .child(new bender.DOMElement(flexo.ns.html, "p"))
+          .child(new bender.Element());
+        assert.strictEqual(view._children.length, 2);
+      });
+
     });
 
     describe("bender.DOMElement", function () {

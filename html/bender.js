@@ -154,11 +154,14 @@
   // (property, get, set)
   bender.Environment.prototype
   .deserialize_element_with_value = function (object, elem) {
-    object.__value = elem.hasAttribute("value") ?
-      elem.getAttribute("value") : shallow_text(elem);
+    if (elem.hasAttribute("value")) {
+      set_value_from_string.call(object, elem.getAttribute("value"), true);
+    } else {
+      set_value_from_string.call(object, shallow_text(elem));
+    }
     return this.deserialize_children(object
       .id(elem.getAttribute("id"))
-      .as(elem.getAttribute("as")));
+      .as(elem.getAttribute("as")), elem);
   };
 
   // Deserialize a foreign element and its contents (attribute and children),
@@ -810,11 +813,9 @@
     }));
   };
 
-  bender.Content = function () {
+  bender.Content = inherit(bender.Element, function () {
     this.init();
-  };
-
-  bender.Content.prototype = new bender.Element();
+  });
 
   bender.Environment.prototype.deserialize.content = function (elem) {
     return this.deserialize_children(new bender.Content()
@@ -1035,7 +1036,7 @@
   });
 
   make_accessor(bender.Get.prototype, "stop_propagation");
-  make_accessor(bender.Get.prototype, "present_default");
+  make_accessor(bender.Get.prototype, "prevent_default");
 
   bender.GetDOMEvent.prototype.render = function (component) {
     var target = component.scope[this.select];
@@ -1376,6 +1377,43 @@
     }
   }
 
+  // Set the value of an object that has a value/as pair of attributes. Only for
+  // deserialized values.
+  function set_value_from_string(value, needs_return) {
+    // jshint validthis:true
+    value = flexo.safe_string(this._value);
+    if (this._as === "boolean") {
+      this._value = flexo.is_true(value);
+    } else if (this._as === "number") {
+      this._value = flexo.to_number(value);
+    } else {
+      if (this._as === "json") {
+        try {
+          this._value = JSON.parse(value);
+        } catch (e) {
+          console.warn("Could not parse “%0” as JSON".fmt(value));
+          this._value = undefined;
+        }
+      } else if (this._as === "dynamic") {
+        var bindings = bindings_dynamic(value);
+        if (typeof bindings === "string") {
+          this._bindings = bindings;
+          value = bindings[""];
+        }
+        if (needs_return) {
+          value = "return " + value;
+        }
+        try {
+          this._value = new Function(value);
+        } catch (e) {
+          console.warn("Could not parse “%0” as Javascript".fmt(value));
+        }
+        return v;
+      }
+    }
+    return this;
+  }
+
   // Return the concatenation of all text children (and only children) of elem
   function shallow_text(elem) {
     var text = "";
@@ -1400,35 +1438,6 @@
         scope[h] = node;
       }
     }
-  }
-
-  function value_from_string(value, as) {
-    value = flexo.safe_string(value);
-    if (as === "boolean") {
-      return flexo.is_true(value);
-    }
-    if (as === "number") {
-      return flexo.to_number(value);
-    }
-    var v;
-    if (as === "json") {
-      try {
-        v = JSON.parse(value);
-      } catch (e) {
-        console.warn("Could not parse “%0” as JSON".fmt(value));
-      }
-      return v;
-    }
-    if (as === "dynamic") {
-      // TODO var bindings = bindings_dynamic(value);
-      try {
-        v = new Function("return " + value);
-      } catch (e) {
-        console.warn("Could not parse “%0” as Javascript".fmt(value));
-      }
-      return v;
-    }
-    return value;
   }
 
 }(this.bender = {}));

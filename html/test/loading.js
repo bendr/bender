@@ -1,8 +1,8 @@
 "use strict";
 
-var assert = typeof require == "function" && require("chai").assert ||
+var assert = typeof require === "function" && require("chai").assert ||
   window.chai.assert;
-var flexo = typeof require == "function" && require("flexo") || window.flexo;
+var flexo = typeof require === "function" && require("flexo") || window.flexo;
 
 describe("Loading components", function () {
 
@@ -76,9 +76,21 @@ describe("Loading components", function () {
 });
 
 describe("Deserialization", function () {
-  var env = new bender.Environment;
+  var env = new bender.Environment();
   var doc = document.implementation.createDocument(bender.ns, "component",
     null);
+
+  describe("bender.Environment.deserialize.get(elem)", function () {
+
+    it("deserializes a get element", function (done) {
+      env.deserialize(flexo.$("bender:get", { "dom-event": "click" }))
+        .then(function (get) {
+          assert.ok(get instanceof bender.GetDOMEvent);
+        }).then(flexo.discard(done), done);
+    });
+
+  });
+
 
   describe("bender.Environment.deserialize(node)", function () {
     it("deserializes an XML text node into a Bender text node", function () {
@@ -324,5 +336,4 @@ describe("Deserialization", function () {
       });
     });
   });
-
 });
