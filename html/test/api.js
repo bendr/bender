@@ -30,18 +30,20 @@ describe("Javascript API", function () {
 
     describe("bender.Element", function() {
 
-      it("is the base class for all Bender elements that have content (i.e., all elements except Link and Text)", flexo.nop);
+      it("is the base class for all Bender elements that have content (i.e., all elements except Link and Text)", function () {
+        assert.strictEqual(typeof bender.Element, "function");
+      });
+
+      it("must be init()ed before use", function () {
+        var elem = new bender.Element().init();
+        assert.deepEqual(elem._children, []);
+      });
 
       it("has an id property with accessor id([value])", function () {
-        var elem = new bender.Element;
+        var elem = new bender.Element();
         assert.strictEqual(elem.id(), "");
         assert.strictEqual(elem.id("x"), elem);
         assert.strictEqual(elem.id(), "x");
-      });
-
-      it("should be init()ed before use", function () {
-        var elem = new bender.Element().init();
-        assert.deepEqual(elem._children, []);
       });
 
       it("can have Element or Text children, added with append_child(child) which returns the child element", function () {
@@ -169,17 +171,44 @@ describe("Javascript API", function () {
     });
 
     describe("bender.View", function () {
-      it("is pending");
+
+      it("is created with new bender.View()", function () {
+        var view = new bender.View();
+        assert.ok(view instanceof bender.View);
+        assert.deepEqual(view._children, []);
+        assert.strictEqual(view.id(), "");
+      });
+
+      it("all its children are its content (even though some Bender content may have no effect on rendering)", function () {
+        var view = new bender.View()
+          .child(new bender.DOMElement(flexo.ns.html, "p"))
+          .child(new bender.Content());
+        assert.strictEqual(view._children.length, 2);
+      });
+
+      it("has a stack attribute with values “top” (default), “bottom” and “replace”", function () {
+        var view = new bender.View();
+        assert.strictEqual(view.stack(), "top");
+        assert.strictEqual(view.stack("bottom")._stack, "bottom");
+        assert.strictEqual(view.stack("replace")._stack, "replace");
+        assert.strictEqual(view.stack(42)._stack, "top");
+      });
+
     });
 
     describe("bender.Watch", function () {
 
-      it("is create with an empty list of gets and sets, and is initially enabled (i.e., not disabled)", function () {
-        var watch = new bender.Watch;
+      it("is created with an empty list of gets and sets, and is initially enabled (i.e., not disabled)", function () {
+        var watch = new bender.Watch();
         assert.ok(watch instanceof bender.Watch);
         assert.strictEqual(watch.gets.length, 0);
         assert.strictEqual(watch.sets.length, 0);
         assert.strictEqual(watch.disabled(), false);
+        assert.strictEqual(watch.id(), "");
+      });
+
+      it("adds get or set children in the right list", function () {
+        // var watch = new bender.Watch().child(new bender.
       });
 
     });

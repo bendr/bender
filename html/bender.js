@@ -7,6 +7,9 @@
   bender.version = "0.8.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+  var foreach = Array.prototype.forEach;
+
+  // Create a new constructor inheriting from a prototype
   function inherit(Proto, f) {
     var constructor = f || function () {};
     constructor.prototype = new Proto();
@@ -281,7 +284,7 @@
   };
 
   // Create a new component in a scope
-  bender.Component = function (scope) {
+  bender.Component = inherit(bender.Element, function (scope) {
     this.init();
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
@@ -297,11 +300,7 @@
     this.properties = {};         // property values (with associated vertices)
     this.derived = [];            // derived components
     this.instances = [];          // rendered instances
-  };
-
-  bender.Component.prototype = new bender.Element();
-
-  var foreach = Array.prototype.forEach;
+  });
 
   // Deserialize a component from an element. A component is created and, if the
   // second parameter p (which is a promise) is passed, its component property
@@ -720,14 +719,12 @@
     return vertex;
   }
 
-  bender.Link = function (environment, rel, href) {
+  bender.Link = inherit(bender.Element, function (environment, rel, href) {
     this.init();
     this.environment = environment;
     this._rel = flexo.safe_trim(rel).toLowerCase();
     this._href = href;
-  };
-
-  bender.Link.prototype = new bender.Element();
+  });
 
   bender.Environment.prototype.deserialize.link = function (elem) {
     return this.deserialize_children(new bender.Link(this,
@@ -777,18 +774,18 @@
     }
   };
 
-  bender.View = function () {
+  // View of a component
+  bender.View = inherit(bender.Element, function () {
     this.init();
-  };
-
-  bender.View.prototype = new bender.Element();
-
-  bender.Environment.prototype.deserialize.view = function (elem) {
-    return this.deserialize_children(new
-        bender.View().stack(elem.getAttribute("stack")), elem);
-  };
+  });
 
   make_accessor(bender.View.prototype, "stack", normalize_stack);
+
+  bender.Environment.prototype.deserialize.view = function (elem) {
+    return this.deserialize_children(new bender.View()
+        .id(elem.getAttribute("id"))
+        .stack(elem.getAttribute("stack")), elem);
+  };
 
   // Append child for view and its children
   function append_view_child(child) {
@@ -811,27 +808,6 @@
     return new flexo.Seq(this._children.map(function (ch) {
       ch.render(target, stack);
     }));
-  };
-
-  bender.View.prototype.inserted_children = function (elem, index, count) {
-    if (this._parent) {
-      var path = [];
-      for (var e = elem; e !== this; e = e._parent) {
-        path.push(e._parent._children.indexOf(e));
-      }
-      this._parent.instance.forEach(function (instance) {
-        var target = instance.scope.$first;
-        for (var i = path.length - 1; i >= 0; --i) {
-          for (var j = 0; j < path[i]; ++j) {
-            target = target.nextSibling;
-          }
-          target = target.firstChild;
-        }
-        for (i = 0; i < count; ++i) {
-          elem._children[index + i].render(target, instance.scope);
-        }
-      });
-    }
   };
 
   bender.Content = function () {
@@ -1216,14 +1192,12 @@
     edge.source = this;
   };
 
-  bender.WatchVertex = function (watch, component) {
+  bender.WatchVertex = inherit(bender.Vortex, function (watch, component) {
     this.init();
     this.watch = watch;
     this.component = component;
     this.enabled = watch.enabled;
-  };
-
-  bender.WatchVertex.prototype = new bender.Vortex();
+  });
 
   bender.WatchVertex.prototype.match_vertex = function (v) {
     return v instanceof bender.WatchVertex && v.watch === this.watch;
@@ -1231,14 +1205,12 @@
 
   // Create a new property vertex; component and value are set later when adding
   // the property to a component or rendering that component.
-  bender.PropertyVertex = function (component, property) {
+  bender.PropertyVertex = inherit(bender.Vortex, function (component, property) {
     this.init();
     this.component = component;
     this.property = property;
     component.property_vertices[property.name] = this;
-  };
-
-  bender.PropertyVertex.prototype = new bender.Vortex();
+  });
 
   bender.PropertyVertex.prototype.added = function () {
     // jshint eqnull: true
@@ -1253,13 +1225,11 @@
       (this.component === v.component) && (this.property === v.property);
   };
 
-  bender.DOMEventVertex = function (get, target) {
+  bender.DOMEventVertex = inherit(bender.Vortex, function (get, target) {
     this.init();
     this.get = get;
     target.addEventListener(get.type, this, false);
-  };
-
-  bender.DOMEventVertex.prototype = new bender.Vortex();
+  });
 
   bender.DOMEventVertex.prototype.handleEvent = function (e) {
     if (this.get.prevent_default) {
@@ -1284,14 +1254,12 @@
   };
 
   // Edge from the vertex rendered for a get for a component
-  bender.WatchEdge = function (get, component, dest) {
+  bender.WatchEdge = inherit(bender.Edge, function (get, component, dest) {
     this.get = get;
     this.enabled = get.enabled;
     this.component = component;
     this.set_dest(dest);
-  };
-
-  bender.WatchEdge.prototype = new bender.Edge();
+  });
 
   // Follow a watch edge, provided that:
   //   * the parent watch is enabled;
@@ -1305,16 +1273,14 @@
     }
   };
 
-  bender.DOMPropertyEdge = function (set, target, component) {
+  bender.DOMPropertyEdge = inherit(bender.Edge, function (set, target, component) {
     this.set = set;
     this.target = target;
     this.property = set.property;
     this.component = component;
     this.enabled = this.set.enabled;
     this.set_dest(component.scope.$environment.vortex);
-  };
-
-  bender.DOMPropertyEdge.prototype = new bender.Edge();
+  });
 
   bender.DOMPropertyEdge.prototype.follow = function (input) {
     if (this.enabled && (!this.set.match || this.set.match.call(input))) {
@@ -1325,14 +1291,12 @@
     }
   };
 
-  bender.InlinePropertyEdge = function (target, ref, environment) {
+  bender.InlinePropertyEdge = inherit(bender.Edge, function (target, ref, environment) {
     this.target = target;
     this.ref = ref;
     this.last = ref && ref.precedingSibling || target.lastChild;
     this.set_dest(environment.vortex);
-  };
-
-  bender.InlinePropertyEdge.prototype = new bender.Edge();
+  });
 
   bender.InlinePropertyEdge.prototype.follow = function (input) {
     input.forEach(function (ch) {
