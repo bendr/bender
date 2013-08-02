@@ -4,6 +4,7 @@ var assert = typeof require === "function" && require("chai").assert ||
   window.chai.assert;
 var flexo = typeof require === "function" && require("flexo") || window.flexo;
 
+/*
 describe("Loading components", function () {
 
   var env;
@@ -17,10 +18,13 @@ describe("Loading components", function () {
         done();
       }, done);
     });
+
     it("loads a component at defaults.href (if the first parameter is an object) in a new environment", function (done) {
       bender.load_component({ href: "empty.xml" }).then(flexo.discard(done), done);
     });
+
     it("uses the URL arguments if no defaults object is given", flexo.nop);
+
     it("creates a new environment for the current document is no environment argument is given", flexo.nop);
     it("uses the given environment otherwise", function (done) {
       var href = flexo.normalize_uri(document.baseURI, "empty.xml");
@@ -32,11 +36,13 @@ describe("Loading components", function () {
         done();
       }, done);
     });
+
     it("returns the promise of a component which gets fulfilled once the component is loaded and fully deserialized", function (done) {
       var p = bender.load_component("empty.xml", env);
       assert.ok(p instanceof flexo.Promise);
       p.then(flexo.discard(done), done);
     });
+
     it("rejects the returned promise if no href parameter is given", function (done) {
       bender.load_component().then(done, flexo.discard(done));
     })
@@ -74,6 +80,7 @@ describe("Loading components", function () {
   });
 
 });
+*/
 
 describe("Deserialization", function () {
   var env = new bender.Environment();
@@ -82,15 +89,125 @@ describe("Deserialization", function () {
 
   describe("bender.Environment.deserialize.get(elem)", function () {
 
-    it("deserializes a get element", function (done) {
+    it("deserializes a DOM event get element", function (done) {
       env.deserialize(flexo.$("bender:get", { "dom-event": "click" }))
         .then(function (get) {
           assert.ok(get instanceof bender.GetDOMEvent);
+          assert.strictEqual(get.type, "click");
+          assert.strictEqual(get.select, "$this");
+          assert.strictEqual(get.id(), "");
+          assert.strictEqual(get.as(), "dynamic");
+          assert.strictEqual(get.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a Bender event get element", function (done) {
+      env.deserialize(flexo.$("bender:get", { "event": "ready" }))
+        .then(function (get) {
+          assert.ok(get instanceof bender.GetEvent);
+          assert.strictEqual(get.type, "ready");
+          assert.strictEqual(get.select, "$this");
+          assert.strictEqual(get.id(), "");
+          assert.strictEqual(get.as(), "dynamic");
+          assert.strictEqual(get.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a property get element", function (done) {
+      env.deserialize(flexo.$("bender:get", { "property": "x" }))
+        .then(function (get) {
+          assert.ok(get instanceof bender.GetProperty);
+          assert.strictEqual(get.name, "x");
+          assert.strictEqual(get.select, "$this");
+          assert.strictEqual(get.id(), "");
+          assert.strictEqual(get.as(), "dynamic");
+          assert.strictEqual(get.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes an attribute get element", function (done) {
+      env.deserialize(flexo.$("bender:get", { "attr": "foo" }))
+        .then(function (get) {
+          assert.ok(get instanceof bender.GetAttribute);
+          assert.strictEqual(get.name, "foo");
+          assert.strictEqual(get.select, "$this");
+          assert.strictEqual(get.id(), "");
+          assert.strictEqual(get.as(), "dynamic");
+          assert.strictEqual(get.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
   });
 
+  describe("bender.Environment.deserialize.set(elem)", function () {
+
+    it("deserializes a DOM event set element", function (done) {
+      env.deserialize(flexo.$("bender:set", { "dom-event": "click" }))
+        .then(function (set) {
+          assert.ok(set instanceof bender.SetDOMEvent);
+          assert.strictEqual(set.type, "click");
+          assert.strictEqual(set.id(), "");
+          assert.strictEqual(set.as(), "dynamic");
+          assert.strictEqual(set.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a Bender event set element", function (done) {
+      env.deserialize(flexo.$("bender:set", { "event": "ready" }))
+        .then(function (set) {
+          assert.ok(set instanceof bender.SetEvent);
+          assert.strictEqual(set.type, "ready");
+          assert.strictEqual(set.id(), "");
+          assert.strictEqual(set.as(), "dynamic");
+          assert.strictEqual(set.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a DOM property set element", function (done) {
+      env.deserialize(flexo.$("bender:set", { "dom-property": "value" }))
+        .then(function (set) {
+          assert.ok(set instanceof bender.SetDOMProperty);
+          assert.strictEqual(set.name, "value");
+          assert.strictEqual(set.id(), "");
+          assert.strictEqual(set.as(), "dynamic");
+          assert.strictEqual(set.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a property set element", function (done) {
+      env.deserialize(flexo.$("bender:set", { "property": "x" }))
+        .then(function (set) {
+          assert.ok(set instanceof bender.SetProperty);
+          assert.strictEqual(set.name, "x");
+          assert.strictEqual(set.id(), "");
+          assert.strictEqual(set.as(), "dynamic");
+          assert.strictEqual(set.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes a DOM attribute set element", function (done) {
+      env.deserialize(flexo.$("bender:set", { "dom-attr": "class" }))
+        .then(function (set) {
+          assert.ok(set instanceof bender.SetDOMAttribute);
+          assert.strictEqual(set.name, "class");
+          assert.strictEqual(set.id(), "");
+          assert.strictEqual(set.as(), "dynamic");
+          assert.strictEqual(set.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("deserializes an attribute set element", function (done) {
+      env.deserialize(flexo.$("bender:set", { "attr": "count" }))
+        .then(function (set) {
+          assert.ok(set instanceof bender.SetAttribute);
+          assert.strictEqual(set.name, "count");
+          assert.strictEqual(set.id(), "");
+          assert.strictEqual(set.as(), "dynamic");
+          assert.strictEqual(set.disabled(), false);
+        }).then(flexo.discard(done), done);
+    });
+
+  });
 
   describe("bender.Environment.deserialize(node)", function () {
     it("deserializes an XML text node into a Bender text node", function () {

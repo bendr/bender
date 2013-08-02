@@ -1023,7 +1023,6 @@
   };
 
   bender.GetSet = inherit(bender.Element);
-  make_accessor(bender.GetSet.prototype, "id");
   make_accessor(bender.GetSet.prototype, "as", normalize_as);
   make_accessor(bender.GetSet.prototype, "disabled", false);
 
@@ -1091,7 +1090,7 @@
         .prevent_default(flexo.is_true(elem.getAttribute("prevent-default")))
         .stop_propagation(flexo.is_true(elem.getAttribute("stop-propagation")));
     } else if (elem.hasAttribute("event")) {
-      get = new bender.GetEvent(elem.getAttribute("event", select));
+      get = new bender.GetEvent(elem.getAttribute("event"), select);
     } else if (elem.hasAttribute("property")) {
       get = new bender.GetProperty(elem.getAttribute("property"), select);
     } else if (elem.hasAttribute("attr")) {
