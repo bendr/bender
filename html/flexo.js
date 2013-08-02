@@ -905,13 +905,20 @@
     // jshint validthis:true
     var resolution = this.hasOwnProperty("value") ? "value" : "reason";
     var on = this.hasOwnProperty("value") ? 1 : 2;
+    var r = function (p, q) {
+      p.then(function (value) {
+        q.fulfill(value);
+      }, function (reason) {
+        q.reject(reason);
+      });
+    };
     for (var i = 0; i < this._queue.length; ++i) {
       var p = this._queue[i];
       if (typeof p[on] === "function") {
         try {
           var v = p[on](this[resolution]);
           if (v && typeof v.then === "function") {
-            v.then(p[0].fulfill.bind(p[0]), p[0].reject.bind(p[0]));
+            r(v, p[0]);
           } else {
             p[0].fulfill(v);
           }

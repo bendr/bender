@@ -4,7 +4,6 @@ var assert = typeof require === "function" && require("chai").assert ||
   window.chai.assert;
 var flexo = typeof require === "function" && require("flexo") || window.flexo;
 
-/*
 describe("Loading components", function () {
 
   var env;
@@ -46,9 +45,11 @@ describe("Loading components", function () {
     it("rejects the returned promise if no href parameter is given", function (done) {
       bender.load_component().then(done, flexo.discard(done));
     })
+
   });
 
   describe("bender.Environment.load_component(url)", function () {
+
     it("does the actual loading of the component at url", function (done) {
       var href = flexo.normalize_uri(document.baseURI, "empty.xml");
       var p = env.urls[href];
@@ -57,6 +58,7 @@ describe("Loading components", function () {
         done();
       }, done);
     });
+
     it("rejects the promise if loading fails with the message “XHR error”", function (done) {
       env.load_component(flexo.normalize_uri(document.baseURI, "nothing here"))
         .then(done, function (reason) {
@@ -65,10 +67,12 @@ describe("Loading components", function () {
           done();
         });
     });
+
     it("rejects the promise if the resource was loaded but is not a well-formed XML document", function (done) {
       env.load_component(flexo.normalize_uri(document.baseURI,
           "wrong-ill-formed.xml")).then(done, flexo.discard(done));
     });
+
     it("rejects the promise if an XML resource was loaded and parsed correctly but is not a Bender component", function (done) {
       env.load_component(flexo.normalize_uri(document.baseURI, "wrong-not-component.xml"))
         .then(done, function (reason) {
@@ -77,15 +81,75 @@ describe("Loading components", function () {
           done();
         });
     });
+
   });
 
 });
-*/
 
 describe("Deserialization", function () {
   var env = new bender.Environment();
   var doc = document.implementation.createDocument(bender.ns, "component",
     null);
+
+  describe("set_value_from_string(value, needs_return)", function () {
+
+    it("sets a boolean value for as=“boolean” (true)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "boolean",
+        value: "true" })).then(function (get) {
+          assert.strictEqual(get._value, true);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets a boolean value for as=“boolean” (false)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "boolean",
+        value: "false" })).then(function (get) {
+          assert.strictEqual(get._value, false);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets a number value for as=“number” (0)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
+        value: "0" })).then(function (get) {
+          assert.strictEqual(get._value, 0);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets a number value for as=“number” (int; leading 0 but not octal)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
+        value: "012" })).then(function (get) {
+          assert.strictEqual(get._value, 12);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets a number value for as=“number” (float)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
+        value: "-1.2e3" })).then(function (get) {
+          assert.strictEqual(get._value, -1200);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets a number value for as=“number” (hex)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
+        value: "0x42" })).then(function (get) {
+          assert.strictEqual(get._value, 66);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets a value parsed from JSON for as=“json” (array)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "json",
+        value: "[1, 2, [3, 4], 5]" })).then(function (get) {
+          assert.deepEqual(get._value, [1, 2, [3, 4], 5]);
+        }).then(flexo.discard(done), done);
+    });
+
+    it("sets an undefined value for as=“json” in case of failure to parse the value (with a warning)", function (done) {
+      env.deserialize(flexo.$("bender:get", { property: "x", as: "json",
+        value: "[1, 2, [3, 4], 5" })).then(function (get) {
+          assert.strictEqual(get._value);
+        }).then(flexo.discard(done), done);
+    });
+
+  });
 
   describe("bender.Environment.deserialize.get(elem)", function () {
 
@@ -453,4 +517,5 @@ describe("Deserialization", function () {
       });
     });
   });
+
 });

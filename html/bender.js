@@ -154,14 +154,13 @@
   // (property, get, set)
   bender.Environment.prototype
   .deserialize_element_with_value = function (object, elem) {
+    object.id(elem.getAttribute("id")).as(elem.getAttribute("as"));
     if (elem.hasAttribute("value")) {
       set_value_from_string.call(object, elem.getAttribute("value"), true);
     } else {
       set_value_from_string.call(object, shallow_text(elem));
     }
-    return this.deserialize_children(object
-      .id(elem.getAttribute("id"))
-      .as(elem.getAttribute("as")), elem);
+    return this.deserialize_children(object, elem);
   };
 
   // Deserialize a foreign element and its contents (attribute and children),
@@ -334,7 +333,7 @@
           try {
             component.extends(promise.value);
           } catch (e) {
-            return new flexo.Promise.reject(e);
+            return new flexo.Promise().reject(e);
           }
         } else if (promise.component) {
           try {
@@ -1025,6 +1024,7 @@
   bender.GetSet = inherit(bender.Element);
   make_accessor(bender.GetSet.prototype, "as", normalize_as);
   make_accessor(bender.GetSet.prototype, "disabled", false);
+  make_accessor(bender.GetSet.prototype, "value");
 
   bender.Get = inherit(bender.GetSet);
 
@@ -1380,7 +1380,7 @@
   // deserialized values.
   function set_value_from_string(value, needs_return) {
     // jshint validthis:true
-    value = flexo.safe_string(this._value);
+    value = flexo.safe_string(value);
     if (this._as === "boolean") {
       this._value = flexo.is_true(value);
     } else if (this._as === "number") {
@@ -1407,7 +1407,10 @@
         } catch (e) {
           console.warn("Could not parse “%0” as Javascript".fmt(value));
         }
-        return v;
+      } else {
+        // this._as === "string"
+        // TODO string bindings
+        this._value = value;
       }
     }
     return this;
