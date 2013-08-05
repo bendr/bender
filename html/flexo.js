@@ -1056,13 +1056,13 @@
     return promise;
   };
 
-  flexo.promise_fold = function (xs, f, z) {
+  flexo.promise_fold = function (xs, f, z, that) {
     var promise = new flexo.Promise();
     var g = function (z, i) {
       if (i === xs.length) {
         promise.fulfill(z);
       } else {
-        var y = f(z, xs[i], i, xs);
+        var y = f.call(that, z, xs[i], i, xs);
         if (y && typeof y.then === "function") {
           y.then(function (y_) {
             g(y_, i + 1);

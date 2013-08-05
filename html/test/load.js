@@ -295,6 +295,7 @@ describe("Deserialization", function () {
   });
 
   describe("bender.Environment.deserialize.component(elem, promise)", function () {
+
     it("deserializes a component from the given element elem", function (done) {
       env.deserialize(flexo.$("bender:component"))
         .then(function (component) {
@@ -304,6 +305,7 @@ describe("Deserialization", function () {
           done();
         });
     });
+
     it("deserializes its prototype if the element has a href attribute", function (done) {
       env.deserialize(flexo.$("bender:component", { href: "empty.xml" }))
         .then(function (component) {
@@ -313,14 +315,16 @@ describe("Deserialization", function () {
           done();
         });
     });
+
     it("deserializes its contents", function (done) {
       env.deserialize(flexo.$("bender:component", { href: "empty.xml" },
-          flexo.$("bender:link", { rel: "stylesheet", href: "style.css" }),
-          flexo.$("bender:view", "Hello!"))).then(function (component) {
+        flexo.$("bender:link", { rel: "stylesheet", href: "style.css" }),
+        flexo.$("bender:view", "Hello!"))).then(function (component) {
           assert.strictEqual(component.links.length, 1);
           assert.ok(component.scope.$view instanceof bender.View);
         }).then(flexo.discard(done), done);
     });
+
     it("stores the component as soon as it is created in the promise so that a component can be referred to before it is completely deserialized", flexo.nop);
   });
 
@@ -391,14 +395,19 @@ describe("Deserialization", function () {
   });
 
   describe("bender.Environment.deserialize.view(elem)", function () {
+
     it("deserializes a view element and its children", function (done) {
       env.deserialize(flexo.$("bender:view",
-          flexo.$p("Hello there!"))).then(function (view) {
+          "\n", flexo.$p("Hello there!"), " ")).then(function (view) {
           assert.ok(view instanceof bender.View);
           assert.strictEqual(view.stack(), "top");
-          assert.strictEqual(view._children.length, 1);
+          assert.strictEqual(view._children.length, 3);
+          assert.ok(view._children[0] instanceof bender.DOMTextNode);
+          assert.ok(view._children[1] instanceof bender.DOMElement);
+          assert.ok(view._children[2] instanceof bender.DOMTextNode);
         }).then(flexo.discard(done), done);
     });
+
     it("deserializes and normalizes the stack attribute", function (done) {
       env.deserialize(flexo.$("bender:view", { stack: "REPLACE " },
           flexo.$p("Hello there!"))).then(function (view) {
@@ -407,6 +416,7 @@ describe("Deserialization", function () {
           assert.strictEqual(view._children.length, 1);
         }).then(flexo.discard(done), done);
     });
+
   });
 
   describe("bender.Environment.deserialize.content(elem)", function () {

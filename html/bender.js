@@ -142,10 +142,15 @@
   // Deserialize then add every child of p in the list of children to the Bender
   // element e, then return e
   bender.Environment.prototype.deserialize_children = function (e, p) {
-    var append = e.append_child.bind(e);
-    return flexo.promise_each(p.childNodes, function (child) {
-      flexo.then(this.deserialize(child), append);
-    }, this, e);
+    return flexo.promise_fold(p.childNodes, function (e_, ch) {
+      var d = this.deserialize(ch);
+      if (d && typeof d.then === "function") {
+        return d.then(function (d_) {
+          return e_.child(d_);
+        });
+      }
+      return e_.child(d);
+    }, e, this);
   };
 
   // Deserialize common properties and contents for objects that have a value
@@ -429,6 +434,7 @@
     return this.render(fragment).then(function (instance) {
       instance.component.init_properties(instance);
       target.insertBefore(fragment, ref);
+      instance.scope.$target = target;
       return instance;
     });
   };
@@ -517,7 +523,6 @@
     if (stack.i < n && stack[stack.i].scope.$view) {
       var instance = stack[stack.i];
       console.log("[%0] (%1) Rendering view".fmt(this.index, instance.index));
-      instance.scope.$target = target;
       return instance.scope.$view.render(target, stack);
     }
     return new flexo.Promise().fulfill();
