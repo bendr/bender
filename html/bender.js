@@ -142,14 +142,9 @@
   // Deserialize then add every child of p in the list of children to the Bender
   // element e, then return e
   bender.Environment.prototype.deserialize_children = function (e, p) {
+    var append = e.child.bind(e);
     return flexo.promise_fold(p.childNodes, function (e_, ch) {
-      var d = this.deserialize(ch);
-      if (d && typeof d.then === "function") {
-        return d.then(function (d_) {
-          return e_.child(d_);
-        });
-      }
-      return e_.child(d);
+      return flexo.then(this.deserialize(ch), append);
     }, e, this);
   };
 

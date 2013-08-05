@@ -57,6 +57,9 @@ describe("Bender tests", function () {
     ok("sub-component.xml", function (instance) {
       assert.ok(instance.scope.$target.textContent.match(/hello, world/i));
     });
+    ok("sub-component-inline.xml", function (instance) {
+      assert.ok(instance.scope.$target.textContent.match(/hello, world/i));
+    });
   });
 
   describe("Failure", function () {

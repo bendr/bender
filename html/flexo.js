@@ -932,20 +932,11 @@
     this._queue = [];
   }
 
-  // Wrapper for then when a value may be either a promise-like object (with its
-  // own .then() method) or an actual value which can be used straight away. The
-  // first argument is returned. (Not the return value of f!)
-  flexo.then = function (maybe_promise, f, delay) {
-    if (maybe_promise && typeof maybe_promise.then === "function") {
-      maybe_promise.then(f);
-    } else if (delay) {
-      flexo.asap(function () {
-        f(maybe_promise);
-      });
-    } else {
-      f(maybe_promise);
+  flexo.then = function (v, f) {
+    if (v && typeof v.then === "function") {
+      return v.then(f);
     }
-    return maybe_promise;
+    return f(v);
   };
 
   flexo.while_p = function (p, f) {

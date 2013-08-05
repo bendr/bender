@@ -1,0 +1,13 @@
+<component xmlns="http://bender.igel.co.jp" id="sub-component-inline">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>This is the parent component, inline content follows.</html:p>
+    <component>
+      <view>
+        <html:p>
+          Hello, world! (inline)
+        </html:p>
+      </view>
+    </component>
+    <html:p>This is the parent component again.</html:p>
+  </view>
+</component>
