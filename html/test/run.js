@@ -46,6 +46,7 @@ describe("Bender tests", function () {
   describe("Success", function () {
     ok("empty.xml");
     ok("hello.xml", function (instance) {
+      assert.strictEqual(instance.component.id(), "hello");
       assert.ok(instance.scope.$target.textContent.match(/hello, world/i));
     });
     ok("hello-derived.xml");

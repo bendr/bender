@@ -56,7 +56,7 @@ Array.prototype.forEach.call(document.getElementById("tests").childNodes,
   function (ch) {
     if (ch.dataset && ch.dataset.src) {
       if (ch.dataset.src === t) {
-        flexo.safe_remove(ch);
+        ch.textContent = ch.dataset.src;
       } else {
         ch.appendChild(flexo.$a({ href: "?t=%0".fmt(ch.dataset.src) },
           ch.dataset.src));

@@ -1,8 +1,6 @@
 "use strict";
 
-var assert = typeof require == "function" && require("chai").assert ||
-  window.chai.assert;
-var flexo = typeof require == "function" && require("flexo") || window.flexo;
+var assert = window.chai.assert;
 
 describe("Javascript API", function () {
 

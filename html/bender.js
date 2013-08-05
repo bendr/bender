@@ -347,6 +347,8 @@
       if (attr.namespaceURI === null) {
         if (attr.localName.indexOf("on-") === 0) {
           component.on(attr.localName.substr(3), attr.value);
+        } else if (attr.localName === "id") {
+          component.id(attr.value);
         } else if (attr.localName !== "href") {
           // set property values
         }

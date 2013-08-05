@@ -1,8 +1,6 @@
 "use strict";
 
-var assert = typeof require === "function" && require("chai").assert ||
-  window.chai.assert;
-var flexo = typeof require === "function" && require("flexo") || window.flexo;
+var assert = window.chai.assert;
 
 describe("Loading components", function () {
 
@@ -317,9 +315,11 @@ describe("Deserialization", function () {
     });
 
     it("deserializes its contents", function (done) {
-      env.deserialize(flexo.$("bender:component", { href: "empty.xml" },
+      env.deserialize(flexo.$("bender:component",
+        { href: "empty.xml", id: "foo" },
         flexo.$("bender:link", { rel: "stylesheet", href: "style.css" }),
         flexo.$("bender:view", "Hello!"))).then(function (component) {
+          assert.strictEqual(component.id(), "foo");
           assert.strictEqual(component.links.length, 1);
           assert.ok(component.scope.$view instanceof bender.View);
         }).then(flexo.discard(done), done);
