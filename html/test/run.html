@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚛ Test Bender</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="cache-control" content="no-cache">
+    <link rel="stylesheet" href="mocha.css">
+    <style>
+
+#targets > div {
+  padding-bottom: 1em;
+  border-bottom: dashed thin black;
+}
+
+    </style>
+  </head>
+  <body>
+    <ul id="tests">
+      <li data-src="api"></li>
+      <li data-src="load"></li>
+      <li data-src="run"></li>
+    </ul>
+    <div id="mocha"></div>
+    <div id="targets"></div>
+    <script src="chai.js"></script>
+    <script src="mocha.js"></script>
+    <script src="../flexo.js"></script>
+    <script src="../bender.js"></script>
+    <script>
+"use strict";
+
+var t = flexo.get_args({ t: "run" }).t;
+var src = "%0.js".fmt(t);
+
+Array.prototype.forEach.call(document.getElementById("tests").childNodes,
+  function (ch) {
+    if (ch.dataset && ch.dataset.src) {
+      if (ch.dataset.src === t) {
+        flexo.safe_remove(ch);
+      } else {
+        ch.appendChild(flexo.$a({ href: "?t=%0".fmt(ch.dataset.src) },
+          ch.dataset.src));
+      }
+    }
+  });
+
+mocha.setup("bdd");
+flexo.promise_script(src, document.body).then(function () {
+  mocha.run();
+}, function (e) {
+  alert("Error loading test script %0".fmt(src));
+});
+    </script>
+  </body>
+</html>

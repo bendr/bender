@@ -505,6 +505,7 @@ describe("Deserialization", function () {
   });
 
   describe("bender.Environment.deserialize_foreign(elem)", function () {
+
     it("deserializes a foreign element (i.e., outside of the Bender namespace) elem", function (done) {
       var elem = doc.createElementNS(flexo.ns.html, "p");
       elem.setAttribute("class", "foo");
@@ -517,6 +518,7 @@ describe("Deserialization", function () {
         done();
       });
     });
+
     it("deserializes its contents as well", function (done) {
       var p = doc.createElementNS(flexo.ns.html, "p");
       p.appendChild(doc.createTextNode("test"));
@@ -533,10 +535,10 @@ describe("Deserialization", function () {
         assert.strictEqual(div_._children.length, 2);
         assert.ok(div_._children[0] instanceof bender.DOMElement);
         assert.ok(div_._children[0].name, "p");
-        assert.strictEqual(div_._children[1]._children[0].text, "test again");
-        done();
-      });
+        assert.strictEqual(div_._children[1]._children[0].text(), "test again");
+      }).then(flexo.discard(done), done);
     });
+
   });
 
 });

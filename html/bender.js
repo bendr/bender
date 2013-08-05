@@ -9,17 +9,7 @@
 
   var foreach = Array.prototype.forEach;
 
-  // Create a new constructor inheriting from a prototype
-  function ext(Proto, k) {
-    if (!k) {
-      k = function () {};
-    }
-    k.prototype = new Proto();
-    k.prototype.constructor = k;
-    return k;
-  }
-
-  function ext_(constructor, Proto) {
+  function _class(constructor, Proto) {
     constructor.prototype = new Proto();
     Object.defineProperty(constructor.prototype, "constructor",
         { value: constructor });
@@ -291,7 +281,7 @@
   };
 
   // Create a new component in a scope
-  ext_(bender.Component = function (scope) {
+  _class(bender.Component = function (scope) {
     this.init();
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
@@ -749,12 +739,12 @@
     return vertex;
   }
 
-  bender.Link = ext(bender.Element, function (environment, rel, href) {
+  _class(bender.Link = function (environment, rel, href) {
     this.init();
     this.environment = environment;
     flexo.make_readonly(this, "rel", flexo.safe_trim(rel).toLowerCase());
     flexo.make_readonly(this, "href", href);
-  });
+  }, bender.Element);
 
   bender.Environment.prototype.deserialize.link = function (elem) {
     return this.deserialize_children(new bender.Link(this,
@@ -805,9 +795,9 @@
   };
 
   // View of a component
-  bender.View = ext(bender.Element, function () {
+  _class(bender.View = function () {
     this.init();
-  });
+  }, bender.Element);
 
   make_accessor(bender.View.prototype, "stack", normalize_stack);
 
@@ -841,9 +831,9 @@
     });
   };
 
-  bender.Content = ext(bender.Element, function () {
+  _class(bender.Content = function () {
     this.init();
-  });
+  }, bender.Element);
 
   bender.Environment.prototype.deserialize.content = function (elem) {
     return this.deserialize_children(new bender.Content()
@@ -864,7 +854,7 @@
   };
 
   // Create a new attribute with an optional namespace and a name
-  bender.Attribute = ext(bender.Element, function (ns, name) {
+  _class(bender.Attribute = function (ns, name) {
     this.init();
     if (arguments.length < 2) {
       this._name = flexo.safe_string(ns);
@@ -872,7 +862,7 @@
       this._ns = flexo.safe_string(ns);
       this._name = flexo.safe_string(name);
     }
-  });
+  }, bender.Element);
 
   make_accessor(bender.Attribute.prototype, "name", flexo.safe_string);
   make_accessor(bender.Attribute.prototype, "ns", flexo.safe_string);
@@ -904,10 +894,10 @@
 
   // Bender Text element. Although it can only contain text, it can also have an
   // id so that it can be referred to by a watch.
-  bender.Text = ext(bender.Element, function (text) {
+  _class(bender.Text = function (text) {
     this.init();
     this._text = flexo.safe_string(text);
-  });
+  }, bender.Element);
 
   make_accessor(bender.Text.prototype, "text", flexo.safe_string);
 
@@ -922,12 +912,12 @@
     return target.appendChild(node);
   };
 
-  bender.DOMElement = ext(bender.Element, function (ns, name) {
+  _class(bender.DOMElement = function (ns, name) {
     this.init();
     flexo.make_readonly(this, "ns", ns);
     flexo.make_readonly(this, "name", flexo.safe_string(name));
     flexo.make_readonly(this, "attrs", {});
-  });
+  }, bender.Element);
 
   bender.DOMElement.prototype.attr = function (ns, name, value) {
     if (arguments.length > 2) {
@@ -958,10 +948,10 @@
       });
   };
 
-  bender.DOMTextNode = ext(bender.Element, function (text) {
+  _class(bender.DOMTextNode = function () {
     this.init();
     this._instances = [];
-  });
+  }, bender.Element);
 
   bender.DOMTextNode.prototype.text = function (text) {
     if (arguments.length > 0) {
@@ -984,10 +974,10 @@
     return node;
   };
 
-  bender.Property = ext(bender.Element, function (name) {
+  _class(bender.Property = function (name) {
     this.init();
     flexo.make_readonly(this, "name", flexo.safe_string(name));
-  });
+  }, bender.Element);
 
   make_accessor(bender.Property.prototype, "as", normalize_as);
   make_accessor(bender.Property.prototype, "value");
@@ -1002,11 +992,11 @@
         .id(elem.getAttribute("id")), elem);
   };
 
-  bender.Watch = ext(bender.Element, function () {
+  _class(bender.Watch = function () {
     this.init();
     this.gets = [];
     this.sets = [];
-  });
+  }, bender.Element);
 
   make_accessor(bender.Watch.prototype, "disabled", false);
 
@@ -1048,18 +1038,18 @@
     });
   };
 
-  bender.GetSet = ext(bender.Element);
+  _class(bender.GetSet = function () {}, bender.Element);
   make_accessor(bender.GetSet.prototype, "as", normalize_as);
   make_accessor(bender.GetSet.prototype, "disabled", false);
   make_accessor(bender.GetSet.prototype, "value");
 
-  bender.Get = ext(bender.GetSet);
+  _class(bender.Get = function () {}, bender.GetSet);
 
-  bender.GetDOMEvent = ext(bender.Get, function (type, select) {
+  _class(bender.GetDOMEvent = function (type, select) {
     this.init();
     flexo.make_readonly(this, "type", type);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Get);
 
   make_accessor(bender.Get.prototype, "stop_propagation");
   make_accessor(bender.Get.prototype, "prevent_default");
@@ -1072,23 +1062,23 @@
     }
   };
 
-  bender.GetEvent = ext(bender.Get, function (type, select) {
+  _class(bender.GetEvent = function (type, select) {
     this.init();
     flexo.make_readonly(this, "type", type);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Get);
 
-  bender.GetProperty = ext(bender.Get, function (name, select) {
+  _class(bender.GetProperty = function (name, select) {
     this.init();
     flexo.make_readonly(this, "name", name);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Get);
 
-  bender.GetAttribute = ext(bender.Get, function (name, select) {
+  _class(bender.GetAttribute = function (name, select) {
     this.init();
     flexo.make_readonly(this, "name", name);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Get);
 
   // Render can be called from within a watch, with the first parameter being a
   // component, or from within a view, with the first parameter actually being a
@@ -1127,25 +1117,25 @@
         .disabled(flexo.is_true(elem.getAttribute("disabled"))), elem);
   };
 
-  bender.Set = ext(bender.GetSet);
+  _class(bender.Set = function () {}, bender.GetSet);
 
-  bender.SetDOMEvent = ext(bender.Set, function (type, select) {
+  _class(bender.SetDOMEvent = function (type, select) {
     this.init();
     flexo.make_readonly(this, "type", type);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Set);
 
-  bender.SetEvent = ext(bender.Set, function (type, select) {
+  _class(bender.SetEvent = function (type, select) {
     this.init();
     flexo.make_readonly(this, "type", type);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Set);
 
-  bender.SetDOMProperty = ext(bender.Set, function (name, select) {
+  _class(bender.SetDOMProperty = function (name, select) {
     this.init();
     flexo.make_readonly(this, "name", name);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Set);
 
   bender.SetDOMProperty.prototype.render = function (component) {
     var target = component.scope[this.select];
@@ -1161,23 +1151,23 @@
     }
   };
 
-  bender.SetProperty = ext(bender.Set, function (name, select) {
+  _class(bender.SetProperty = function (name, select) {
     this.init();
     flexo.make_readonly(this, "name", name);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Set);
 
-  bender.SetDOMAttribute = ext(bender.Set, function (name, select) {
+  _class(bender.SetDOMAttribute = function (name, select) {
     this.init();
     flexo.make_readonly(this, "name", name);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Set);
 
-  bender.SetAttribute = ext(bender.Set, function (name, select) {
+  _class(bender.SetAttribute = function (name, select) {
     this.init();
     flexo.make_readonly(this, "name", name);
     flexo.make_readonly(this, "select", select);
-  });
+  }, bender.Set);
 
   bender.Environment.prototype.deserialize.set = function (elem) {
     var set;
@@ -1219,12 +1209,12 @@
     edge.source = this;
   };
 
-  bender.WatchVertex = ext(bender.Vortex, function (watch, component) {
+  _class(bender.WatchVertex = function (watch, component) {
     this.init();
     this.watch = watch;
     this.component = component;
     this.enabled = watch.enabled;
-  });
+  }, bender.Vortex);
 
   bender.WatchVertex.prototype.match_vertex = function (v) {
     return v instanceof bender.WatchVertex && v.watch === this.watch;
@@ -1232,12 +1222,12 @@
 
   // Create a new property vertex; component and value are set later when adding
   // the property to a component or rendering that component.
-  bender.PropertyVertex = ext(bender.Vortex, function (component, property) {
+  _class(bender.PropertyVertex = function (component, property) {
     this.init();
     this.component = component;
     this.property = property;
     component.property_vertices[property.name] = this;
-  });
+  }, bender.Vortex);
 
   bender.PropertyVertex.prototype.added = function () {
     // jshint eqnull: true
@@ -1252,11 +1242,11 @@
       (this.component === v.component) && (this.property === v.property);
   };
 
-  bender.DOMEventVertex = ext(bender.Vortex, function (get, target) {
+  _class(bender.DOMEventVertex = function (get, target) {
     this.init();
     this.get = get;
     target.addEventListener(get.type, this, false);
-  });
+  }, bender.Vortex);
 
   bender.DOMEventVertex.prototype.handleEvent = function (e) {
     if (this.get.prevent_default) {
@@ -1281,12 +1271,12 @@
   };
 
   // Edge from the vertex rendered for a get for a component
-  bender.WatchEdge = ext(bender.Edge, function (get, component, dest) {
+  _class(bender.WatchEdge = function (get, component, dest) {
     this.get = get;
     this.enabled = get.enabled;
     this.component = component;
     this.set_dest(dest);
-  });
+  }, bender.Edge);
 
   // Follow a watch edge, provided that:
   //   * the parent watch is enabled;
@@ -1300,14 +1290,14 @@
     }
   };
 
-  bender.DOMPropertyEdge = ext(bender.Edge, function (set, target, component) {
+  _class(bender.DOMPropertyEdge = function (set, target, component) {
     this.set = set;
     this.target = target;
     this.property = set.property;
     this.component = component;
     this.enabled = this.set.enabled;
     this.set_dest(component.scope.$environment.vortex);
-  });
+  }, bender.Edge);
 
   bender.DOMPropertyEdge.prototype.follow = function (input) {
     if (this.enabled && (!this.set.match || this.set.match.call(input))) {
@@ -1318,12 +1308,12 @@
     }
   };
 
-  bender.InlinePropertyEdge = ext(bender.Edge, function (target, ref, environment) {
+  _class(bender.InlinePropertyEdge = function (target, ref, environment) {
     this.target = target;
     this.ref = ref;
     this.last = ref && ref.precedingSibling || target.lastChild;
     this.set_dest(environment.vortex);
-  });
+  }, bender.Edge);
 
   bender.InlinePropertyEdge.prototype.follow = function (input) {
     input.forEach(function (ch) {
@@ -1364,19 +1354,6 @@
     }
     bindings[""] = { value: v };
     return bindings;
-  }
-
-  // Parse a value attribute for a get or set given its `as` attribute
-  function get_set_value(value, as) {
-    try {
-      return as === "string" ? flexo.funcify(value) :
-        as === "number" ? flexo.funcify(flexo.to_number(value)) :
-        as === "boolean" ? flexo.funcify(flexo.is_true(value)) :
-        as === "json" ? flexo.funcify(JSON.parse(value)) :
-          new Function("input", "return " + value);
-    } catch (e) {
-      console.log("Could not parse value \"%0\" as %1".fmt(value, as));
-    }
   }
 
   // Normalize the `as` property of an element so that it matches a known value.
