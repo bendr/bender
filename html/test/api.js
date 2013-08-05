@@ -123,11 +123,41 @@ describe("Javascript API", function () {
     });
 
     describe("bender.DOMElement", function () {
-      it("is pending");
+
+      it("is created with a namespace and a name with new bender.DOMElement(ns, name)", function () {
+        var elem = new bender.DOMElement(flexo.ns.html, "p");
+        assert.ok(elem instanceof bender.DOMElement);
+        assert.strictEqual(elem.ns, flexo.ns.html);
+        assert.strictEqual(elem.name, "p");
+        assert.deepEqual(elem.attrs, {});
+      });
+
+      it("sets attributes with elem.attr(ns, name, value)", function () {
+        var elem = new bender.DOMElement(flexo.ns.html, "p")
+          .attr("", "class", "foo")
+          .attr("", "data-baz", "fum");
+        assert.ok(typeof elem.attrs[""] === "object");
+        assert.strictEqual(elem.attrs[""].class, "foo");
+        assert.strictEqual(elem.attr("", "data-baz"), "fum");
+        assert.ok(!elem.attrs[""].hasOwnProperty("id"));
+      });
+
     });
 
     describe("bender.DOMTextNode", function () {
-      it("is pending");
+
+      it("is created with no text with new bender.DOMTextNode()", function () {
+        var node = new bender.DOMTextNode();
+        assert.ok(node instanceof bender.DOMTextNode);
+        assert.strictEqual(node._text);
+        assert.strictEqual(node.text(), "");
+      });
+
+      it("set text with node.text()", function () {
+        var node = new bender.DOMTextNode().text("Hello there");
+        assert.strictEqual(node.text(), "Hello there");
+      });
+
     });
 
     describe("bender.Get", function () {
