@@ -10,11 +10,19 @@
   var foreach = Array.prototype.forEach;
 
   // Create a new constructor inheriting from a prototype
-  function ext(Proto, f) {
-    var constructor = f || function () {};
+  function ext(Proto, k) {
+    if (!k) {
+      k = function () {};
+    }
+    k.prototype = new Proto();
+    k.prototype.constructor = k;
+    return k;
+  }
+
+  function ext_(constructor, Proto) {
     constructor.prototype = new Proto();
-    constructor.constructor = constructor;
-    return constructor;
+    Object.defineProperty(constructor.prototype, "constructor",
+        { value: constructor });
   }
 
   // Make an accessor for a property. The accessor can be called with no
@@ -284,7 +292,7 @@
   };
 
   // Create a new component in a scope
-  bender.Component = ext(bender.Element, function (scope) {
+  ext_(bender.Component = function (scope) {
     this.init();
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
@@ -300,7 +308,7 @@
     this.properties = {};         // property values (with associated vertices)
     this.derived = [];            // derived components
     this.instances = [];          // rendered instances
-  });
+  }, bender.Element);
 
   bender.Component.prototype.on = function (type, handler) {
     if (typeof handler === "string") {
@@ -452,7 +460,7 @@
     }
     return this.render_links(chain, target).then(function () {
       this.render_properties(chain);
-      this.render_view(chain, target);
+      return this.render_view(chain, target);
     }.bind(this)).then(function () {
       this.render_watches(chain);
       return chain[0];
@@ -533,8 +541,10 @@
       instance.component.watches.forEach(function (watch) {
         watch.render(instance);
       });
+      console.log("[%0] (%1) Did render, $first:"
+        .fmt(this.index, chain[0].index), chain[0].scope.$first);
       on(instance, "did-render");
-    });
+    }, this);
     return chain[0];
   };
 
@@ -855,7 +865,7 @@
   };
 
   // Create a new attribute with an optional namespace and a name
-  bender.Attribute = function (ns, name) {
+  bender.Attribute = ext(bender.Element, function (ns, name) {
     this.init();
     if (arguments.length < 2) {
       this._name = flexo.safe_string(ns);
@@ -863,9 +873,7 @@
       this._ns = flexo.safe_string(ns);
       this._name = flexo.safe_string(name);
     }
-  };
-
-  bender.Attribute.prototype = new bender.Element();
+  });
 
   make_accessor(bender.Attribute.prototype, "name", flexo.safe_string);
   make_accessor(bender.Attribute.prototype, "ns", flexo.safe_string);
@@ -897,12 +905,10 @@
 
   // Bender Text element. Although it can only contain text, it can also have an
   // id so that it can be referred to by a watch.
-  bender.Text = function (text) {
+  bender.Text = ext(bender.Element, function (text) {
     this.init();
     this._text = flexo.safe_string(text);
-  };
-
-  bender.Text.prototype = new bender.Element();
+  });
 
   make_accessor(bender.Text.prototype, "text", flexo.safe_string);
 
@@ -947,7 +953,7 @@
       }
     }
     this.render_id(elem, stack);
-    return bender.View.prototype.render.call(this, target, stack)
+    return bender.View.prototype.render.call(this, elem, stack)
       .then(function () {
         target.appendChild(elem);
       });
@@ -979,12 +985,10 @@
     return node;
   };
 
-  bender.Property = function (name) {
+  bender.Property = ext(bender.Element, function (name) {
     this.init();
     flexo.make_readonly(this, "name", flexo.safe_string(name));
-  };
-
-  bender.Property.prototype = new bender.Element();
+  });
 
   make_accessor(bender.Property.prototype, "as", normalize_as);
   make_accessor(bender.Property.prototype, "value");
@@ -999,13 +1003,11 @@
         .id(elem.getAttribute("id")), elem);
   };
 
-  bender.Watch = function () {
+  bender.Watch = ext(bender.Element, function () {
     this.init();
     this.gets = [];
     this.sets = [];
-  };
-
-  bender.Watch.prototype = new bender.Element();
+  });
 
   make_accessor(bender.Watch.prototype, "disabled", false);
 

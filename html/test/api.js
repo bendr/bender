@@ -126,6 +126,7 @@ describe("Javascript API", function () {
 
       it("is created with a namespace and a name with new bender.DOMElement(ns, name)", function () {
         var elem = new bender.DOMElement(flexo.ns.html, "p");
+        assert.ok(elem instanceof bender.DOMElement);
         assert.strictEqual(elem.ns, flexo.ns.html);
         assert.strictEqual(elem.name, "p");
         assert.deepEqual(elem.attrs, {});
@@ -147,6 +148,7 @@ describe("Javascript API", function () {
 
       it("is created with no text with new bender.DOMTextNode()", function () {
         var node = new bender.DOMTextNode();
+        assert.ok(node instanceof bender.DOMTextNode);
         assert.strictEqual(node._text);
         assert.strictEqual(node.text(), "");
       });
