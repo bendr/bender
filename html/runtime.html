@@ -19,12 +19,12 @@ bender.load_component().then(function (component) {
   ["will-render", "did-render", "will-init", "did-init", "ready"
   ].forEach(function (type) {
     component.on(type, function (instance, type_) {
-      console.log("[%0] (%1) %2".fmt(instance.component.index, instance.index,
+      console.log("[%0] (%1) *%2".fmt(instance.component.index, instance.index,
         type_));
     });
   });
   component.render_component(document.body).then(function (instance) {
-    console.log("[%0] (%1) Rendered"
+    console.log("[%0] (%1) *** Rendered"
       .fmt(instance.component.index, instance.index));
   });
 }, function (reason) {

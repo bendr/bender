@@ -257,4 +257,25 @@ describe("Javascript API", function () {
 
   });
 
+  describe("Rendering", function () {
+
+    var env = new bender.Environment();
+
+    describe("Rendering links", function () {
+
+      it("Renders a script link into a HTML target as a <script> element", function (done) {
+        var link = new bender.Link(env, "script", "a1.js");
+        link.render(document.head).then(function (link_) {
+          assert.strictEqual(link_, link);
+          assert.ok(link.rendered instanceof window.Node);
+          assert.strictEqual(link.rendered.localName, "script");
+          assert.strictEqual(window.a1, "a1");
+          delete window.a1;
+        }).then(flexo.discard(done), done);
+      });
+
+    });
+
+  });
+
 });

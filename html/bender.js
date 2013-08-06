@@ -9,6 +9,7 @@
 
   var foreach = Array.prototype.forEach;
 
+  // Pseudo-macro for prototype inheritance
   function _class(constructor, Proto) {
     constructor.prototype = new Proto();
     Object.defineProperty(constructor.prototype, "constructor",
@@ -73,7 +74,7 @@
   bender.Environment.prototype.component = function () {
     var component = new bender.Component(this.scope);
     component.index = this.components.length;
-    this.components.push(this);
+    this.components.push(component);
     return component;
   };
 
@@ -429,7 +430,7 @@
   bender.Component.prototype.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     return this.render(fragment).then(function (instance) {
-      instance.component.init_properties(instance);
+      // instance.component.init_properties(instance);
       target.insertBefore(fragment, ref);
       instance.scope.$target = target;
       return instance;
@@ -450,13 +451,17 @@
       chain[0].parent_component = stack[stack.i];
       stack[stack.i].child_components.push(chain[0]);
     }
-    return this.render_links(chain, target).then(function () {
+    /*return this.render_links(chain, target).then(function () {
       this.render_properties(chain);
       return this.render_view(chain, target);
     }.bind(this)).then(function () {
+      console.log("--- [%0] (%1)".fmt(this.index, chain[0].index));
       this.render_watches(chain);
       return chain[0];
-    }.bind(this));
+    }.bind(this));*/
+    return this.render_view(chain, target).then(function () {
+      return chain[0];
+    });
   };
 
   var push = Array.prototype.push;
@@ -762,15 +767,15 @@
   // resume rendering (see script rendering below.)
   bender.Link.prototype.render = function (target) {
     if (this.environment.urls[this.href]) {
-      return;
+      return this.environment.urls[this.href];
     }
     this.environment.urls[this.href] = this;
     var render = bender.Link.prototype.render[this.rel];
     if (typeof render === "function") {
       return render.call(this, target);
-    } else {
-      console.warn("Cannot render “%0” link".fmt(this.rel));
     }
+    console.warn("Cannot render “%0” link".fmt(this.rel));
+    return this;
   };
 
   // Scripts are handled for HTML only by default. Override this method to
@@ -778,10 +783,14 @@
   bender.Link.prototype.render.script = function (target) {
     var ns = target.ownerDocument.documentElement.namespaceURI;
     if (ns === flexo.ns.html) {
-      return flexo.promise_script(this.href, target.ownerDocument.head);
-    } else {
-      console.warn("Cannot render script link for namespace %0".fmt(ns));
+      return flexo.promise_script(this.href, target.ownerDocument.head)
+        .then(function (script) {
+          flexo.make_readonly(this, "rendered", script);
+          return this;
+        }.bind(this));
     }
+    console.warn("Cannot render script link for namespace %0".fmt(ns));
+    return this;
   };
 
   // Stylesheets are handled for HTML only by default. Override this method to
