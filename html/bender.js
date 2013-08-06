@@ -503,13 +503,15 @@
   bender.Component.prototype.render_view = function (chain, target) {
     var stack = [];
     flexo.hcaErof(chain, function (c) {
-      var mode = c.scope.$view ? c.scope.$view.stack() : "top";
-      if (mode === "replace") {
-        stack = [c];
-      } else if (mode === "top") {
-        stack.push(c);
-      } else {
-        stack.unshift(c);
+      if (c.scope.$view) {
+        var mode = c.scope.$view.stack();
+        if (mode === "replace") {
+          stack = [c];
+        } else if (mode === "top") {
+          stack.push(c);
+        } else {
+          stack.unshift(c);
+        }
       }
     });
     stack.i = 0;
@@ -519,7 +521,8 @@
         ++stack.i);
     if (stack.i < n && stack[stack.i].scope.$view) {
       var instance = stack[stack.i];
-      console.log("[%0] (%1) Rendering view".fmt(this.index, instance.index));
+      console.log("[%0] (%1) Rendering view in".fmt(this.index, instance.index),
+          target);
       return instance.scope.$view.render(target, stack);
     }
     return new flexo.Promise().fulfill();
