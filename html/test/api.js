@@ -263,7 +263,7 @@ describe("Javascript API", function () {
 
     describe("Rendering links", function () {
 
-      it("Renders a script link into a HTML target as a <script> element", function (done) {
+      it("Renders a script link into a HTML target as a <script> element and return a promise", function (done) {
         var link = new bender.Link(env, "script", "a1.js");
         link.render(document.head).then(function (link_) {
           assert.strictEqual(link_, link);
@@ -272,6 +272,15 @@ describe("Javascript API", function () {
           assert.strictEqual(window.a1, "a1");
           delete window.a1;
         }).then(flexo.discard(done), done);
+      });
+
+      it("Renders a stylesheet link into a HTML target as a <link> element", function () {
+        var link = new bender.Link(env, "stylesheet", "test-link.css");
+        var link_ = link.render(document.head);
+        assert.strictEqual(link_, link);
+        assert.ok(link.rendered instanceof window.Node);
+        assert.strictEqual(link.rendered.localName, "link");
+        assert.strictEqual(link.rendered.rel, link.rel);
       });
 
     });

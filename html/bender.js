@@ -144,7 +144,8 @@
   // element e, then return e
   bender.Environment.prototype.deserialize_children = function (e, p) {
     var append = e.child.bind(e);
-    return flexo.promise_fold(p.childNodes, function (e_, ch) {
+    return flexo.promise_fold(p.childNodes, function (_, ch) {
+      // jshint unused: false
       return flexo.then(this.deserialize(ch), append);
     }, e, this);
   };
@@ -451,15 +452,11 @@
       chain[0].parent_component = stack[stack.i];
       stack[stack.i].child_components.push(chain[0]);
     }
-    /*return this.render_links(chain, target).then(function () {
-      this.render_properties(chain);
-      return this.render_view(chain, target);
-    }.bind(this)).then(function () {
-      console.log("--- [%0] (%1)".fmt(this.index, chain[0].index));
-      this.render_watches(chain);
-      return chain[0];
-    }.bind(this));*/
-    return this.render_view(chain, target).then(function () {
+    return this.render_links(chain, target).then(function () {
+      chain[0].component.render_properties(chain);
+      return chain[0].component.render_view(chain, target);
+    }).then(function () {
+      chain[0].component.render_watches(chain);
       return chain[0];
     });
   };
@@ -541,9 +538,9 @@
         watch.render(instance);
       });
       console.log("[%0] (%1) Did render, $first:"
-        .fmt(this.index, chain[0].index), chain[0].scope.$first);
+        .fmt(instance.component.index, instance.index), instance.scope.$first);
       on(instance, "did-render");
-    }, this);
+    });
     return chain[0];
   };
 
@@ -803,9 +800,11 @@
       link.setAttribute("rel", "stylesheet");
       link.setAttribute("href", this.href);
       document.head.appendChild(link);
+      flexo.make_readonly(this, "rendered", link);
     } else {
       console.warn("Cannot render stylesheet link for namespace %0".fmt(ns));
     }
+    return this;
   };
 
   // View of a component
@@ -841,7 +840,7 @@
   bender.View.prototype.render = function (target, stack) {
     return flexo.promise_fold(this._children, function (_, ch) {
       // jshint unused: false
-      ch.render(target, stack);
+      return ch.render(target, stack);
     });
   };
 
