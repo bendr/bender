@@ -60,6 +60,9 @@ describe("Bender tests", function () {
     ok("sub-component-inline.xml", function (instance) {
       assert.ok(instance.scope.$target.textContent.match(/hello, world/i));
     });
+    ok("show-property.xml", function (instance) {
+      assert.ok(instance.scope.$target.textContent.match(/\bx\s+=\s+✌\b/));
+    });
   });
 
   describe("Failure", function () {

@@ -263,24 +263,71 @@ describe("Javascript API", function () {
 
     describe("Rendering links", function () {
 
-      it("Renders a script link into a HTML target as a <script> element and return a promise", function (done) {
-        var link = new bender.Link(env, "script", "a1.js");
-        link.render(document.head).then(function (link_) {
+      describe("bender.Link.prototype.render(target)", function () {
+
+        it("renders a script link into a HTML target as a <script> element and return a promise", function (done) {
+          var link = new bender.Link(env, "script", "a1.js");
+          link.render(document.head).then(function (link_) {
+            assert.strictEqual(link_, link);
+            assert.ok(link.rendered instanceof window.Node);
+            assert.strictEqual(link.rendered.localName, "script");
+            assert.strictEqual(window.a1, "a1");
+            delete window.a1;
+          }).then(flexo.discard(done), done);
+        });
+
+        it("renders a stylesheet link into a HTML target as a <link> element", function () {
+          var link = new bender.Link(env, "stylesheet", "test-link.css");
+          var link_ = link.render(document.head);
           assert.strictEqual(link_, link);
           assert.ok(link.rendered instanceof window.Node);
-          assert.strictEqual(link.rendered.localName, "script");
-          assert.strictEqual(window.a1, "a1");
-          delete window.a1;
-        }).then(flexo.discard(done), done);
+          assert.strictEqual(link.rendered.localName, "link");
+          assert.strictEqual(link.rendered.rel, link.rel);
+        });
+
       });
 
-      it("Renders a stylesheet link into a HTML target as a <link> element", function () {
-        var link = new bender.Link(env, "stylesheet", "test-link.css");
-        var link_ = link.render(document.head);
-        assert.strictEqual(link_, link);
-        assert.ok(link.rendered instanceof window.Node);
-        assert.strictEqual(link.rendered.localName, "link");
-        assert.strictEqual(link.rendered.rel, link.rel);
+      describe("bender.Component.prototype.render_links(chain, target)", function () {
+
+        it("renders all links of the component chain ancestor-first (then in document order)", function (done) {
+          var env = new bender.Environment();
+          var a = env.component().link("script", "a1.js");
+          var b = env.component().extends(a).link("script", "b1.js");
+          b.render_links(b.chain(), document.body).then(function () {
+            assert.ok(a._links[0] instanceof bender.Link);
+            assert.ok(a._links[0].rendered instanceof window.Node);
+            assert.strictEqual(a._links[0].rendered.localName, "script");
+            assert.ok(b._links[0] instanceof bender.Link);
+            assert.ok(b._links[0].rendered instanceof window.Node);
+            assert.strictEqual(b._links[0].rendered.localName, "script");
+            assert.strictEqual(window.a1, "a1");
+            assert.strictEqual(window.b1, "a1/b1");
+          }).then(flexo.discard(done), done);
+        });
+
+      });
+
+    });
+
+    describe("Rendering properties", function () {
+
+      it("own properties are rendered to a vertex as soon as the property is added to a component", function () {
+        var a = env.component().property("x", 1);
+        assert.ok(a._own_properties.x instanceof bender.Property);
+        assert.strictEqual(a._own_properties.x.value(), 1);
+        assert.ok(a._own_properties.x._vertex instanceof bender.PropertyVertex);
+        assert.strictEqual(a.properties.hasOwnProperty("x"), true);
+      });
+
+      describe("bender.Component.prototype.render_properties(chain)", function () {
+
+        it("render properties for the derived instance", function () {
+          var a = env.component().property("x", 1);
+          var chain = a.chain();
+          a.render_properties(chain);
+          assert.strictEqual(chain[0].properties.hasOwnProperty("x"), true);
+        });
+
       });
 
     });

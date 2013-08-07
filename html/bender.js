@@ -292,13 +292,13 @@
     });
     this._on = {};                 // on-* attributes
     this._own_properties = {};     // property nodes
-    this.links = [];              // link nodes
+    this._links = [];              // link nodes
     this.watches = [];            // watch nodes
     this.child_components = [];   // all child components (in views/properties)
     this.property_vertices = {};  // property vertices for each property
     this.properties = {};         // property values (with associated vertices)
     this.derived = [];            // derived components
-    this.instances = [];          // rendered instances
+    this._instances = [];          // rendered instances
   }, bender.Element);
 
   bender.Component.prototype.on = function (type, handler) {
@@ -431,23 +431,29 @@
   bender.Component.prototype.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     return this.render(fragment).then(function (instance) {
-      // instance.component.init_properties(instance);
+      instance.component.init_properties(instance);
       target.insertBefore(fragment, ref);
       instance.scope.$target = target;
       return instance;
     });
   };
 
-  // Render this component to a concrete instance for the given target.
-  bender.Component.prototype.render = function (target, stack) {
+  // Create the component chain for rendering
+  bender.Component.prototype.chain = function () {
     for (var chain = [], p = this; p; p = p._prototype) {
-      var r = new bender.ConcreteInstance(p);
+      var concrete = new bender.ConcreteInstance(p);
       if (chain.length > 0) {
-        chain[chain.length - 1]._prototype = r;
+        chain[chain.length - 1]._prototype = concrete;
       }
-      chain.push(r);
+      chain.push(concrete);
     }
     chain[0].__chain = chain;
+    return chain;
+  };
+
+  // Render this component to a concrete instance for the given target.
+  bender.Component.prototype.render = function (target, stack) {
+    var chain = this.chain();
     if (stack) {
       chain[0].parent_component = stack[stack.i];
       stack[stack.i].child_components.push(chain[0]);
@@ -469,7 +475,7 @@
   bender.Component.prototype.render_links = function (chain, target) {
     var links = [];
     flexo.hcaErof(chain, function (instance) {
-      push.apply(links, instance.component.links);
+      push.apply(links, instance.component._links);
     });
     console.log("[%0] Rendering links, %1 total".fmt(this.index, links.length));
     return flexo.promise_fold(links, function (_, link) {
@@ -550,7 +556,16 @@
       console.log("[%0] (%1) Intializing properties"
         .fmt(i.component.index, i.index));
       on(i, "will-init");
-      // init properties
+      if (i.component._instances.length === 1) {
+        console.log("[%0] Intializing properties".fmt(i.component.index));
+        Object.keys(i.component._own_properties).forEach(function (p) {
+          i.component.properties[p] = i.component._own_properties[p].value();
+        });
+      } else {
+        Object.keys(i.component._own_properties).forEach(function (p) {
+          i.properties[p] = i.component.properties[p]._value;
+        });
+      }
       on(i, "did-init");
     });
     instance.child_components.forEach(function (ch) {
@@ -598,7 +613,7 @@
 
   bender.Component.prototype.append_child = function (child) {
     if (child instanceof bender.Link) {
-      this.links.push(child);
+      this._links.push(child);
     } else if (child instanceof bender.View) {
       if (this.scope.$view) {
         console.error("Component already has a view");
@@ -668,7 +683,7 @@
 
   bender.ConcreteInstance = function (component) {
     this.component = component;
-    component.instances.push(this);
+    component._instances.push(this);
     this.scope = Object.create(component.scope, {
       $that: { enumerable: true, value: component }
     });
@@ -692,7 +707,7 @@
 
   // Render a property for a component (either abstract or concrete)
   function render_own_property(component, property) {
-    var vertex = property.vertex = component.scope.$environment.add_vertex(new
+    var vertex = property._vertex = component.scope.$environment.add_vertex(new
         bender.PropertyVertex(component, property));
     render_property_property(component, property, vertex);
   }
@@ -703,11 +718,11 @@
     Object.defineProperty(component.properties, property.name, {
       enumerable: true,
       get: function () {
-        return vertex.value;
+        return vertex._value;
       },
       set: function (value) {
-        if (value !== vertex.value) {
-          vertex.value = value;
+        if (value !== vertex._value) {
+          vertex._value = value;
           component.scope.$environment.visit_vertex(vertex, value);
         }
       }
@@ -721,7 +736,7 @@
   // severed and edges are redirected (and a new vertex is created.)
   function render_derived_property(component, property, protovertex) {
     if (!protovertex) {
-      protovertex = property.vertex;
+      protovertex = property._vertex;
     }
     var vertex = component.scope.$environment.add_vertex(new
         bender.PropertyVertex(component, property));
@@ -730,7 +745,7 @@
       enumerable: true,
       configurable: true,
       get: function () {
-        return protovertex.value;
+        return protovertex._value;
       },
       set: function (value) {
         vertex.protovertices.forEach(function (v) {
@@ -998,7 +1013,7 @@
   bender.Environment.prototype.deserialize.property = function (elem) {
     var name = elem.getAttribute("name");
     var property = new bender.Property(name);
-    property.__value = elem.hasAttribute("value") ?
+    property._value = elem.hasAttribute("value") ?
       elem.getAttribute("value") : shallow_text(elem);
     return this.deserialize_children(property
         .as(elem.getAttribute("as"))
@@ -1016,7 +1031,7 @@
   bender.Environment.prototype.deserialize.watch = function (elem) {
     return this.deserialize_children(new bender.Watch()
         .id(elem.getAttribute("id"))
-        .disabled(flexo.is_true(elem.getAttribute("disabled"))));
+        .disabled(flexo.is_true(elem.getAttribute("disabled"))), elem);
   };
 
   bender.Watch.prototype.append_child = function (child) {
@@ -1087,12 +1102,6 @@
     flexo.make_readonly(this, "select", select);
   }, bender.Get);
 
-  _class(bender.GetAttribute = function (name, select) {
-    this.init();
-    flexo.make_readonly(this, "name", name);
-    flexo.make_readonly(this, "select", select);
-  }, bender.Get);
-
   // Render can be called from within a watch, with the first parameter being a
   // component, or from within a view, with the first parameter actually being a
   // scope
@@ -1101,16 +1110,22 @@
     if (target) {
       var properties = target._own_properties ||
         target.component._own_properties;
-      var vertex = flexo.find_first(properties[this.property].vertices,
+      var vertex = flexo.find_first(properties[this.name].vertices,
           function (v) { return v.component === target; });
       if (!elem) {
         return vertex;
       }
       var env = vertex.component.scope.$environment;
       vertex.add_edge(new bender.InlinePropertyEdge(elem, ref, env));
-      env.visit_vertex(vertex, vertex.value);
+      env.visit_vertex(vertex, vertex._value);
     }
   };
+
+  _class(bender.GetAttribute = function (name, select) {
+    this.init();
+    flexo.make_readonly(this, "name", name);
+    flexo.make_readonly(this, "select", select);
+  }, bender.Get);
 
   bender.Environment.prototype.deserialize.get = function (elem) {
     var get;
@@ -1157,8 +1172,8 @@
       if (this.match) {
         edge.match = this.match;
       }
-      if (this.value) {
-        edge.value = this.value;
+      if (this._value) {
+        edge._value = this._value;
       }
       return edge;
     }
