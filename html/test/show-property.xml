@@ -7,7 +7,7 @@
     </html:p>
   </view>
   <watch>
-    <get property="x" value="`^ + `^ + `^"/>
+    <get property="x" value="$in + $in + $in"/>
     <set select="@val" dom-property="textContent"/>
   </watch>
 </component>
