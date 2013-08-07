@@ -366,7 +366,7 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "dynamic");
-          assert.strictEqual(property.__value, "");
+          assert.strictEqual(property._value, "");
         }).then(flexo.discard(done), done);
     });
 
@@ -377,7 +377,7 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "number");
-          assert.strictEqual(property.__value, "42");
+          assert.strictEqual(property._value, "42");
         }).then(flexo.discard(done), done);
     });
 
@@ -388,7 +388,7 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "number");
-          assert.strictEqual(property.__value, "42");
+          assert.strictEqual(property._value, "42");
         }).then(flexo.discard(done), done);
     });
 
