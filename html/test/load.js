@@ -551,4 +551,25 @@ describe("Deserialization", function () {
 
   });
 
+  describe("bender.Environment.deserialize.watch(elem)", function () {
+
+    it("deserializes a watch element, its attributes and contents", function (done) {
+      env.deserialize(flexo.$("bender:watch", { id: "w", disabled: "true" },
+        flexo.$("bender:get", { property: "x" }),
+        flexo.$p("This is a child but not a get or set element"),
+        flexo.$("bender:set", { property: "y", select: "@foo",
+          value: "$in + 1" }))).then(function (watch) {
+        assert.ok(watch instanceof bender.Watch);
+        assert.strictEqual(watch.id(), "w");
+        assert.strictEqual(watch.disabled(), true);
+        assert.strictEqual(watch._children.length, 3);
+        assert.strictEqual(watch.gets.length, 1);
+        assert.ok(watch.gets[0] instanceof bender.GetProperty);
+        assert.strictEqual(watch.sets.length, 1);
+        assert.ok(watch.sets[0] instanceof bender.SetProperty);
+      }).then(flexo.discard(done), done);
+    });
+
+  });
+
 });

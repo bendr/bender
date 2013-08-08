@@ -776,6 +776,9 @@
         }
       }, false);
       return function (f) {
+        if (typeof f !== "function") {
+          throw "Not a function: %0".fmt(f);
+        }
         queue.push(f);
         global_.postMessage(key, "*");
       };

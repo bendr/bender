@@ -250,7 +250,13 @@ describe("Javascript API", function () {
       });
 
       it("adds get or set children in the right list", function () {
-        // var watch = new bender.Watch().child(new bender.
+        var watch = new bender.Watch().child(new bender.GetProperty("x"))
+          .child(new bender.SetDOMProperty("textContent", "$first"));
+        assert.ok(watch instanceof bender.Watch);
+        assert.strictEqual(watch.gets.length, 1);
+        assert.ok(watch.gets[0] instanceof bender.GetProperty);
+        assert.strictEqual(watch.sets.length, 1);
+        assert.ok(watch.sets[0] instanceof bender.SetDOMProperty);
       });
 
     });
@@ -315,7 +321,9 @@ describe("Javascript API", function () {
         var a = env.component().property("x", 1);
         assert.ok(a._own_properties.x instanceof bender.Property);
         assert.strictEqual(a._own_properties.x.value(), 1);
-        assert.ok(a._own_properties.x._vertex instanceof bender.PropertyVertex);
+        var v = a._own_properties.x._vertex;
+        assert.ok(v instanceof bender.PropertyVertex);
+        assert.strictEqual(v.name, "x");
         assert.strictEqual(a.properties.hasOwnProperty("x"), true);
       });
 
