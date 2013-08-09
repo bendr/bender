@@ -4,6 +4,10 @@ var assert = chai.assert;
 
 var env = new bender.Environment();
 
+function contains(str, sub) {
+  return flexo.safe_string(str).trim().replace(/\s+/g, " ").indexOf(sub) >= 0;
+}
+
 function ok(src, f) {
   it(src, function (done) {
     var div = document.getElementById("targets").appendChild(flexo.$div(
@@ -72,7 +76,12 @@ describe("Bender tests", function () {
     });
     ok("show-property.xml", function (instance) {
       return flexo.promise_delay(function () {
-        assert.ok(instance.scope.$target.textContent.match(/\bx\s+=\s+✌✌✌/));
+        assert.ok(contains(instance.scope.$target.textContent, "x = ✌✌✌"));
+      });
+    });
+    ok("binding-watch.xml", function (instance) {
+      return flexo.promise_delay(function () {
+        assert.ok(contains(instance.scope.$target.textContent, "6 × 7 = 42"));
       });
     });
   });

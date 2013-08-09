@@ -1354,7 +1354,7 @@
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       bindings[i][p] = true;
-      return "%0scope[%1].properties[%2]"
+      return "%0this.scope[%1].properties[%2]"
         .fmt(b, flexo.quote(i), flexo.quote(p));
     };
     var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
@@ -1410,7 +1410,7 @@
         var bindings = bindings_dynamic(value);
         if (typeof bindings === "object") {
           this.bindings = bindings;
-          value = bindings[""];
+          value = bindings[""].value;
         }
         if (needs_return) {
           value = "return " + value;

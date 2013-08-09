@@ -1,0 +1,14 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" value="6"/>
+  <property name="y" value="7"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      `x × `y = <html:span id="show-result"/>
+    </html:p>
+  </view>
+  <watch>
+    <get property="x"/>
+    <get property="y"/>
+    <set select="@show-result" dom-property="textContent" value="`x * `y"/>
+  </watch>
+</component>
