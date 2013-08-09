@@ -158,7 +158,10 @@
     if (elem.hasAttribute("value")) {
       set_value_from_string.call(object, elem.getAttribute("value"), true);
     } else {
-      set_value_from_string.call(object, shallow_text(elem));
+      var t = shallow_text(elem);
+      if (/\S/.test(t)) {
+        set_value_from_string.call(object, shallow_text(elem));
+      }
     }
     return this.deserialize_children(object, elem);
   };
@@ -1100,7 +1103,7 @@
     flexo.make_readonly(this, "select", select);
   }, bender.Get);
 
-  bender.GetProperty.prototype.render = function (component, elem, ref) {
+  bender.GetProperty.prototype.render = function (component) {
     var target = component.scope[this.select];
     if (target) {
       return target.property_vertices[this.name];
@@ -1135,20 +1138,20 @@
 
   _class(bender.SetDOMEvent = function (type, select) {
     this.init();
-    flexo.make_readonly(this, "type", type);
-    flexo.make_readonly(this, "select", select);
+    this.type = type;
+    this.select = select;
   }, bender.Set);
 
   _class(bender.SetEvent = function (type, select) {
     this.init();
-    flexo.make_readonly(this, "type", type);
-    flexo.make_readonly(this, "select", select);
+    this.type = type;
+    this.select = select;
   }, bender.Set);
 
   _class(bender.SetDOMProperty = function (name, select) {
     this.init();
-    flexo.make_readonly(this, "name", name);
-    flexo.make_readonly(this, "select", select);
+    this.name = name;
+    this.select = select;
   }, bender.Set);
 
   bender.SetDOMProperty.prototype.render = function (component) {
@@ -1279,6 +1282,7 @@
   // TODO Attribute vertex
   _class(bender.AttributeVertex = function (component, attribute) {
     this.init(component);
+    this.attribute = attribute;
   }, bender.Vortex);
 
 
@@ -1391,37 +1395,35 @@
     // jshint validthis:true
     value = flexo.safe_string(value);
     if (this._as === "boolean") {
-      this.value = flexo.is_true(value);
+      this._value = flexo.is_true(value);
     } else if (this._as === "number") {
-      this.value = flexo.to_number(value);
+      this._value = flexo.to_number(value);
     } else {
       if (this._as === "json") {
         try {
-          this.value = JSON.parse(value);
+          this._value = JSON.parse(value);
         } catch (e) {
           console.warn("Could not parse “%0” as JSON".fmt(value));
-          this.value = undefined;
+          this._value = undefined;
         }
       } else if (this._as === "dynamic") {
         var bindings = bindings_dynamic(value);
         if (typeof bindings === "object") {
-          this._bindings = bindings;
+          this.bindings = bindings;
           value = bindings[""];
-        } else {
-          value = bindings;
         }
         if (needs_return) {
           value = "return " + value;
         }
         try {
-          this.value = new Function("$in", value);
+          this._value = new Function("$in", value);
         } catch (e) {
           console.warn("Could not parse “%0” as Javascript".fmt(value));
         }
       } else {
         // this._as === "string"
         // TODO string bindings
-        this.value = value;
+        this._value = value;
       }
     }
     return this;

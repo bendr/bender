@@ -15,7 +15,7 @@ function ok(src, f) {
         assert.strictEqual(instance.component, component);
         assert.strictEqual(instance.scope.$target, div);
         if (f) {
-          f(instance);
+          return f(instance);
         }
       }).then(flexo.discard(done), done);
     }, function (reason) {
@@ -61,7 +61,9 @@ describe("Bender tests", function () {
       assert.ok(instance.scope.$target.textContent.match(/hello, world/i));
     });
     ok("show-property.xml", function (instance) {
-      assert.ok(instance.scope.$target.textContent.match(/\bx\s+=\s+✌\b/));
+      return flexo.promise_delay(function () {
+        assert.ok(instance.scope.$target.textContent.match(/\bx\s+=\s+✌✌✌/));
+      });
     });
   });
 

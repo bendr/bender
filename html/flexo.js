@@ -948,6 +948,16 @@
     }
   };
 
+  // Delay the execution of `f` by `delay_ms` millisecond (or 0 if the delay is
+  // negative or not a number.)
+  flexo.promise_delay = function (f, delay_ms) {
+    var promise = new flexo.Promise();
+    global_.setTimeout(function () {
+      promise.fulfill(flexo.funcify(f)());
+    }, delay_ms > 0 ? delay_ms : 0);
+    return promise;
+  };
+
   // Create a promise that loads an image. `attrs` is a dictionary of attribute
   // for the image and should contain a `src` property, or can simply be the
   // source attribute value itself. The promise has a pointer to the `img`

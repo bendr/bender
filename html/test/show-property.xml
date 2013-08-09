@@ -2,12 +2,12 @@
   <property name="x" as="string" value="✌"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
-      x = <html:span id="val"
-        style="background-color: #222; color: #f8f9f0; padding: 0.2em 0.4em"/>
+      x = <html:span id="val" style="font-weight: bold; font-size: 72px;
+        background-color: #222; color: #f8f9f0; padding: 0.2em 0.4em"/>
     </html:p>
   </view>
   <watch>
-    <get property="x" value="$in + $in + $in"/>
+    <get property="x" value="flexo.pad('', 3, $in)"/>
     <set select="@val" dom-property="textContent"/>
   </watch>
 </component>
