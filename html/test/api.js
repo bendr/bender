@@ -96,8 +96,8 @@ describe("Javascript API", function () {
 
       it("can define new properties with component.property(name[, value])", function () {
         var component = env.component().property("x");
-        assert.ok(component._own_properties.x instanceof bender.Property);
-        assert.strictEqual(component._own_properties.x.value());
+        assert.ok(component.own_properties.x instanceof bender.Property);
+        assert.strictEqual(component.own_properties.x.value());
       });
 
     });
@@ -319,9 +319,9 @@ describe("Javascript API", function () {
 
       it("own properties are rendered to a vertex as soon as the property is added to a component", function () {
         var a = env.component().property("x", 1);
-        assert.ok(a._own_properties.x instanceof bender.Property);
-        assert.strictEqual(a._own_properties.x.value(), 1);
-        var v = a._own_properties.x._vertex;
+        assert.ok(a.own_properties.x instanceof bender.Property);
+        assert.strictEqual(a.own_properties.x.value(), 1);
+        var v = a.own_properties.x.vertex;
         assert.ok(v instanceof bender.PropertyVertex);
         assert.strictEqual(v.name, "x");
         assert.strictEqual(a.properties.hasOwnProperty("x"), true);
