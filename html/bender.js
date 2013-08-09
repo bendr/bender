@@ -293,7 +293,7 @@
     this.child_components = [];   // all child components (in views/properties)
     this.properties = {};         // property values (with associated vertices)
     this.derived = [];            // derived components
-    this._instances = [];          // rendered instances
+    this.instances = [];          // rendered instances
     this.watches = [];
     this.property_vertices = {};
   }, bender.Element);
@@ -536,10 +536,34 @@
   // Render watches from the chain
   bender.Component.prototype.render_watches = function (chain) {
     console.log("[%0] (%1) Rendering watches".fmt(this.index, chain[0].index));
+    chain.forEach(function (instance) {
+      instance.watches = instance.component.watches.slice();
+      // Render string bindings
+      instance.bindings.forEach(function (bindings) {
+        var watch = new bender.Watch();
+        if (bindings[""].hasOwnProperty("attr")) {
+          watch.append_child(new bender.SetDOMAttribute(bindings[""].ns,
+              bindings[""].attr, bindings[""].target, bindings[""].value));
+        } else {
+          watch.append_child(new bender.SetDOMProperty("textContent",
+              bindings[""].target).value(bindings[""].value));
+        }
+        Object.keys(bindings).forEach(function (id) {
+          if (id) {
+            Object.keys(bindings[id]).forEach(function (prop) {
+              watch.append_child(new bender.GetProperty(prop, id));
+            });
+          }
+        });
+        instance.watches.push(watch);
+      });
+    });
     flexo.hcaErof(chain, function (instance) {
-      instance.component.watches.forEach(function (watch) {
+      instance.watches.forEach(function (watch) {
         watch.render(instance);
       });
+      delete instance.watches;
+      instance.bindings = [];
       console.log("[%0] (%1) Did render, $first:"
         .fmt(instance.component.index, instance.index), instance.scope.$first);
       on(instance, "did-render");
@@ -553,7 +577,7 @@
       console.log("[%0] (%1) Initializing properties"
         .fmt(i.component.index, i.index));
       on(i, "will-init");
-      if (i.component._instances.length === 1) {
+      if (i.component.instances.length === 1) {
         console.log("[%0] Intializing properties".fmt(i.component.index));
         Object.keys(i.component.own_properties).forEach(function (p) {
           i.component.properties[p] = i.component.own_properties[p].value();
@@ -680,7 +704,7 @@
 
   bender.ConcreteInstance = function (component) {
     this.component = component;
-    component._instances.push(this);
+    component.instances.push(this);
     this.scope = Object.create(component.scope, {
       $that: { enumerable: true, value: component }
     });
@@ -692,6 +716,7 @@
     this.index = this.scope.$environment.components.length;
     this.scope.$environment.components.push(this);
     this.property_vertices = {};
+    this.bindings = [];
   };
 
   function on(instance, type) {
@@ -975,7 +1000,7 @@
 
   _class(bender.DOMTextNode = function () {
     this.init();
-    this._instances = [];
+    this.instances = [];
   }, bender.Element);
 
   bender.DOMTextNode.prototype.text = function (text) {
@@ -983,7 +1008,7 @@
       text = flexo.safe_string(text);
       if (text !== this._text) {
         this._text = text;
-        this._instances.forEach(function (d) {
+        this.instances.forEach(function (d) {
           d.textContent = text;
         });
       }
@@ -992,10 +1017,17 @@
     return this._text || "";
   };
 
-  bender.DOMTextNode.prototype.render = function (target) {
-    var node = target.ownerDocument.createTextNode(this._text);
+  bender.DOMTextNode.prototype.render = function (target, stack) {
+    var node = target.ownerDocument.createTextNode("");
+    var bindings = bindings_string(this._text);
+    if (typeof bindings === "string") {
+      node.textContent = bindings;
+    } else {
+      bindings[""].target = node;
+      stack[stack.i].bindings.push(bindings);
+    }
     target.appendChild(node);
-    this._instances.push(node);
+    this.instances.push(node);
     return node;
   };
 
@@ -1155,7 +1187,8 @@
   }, bender.Set);
 
   bender.SetDOMProperty.prototype.render = function (component) {
-    var target = component.scope[this.select];
+    var target = typeof this.select === "string" ?
+      component.scope[this.select] : this.select;
     if (target) {
       var edge = new bender.DOMPropertyEdge(this, target, component);
       if (this.match) {
@@ -1338,6 +1371,7 @@
   var RX_PAREN = "\\(((?:[^\\\\\\)]|\\\\.)*)\\)";
   var RX_CONTEXT = "(?:([#@])(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
+  var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK));
   var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK), "g");
 
   // Identify property bindings for a dynamic property value string. When there
@@ -1364,6 +1398,44 @@
     bindings[""] = { value: v };
     return bindings;
   }
+
+  // Indentify property bindings for a string property value string (e.g. from a
+  // literal attribute or text node.)
+  function bindings_string(value) {
+    var strings = [];
+    var bindings = {};
+    // jshint -W084
+    for (var remain = value, m; m = remain.match(RX_PROP);
+        remain = m.input.substr(m.index + m[0].length)) {
+      var q = m.input.substr(0, m.index) + m[1];
+      if (q) {
+        strings.push(flexo.quote(q));
+      }
+      var id = (m[2] || "") + (m[3] || m[4] || "$this").replace(/\\(.)/g, "$1");
+      if (!bindings.hasOwnProperty(id)) {
+        bindings[id] = {};
+      }
+      var prop = (m[5] || m[6]).replace(/\\(.)/g, "$1");
+      bindings[id][prop] = true;
+      strings.push("flexo.safe_string(this.scope[%0].properties[%1])"
+          .fmt(flexo.quote(id), flexo.quote(prop)));
+    }
+    if (Object.keys(bindings).length === 0) {
+      return value;
+    }
+    if (remain) {
+      strings.push(flexo.quote(remain));
+    }
+    var f = "return " + strings.join("+");
+    try {
+      bindings[""] = { value: new Function("$in", f) };
+    } catch (e) {
+      console.warn("Could not parse “%0” as Javascript".fmt(f));
+      bindings[""] = { value: flexo.id };
+    }
+    return bindings;
+  }
+
 
   // Normalize the `as` property of an element so that it matches a known value.
   // Set to “dynamic” by default.
