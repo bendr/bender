@@ -553,11 +553,11 @@
       if (i.component._instances.length === 1) {
         console.log("[%0] Intializing properties".fmt(i.component.index));
         Object.keys(i.component.own_properties).forEach(function (p) {
-          i.component.properties[p] = i.component.own_properties[p].value;
+          i.component.properties[p] = i.component.own_properties[p].value();
         });
       } else {
         Object.keys(i.component.own_properties).forEach(function (p) {
-          i.properties[p] = i.component.properties[p].value;
+          i.properties[p] = i.component.properties[p].value();
         });
       }
       on(i, "did-init");
@@ -1301,11 +1301,11 @@
   //   * the associated get is enabled;
   //   * the input value passes the match function of the get (if any)
   bender.WatchEdge.prototype.follow = function (input) {
-    if (this.dest.enabled && this.enabled &&
-        (!this.get.match || this.get.match.call(this.component, input))) {
-      return [this.dest,
-        this.get.value ? this.get.value.call(this.component, input) : input];
-    }
+    //if (this.dest.enabled && this.enabled &&
+    //    (!this.get.match || this.get.match.call(this.component, input))) {
+      return [this.dest, this.get.value() ?
+        this.get.value().call(this.component, input) : input];
+    //}
   };
 
 
@@ -1313,19 +1313,17 @@
   _class(bender.DOMPropertyEdge = function (set, target, component) {
     this.set = set;
     this.target = target;
-    this.property = set.property;
     this.component = component;
-    this.enabled = this.set.enabled;
     component.scope.$environment.vortex.add_incoming(this);
   }, bender.Edge);
 
   bender.DOMPropertyEdge.prototype.follow = function (input) {
-    if (this.enabled && (!this.set.match || this.set.match.call(input))) {
-      var value = this.set.value ? this.set.value.call(this.component, input) :
-        input;
-      this.target[this.property] = value;
+    // if (this.enabled && (!this.set.match || this.set.match.call(input))) {
+      var value = this.set.value() ?
+        this.set.value().call(this.component, input) : input;
+      this.target[this.set.name] = value;
       return [this.dest, value];
-    }
+    // }
   };
 
 
@@ -1406,15 +1404,17 @@
         }
       } else if (this._as === "dynamic") {
         var bindings = bindings_dynamic(value);
-        if (typeof bindings === "string") {
+        if (typeof bindings === "object") {
           this._bindings = bindings;
           value = bindings[""];
+        } else {
+          value = bindings;
         }
         if (needs_return) {
           value = "return " + value;
         }
         try {
-          this.value = new Function(value);
+          this.value = new Function("$in", value);
         } catch (e) {
           console.warn("Could not parse “%0” as Javascript".fmt(value));
         }
