@@ -401,10 +401,10 @@ describe("Deserialization", function () {
           "\n", flexo.$p("Hello there!"), " ")).then(function (view) {
           assert.ok(view instanceof bender.View);
           assert.strictEqual(view.stack(), "top");
-          assert.strictEqual(view._children.length, 3);
-          assert.ok(view._children[0] instanceof bender.DOMTextNode);
-          assert.ok(view._children[1] instanceof bender.DOMElement);
-          assert.ok(view._children[2] instanceof bender.DOMTextNode);
+          assert.strictEqual(view.children.length, 3);
+          assert.ok(view.children[0] instanceof bender.DOMTextNode);
+          assert.ok(view.children[1] instanceof bender.DOMElement);
+          assert.ok(view.children[2] instanceof bender.DOMTextNode);
         }).then(flexo.discard(done), done);
     });
 
@@ -413,7 +413,7 @@ describe("Deserialization", function () {
           flexo.$p("Hello there!"))).then(function (view) {
           assert.ok(view instanceof bender.View);
           assert.strictEqual(view.stack(), "replace");
-          assert.strictEqual(view._children.length, 1);
+          assert.strictEqual(view.children.length, 1);
         }).then(flexo.discard(done), done);
     });
 
@@ -425,7 +425,7 @@ describe("Deserialization", function () {
           flexo.$p("Default content"))).then(function (content) {
           assert.ok(content instanceof bender.Content);
           assert.strictEqual(content.id(), "unnecessary");
-          assert.strictEqual(content._children.length, 1);
+          assert.strictEqual(content.children.length, 1);
         }).then(flexo.discard(done), done);
     });
   });
@@ -443,9 +443,9 @@ describe("Deserialization", function () {
           assert.strictEqual(elem.attrs[""].class, "foo");
           assert.strictEqual(elem.attr("", "data-baz"), "fum");
           assert.ok(!elem.attrs[""].hasOwnProperty("id"));
-          assert.strictEqual(elem._children.length, 1);
-          assert.ok(elem._children[0] instanceof bender.DOMTextNode);
-          assert.strictEqual(elem._children[0].text(), "Text content"); 
+          assert.strictEqual(elem.children.length, 1);
+          assert.ok(elem.children[0] instanceof bender.DOMTextNode);
+          assert.strictEqual(elem.children[0].text(), "Text content"); 
         }).then(flexo.discard(done), done);
     });
 
@@ -460,7 +460,7 @@ describe("Deserialization", function () {
           assert.strictEqual(attribute.ns(), "");
           assert.strictEqual(attribute.name(), "foo");
           assert.strictEqual(attribute.id(), "");
-          assert.strictEqual(attribute._children.length, 1);
+          assert.strictEqual(attribute.children.length, 1);
         }).then(flexo.discard(done), done);
     });
 
@@ -471,7 +471,7 @@ describe("Deserialization", function () {
           assert.strictEqual(attribute.ns(), bender.ns);
           assert.strictEqual(attribute.name(), "bar");
           assert.strictEqual(attribute.id(), "");
-          assert.strictEqual(attribute._children.length, 0);
+          assert.strictEqual(attribute.children.length, 0);
         }).then(flexo.discard(done), done);
     });
 
@@ -482,7 +482,7 @@ describe("Deserialization", function () {
           assert.strictEqual(attribute.ns(), "");
           assert.strictEqual(attribute.name(), "baz");
           assert.strictEqual(attribute.id(), "baz-attr");
-          assert.strictEqual(attribute._children.length, 0);
+          assert.strictEqual(attribute.children.length, 0);
         }).then(flexo.discard(done), done);
     });
 
@@ -496,7 +496,7 @@ describe("Deserialization", function () {
           assert.strictEqual(attribute.ns(), "");
           assert.strictEqual(attribute.name(), "quux");
           assert.strictEqual(attribute.id(), "");
-          assert.strictEqual(attribute._children.length, 2);
+          assert.strictEqual(attribute.children.length, 2);
         }).then(flexo.discard(done), done);
     });
   });
@@ -509,7 +509,7 @@ describe("Deserialization", function () {
         assert.ok(text instanceof bender.Text);
         assert.strictEqual(text.text(), "xyz");
         assert.strictEqual(text.id(), "foo");
-        assert.strictEqual(text._children.length, 4);
+        assert.strictEqual(text.children.length, 4);
       }).then(flexo.discard(done), done);
     });
   });
@@ -542,10 +542,10 @@ describe("Deserialization", function () {
         assert.ok(div_ instanceof bender.DOMElement);
         assert.strictEqual(div_.ns, flexo.ns.html);
         assert.strictEqual(div_.name, "div");
-        assert.strictEqual(div_._children.length, 2);
-        assert.ok(div_._children[0] instanceof bender.DOMElement);
-        assert.ok(div_._children[0].name, "p");
-        assert.strictEqual(div_._children[1]._children[0].text(), "test again");
+        assert.strictEqual(div_.children.length, 2);
+        assert.ok(div_.children[0] instanceof bender.DOMElement);
+        assert.ok(div_.children[0].name, "p");
+        assert.strictEqual(div_.children[1].children[0].text(), "test again");
       }).then(flexo.discard(done), done);
     });
 
@@ -562,7 +562,7 @@ describe("Deserialization", function () {
         assert.ok(watch instanceof bender.Watch);
         assert.strictEqual(watch.id(), "w");
         assert.strictEqual(watch.disabled(), true);
-        assert.strictEqual(watch._children.length, 3);
+        assert.strictEqual(watch.children.length, 3);
         assert.strictEqual(watch.gets.length, 1);
         assert.ok(watch.gets[0] instanceof bender.GetProperty);
         assert.strictEqual(watch.sets.length, 1);

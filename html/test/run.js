@@ -60,6 +60,16 @@ describe("Bender tests", function () {
     ok("sub-component-inline.xml", function (instance) {
       assert.ok(instance.scope.$target.textContent.match(/hello, world/i));
     });
+    ok("content.xml", function (instance) {
+      assert.ok(instance.scope.$target.textContent
+        .match(/not always the same/));
+    });
+    ok("content-twice.xml", function (instance) {
+      assert.ok(instance.scope.$target.textContent
+        .match(/not always the same/));
+      assert.ok(instance.scope.$target.textContent
+        .match(/quite different!/));
+    });
     ok("show-property.xml", function (instance) {
       return flexo.promise_delay(function () {
         assert.ok(instance.scope.$target.textContent.match(/\bx\s+=\s+✌✌✌/));

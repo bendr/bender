@@ -248,7 +248,7 @@
   // Initialize a new element with its basic properties (only children so far;
   // id is set when needed.)
   bender.Element.prototype.init = function () {
-    this._children = [];
+    this.children = [];
     return this;
   };
 
@@ -256,7 +256,7 @@
   // Return the appended child (similar to the DOM appendChild method.)
   bender.Element.prototype.append_child = function (child) {
     if (child instanceof bender.Element) {
-      this._children.push(child);
+      this.children.push(child);
       child._parent = this;
       return child;
     }
@@ -674,7 +674,7 @@
       if (e instanceof bender.Component && !e.parent_component) {
         this.add_child_component(e);
       }
-      Array.prototype.unshift.apply(queue, e._children);
+      Array.prototype.unshift.apply(queue, e.children);
     }
   };
 
@@ -850,7 +850,7 @@
   // stack of views further down for the <content> element. Return a
   // promise-like Seq object.
   bender.View.prototype.render = function (target, stack) {
-    return flexo.promise_fold(this._children, function (_, ch) {
+    return flexo.promise_fold(this.children, function (_, ch) {
       // jshint unused: false
       return ch.render(target, stack);
     });
@@ -866,10 +866,10 @@
   };
 
   bender.Content.prototype.render = function (target, stack) {
-    for (var i = stack.i, n = stack.length; i < n; ++i) {
+    for (var i = stack.i + 1, n = stack.length; i < n; ++i) {
       if (stack[i].scope.$view) {
         var j = stack.i;
-        stack.i = i + 1;
+        stack.i = i;
         var render = stack[i].scope.$view.render(target, stack);
         stack.i = j;
         return render;
@@ -908,7 +908,7 @@
   // Render as an attribute of the target
   bender.Attribute.prototype.render = function (target, stack) {
     if (target.nodeType === window.Node.ELEMENT_NODE) {
-      var contents = this._children.reduce(function (t, node) {
+      var contents = this.children.reduce(function (t, node) {
         t += node.textContent;
       }, "");
       var attr = target.createAttributeNS(this.ns, this.name, contents);

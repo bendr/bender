@@ -34,7 +34,7 @@ describe("Javascript API", function () {
 
       it("must be init()ed before use", function () {
         var elem = new bender.Element().init();
-        assert.deepEqual(elem._children, []);
+        assert.deepEqual(elem.children, []);
       });
 
       it("has an id property with accessor id([value])", function () {
@@ -49,7 +49,7 @@ describe("Javascript API", function () {
         var ch1 = parent.append_child(new bender.Element().init());
         var ch2 = parent.append_child(new bender.Element().init());
         var t = parent.append_child(new bender.Text("foo"));
-        assert.deepEqual(parent._children, [ch1, ch2, t]);
+        assert.deepEqual(parent.children, [ch1, ch2, t]);
         assert.strictEqual(ch1._parent, parent);
         assert.strictEqual(ch2._parent, parent);
         assert.strictEqual(t._parent, parent);
@@ -59,7 +59,7 @@ describe("Javascript API", function () {
         var ch1 = new bender.Element().init();
         var ch2 = new bender.Element().init();
         var parent = new bender.Element().init().child(ch1).child(ch2);
-        assert.deepEqual(parent._children, [ch1, ch2]);
+        assert.deepEqual(parent.children, [ch1, ch2]);
         assert.strictEqual(ch1._parent, parent);
         assert.strictEqual(ch2._parent, parent);
       });
@@ -76,7 +76,7 @@ describe("Javascript API", function () {
 
       it("is created with a local name and no namespace URI with new bender.Attribute(name)", function () {
         var attr = new bender.Attribute("foo");
-        assert.deepEqual(attr._children, []);
+        assert.deepEqual(attr.children, []);
         assert.strictEqual(attr.id(), "");
         assert.strictEqual(attr.ns(), "");
         assert.strictEqual(attr.name(), "foo");
@@ -84,7 +84,7 @@ describe("Javascript API", function () {
 
       it("is created with a namespace URI and a local name with new bender.Attribute(ns, name)", function () {
         var attr = new bender.Attribute(bender.ns, "bar");
-        assert.deepEqual(attr._children, []);
+        assert.deepEqual(attr.children, []);
         assert.strictEqual(attr.ns(), bender.ns);
         assert.strictEqual(attr.name(), "bar");
       });
@@ -107,7 +107,7 @@ describe("Javascript API", function () {
       it("is created with new bender.Content()", function () {
         var view = new bender.Content();
         assert.ok(view instanceof bender.Content);
-        assert.deepEqual(view._children, []);
+        assert.deepEqual(view.children, []);
         assert.strictEqual(view.id(), "");
       });
 
@@ -115,7 +115,7 @@ describe("Javascript API", function () {
         var view = new bender.View()
           .child(new bender.DOMElement(flexo.ns.html, "p"))
           .child(new bender.Element());
-        assert.strictEqual(view._children.length, 2);
+        assert.strictEqual(view.children.length, 2);
       });
 
     });
@@ -217,7 +217,7 @@ describe("Javascript API", function () {
       it("is created with new bender.View()", function () {
         var view = new bender.View();
         assert.ok(view instanceof bender.View);
-        assert.deepEqual(view._children, []);
+        assert.deepEqual(view.children, []);
         assert.strictEqual(view.id(), "");
       });
 
@@ -225,7 +225,7 @@ describe("Javascript API", function () {
         var view = new bender.View()
           .child(new bender.DOMElement(flexo.ns.html, "p"))
           .child(new bender.Content());
-        assert.strictEqual(view._children.length, 2);
+        assert.strictEqual(view.children.length, 2);
       });
 
       it("has a stack attribute with values “top” (default), “bottom” and “replace”", function () {
