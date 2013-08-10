@@ -82,6 +82,7 @@ describe("Bender tests", function () {
     ok("binding-watch.xml", function (instance) {
       return flexo.promise_delay(function () {
         assert.ok(contains(instance.scope.$target.textContent, "6 × 7 = 42"));
+        assert.ok(instance.scope.$target.querySelector(".hidden"));
       });
     });
   });

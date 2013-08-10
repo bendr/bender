@@ -543,7 +543,8 @@
         var watch = new bender.Watch();
         if (bindings[""].hasOwnProperty("attr")) {
           watch.append_child(new bender.SetDOMAttribute(bindings[""].ns,
-              bindings[""].attr, bindings[""].target, bindings[""].value));
+              bindings[""].attr, bindings[""].target)
+            .value(bindings[""].value));
         } else {
           watch.append_child(new bender.SetDOMProperty("textContent",
               bindings[""].target).value(bindings[""].value));
@@ -964,9 +965,9 @@
 
   _class(bender.DOMElement = function (ns, name) {
     this.init();
-    flexo.make_readonly(this, "ns", ns);
-    flexo.make_readonly(this, "name", flexo.safe_string(name));
-    flexo.make_readonly(this, "attrs", {});
+    this.ns = ns;
+    this.name = flexo.safe_string(name);
+    this.attrs = {};
   }, bender.Element);
 
   bender.DOMElement.prototype.attr = function (ns, name, value) {
@@ -982,13 +983,19 @@
 
   bender.DOMElement.prototype.append_child = append_view_child;
 
-  // Render this element and its children in the target. Return a promise-like
-  // Seq object.
   bender.DOMElement.prototype.render = function (target, stack) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
-        elem.setAttributeNS(ns, a, this.attrs[ns][a]);
+        var bindings = bindings_string(this.attrs[ns][a]);
+        if (typeof bindings === "string") {
+          elem.setAttributeNS(ns, a, bindings);
+        } else {
+          bindings[""].target = elem;
+          bindings[""].ns = ns;
+          bindings[""].attr = a;
+          stack[stack.i].bindings.push(bindings);
+        }
       }
     }
     this.render_id(elem, stack);
@@ -1203,20 +1210,30 @@
 
   _class(bender.SetProperty = function (name, select) {
     this.init();
-    flexo.make_readonly(this, "name", name);
-    flexo.make_readonly(this, "select", select);
+    this.name = name;
+    this.select = select;
   }, bender.Set);
 
-  _class(bender.SetDOMAttribute = function (name, select) {
+  _class(bender.SetDOMAttribute = function (ns, name, select) {
     this.init();
-    flexo.make_readonly(this, "name", name);
-    flexo.make_readonly(this, "select", select);
+    this.ns = ns;
+    this.name = name;
+    this.select = select;
   }, bender.Set);
+
+  bender.SetDOMAttribute.prototype.render = function (component) {
+    var target = typeof this.selet === "string" ?
+      component.scope[this.select] : this.select;
+    if (target) {
+      var edge = new bender.DOMAttributeEdge(this, target, component);
+      return edge;
+    }
+  };
 
   _class(bender.SetAttribute = function (name, select) {
     this.init();
-    flexo.make_readonly(this, "name", name);
-    flexo.make_readonly(this, "select", select);
+    this.name = name;
+    this.select = select;
   }, bender.Set);
 
   bender.Environment.prototype.deserialize.set = function (elem) {
@@ -1363,6 +1380,22 @@
     // }
   };
 
+
+  // Set a DOM attribute
+  _class(bender.DOMAttributeEdge = function (set, target, component) {
+    this.set = set;
+    this.target = target;
+    this.component = component;
+    component.scope.$environment.vortex.add_incoming(this);
+  }, bender.Edge);
+
+  bender.DOMAttributeEdge.prototype.follow = function (input) {
+    // enabled/match
+      var value = this.set.value() ?
+        this.set.value().call(this.component, input) : input;
+      this.target.setAttributeNS(this.set.ns, this.set.name, value);
+      return [this.dest, value];
+  };
 
   // Regular expressions to match property bindings, broken into smaller pieces
   // for legibility

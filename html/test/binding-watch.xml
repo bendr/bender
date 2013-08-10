@@ -1,9 +1,16 @@
 <component xmlns="http://bender.igel.co.jp">
   <property name="x" value="6"/>
   <property name="y" value="7"/>
+  <property name="hidden" value="hidden" as="string"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       `x × `y = <html:span id="show-result"/>
+    </html:p>
+    <html:p class="`hidden">
+      <html:style scoped="scoped">
+        .hidden { display: none; }
+      </html:style>
+      You should not see this.
     </html:p>
   </view>
   <watch>
