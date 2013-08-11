@@ -935,11 +935,11 @@
   bender.Attribute.prototype.render = function (target, stack) {
     if (target.nodeType === window.Node.ELEMENT_NODE) {
       var contents = this.children.reduce(function (t, node) {
-        t += node.textContent;
+        return t + node.text ? node.text() : node.textContent;
       }, "");
-      var attr = target.createAttributeNS(this.ns, this.name, contents);
+      var attr = target.setAttributeNS(this.ns(), this.name(), contents);
       this.render_id(attr, stack);
-      return target.appendChild(attr);
+      return target;
     }
   };
 
@@ -1249,7 +1249,9 @@
     } else if (elem.hasAttribute("property")) {
       set = new bender.SetProperty(elem.getAttribute("property"), select);
     } else if (elem.hasAttribute("dom-attr")) {
-      set = new bender.SetDOMAttribute(elem.getAttribute("dom-attr"), select);
+      set = new bender.SetDOMAttribute(
+          flexo.safe_string(elem.getAttribute("ns")),
+          elem.getAttribute("dom-attr"), select);
     } else if (elem.hasAttribute("attr")) {
       set = new bender.SetAttribute(elem.getAttribute("attr"), select);
     }

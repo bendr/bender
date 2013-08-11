@@ -85,6 +85,7 @@ describe("Bender tests", function () {
         assert.ok(instance.scope.$target.querySelector(".hidden"));
       });
     });
+    ok("svg-logo.xml");
   });
 
   describe("Failure", function () {
