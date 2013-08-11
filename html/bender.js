@@ -270,9 +270,17 @@
   };
 
   // Add a concrete node to the scope when the element is rendered.
-  bender.Element.prototype.render_id = function (node, stack) {
+  bender.Element.prototype.render_id = function (node, stack, output) {
     if (this._id) {
       stack[stack.i].scope["@" + this._id] = node;
+      if (output) {
+        var render = stack[stack.i].scope.$view._render_id;
+        if (render === "id") {
+          node.setAttribute("id", this._id);
+        } else if (render === "class" && node.classList) {
+          node.classList.add(this._id);
+        }
+      }
     }
     if (!stack[stack.i].scope.$first) {
       stack[stack.i].scope.$first = node;
@@ -850,11 +858,13 @@
     this.init();
   }, bender.Element);
 
+  _accessor(bender.View.prototype, "render_id", normalize_render_id);
   _accessor(bender.View.prototype, "stack", normalize_stack);
 
   bender.Environment.prototype.deserialize.view = function (elem) {
     return this.deserialize_children(new bender.View()
         .id(elem.getAttribute("id"))
+        .render_id(elem.getAttribute("render-id"))
         .stack(elem.getAttribute("stack")), elem);
   };
 
@@ -998,7 +1008,7 @@
         }
       }
     }
-    this.render_id(elem, stack);
+    this.render_id(elem, stack, true);
     return bender.View.prototype.render.call(this, elem, stack)
       .then(function () {
         target.appendChild(elem);
@@ -1478,6 +1488,13 @@
     as = flexo.safe_trim(as).toLowerCase();
     return as === "string" || as === "number" || as === "boolean" ||
       as === "json" || as === "xml" ? as : "dynamic";
+  }
+
+  // Normalize the `render-id` property of a view element so that it matches a
+  // known value. Set to “none” by default.
+  function normalize_render_id(render_id) {
+    render_id = flexo.safe_trim(render_id).toLowerCase();
+    return render_id === "class" || render_id === "id" ? render_id : "none";
   }
 
   // Normalize the `stack` property of an element so that it matches a known

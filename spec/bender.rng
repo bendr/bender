@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 31 July 2013 -->
+  <!-- Bender v0.8.2, 11 August 2013 -->
 
   <start>
     <ref name="component"/>
@@ -232,6 +232,9 @@
         <ref name="id"/>
       </optional>
       <optional>
+        <ref name="render-id"/>
+      </optional>
+      <optional>
         <ref name="stack"/>
       </optional>
       <ref name="view-content"/>
@@ -366,6 +369,16 @@
 
   <define name="property-dom-ref">
     <attribute name="dom-property"/>
+  </define>
+
+  <define name="render-id">
+    <attribute name="render-id">
+      <choice>
+        <value>class</value>
+        <value>id</value>
+        <value>none</value>
+      </choice>
+    </attribute>
   </define>
 
   <define name="rel">
