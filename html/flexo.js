@@ -806,7 +806,9 @@
 
   // Turn a value into a 0-ary function returning that value
   flexo.funcify = function (x) {
-    return typeof x === "function" ? x : function () { return x; };
+    return typeof x === "function" ? x : function () {
+      return x;
+    };
   };
 
   // Identity function

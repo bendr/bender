@@ -86,6 +86,7 @@ describe("Bender tests", function () {
       });
     });
     ok("svg-logo.xml");
+    ok("svg-gradient.xml");
   });
 
   describe("Failure", function () {

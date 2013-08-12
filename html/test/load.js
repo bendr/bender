@@ -94,56 +94,56 @@ describe("Deserialization", function () {
     it("sets a boolean value for as=“boolean” (true)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "boolean",
         value: "true" })).then(function (get) {
-          assert.strictEqual(get.value(), true);
+          assert.strictEqual(get.value()(), true);
         }).then(flexo.discard(done), done);
     });
 
     it("sets a boolean value for as=“boolean” (false)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "boolean",
         value: "false" })).then(function (get) {
-          assert.strictEqual(get.value(), false);
+          assert.strictEqual(get.value()(), false);
         }).then(flexo.discard(done), done);
     });
 
     it("sets a number value for as=“number” (0)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
         value: "0" })).then(function (get) {
-          assert.strictEqual(get.value(), 0);
+          assert.strictEqual(get.value()(), 0);
         }).then(flexo.discard(done), done);
     });
 
     it("sets a number value for as=“number” (int; leading 0 but not octal)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
         value: "012" })).then(function (get) {
-          assert.strictEqual(get.value(), 12);
+          assert.strictEqual(get.value()(), 12);
         }).then(flexo.discard(done), done);
     });
 
     it("sets a number value for as=“number” (float)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
         value: "-1.2e3" })).then(function (get) {
-          assert.strictEqual(get.value(), -1200);
+          assert.strictEqual(get.value()(), -1200);
         }).then(flexo.discard(done), done);
     });
 
     it("sets a number value for as=“number” (hex)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "number",
         value: "0x42" })).then(function (get) {
-          assert.strictEqual(get.value(), 66);
+          assert.strictEqual(get.value()(), 66);
         }).then(flexo.discard(done), done);
     });
 
     it("sets a value parsed from JSON for as=“json” (array)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "json",
         value: "[1, 2, [3, 4], 5]" })).then(function (get) {
-          assert.deepEqual(get.value(), [1, 2, [3, 4], 5]);
+          assert.deepEqual(get.value()(), [1, 2, [3, 4], 5]);
         }).then(flexo.discard(done), done);
     });
 
     it("sets an undefined value for as=“json” in case of failure to parse the value (with a warning)", function (done) {
       env.deserialize(flexo.$("bender:get", { property: "x", as: "json",
         value: "[1, 2, [3, 4], 5" })).then(function (get) {
-          assert.strictEqual(get.value());
+          assert.strictEqual(get.value()());
         }).then(flexo.discard(done), done);
     });
 
@@ -366,7 +366,7 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "dynamic");
-          assert.strictEqual(property.value(), "");
+          assert.strictEqual(property.value()());
         }).then(flexo.discard(done), done);
     });
 
@@ -377,7 +377,7 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "number");
-          assert.strictEqual(property.value(), "42");
+          assert.strictEqual(property.value()(), 42);
         }).then(flexo.discard(done), done);
     });
 
@@ -388,7 +388,7 @@ describe("Deserialization", function () {
           assert.ok(property instanceof bender.Property);
           assert.strictEqual(property.name, "x");
           assert.strictEqual(property.as(), "number");
-          assert.strictEqual(property.value(), "42");
+          assert.strictEqual(property.value()(), 42);
         }).then(flexo.discard(done), done);
     });
 

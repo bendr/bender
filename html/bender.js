@@ -151,7 +151,7 @@
   };
 
   // Deserialize common properties and contents for objects that have a value
-  // (property, get, set)
+  // (property, get, set): handles id, as, value (attribute or text content)
   bender.Environment.prototype
   .deserialize_element_with_value = function (object, elem) {
     object.id(elem.getAttribute("id")).as(elem.getAttribute("as"));
@@ -160,7 +160,9 @@
     } else {
       var t = shallow_text(elem);
       if (/\S/.test(t)) {
-        set_value_from_string.call(object, shallow_text(elem));
+        set_value_from_string.call(object, t);
+      } else {
+        set_default_value.call(object);
       }
     }
     return this.deserialize_children(object, elem);
@@ -500,9 +502,11 @@
         .fmt(instance.component.index, instance.index));
       for (var p in instance.component.properties) {
         if (p in instance.component.own_properties) {
+          console.log("  deriving own property %0".fmt(p));
           render_derived_property(instance,
             instance.component.own_properties[p]);
         } else {
+          console.log("  deriving derived property %0".fmt(p));
           var pv = instance._prototype.property_vertices[p];
           var v = render_derived_property(instance, pv.property, pv);
           v.protovertices
@@ -589,13 +593,17 @@
         .fmt(i.component.index, i.index));
       on(i, "will-init");
       if (i.component.instances.length === 1) {
-        console.log("[%0] Intializing properties".fmt(i.component.index));
+        console.log("[%0] Initializing properties".fmt(i.component.index));
         Object.keys(i.component.own_properties).forEach(function (p) {
-          i.component.properties[p] = i.component.own_properties[p].value();
+          i.component.properties[p] = i.component.own_properties[p].value()();
+          console.log("  initializing property %0 with value %1/%1".fmt(p,
+              i.component.properties[p], i.properties[p]));
         });
       } else {
         Object.keys(i.component.own_properties).forEach(function (p) {
-          i.properties[p] = i.component.properties[p].value();
+          i.properties[p] = i.component.properties[p].value()();
+          console.log("  initializing property %0 with value %1".fmt(p,
+              i.properties[p]));
         });
       }
       on(i, "did-init");
@@ -908,9 +916,9 @@
       if (stack[i].scope.$view) {
         var j = stack.i;
         stack.i = i;
-        var render = stack[i].scope.$view.render(target, stack);
-        stack.i = j;
-        return render;
+        return stack[i].scope.$view.render(target, stack).then(function () {
+          stack.i = j;
+        });
       }
     }
     return bender.View.prototype.render.call(this, target, stack);
@@ -1006,6 +1014,8 @@
           bindings[""].target = elem;
           bindings[""].ns = ns;
           bindings[""].attr = a;
+          console.log("[%0] (%1) New attribute bindings for %2"
+              .fmt(stack[stack.i].component.index, stack[stack.i].index, a));
           stack[stack.i].bindings.push(bindings);
         }
       }
@@ -1059,12 +1069,8 @@
   _accessor(bender.Property.prototype, "value");
 
   bender.Environment.prototype.deserialize.property = function (elem) {
-    var property = new bender.Property(elem.getAttribute("name"))
-      .value(elem.hasAttribute("value") ?
-          elem.getAttribute("value") : shallow_text(elem));
-    return this.deserialize_children(property
-        .as(elem.getAttribute("as"))
-        .id(elem.getAttribute("id")), elem);
+    return this.deserialize_element_with_value(new
+        bender.Property(elem.getAttribute("name")), elem);
   };
 
   _class(bender.Watch = function () {
@@ -1095,7 +1101,8 @@
   // each of the get elements with an edge to the watch vertex, then an edge
   // from the watch vertex for all set elements for a concrete component
   bender.Watch.prototype.render = function (instance) {
-    var watch_vertex = new bender.WatchVertex(this, instance);
+    var watch_vertex = instance.component.scope.$environment.add_vertex(new
+        bender.WatchVertex(this, instance));
     this.gets.forEach(function (get) {
       var vertex = get.render(instance);
       if (vertex) {
@@ -1489,7 +1496,7 @@
   function normalize_as(as) {
     as = flexo.safe_trim(as).toLowerCase();
     return as === "string" || as === "number" || as === "boolean" ||
-      as === "json" || as === "xml" ? as : "dynamic";
+      as === "json" ? as : "dynamic";
   }
 
   // Normalize the `render-id` property of a view element so that it matches a
@@ -1515,11 +1522,22 @@
     }
   }
 
+  // Set a default value depending on the as attribute
+  function set_default_value() {
+    // jshint validthis:true
+    this._value = flexo.funcify({
+      boolean: false,
+      number: 0,
+      string: "",
+      dynamic: flexo.id
+    }[this.as()]);
+    return this;
+  }
+
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
   function set_value_from_string(value, needs_return) {
     // jshint validthis:true
-    value = flexo.safe_string(value);
     if (this._as === "boolean") {
       this._value = flexo.is_true(value);
     } else if (this._as === "number") {
@@ -1527,13 +1545,13 @@
     } else {
       if (this._as === "json") {
         try {
-          this._value = JSON.parse(value);
+          this._value = JSON.parse(flexo.safe_string(value));
         } catch (e) {
           console.warn("Could not parse “%0” as JSON".fmt(value));
           this._value = undefined;
         }
       } else if (this._as === "dynamic") {
-        var bindings = bindings_dynamic(value);
+        var bindings = bindings_dynamic(flexo.safe_string(value));
         if (typeof bindings === "object") {
           this.bindings = bindings;
           value = bindings[""].value;
@@ -1545,13 +1563,15 @@
           this._value = new Function("$in", value);
         } catch (e) {
           console.warn("Could not parse “%0” as Javascript".fmt(value));
+          this._value = flexo.id;
         }
       } else {
         // this._as === "string"
         // TODO string bindings
-        this._value = value;
+        this._value = flexo.safe_string(value);
       }
     }
+    this._value = flexo.funcify(this._value);
     return this;
   }
 
