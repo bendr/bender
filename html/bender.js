@@ -457,6 +457,7 @@
         push.apply(derived.property_nodes, concrete.property_nodes);
       }
       chain.push(concrete);
+      concrete.scope.$this = chain[0];
     }
     chain[0].__chain = chain;
     return chain;
@@ -510,10 +511,7 @@
         } else {
           console.log("  deriving derived property %0".fmt(p));
           var pv = instance._prototype.property_vertices[p];
-          var v = render_derived_property(instance, pv.property, pv);
-          v.protovertices
-            .push(instance._prototype.component.property_vertices[p]);
-          push.apply(v.protovertices, pv.protovertices);
+          render_derived_property(instance, pv.property, pv);
         }
       }
     });
@@ -744,8 +742,7 @@
     this.component = component;
     component.instances.push(this);
     this.scope = Object.create(component.scope, {
-      $that: { enumerable: true, value: component },
-      // $this: { enumerable: true, value: this }
+      $that: { enumerable: true, value: this },
     });
     if (component._id) {
       this.scope["@" + component._id] = this;
@@ -802,7 +799,7 @@
     }
     var vertex = component.scope.$environment.add_vertex(new
           bender.PropertyVertex(component, property));
-    vertex.protovertices = [protovertex];
+    var edge = new bender.DerivedPropertyEdge(protovertex, vertex);
     Object.defineProperty(component.properties, property.name, {
       enumerable: true,
       configurable: true,
@@ -810,12 +807,15 @@
         return protovertex.value;
       },
       set: function (value) {
-        vertex.protovertices.forEach(function (v) {
-          v.outgoing = v.outgoing.filter(function (edge) {
-            return edge.__vertex !== vertex;
-          });
+        vertex.incoming = vertex.incoming.filter(function (edge) {
+          if (edge instanceof bender.DerivedPropertyEdge) {
+            flexo.remove_from_array(edge.source.outgoing, edge);
+            edge.source = null;
+            edge.dest = null;
+            return false;
+          }
+          return true;
         });
-        delete vertex.protovertices;
         render_property_property(component, property, vertex);
         component.properties[property.name] = value;
       }
@@ -1179,7 +1179,7 @@
   _class(bender.GetProperty = function (name, select) {
     this.init();
     this.name = name;
-    this.select = select || "$this";
+    this.select = select;
   }, bender.Get);
 
   bender.GetProperty.prototype.render = function (component) {
@@ -1387,6 +1387,16 @@
 
 
   bender.Edge = function () {};
+
+
+  _class(bender.DerivedPropertyEdge = function (source, dest) {
+    source.add_outgoing(this);
+    dest.add_incoming(this);
+  }, bender.Edge);
+
+  bender.DerivedPropertyEdge.prototype.follow = function (input) {
+    return [this.dest, input];
+  };
 
 
   // Edge from the vertex rendered for a get for a component

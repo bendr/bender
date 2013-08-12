@@ -89,7 +89,7 @@ describe("Bender tests", function () {
       return flexo.promise_delay(function () {
         assert.ok(contains(instance.scope.$target.textContent,
             "y = x + 2 = 3"));
-        instance.scope.$this.properties.x = 5;
+        instance.properties.x = 5;
       }).then(function () {
         return flexo.promise_delay(function () {
           assert.ok(contains(instance.scope.$target.textContent,
