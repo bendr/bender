@@ -1,6 +1,8 @@
 <component xmlns="http://bender.igel.co.jp" id="logo" href="../lib/svg.xml">
 
-  <property name="bgcolor" value="#ff6a4d"/>
+  <property name="bgcolor" value='new flexo.Urn(["#ff6a4d", "#0b486b", "#5eb26b",
+    "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
+    "#06491d", "#f94179"]).pick()'/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <attribute name="viewBox">0 0 128 128</attribute>

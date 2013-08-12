@@ -270,6 +270,8 @@
   };
 
   // Add a concrete node to the scope when the element is rendered.
+  // TODO render component id as well (for classes) or if there is no id (for
+  // id)
   bender.Element.prototype.render_id = function (node, stack, output) {
     if (this._id) {
       stack[stack.i].scope["@" + this._id] = node;
@@ -282,7 +284,7 @@
         }
       }
     }
-    if (!stack[stack.i].scope.$first) {
+    if (output && !stack[stack.i].scope.$first) {
       stack[stack.i].scope.$first = node;
     }
   };
