@@ -85,6 +85,18 @@ describe("Bender tests", function () {
         assert.ok(instance.scope.$target.querySelector(".hidden"));
       });
     });
+    ok("binding-prop.xml", function (instance) {
+      return flexo.promise_delay(function () {
+        assert.ok(contains(instance.scope.$target.textContent,
+            "y = x + 2 = 3"));
+        instance.scope.$this.properties.x = 5;
+      }).then(function () {
+        return flexo.promise_delay(function () {
+          assert.ok(contains(instance.scope.$target.textContent,
+              "y = x + 2 = 7"));
+        });
+      });
+    });
     ok("svg-logo.xml");
     ok("svg-gradient.xml");
   });
