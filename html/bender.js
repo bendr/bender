@@ -303,9 +303,9 @@
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
-    this._on = {};                 // on-* attributes
+    this._on = {};                // on-* attributes
     this.own_properties = {};     // property nodes
-    this._links = [];              // link nodes
+    this.links = [];              // link nodes
     this.child_components = [];   // all child components (in views/properties)
     this.properties = {};         // property values (with associated vertices)
     this.derived = [];            // derived components
@@ -313,6 +313,7 @@
     this.watches = [];
     this.property_vertices = {};
     this.event_vertices = {};
+    this.init_values = {};
   }, bender.Element);
 
   bender.Component.prototype.on = function (type, handler) {
@@ -361,10 +362,11 @@
         } else if (attr.localName === "id") {
           component.id(attr.value);
         } else if (attr.localName !== "href") {
-          // set property values
+          // TODO use init_values for initialization
+          component.init_values[attr.localName] = attr.value;
         }
       } else if (attr.namespaceURI === bender.ns) {
-        // set property values
+        component.init_values[attr.localName] = attr.value;
       }
     });
     var children = this.deserialize_children(component, elem);
@@ -494,7 +496,7 @@
   bender.Component.prototype.render_links = function (chain, target) {
     var links = [];
     flexo.hcaErof(chain, function (instance) {
-      push.apply(links, instance.component._links);
+      push.apply(links, instance.component.links);
     });
     console.log("[%0] Rendering links, %1 total".fmt(this.index, links.length));
     return flexo.promise_fold(links, function (_, link) {
@@ -625,7 +627,7 @@
         });
       } else {
         Object.keys(i.component.own_properties).forEach(function (p) {
-          i.properties[p] = i.component.properties[p].value().call(i);
+          i.properties[p] = i.component.properties[p];
           console.log("  initializing property %0 with value %1".fmt(p,
               i.properties[p]));
         });
@@ -680,7 +682,7 @@
 
   bender.Component.prototype.append_child = function (child) {
     if (child instanceof bender.Link) {
-      this._links.push(child);
+      this.links.push(child);
     } else if (child instanceof bender.View) {
       if (this.scope.$view) {
         console.error("Component already has a view");
@@ -768,7 +770,7 @@
   };
 
   function on(instance, type) {
-    if (instance.component._on.hasOwnProperty(type)) {
+    if (instance.component.on.hasOwnProperty(type)) {
       instance.component._on[type].forEach(function (handler) {
         handler(instance, type);
       });
@@ -1567,6 +1569,21 @@
           .add_vertex(new bender.EventVertex(component, type));
       }
       return component.event_vertices[type];
+    }
+  }
+
+  // Get the property vertex for the component/property pair, returning the
+  // existing one if it was already created, or creating a new one if not.
+  // Return nothing if the component is not found, or not really a component or
+  // instance.
+  function get_property_vertex(component, property) {
+    if (component && component.property_vertices) {
+      if (!component.property_vertices.hasOwnProperty(property.name)) {
+        component.property_vertices[property.name] =
+          component.scope.$environment.add_vertex(new
+              bender.PropertyVertex(component, property));
+      }
+      return component.property_vertices[type];
     }
   }
 
