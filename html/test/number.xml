@@ -1,0 +1,4 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="n" as="number"/>
+  <view>`n</view>
+</component>

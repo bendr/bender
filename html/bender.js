@@ -505,22 +505,20 @@
     });
   };
 
-  // Render all properties for the chain, from the furthest ancestor down to the
-  // component instance itself.
   bender.Component.prototype.render_properties = function (chain) {
     flexo.hcaErof(chain, function (instance) {
       on(instance, "will-render");
       console.log("[%0] (%1) Rendering properties"
         .fmt(instance.component.index, instance.index));
-      for (var p in instance.component.properties) {
-        if (p in instance.component.own_properties) {
-          console.log("  deriving own property %0".fmt(p));
-          render_derived_property(instance,
-            instance.component.own_properties[p]);
-        } else {
-          console.log("  deriving derived property %0".fmt(p));
-          var pv = instance._prototype.property_vertices[p];
-          render_derived_property(instance, pv.property, pv);
+      for (var p in instance.component.property_vertices) {
+        var vertex = instance.component.property_vertices[p];
+        var property = vertex.property;
+        for (var i = 0; !chain[i].component.own_properties.hasOwnProperty(p);
+          ++i);
+        console.log("  rendering property %0 (%1 level%2 up)"
+          .fmt(p, i, i > 1 ? "s" : ""));
+        for (var j = i; j >= 0; --j) {
+          vertex = render_derived_property(instance, property, vertex);
         }
       }
     });
@@ -671,11 +669,10 @@
   };
 
   function render_derived_properties(component) {
-    for (var c = component._prototype; c; c = c._prototype) {
-      for (var p in c.own_properties) {
-        if (!component.properties.hasOwnProperty(p)) {
-          render_derived_property(component, c.own_properties[p]);
-        }
+    for (var p in component._prototype.property_vertices) {
+      if (!component.own_properties.hasOwnProperty(p)) {
+        var vertex = component._prototype.property_vertices[p];
+        render_derived_property(component, vertex.property, vertex);
       }
     }
   }
@@ -693,9 +690,9 @@
       }
     } else if (child instanceof bender.Property) {
       this.own_properties[child.name] = child;
-      render_own_property(this, child);
+      var vertex = render_own_property(this, child);
       this.derived.forEach(function (derived) {
-        render_derived_property(derived, child);
+        render_derived_property(derived, child, vertex);
       });
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
@@ -770,7 +767,7 @@
   };
 
   function on(instance, type) {
-    if (instance.component.on.hasOwnProperty(type)) {
+    if (instance.component._on.hasOwnProperty(type)) {
       instance.component._on[type].forEach(function (handler) {
         handler(instance, type);
       });
@@ -779,9 +776,8 @@
 
   // Render a property for a component (either abstract or concrete)
   function render_own_property(component, property) {
-    var vertex = property.vertex = component.scope.$environment.add_vertex(new
-        bender.PropertyVertex(component, property));
-    render_property_property(component, property, vertex);
+    var vertex = get_property_vertex(component, property);
+    return render_property_property(component, property, vertex);
   }
 
   // Render a Javascript property with Object.defineProperty for a Bender
@@ -799,19 +795,11 @@
         }
       }
     });
+    return vertex;
   }
 
-  // Render a derived property for a component (*not* the parent of the
-  // property, obviously) and a protovertex, which is the vertex of the property
-  // by default. The protovertex is used for the value of the property until it
-  // is set for the component, in which case the link with the protovertex is
-  // severed and edges are redirected (and a new vertex is created.)
   function render_derived_property(component, property, protovertex) {
-    if (!protovertex) {
-      protovertex = property.vertex;
-    }
-    var vertex = component.scope.$environment.add_vertex(new
-          bender.PropertyVertex(component, property));
+    var vertex = get_property_vertex(component, property);
     var edge = new bender.DerivedPropertyEdge(protovertex, vertex);
     Object.defineProperty(component.properties, property.name, {
       enumerable: true,
@@ -820,15 +808,10 @@
         return protovertex.value;
       },
       set: function (value) {
-        vertex.incoming = vertex.incoming.filter(function (edge) {
-          if (edge instanceof bender.DerivedPropertyEdge) {
-            flexo.remove_from_array(edge.source.outgoing, edge);
-            edge.source = null;
-            edge.dest = null;
-            return false;
-          }
-          return true;
-        });
+        flexo.remove_from_array(edge.source.outgoing, edge);
+        flexo.remove_from_array(vertex.incoming, edge);
+        edge.source = null;
+        edge.dest = null;
         render_property_property(component, property, vertex);
         component.properties[property.name] = value;
       }
@@ -1583,7 +1566,7 @@
           component.scope.$environment.add_vertex(new
               bender.PropertyVertex(component, property));
       }
-      return component.property_vertices[type];
+      return component.property_vertices[property.name];
     }
   }
 
