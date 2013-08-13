@@ -240,12 +240,11 @@ describe("Javascript API", function () {
 
     describe("bender.Watch", function () {
 
-      it("is created with an empty list of gets and sets, and is initially enabled (i.e., not disabled)", function () {
+      it("is created with an empty list of gets and sets", function () {
         var watch = new bender.Watch();
         assert.ok(watch instanceof bender.Watch);
         assert.strictEqual(watch.gets.length, 0);
         assert.strictEqual(watch.sets.length, 0);
-        assert.strictEqual(watch.disabled(), false);
         assert.strictEqual(watch.id(), "");
       });
 
@@ -323,7 +322,7 @@ describe("Javascript API", function () {
         assert.strictEqual(a.own_properties.x.value(), 1);
         var v = a.own_properties.x.vertex;
         assert.ok(v instanceof bender.PropertyVertex);
-        assert.strictEqual(v.name, "x");
+        assert.strictEqual(v.property.name, "x");
         assert.strictEqual(a.properties.hasOwnProperty("x"), true);
       });
 

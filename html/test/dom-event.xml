@@ -6,5 +6,9 @@
   </view>
   <watch>
     <get select="@p" dom-event="click"/>
+    <set event="click"/>
+  </watch>
+  <watch>
+    <get event="click">alert("!!!");</get>
   </watch>
 </component>

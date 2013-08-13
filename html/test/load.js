@@ -159,7 +159,6 @@ describe("Deserialization", function () {
           assert.strictEqual(get.select, "$this");
           assert.strictEqual(get.id(), "");
           assert.strictEqual(get.as(), "dynamic");
-          assert.strictEqual(get.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -171,7 +170,6 @@ describe("Deserialization", function () {
           assert.strictEqual(get.select, "$this");
           assert.strictEqual(get.id(), "");
           assert.strictEqual(get.as(), "dynamic");
-          assert.strictEqual(get.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -183,7 +181,6 @@ describe("Deserialization", function () {
           assert.strictEqual(get.select, "$this");
           assert.strictEqual(get.id(), "");
           assert.strictEqual(get.as(), "dynamic");
-          assert.strictEqual(get.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -195,7 +192,6 @@ describe("Deserialization", function () {
           assert.strictEqual(get.select, "$this");
           assert.strictEqual(get.id(), "");
           assert.strictEqual(get.as(), "dynamic");
-          assert.strictEqual(get.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -210,7 +206,6 @@ describe("Deserialization", function () {
           assert.strictEqual(set.type, "click");
           assert.strictEqual(set.id(), "");
           assert.strictEqual(set.as(), "dynamic");
-          assert.strictEqual(set.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -221,7 +216,6 @@ describe("Deserialization", function () {
           assert.strictEqual(set.type, "ready");
           assert.strictEqual(set.id(), "");
           assert.strictEqual(set.as(), "dynamic");
-          assert.strictEqual(set.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -232,7 +226,6 @@ describe("Deserialization", function () {
           assert.strictEqual(set.name, "value");
           assert.strictEqual(set.id(), "");
           assert.strictEqual(set.as(), "dynamic");
-          assert.strictEqual(set.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -243,7 +236,6 @@ describe("Deserialization", function () {
           assert.strictEqual(set.name, "x");
           assert.strictEqual(set.id(), "");
           assert.strictEqual(set.as(), "dynamic");
-          assert.strictEqual(set.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -254,7 +246,6 @@ describe("Deserialization", function () {
           assert.strictEqual(set.name, "class");
           assert.strictEqual(set.id(), "");
           assert.strictEqual(set.as(), "dynamic");
-          assert.strictEqual(set.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -265,7 +256,6 @@ describe("Deserialization", function () {
           assert.strictEqual(set.name, "count");
           assert.strictEqual(set.id(), "");
           assert.strictEqual(set.as(), "dynamic");
-          assert.strictEqual(set.disabled(), false);
         }).then(flexo.discard(done), done);
     });
 
@@ -554,14 +544,13 @@ describe("Deserialization", function () {
   describe("bender.Environment.deserialize.watch(elem)", function () {
 
     it("deserializes a watch element, its attributes and contents", function (done) {
-      env.deserialize(flexo.$("bender:watch", { id: "w", disabled: "true" },
+      env.deserialize(flexo.$("bender:watch", { id: "w" },
         flexo.$("bender:get", { property: "x" }),
         flexo.$p("This is a child but not a get or set element"),
         flexo.$("bender:set", { property: "y", select: "@foo",
           value: "$in + 1" }))).then(function (watch) {
         assert.ok(watch instanceof bender.Watch);
         assert.strictEqual(watch.id(), "w");
-        assert.strictEqual(watch.disabled(), true);
         assert.strictEqual(watch.children.length, 3);
         assert.strictEqual(watch.gets.length, 1);
         assert.ok(watch.gets[0] instanceof bender.GetProperty);

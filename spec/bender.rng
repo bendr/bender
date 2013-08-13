@@ -84,16 +84,16 @@
         <ref name="get-attr"/>
       </choice>
       <optional>
+        <ref name="as"/>
+      </optional>
+      <optional>
         <ref name="id"/>
       </optional>
       <optional>
-        <ref name="disabled"/>
+        <ref name="match"/>
       </optional>
       <optional>
         <ref name="select"/>
-      </optional>
-      <optional>
-        <ref name="as"/>
       </optional>
       <optional>
         <choice>
@@ -145,6 +145,9 @@
         <ref name="as"/>
       </optional>
       <optional>
+        <ref name="match"/>
+      </optional>
+      <optional>
         <choice>
           <ref name="value"/>
           <text/>
@@ -166,13 +169,13 @@
         </choice>
       </optional>
       <optional>
-        <ref name="disabled"/>
-      </optional>
-      <optional>
         <ref name="as"/>
       </optional>
       <optional>
         <ref name="id"/>
+      </optional>
+      <optional>
+        <ref name="match"/>
       </optional>
       <optional>
         <ref name="select"/>
@@ -267,7 +270,7 @@
       <ref name="id"/>
     </optional>
     <optional>
-      <ref name="disabled"/>
+      <ref name="match"/>
     </optional>
     <element name="watch">
       <zeroOrMore>
@@ -299,15 +302,6 @@
     </attribute>
   </define>
 
-  <define name="disabled">
-    <attribute name="disabled">
-      <choice>
-        <value>true</value>
-        <value>false</value>
-      </choice>
-    </attribute>
-  </define>
-
   <define name="dom-attr">
     <attribute name="dom-attr">
       <data type="token"/>
@@ -336,6 +330,10 @@
     <attribute name="id">
       <data type="ID"/>
     </attribute>
+  </define>
+
+  <define name="match">
+    <attribute name="match"/>
   </define>
 
   <define name="name">
