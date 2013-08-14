@@ -1,4 +1,10 @@
 <component xmlns="http://bender.igel.co.jp" id="C">
   <property name="n" as="number"/>
-  <view>`n</view>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p class="C">n = <html:span id="show" class="n"/></html:p>
+  </view>
+  <watch>
+    <get property="n"/>
+    <set select="@show" dom-property="textContent"/>
+  </watch>
 </component>

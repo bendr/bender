@@ -8,6 +8,7 @@
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
   var foreach = Array.prototype.forEach;
+  var push = Array.prototype.push;
 
   // Pseudo-macro for prototype inheritance
   function _class(constructor, Proto) {
@@ -455,7 +456,7 @@
   bender.Component.prototype.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     return this.render(fragment).then(function (instance) {
-      return flexo.then(instance.component.init_properties(instance),
+      return flexo.then(instance.component.init_properties(),
         function () {
           target.insertBefore(fragment, ref);
           instance.scope.$target = target;
@@ -468,6 +469,9 @@
   bender.Component.prototype.chain = function () {
     for (var chain = [], p = this; p; p = p._prototype) {
       var concrete = new bender.ConcreteInstance(p);
+      if (this.id()) {
+        Object.getPrototypeOf(this.scope)["@" + this.id()] = concrete;
+      }
       var derived = chain[chain.length - 1];
       if (derived) {
         derived._prototype = concrete;
@@ -499,8 +503,6 @@
     });
   };
 
-  var push = Array.prototype.push;
-
   // Render all links for the chain, from the further ancestor down to the
   // component instance itself. Return a promise that is fulfilled once all
   // links have been loaded in sequence.
@@ -528,7 +530,8 @@
         for (var j = i; j >= 0; j--) {
           var index = vertex.index;
           vertex = render_derived_property(chain[j], vertex.property, vertex);
-          console.log("    - %0 -> %1".fmt(index, vertex.index));
+          console.log("    - %0`%1: %2 -> %3"
+            .fmt(chain[j].index, p, index, vertex.index));
         }
       }
     });
@@ -607,6 +610,10 @@
       });
     });
     flexo.hcaErof(chain, function (instance) {
+      if (instance.watches.length > 0) {
+        console.log("  + Watches for %0: %1"
+          .fmt(instance.index, instance.watches.length));
+      }
       instance.watches.forEach(function (watch) {
         watch.render(instance);
       });
@@ -619,8 +626,28 @@
     return chain[0];
   };
 
+  // Initialize the component properties after it has been rendered.
+  bender.Component.prototype.init_properties = function () {
+    // on(this, "will-init");
+    if (this._prototype) {
+      this._prototype.init_properties();
+    }
+    console.log("[%0] Initialize properties".fmt(this.index));
+    for (var p in this.own_properties) {
+      var property = this.own_properties[p];
+      if (!property.hasOwnProperty("bindings")) {
+        this.properties[p] = property.value().call(this);
+      }
+    }
+    console.log("[%0] Did initialize properties".fmt(this.index));
+    // on(this, "did-init");
+    this.child_components.forEach(function (ch) {
+      ch.init_properties();
+    });
+  };
+
   // Initialize the component properties after it has been rendered
-  bender.Component.prototype.init_properties = function (instance) {
+  bender.Component.prototype.__init_properties = function (instance) {
     var properties = {};
     flexo.hcaErof(instance.__chain, function (instance) {
       console.log("[%0] (%1) Initializing properties"
@@ -636,7 +663,7 @@
       if (instance.component.instances.length === 1) {
         console.log("[%0] Initializing component properties"
           .fmt(instance.component.index));
-        for (var p in instance.component.own_properties) {
+        for (p in instance.component.own_properties) {
           if (p in properties) {
             instance.component.properties[p] = properties[p];
             console.log("  initializing property %0 with value %1"
@@ -646,7 +673,7 @@
           }
         }
       } else {
-        for (var p in properties) {
+        for (p in properties) {
           var vertex = instance.property_vertices[p];
           vertex.value = properties[p];
           instance.scope.$environment.visit_vertex(vertex, vertex.value);
@@ -699,8 +726,9 @@
         var vertex = component._prototype.property_vertices[p];
         var index = vertex.index;
         vertex = render_derived_property(component, vertex.property, vertex);
-        console.log("  derived property %0`%1: %2 -> %3".fmt(component.index,
-              p, index, vertex.index));
+        console.log("  derived property %0`%2 -> %1`%2: %3 -> %4"
+            .fmt(component._prototype.index, component.index, p, index,
+              vertex.index));
       }
     }
   }
@@ -957,14 +985,20 @@
   };
 
   bender.Content.prototype.render = function (target, stack) {
+    var indices = [];
     for (var i = stack.i + 1, n = stack.length; i < n; ++i) {
       if (stack[i].scope.$view) {
+        indices.push(i);
+      }
+    }
+    if (indices.length) {
+      return flexo.promise_each(indices, function (i) {
         var j = stack.i;
         stack.i = i;
         return stack[i].scope.$view.render(target, stack).then(function () {
           stack.i = j;
         });
-      }
+      });
     }
     return bender.View.prototype.render.call(this, target, stack);
   };
@@ -1173,7 +1207,7 @@
   _class(bender.GetDOMEvent = function (type, select) {
     this.init();
     this.type = type;
-    this.select = select || $this;
+    this.select = select;
   }, bender.Get);
 
   _accessor(bender.Get, "stop_propagation");

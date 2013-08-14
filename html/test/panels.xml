@@ -1,5 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" id="panels">
   <view>
     <component href="panel.xml"/>
+    <component href="panel.xml"/>
+    <component href="panel.xml"/>
   </view>
 </component>
