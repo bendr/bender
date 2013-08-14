@@ -96,8 +96,8 @@ describe("Bender tests", function () {
       assert.ok(contains(instance.scope.$target.textContent, "0"));
       assert.ok(contains(instance.scope.$target.textContent, "42"));
     });
-    ok("svg-logo.xml");
     ok("svg-gradient.xml");
+    ok("svg-logos.xml");
   });
 
   describe("Failure", function () {

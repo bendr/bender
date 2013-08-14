@@ -1,8 +1,8 @@
-<component xmlns="http://bender.igel.co.jp" id="logo" href="../lib/svg.xml">
+<component xmlns="http://bender.igel.co.jp" id="logo">
 
   <property name="palette" value='new flexo.Urn(["#ff6a4d", "#0b486b", "#5eb26b",
     "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
-    "#06491d", "#f94179"], true)'/>
+    "#06491d", "#f94179"])'/>
   <property name="sides"
     value="`palette &amp;&amp; `sides || flexo.random_int(5, 9)"/>
   <property name="bgcolor" value="`bgcolor || `palette.pick()"/>

@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" href="../lib/svg.xml">
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 512 512">

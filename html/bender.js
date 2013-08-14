@@ -186,7 +186,7 @@
   };
 
   bender.Environment.prototype.visit_vertex = function (vertex, value) {
-    if (!this.scheduled) {
+    if (!this.scheduled || this.scheduled.hasOwnProperty("value")) {
       this.scheduled = new flexo.Promise();
       console.log(">>> Scheduling graph traversal");
       flexo.asap(this.traverse_graph_bound);
@@ -221,7 +221,6 @@
     });
     console.log("<<< Graph traversal done");
     this.scheduled.fulfill();
-    this.scheduled = null;
   };
 
   // Add a vertex to the watch graph and return it. If a matching vertex was
@@ -654,6 +653,7 @@
     return flexo.then(this.scope.$environment.scheduled, function () {
       for (var i = instance.__chain.length - 1; i >= 0; --i) {
         on(instance.__chain[i], "ready");
+        notify(instance.__chain[i], "ready");
       }
       delete instance.__chain;
       return instance;
@@ -1379,7 +1379,6 @@
     this.init();
     this.get = get;
     this.target = target;
-    // target.listen(get.type, this);
   }, bender.Vortex);
 
 
@@ -1611,6 +1610,15 @@
   function normalize_stack(stack) {
     stack = flexo.safe_trim(stack).toLowerCase();
     return stack === "bottom" || stack === "replace" ? stack : "top";
+  }
+
+  function notify(component, event) {
+    var vertex = component.event_vertices[event];
+    if (vertex) {
+      component.scope.$environment.visit_vertex(vertex, event);
+    } else if (component.component) {
+      notify(component.component, event);
+    }
   }
 
   // Find the closest ancestor of node (including self) that is a component and
