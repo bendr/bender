@@ -1,0 +1,12 @@
+<component xmlns="http://bender.igel.co.jp" id="lib-button">
+  <property name="label" value="Test" as="string"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <component href="../lib/button.xml" id="button*">
+        <view>
+          #lib\-button`label
+        </view>
+      </component>
+    </html:p>
+  </view>
+</component>

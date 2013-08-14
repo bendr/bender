@@ -9,22 +9,27 @@
           Minus
         </view>
       </component>
-      `n
       <component href="button.xml" id="plus">
         <view>
           Plus
         </view>
       </component>
+      `n
     </html:p>
   </view>
 
   <watch>
-    <get select="#minus" event="pushed"/>
+    <get property="n"/>
+    <set select="@minus" property="enabled"/>
+  </watch>
+
+  <watch>
+    <get select="@minus" event="pushed"/>
     <set property="n" value="`n - 1"/>
   </watch>
 
   <watch>
-    <get select="#plus" event="pushed"/>
+    <get select="@plus" event="pushed"/>
     <set property="n" value="`n + 1"/>
   </watch>
 

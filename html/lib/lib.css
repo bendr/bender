@@ -1,0 +1,62 @@
+.button {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: #08f;
+  font-family: Futura, Optima, sans-serif;
+  color: white;
+  width: 5em;
+  text-align: center;
+  padding: 0.5em;
+  border-radius: 0.5em;
+  cursor: pointer;
+  -webkit-transform: scale(1);
+  -moz-transform: scale(1);
+  -ms-transform: scale(1);
+  -o-transform: scale(1);
+}
+
+.button.down {
+  opacity: 0.9;
+  -webkit-transform: scale(0.9);
+  -moz-transform: scale(0.9);
+  -ms-transform: scale(0.9);
+  -o-transform: scale(0.9);
+}
+
+.button.disabled {
+  background-color: #888 !important;
+  cursor: default;
+}
+
+.button.red {
+  background-color: #ff4040;
+}
+
+.canvas {
+  position: relative;
+}
+
+.canvas canvas {
+  position: absolute;
+}
+
+.text-input {
+  font-family: Futura, Optima, sans-serif;
+  font-size: 100%;
+  border: none;
+  background-color: #ffd;
+  padding: 0.2em;
+}
+
+.text-input.disabled {
+  color: #888 !important;
+}
+
+.check-box.disabled {
+  color: #888 !important;
+}
+
+.hidden {
+  display: none;
+}

@@ -637,6 +637,7 @@
       var property = this.own_properties[p];
       if (!property.hasOwnProperty("bindings")) {
         this.properties[p] = property.value().call(this);
+        console.log("  %0 = %1".fmt(p, this.properties[p]));
       }
     }
     console.log("[%0] Did initialize properties".fmt(this.index));
@@ -721,6 +722,7 @@
   };
 
   function render_derived_properties(component) {
+    console.log("[%0] Render derived properties".fmt(component.index));
     for (var p in component._prototype.property_vertices) {
       if (!component.own_properties.hasOwnProperty(p)) {
         var vertex = component._prototype.property_vertices[p];
@@ -833,6 +835,13 @@
   // Render a property for a component (either abstract or concrete)
   function render_own_property(component, property) {
     var vertex = get_property_vertex(component, property);
+    var edge = flexo.remove_first_from_array(vertex.incoming, function (edge) {
+      return edge instanceof bender.DerivedPropertyEdge;
+    });
+    if (edge) {
+      console.log("  (removed derived property edge)");
+      edge.remove();
+    }
     return render_property_property(component, property, vertex);
   }
 
@@ -864,10 +873,7 @@
         return protovertex.value;
       },
       set: function (value) {
-        flexo.remove_from_array(edge.source.outgoing, edge);
-        flexo.remove_from_array(vertex.incoming, edge);
-        edge.source = null;
-        edge.dest = null;
+        edge.remove();
         render_property_property(component, property, vertex);
         component.properties[property.name] = value;
       }
@@ -1191,7 +1197,11 @@
     });
     this.sets.forEach(function (set) {
       var edge = set.render(instance);
-      if (edge) {
+      if (Array.isArray(edge)) {
+        edge.forEach(function (e) {
+          watch_vertex.add_outgoing(e);
+        });
+      } else if (edge) {
         watch_vertex.add_outgoing(edge);
       }
     });
@@ -1290,11 +1300,16 @@
   }, bender.Set);
 
   bender.SetEvent.prototype.render = function (component) {
-    var target = component.scope[this.select];
-    var vertex = get_event_vertex(target.component || target, this.type);
-    if (vertex) {
-      return new bender.EventEdge(this, component, vertex);
+    var edges = [];
+    for (var target = component.scope[this.select]; target;
+        target = target._prototype) {
+      console.log("~~~ %0 > %1".fmt(target.index, this.type));
+      var vertex = get_event_vertex(target, this.type);
+      if (vertex) {
+        edges.push(new bender.EventEdge(this, component, vertex));
+      }
     }
+    return edges;
   };
 
   _class(bender.SetDOMProperty = function (name, select) {
@@ -1468,6 +1483,13 @@
       return [this.dest, value ? value.call(this.component, input) : input];
     } catch (e) {
     }
+  };
+
+  bender.Edge.prototype.remove = function () {
+    flexo.remove_from_array(this.source.outgoing, this);
+    flexo.remove_from_array(this.dest.incoming, this);
+    this.source = null;
+    this.dest = null;
   };
 
 

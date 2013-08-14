@@ -1,18 +1,12 @@
-<component xmlns="http://bender.igel.co.jp" id="button">
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button">
 
+  <property name="base-class" as="string" value="button"/>
   <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
   <property name="down" as="boolean" value="false"/>
   <property name="down-class" value="`down ? 'down' : ''"/>
-  <property name="enabled" as="boolean" value="true"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:style scoped="scoped">
-      .button { display: inline-block; padding: 0.5em; border: solid thin black;
-        cursor: pointer; }
-      .button.disabled { background-color: #888; }
-      .button.down { opacity: 0.5; }
-    </html:style>
-    <html:div id="div" class="button `enabled\-class `down\-class">
+    <html:div id="div" class="`base\-class `class `enabled\-class `down\-class">
       <content>
         OK
       </content>
@@ -28,7 +22,7 @@
   <watch>
     <get select="$document" dom-event="mouseup"
       value="flexo.fail(!`down &amp;&amp;
-      ($in.target !== this.scope.div || !`enabled))"/>
+      ($in.target !== this.scope['@div'] || !`enabled))"/>
     <set property="down" value="false"/>
     <set event="pushed"/>
   </watch>
