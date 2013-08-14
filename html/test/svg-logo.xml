@@ -35,8 +35,8 @@
 
   <watch>
     <get select="@mask" dom-event="click" match="`clickable">
-      @anim_b.beginElement();
-      @anim_p.beginElement();
+      this.scope["@anim_b"].beginElement();
+      this.scope["@anim_p"].beginElement();
     </get>
   </watch>
 

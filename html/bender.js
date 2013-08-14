@@ -156,12 +156,15 @@
   .deserialize_element_with_value = function (object, elem) {
     object.as(elem.getAttribute("as")).id(elem.getAttribute("id"))
       .match(elem.getAttribute("match"));
+    var scope = object instanceof bender.Property ?
+      "this.scope" : "this.scope.$that.scope";
     if (elem.hasAttribute("value")) {
-      set_value_from_string.call(object, elem.getAttribute("value"), true);
+      set_value_from_string.call(object, elem.getAttribute("value"), true,
+          scope);
     } else {
       var t = shallow_text(elem);
       if (/\S/.test(t)) {
-        set_value_from_string.call(object, t);
+        set_value_from_string.call(object, t, false, scope);
       } else {
         set_default_value.call(object);
       }
@@ -185,13 +188,18 @@
     return this.deserialize_children(e, elem);
   };
 
-  bender.Environment.prototype.visit_vertex = function (vertex, value) {
-    if (!this.scheduled || this.scheduled.hasOwnProperty("value")) {
+  bender.Environment.prototype.schedule_traversal = function () {
+    if (this.queue.length > 0 &&
+        (!this.scheduled || this.scheduled.hasOwnProperty("value"))) {
       this.scheduled = new flexo.Promise();
       console.log(">>> Scheduling graph traversal");
       flexo.asap(this.traverse_graph_bound);
     }
+  };
+
+  bender.Environment.prototype.visit_vertex = function (vertex, value) {
     this.queue.push([vertex, value]);
+    this.schedule_traversal();
   };
 
   bender.Environment.prototype.traverse_graph = function () {
@@ -221,6 +229,7 @@
     });
     console.log("<<< Graph traversal done");
     this.scheduled.fulfill();
+    this.schedule_traversal();
   };
 
   // Add a vertex to the watch graph and return it. If a matching vertex was
@@ -1185,6 +1194,7 @@
   }, bender.Get);
 
   bender.GetEvent.prototype.render = function (component) {
+    console.log("??? %0 %1".fmt(this.type, component.scope[this.select].index));
     return get_event_vertex(component.scope[this.select], this.type);
   };
 
@@ -1239,7 +1249,8 @@
   }, bender.Set);
 
   bender.SetEvent.prototype.render = function (component) {
-    var vertex = get_event_vertex(component.scope[this.select], this.type);
+    var target = component.scope[this.select];
+    var vertex = get_event_vertex(target.component || target, this.type);
     if (vertex) {
       return new bender.EventEdge(this, component, vertex);
     }
@@ -1409,10 +1420,10 @@
   };
 
   bender.Edge.prototype.follow = function (input) {
-    var match = this.elem.match();
-    if (!match || match.call(this.component, input)) {
-      var value = this.elem.value();
+    var value = this.elem.value();
+    try {
       return [this.dest, value ? value.call(this.component, input) : input];
+    } catch (e) {
     }
   };
 
@@ -1447,12 +1458,13 @@
   }, bender.Edge);
 
   bender.DOMPropertyEdge.prototype.follow = function (input) {
-    // if (this.enabled && (!this.set.match || this.set.match.call(input))) {
+    try {
       var value = this.set.value() ?
         this.set.value().call(this.component, input) : input;
       this.target[this.set.name] = value;
       return [this.dest, value];
-    // }
+    } catch (e) {
+    }
   };
 
 
@@ -1461,16 +1473,20 @@
     this.set = set;
     this.target = target;
     this.component = component;
-    target.property_vertices[set.name].add_incoming(this);
+    var vertex = get_property_vertex(target, set.name);
+    if (vertex) {
+      vertex.add_incoming(this);
+    }
   }, bender.Edge);
 
   bender.PropertyEdge.prototype.follow = function (input) {
-    // if (this.enabled && (!this.set.match || this.set.match.call(input))) {
+    try {
       var value = this.set.value() ?
         this.set.value().call(this.component, input) : input;
       this.target.properties[this.set.name] = value;
       return [this.dest, value];
-    // }
+    } catch (e) {
+    }
   };
 
 
@@ -1483,11 +1499,13 @@
   }, bender.Edge);
 
   bender.DOMAttributeEdge.prototype.follow = function (input) {
-    // enabled/match
+    try {
       var value = this.set.value() ?
         this.set.value().call(this.component, input) : input;
       this.target.setAttributeNS(this.set.ns, this.set.name, value);
       return [this.dest, value];
+    } catch (e) {
+    }
   };
 
   // Regular expressions to match property bindings, broken into smaller pieces
@@ -1504,7 +1522,7 @@
   // are none, return the string unchanged; otherwise, return the dictionary of
   // bindings (indexed by id, then property); bindings[""] will be the new value
   // for the set element of the watch to create.
-  function bindings_dynamic(value) {
+  function bindings_dynamic(value, scope) {
     var bindings = {};
     var r = function (_, b, sigil, id, id_p, prop, prop_p) {
       // jshint unused: false
@@ -1514,8 +1532,8 @@
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       bindings[i][p] = true;
-      return "%0this.scope[%1].properties[%2]"
-        .fmt(b, flexo.quote(i), flexo.quote(p));
+      return "%0%1[%2].properties[%3]"
+        .fmt(b, scope, flexo.quote(i), flexo.quote(p));
     };
     var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
     if (Object.keys(bindings).length === 0) {
@@ -1644,7 +1662,7 @@
 
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
-  function set_value_from_string(value, needs_return) {
+  function set_value_from_string(value, needs_return, scope) {
     // jshint validthis:true
     var as = this.as();
     if (as === "boolean") {
@@ -1660,7 +1678,7 @@
           this._value = undefined;
         }
       } else if (as === "dynamic") {
-        var bindings = bindings_dynamic(flexo.safe_string(value));
+        var bindings = bindings_dynamic(flexo.safe_string(value), scope);
         if (typeof bindings === "object") {
           this.bindings = bindings;
           value = bindings[""].value;
