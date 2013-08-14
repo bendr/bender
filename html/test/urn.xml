@@ -1,0 +1,5 @@
+<component xmlns="http://bender.igel.co.jp" id="U">
+  <property name="urn" value="new flexo.Urn(1, 2, 3, 4, 5)"/>
+  <property name="n" value="`urn.pick()"/>
+  <view>`n</view>
+</component>

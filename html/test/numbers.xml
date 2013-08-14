@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="A">
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Numbers</html:p>
     <html:ul>

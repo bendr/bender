@@ -299,12 +299,12 @@ describe("Javascript API", function () {
           var a = env.component().link("script", "a1.js");
           var b = env.component().extends(a).link("script", "b1.js");
           b.render_links(b.chain(), document.body).then(function () {
-            assert.ok(a._links[0] instanceof bender.Link);
-            assert.ok(a._links[0].rendered instanceof window.Node);
-            assert.strictEqual(a._links[0].rendered.localName, "script");
-            assert.ok(b._links[0] instanceof bender.Link);
-            assert.ok(b._links[0].rendered instanceof window.Node);
-            assert.strictEqual(b._links[0].rendered.localName, "script");
+            assert.ok(a.links[0] instanceof bender.Link);
+            assert.ok(a.links[0].rendered instanceof window.Node);
+            assert.strictEqual(a.links[0].rendered.localName, "script");
+            assert.ok(b.links[0] instanceof bender.Link);
+            assert.ok(b.links[0].rendered instanceof window.Node);
+            assert.strictEqual(b.links[0].rendered.localName, "script");
             assert.strictEqual(window.a1, "a1");
             assert.strictEqual(window.b1, "a1/b1");
           }).then(flexo.discard(done), done);
@@ -320,7 +320,7 @@ describe("Javascript API", function () {
         var a = env.component().property("x", 1);
         assert.ok(a.own_properties.x instanceof bender.Property);
         assert.strictEqual(a.own_properties.x.value(), 1);
-        var v = a.own_properties.x.vertex;
+        var v = a.property_vertices.x;
         assert.ok(v instanceof bender.PropertyVertex);
         assert.strictEqual(v.property.name, "x");
         assert.strictEqual(a.properties.hasOwnProperty("x"), true);

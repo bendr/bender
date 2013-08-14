@@ -310,7 +310,7 @@ describe("Deserialization", function () {
         flexo.$("bender:link", { rel: "stylesheet", href: "style.css" }),
         flexo.$("bender:view", "Hello!"))).then(function (component) {
           assert.strictEqual(component.id(), "foo");
-          assert.strictEqual(component._links.length, 1);
+          assert.strictEqual(component.links.length, 1);
           assert.ok(component.scope.$view instanceof bender.View);
         }).then(flexo.discard(done), done);
     });

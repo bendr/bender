@@ -480,6 +480,9 @@
       stack[stack.i].child_components.push(chain[0]);
     }
     return this.render_links(chain, target).then(function () {
+      flexo.hcaErof(chain, function (instance) {
+        on(instance, "will-render");
+      });
       chain[0].component.render_properties(chain);
       return chain[0].component.render_view(chain, target);
     }).then(function () {
@@ -506,19 +509,18 @@
   };
 
   bender.Component.prototype.render_properties = function (chain) {
-    flexo.hcaErof(chain, function (instance) {
-      on(instance, "will-render");
+    var rendered = {};
+    chain.forEach(function (instance, i) {
       console.log("[%0] (%1) Rendering properties"
         .fmt(instance.component.index, instance.index));
-      for (var p in instance.component.property_vertices) {
-        var vertex = instance.component.property_vertices[p];
-        var property = vertex.property;
-        for (var i = 0; !chain[i].component.own_properties.hasOwnProperty(p);
-          ++i);
-        console.log("  rendering property %0 (%1 level%2 up)"
-          .fmt(p, i, i > 1 ? "s" : ""));
-        for (var j = i; j >= 0; --j) {
-          vertex = render_derived_property(instance, property, vertex);
+      for (var p in instance.component.own_properties) {
+        console.log("  * %0".fmt(p));
+        rendered[p] = true;
+        var vertex = chain[0].component.property_vertices[p];
+        for (var j = i; j >= 0; j--) {
+          var index = vertex.index;
+          vertex = render_derived_property(chain[j], vertex.property, vertex);
+          console.log("    - %0 -> %1".fmt(index, vertex.index));
         }
       }
     });
@@ -611,26 +613,40 @@
 
   // Initialize the component properties after it has been rendered
   bender.Component.prototype.init_properties = function (instance) {
-    flexo.hcaErof(instance.__chain, function (i) {
+    var properties = {};
+    flexo.hcaErof(instance.__chain, function (instance) {
       console.log("[%0] (%1) Initializing properties"
-        .fmt(i.component.index, i.index));
-      on(i, "will-init");
-      if (i.component.instances.length === 1) {
-        console.log("[%0] Initializing properties".fmt(i.component.index));
-        Object.keys(i.component.own_properties).forEach(function (p) {
-          i.component.properties[p] =
-            i.component.own_properties[p].value().call(i);
-          console.log("  initializing property %0 with value %1/%1".fmt(p,
-              i.component.properties[p], i.properties[p]));
-        });
-      } else {
-        Object.keys(i.component.own_properties).forEach(function (p) {
-          i.properties[p] = i.component.properties[p];
-          console.log("  initializing property %0 with value %1".fmt(p,
-              i.properties[p]));
-        });
+        .fmt(instance.component.index, instance.index));
+      on(instance, "will-init");
+      for (var p in instance.component.own_properties) {
+        var property = instance.component.own_properties[p];
+        if (!property.hasOwnProperty("bindings")) {
+          properties[p] = instance.component.own_properties[p].value()
+            .call(instance);
+        }
       }
-      on(i, "did-init");
+      if (instance.component.instances.length === 1) {
+        console.log("[%0] Initializing component properties"
+          .fmt(instance.component.index));
+        for (var p in instance.component.own_properties) {
+          if (p in properties) {
+            instance.component.properties[p] = properties[p];
+            console.log("  initializing property %0 with value %1"
+              .fmt(p, properties[p]));
+          } else {
+            console.log("  not initializing bound property %0".fmt(p));
+          }
+        }
+      } else {
+        for (var p in properties) {
+          var vertex = instance.property_vertices[p];
+          vertex.value = properties[p];
+          instance.scope.$environment.visit_vertex(vertex, vertex.value);
+          console.log("  initializing instance property %0 with value %1"
+            .fmt(p, properties[p]));
+        }
+      }
+      on(instance, "did-init");
     });
     instance.child_components.forEach(function (ch) {
       ch.component.init_properties(ch);
@@ -672,7 +688,10 @@
     for (var p in component._prototype.property_vertices) {
       if (!component.own_properties.hasOwnProperty(p)) {
         var vertex = component._prototype.property_vertices[p];
-        render_derived_property(component, vertex.property, vertex);
+        var index = vertex.index;
+        vertex = render_derived_property(component, vertex.property, vertex);
+        console.log("  derived property %0`%1: %2 -> %3".fmt(component.index,
+              p, index, vertex.index));
       }
     }
   }
@@ -1368,6 +1387,7 @@
   // the property to a component or rendering that component.
   _class(bender.PropertyVertex = function (component, property) {
     this.init(component);
+    this.component = component;
     this.property = property;
     component.property_vertices[property.name] = this;
   }, bender.Vortex);
@@ -1414,6 +1434,7 @@
   }, bender.Edge);
 
   bender.DerivedPropertyEdge.prototype.follow = function (input) {
+    this.dest.value = input;
     return [this.dest, input];
   };
 
