@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp">
+  <watch>
+    <get event="ready"/>
+    <set>
+      console.log("--- READY ---");
+    </set>
+  </watch>
+</component>

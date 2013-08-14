@@ -1234,7 +1234,14 @@
     return this.deserialize_element_with_value(get, elem);
   };
 
-  _class(bender.Set = function () {}, bender.GetSet);
+  _class(bender.Set = function () {
+    this.init();
+  }, bender.GetSet);
+
+  bender.Set.prototype.render = function (component) {
+    return new bender.Edge().init(this, component,
+        component.scope.$environment.vortex);
+  };
 
   _class(bender.SetDOMEvent = function (type, select) {
     this.init();
@@ -1331,6 +1338,8 @@
           elem.getAttribute("dom-attr"), select);
     } else if (elem.hasAttribute("attr")) {
       set = new bender.SetAttribute(elem.getAttribute("attr"), select);
+    } else {
+      set = new bender.Set();
     }
     return this.deserialize_element_with_value(set, elem);
   };
@@ -1533,7 +1542,8 @@
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       bindings[i][p] = true;
       return "%0%1[%2].properties[%3]"
-        .fmt(b, scope, flexo.quote(i), flexo.quote(p));
+        .fmt(b, id || id_p ? scope : "this.scope", flexo.quote(i),
+            flexo.quote(p));
     };
     var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
     if (Object.keys(bindings).length === 0) {
