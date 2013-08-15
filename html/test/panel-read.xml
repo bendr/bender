@@ -1,0 +1,17 @@
+<component xmlns="http://bender.igel.co.jp" id="panel-read">
+
+  <property name="m"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <component href="panel.xml" id="p"/>
+    <html:p>
+      `m
+    </html:p>
+  </view>
+
+  <watch>
+    <get select="@p" property="n"/>
+    <set property="m"/>
+  </watch>
+
+</component>

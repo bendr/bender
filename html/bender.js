@@ -193,7 +193,6 @@
     if (this.queue.length > 0 &&
         (!this.scheduled || this.scheduled.hasOwnProperty("value"))) {
       this.scheduled = new flexo.Promise();
-      console.log(">>> Scheduling graph traversal");
       flexo.asap(this.traverse_graph_bound);
     }
   };
@@ -228,7 +227,6 @@
     visited.forEach(function (vertex) {
       delete vertex.__visited_value;
     });
-    console.log("<<< Graph traversal done");
     this.scheduled.fulfill();
     this.schedule_traversal();
   };
@@ -287,7 +285,7 @@
   // Add a concrete node to the scope when the element is rendered.
   // TODO render component id as well (for classes) or if there is no id (for
   // id)
-  bender.Element.prototype.render_id = function (node, stack, output) {
+  bender.Element.prototype.add_id_to_scope = function (node, stack, output) {
     if (this._id) {
       stack[stack.i].scope["@" + this._id] = node;
       if (output) {
@@ -469,8 +467,8 @@
   bender.Component.prototype.chain = function () {
     for (var chain = [], p = this; p; p = p._prototype) {
       var concrete = new bender.ConcreteInstance(p);
-      if (this.id()) {
-        Object.getPrototypeOf(this.scope)["@" + this.id()] = concrete;
+      if (p.id()) {
+        Object.getPrototypeOf(p.scope)["@" + p.id()] = concrete;
       }
       var derived = chain[chain.length - 1];
       if (derived) {
@@ -1043,7 +1041,7 @@
         return t + node.text ? node.text() : node.textContent;
       }, "");
       var attr = target.setAttributeNS(this.ns(), this.name(), contents);
-      this.render_id(attr, stack);
+      this.add_id_to_scope(attr, stack);
       return target;
     }
   };
@@ -1064,7 +1062,7 @@
 
   bender.Text.prototype.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode(this._text);
-    this.render_id(node, stack);
+    this.add_id_to_scope(node, stack);
     return target.appendChild(node);
   };
 
@@ -1105,7 +1103,7 @@
         }
       }
     }
-    this.render_id(elem, stack, true);
+    this.add_id_to_scope(elem, stack, true);
     return bender.View.prototype.render.call(this, elem, stack)
       .then(function () {
         target.appendChild(elem);
