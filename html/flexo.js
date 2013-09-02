@@ -17,6 +17,42 @@
   // Define π as a global
   global_.π = Math.PI;
 
+
+  // Pseudo-macros
+
+  // Pseudo-macro for prototype inheritance
+  flexo._class = function (constructor, Proto) {
+    var p = constructor.prototype = new Proto();
+    Object.defineProperty(p, "constructor", { value: constructor });
+    Object.defineProperty(p, "urproto", { value: Proto });
+    return p;
+  };
+
+  // Make an accessor for a property. The accessor can be called with no
+  // parameter to get the current value, or the default value if not set. It can
+  // be called with a parameter to set a new value (converted to a string if
+  // necessary) and return the object itself for chaining purposes.
+  // The default_value parameter may be a function, in which case it used to
+  // normalize the input value and generate the default value from an undefined
+  // value (e.g., cf. normalize_*.)
+  flexo._accessor = function (object, name, default_value) {
+    var property = "_" + name;
+    object.prototype[name] = typeof default_value === "function" ?
+      function (value) {
+        if (arguments.length > 0) {
+          this[property] = default_value(value);
+          return this;
+        }
+        return this.hasOwnProperty(property) ? this[property] : default_value();
+      } : function (value) {
+        if (arguments.length > 0) {
+          this[property] = value;
+          return this;
+        }
+        return this.hasOwnProperty(property) ? this[property] : default_value;
+      };
+  };
+
   // Simple format function for messages and templates. Use %0, %1... as slots
   // for parameters; %(n) can also be used to avoid possible ambiguities (e.g.
   // "x * 10 = %(0)0".) %% is also replaced by %. Null and undefined are
