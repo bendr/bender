@@ -3,7 +3,7 @@
   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
   ns="http://bender.igel.co.jp">
 
-  <!-- Bender v0.8.2, 11 August 2013 -->
+  <!-- Bender v0.8.2, 3 September 2013 -->
 
   <start>
     <ref name="component"/>
@@ -141,6 +141,9 @@
   <define name="property">
     <element name="property">
       <ref name="property-name"/>
+      <optional>
+        <ref name="select-property"/>
+      </optional>
       <optional>
         <ref name="as"/>
       </optional>
@@ -388,8 +391,19 @@
     </attribute>
   </define>
 
+  <!-- select attribute; default value is $this -->
   <define name="select">
     <attribute name="select"/>
+  </define>
+
+  <!-- select attribute for the property element; default value is $this -->
+  <define name="select-property">
+    <attribute name="select">
+      <choice>
+        <value>$this</value>
+        <value>$that</value>
+      </choice>
+    </attribute>
   </define>
 
   <define name="stack">

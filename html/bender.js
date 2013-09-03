@@ -217,13 +217,12 @@
     this.scheduled.fulfill(this.scheduled.id);
   };
 
-  // Add a vertex to the watch graph and return it. If a matching vertex was
-  // found, just return the previous vertex.
-  environment.add_vertex = function (v) {
-    v.index = this.vertices.length;
-    v.environment = this;
-    this.vertices.push(v);
-    return v;
+  // Add a vertex to the watch graph and return it.
+  environment.add_vertex = function (vertex) {
+    vertex.index = this.vertices.length;
+    vertex.environment = this;
+    this.vertices.push(vertex);
+    return vertex;
   };
 
 
@@ -1066,12 +1065,14 @@
   }, bender.Element);
 
   flexo._accessor(bender.Property, "as", normalize_as);
+  flexo._accessor(bender.Property, "select", "$this");
   flexo._accessor(bender.Property, "match");
   flexo._accessor(bender.Property, "value");
 
   environment.deserialize.property = function (elem) {
     return this.deserialize_element_with_value(new
-        bender.Property(elem.getAttribute("name")), elem);
+        bender.Property(elem.getAttribute("name"))
+        .select(elem.getAttribute("select")), elem);
   };
 
   var watch = _class(bender.Watch = function () {
@@ -1381,6 +1382,7 @@
   }, bender.Vortex);
 
 
+  // Simple edge between two vertices (source and dest)
   var edge = (bender.Edge = function () {}).prototype;
 
   edge.init = function (elem, component, dest) {
