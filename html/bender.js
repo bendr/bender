@@ -180,8 +180,10 @@
   };
 
   environment.visit_vertex = function (vertex, value) {
-    this.queue.push([vertex, value]);
-    this.schedule_traversal();
+    if (vertex) {
+      this.queue.push([vertex, value]);
+      this.schedule_traversal();
+    }
   };
 
   environment.traverse_graph = function () {
@@ -726,7 +728,12 @@
     }
   };
 
-  bender.ConcreteInstance = function (component) {
+  // Send an event notification for this component only.
+  component.notify = function (type, value) {
+    this.scope.$environment.visit_vertex(this.event_vertices[type], value);
+  };
+
+  var concrete = (bender.ConcreteInstance = function (component) {
     this.component = component;
     component.instances.push(this);
     this.scope = Object.create(component.scope, {
@@ -743,7 +750,10 @@
     this.property_vertices = {};
     this.event_vertices = {};
     this.bindings = [];
-  };
+  }).prototype;
+
+  // Send an event notification for this concrete instance only.
+  concrete.notify = component.notify;
 
   function on(instance, type) {
     if (instance.component._on.hasOwnProperty(type)) {

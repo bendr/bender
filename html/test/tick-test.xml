@@ -1,0 +1,12 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <p xmlns="http://www.w3.org/1999/xhtml">
+      Now: <span id="now"/>
+    </p>
+    <component href="../lib/ticker.xml" id="ticker"/>
+  </view>
+  <watch>
+    <get select="@ticker" event="tick"/>
+    <set select="@now" dom-property="textContent" value="new Date($in)"/>
+  </watch>
+</component>

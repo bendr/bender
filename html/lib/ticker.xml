@@ -1,0 +1,23 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="rate-ms" as="number" value="0"/>
+  <watch>
+    <get property="rate-ms"><![CDATA[
+      if (this.__timeout) {
+        window.clearTimeout(this.__timeout);
+        delete this.__timeout;
+      } else if (this.__frame) {
+        window.cancelAnimationFrame(this.__frame);
+        delete this.__frame;
+      }
+      var tick = typeof $in !== "number" || isNaN($in) || $in <= 0 ?
+        function () {
+          this.scope.$this.notify("tick", Date.now());
+          this.__frame = window.requestAnimationFrame(tick);
+        }.bind(this) : function () {
+          this.scope.$this.notify("tick", Date.now());
+          this.__timeout = window.setTimeout(tick, $in);
+        }.bind(this);
+      tick();
+    ]]></get>
+  </watch>
+</component>
