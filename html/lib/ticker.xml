@@ -1,23 +1,20 @@
 <component xmlns="http://bender.igel.co.jp">
+  <link rel="script" href="lib.js"/>
   <property name="rate-ms" as="number" value="0"/>
+  <property name="enabled" as="boolean" value="true"/>
   <watch>
-    <get property="rate-ms"><![CDATA[
-      if (this.__timeout) {
-        window.clearTimeout(this.__timeout);
-        delete this.__timeout;
-      } else if (this.__frame) {
-        window.cancelAnimationFrame(this.__frame);
-        delete this.__frame;
+    <get property="rate-ms">
+      flexo.fail(!`enabled);
+      lib.timer.tick.call(this, $in);
+    </get>
+  </watch>
+  <watch>
+    <get property="enabled">
+      if (!$in) {
+        lib.timer.cancel.call(this);
+      } else {
+        lib.timer.tick.call(this, `(rate-ms));
       }
-      var tick = typeof $in !== "number" || isNaN($in) || $in <= 0 ?
-        function () {
-          this.scope.$this.notify("tick", Date.now());
-          this.__frame = window.requestAnimationFrame(tick);
-        }.bind(this) : function () {
-          this.scope.$this.notify("tick", Date.now());
-          this.__timeout = window.setTimeout(tick, $in);
-        }.bind(this);
-      tick();
-    ]]></get>
+    </get>
   </watch>
 </component>

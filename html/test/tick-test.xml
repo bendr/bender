@@ -3,7 +3,9 @@
     <p xmlns="http://www.w3.org/1999/xhtml">
       Now: <span id="now"/>
     </p>
-    <component href="../lib/ticker.xml" id="ticker"/>
+    <component href="../lib/ticker.xml" id="ticker">
+      <property name="rate-ms" value="1000"/>
+    </component>
   </view>
   <watch>
     <get select="@ticker" event="tick"/>
