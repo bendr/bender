@@ -9,6 +9,14 @@
 
   bender.MAX_VISITS = 10;  // maximum number of visits for a vertex
 
+  var _trace;
+  Object.defineProperty(bender, "TRACE", {
+    enumerable: true,
+    get: function () { return _trace !== flexo.nop; },
+    set: function (p) { _trace = p ? console.log.bind(console) : flexo.nop; }
+  });
+  bender.TRACE = true;     // show tracing messages
+
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
   var push = Array.prototype.push;
@@ -165,7 +173,7 @@
         (!this.scheduled || this.scheduled.hasOwnProperty("value"))) {
       this.scheduled = new flexo.Promise();
       this.scheduled.id = Math.random().toString(36).substr(2, 6).toUpperCase();
-      console.log("[%0] +++ Will traverse watch graph".fmt(this.scheduled.id));
+      _trace("[%0] +++ Will traverse watch graph".fmt(this.scheduled.id));
       flexo.asap(this.traverse_graph_bound);
       return this.scheduled;
     }
@@ -177,7 +185,7 @@
   };
 
   environment.traverse_graph = function () {
-    console.log("[%0] >>> Traverse watch graph".fmt(this.scheduled.id));
+    _trace("[%0] >>> Traverse watch graph".fmt(this.scheduled.id));
     for (var visited = [], i = 0; i < this.queue.length; ++i) {
       var q = this.queue[i];
       var vertex = q[0];
@@ -204,7 +212,7 @@
       delete vertex.__visited_value;
       delete vertex.__visited_times;
     });
-    console.log("[%0] <<< Done traversing watch graph".fmt(this.scheduled.id));
+    _trace("[%0] <<< Done traversing watch graph".fmt(this.scheduled.id));
     this.queue = [];
     this.scheduled.fulfill(this.scheduled.id);
   };
@@ -491,7 +499,6 @@
     flexo.hcaErof(chain, function (instance) {
       push.apply(links, instance.component.links);
     });
-    console.log("[%0] Rendering links, %1 total".fmt(this.index, links.length));
     return flexo.promise_fold(links, function (_, link) {
       // jshint unused: false
       return link.render(target);
@@ -501,17 +508,12 @@
   component.render_properties = function (chain) {
     var rendered = {};
     chain.forEach(function (instance, i) {
-      console.log("[%0] (%1) Rendering properties"
-        .fmt(instance.component.index, instance.index));
       for (var p in instance.component.own_properties) {
-        console.log("  * %0".fmt(p));
         rendered[p] = true;
         var vertex = chain[0].component.property_vertices[p];
         for (var j = i; j >= 0; j--) {
           var index = vertex.index;
           vertex = render_derived_property(chain[j], vertex.property, vertex);
-          console.log("    - %0`%1: %2 -> %3"
-            .fmt(chain[j].index, p, index, vertex.index));
         }
       }
     });
@@ -534,14 +536,10 @@
       }
     });
     stack.i = 0;
-    console.log("[%0] (%1) Rendering view (stack: %2)"
-        .fmt(this.index, chain[0].index, stack.length));
     for (var n = stack.length; stack.i < n && !stack[stack.i].scope.$view;
         ++stack.i);
     if (stack.i < n && stack[stack.i].scope.$view) {
       var instance = stack[stack.i];
-      console.log("[%0] (%1) Rendering view in".fmt(this.index, instance.index),
-          target);
       return instance.scope.$view.render(target, stack);
     }
     return new flexo.Promise().fulfill();
@@ -549,7 +547,6 @@
 
   // Render watches from the chain
   component.render_watches = function (chain) {
-    console.log("[%0] (%1) Rendering watches".fmt(this.index, chain[0].index));
     chain.forEach(function (instance) {
       instance.watches = instance.component.watches.slice();
       // Render property bindings
@@ -591,16 +588,12 @@
     });
     flexo.hcaErof(chain, function (instance) {
       if (instance.watches.length > 0) {
-        console.log("  + Watches for %0: %1"
-          .fmt(instance.index, instance.watches.length));
       }
       instance.watches.forEach(function (watch) {
         watch.render(instance);
       });
       delete instance.watches;
       instance.bindings = [];
-      console.log("[%0] (%1) Did render, $first:"
-        .fmt(instance.component.index, instance.index), instance.scope.$first);
       on(instance, "did-render");
     });
     return chain[0];
@@ -612,22 +605,19 @@
     if (this._prototype) {
       this._prototype.init_properties();
     }
-    console.log("[%0] Initialize properties".fmt(this.index));
     for (var p in this.own_properties) {
       var property = this.own_properties[p];
       if (!property.hasOwnProperty("bindings")) {
         this.properties[p] = property.value().call(this);
-        console.log("  %0 = %1".fmt(p, this.properties[p]));
       }
     }
-    console.log("[%0] Did initialize properties".fmt(this.index));
     // on(this, "did-init");
     this.child_components.forEach(function (ch) {
       ch.init_properties();
     });
     return flexo.then(this.scope.$environment.scheduled, function (id) {
       if (instance) {
-        console.log("[%0] (%1) Ready after %2"
+        _trace("[%0] (%1) Ready after %2"
           .fmt(instance.component.index, instance.index, id));
       }
     });
@@ -658,15 +648,11 @@
   };
 
   function render_derived_properties(component) {
-    console.log("[%0] Render derived properties".fmt(component.index));
     for (var p in component._prototype.property_vertices) {
       if (!component.own_properties.hasOwnProperty(p)) {
         var vertex = component._prototype.property_vertices[p];
         var index = vertex.index;
         vertex = render_derived_property(component, vertex.property, vertex);
-        console.log("  derived property %0`%2 -> %1`%2: %3 -> %4"
-            .fmt(component._prototype.index, component.index, p, index,
-              vertex.index));
       }
     }
   }
@@ -775,7 +761,6 @@
       return edge instanceof bender.DerivedPropertyEdge;
     });
     if (edge) {
-      console.log("  (removed derived property edge)");
       edge.remove();
     }
     return render_property_property(component, property, vertex);
@@ -817,14 +802,14 @@
     return vertex;
   }
 
-  _class(bender.Link = function (environment, rel, href) {
+  var link = _class(bender.Link = function (environment, rel, href) {
     this.init();
     this.environment = environment;
     this.rel = flexo.safe_trim(rel).toLowerCase();
     this.href = href;
   }, bender.Element);
 
-  bender.Environment.prototype.deserialize.link = function (elem) {
+  environment.deserialize.link = function (elem) {
     return this.deserialize_children(new bender.Link(this,
           elem.getAttribute("rel"),
           flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"))), elem);
@@ -833,12 +818,12 @@
   // Render links according to their rel attribute. If a link requires delaying
   // the rest of the rendering, return a promise then fulfill it with a value to
   // resume rendering (see script rendering below.)
-  bender.Link.prototype.render = function (target) {
+  link.render = function (target) {
     if (this.environment.urls[this.href]) {
       return this.environment.urls[this.href];
     }
     this.environment.urls[this.href] = this;
-    var render = bender.Link.prototype.render[this.rel];
+    var render = link.render[this.rel];
     if (typeof render === "function") {
       return render.call(this, target);
     }
@@ -848,7 +833,7 @@
 
   // Scripts are handled for HTML only by default. Override this method to
   // handle other types of documents.
-  bender.Link.prototype.render.script = function (target) {
+  link.render.script = function (target) {
     var ns = target.ownerDocument.documentElement.namespaceURI;
     if (ns === flexo.ns.html) {
       return flexo.promise_script(this.href, target.ownerDocument.head)
@@ -863,7 +848,7 @@
 
   // Stylesheets are handled for HTML only by default. Override this method to
   // handle other types of documents.
-  bender.Link.prototype.render.stylesheet = function (target) {
+  link.render.stylesheet = function (target) {
     var document = target.ownerDocument;
     var ns = document.documentElement.namespaceURI;
     if (ns === flexo.ns.html) {
@@ -879,14 +864,14 @@
   };
 
   // View of a component
-  _class(bender.View = function () {
+  var view = _class(bender.View = function () {
     this.init();
   }, bender.Element);
 
   flexo._accessor(bender.View, "render_id", normalize_render_id);
   flexo._accessor(bender.View, "stack", normalize_stack);
 
-  bender.Environment.prototype.deserialize.view = function (elem) {
+  environment.deserialize.view = function (elem) {
     return this.deserialize_children(new bender.View()
         .id(elem.getAttribute("id"))
         .render_id(elem.getAttribute("render-id"))
@@ -894,8 +879,7 @@
   };
 
   // Append child for view and its children
-  function append_view_child(child) {
-    // jshint validthis:true
+  view.append_child = function (child) {
     if (child instanceof bender.Component) {
       var p = parent_component(this);
       if (p) {
@@ -903,30 +887,28 @@
       }
     }
     return element.append_child.call(this, child);
-  }
-
-  bender.View.prototype.append_child = append_view_child;
+  };
 
   // Render the contents of the view by appending into the target, passing the
   // stack of views further down for the <content> element. Return a
   // promise-like Seq object.
-  bender.View.prototype.render = function (target, stack) {
+  view.render = function (target, stack) {
     return flexo.promise_fold(this.children, function (_, ch) {
       // jshint unused: false
       return ch.render(target, stack);
     });
   };
 
-  _class(bender.Content = function () {
+  var content = _class(bender.Content = function () {
     this.init();
   }, bender.Element);
 
-  bender.Environment.prototype.deserialize.content = function (elem) {
+  environment.deserialize.content = function (elem) {
     return this.deserialize_children(new bender.Content()
         .id(elem.getAttribute("id")), elem);
   };
 
-  bender.Content.prototype.render = function (target, stack) {
+  content.render = function (target, stack) {
     var indices = [];
     for (var i = stack.i + 1, n = stack.length; i < n; ++i) {
       if (stack[i].scope.$view) {
@@ -942,11 +924,11 @@
         });
       });
     }
-    return bender.View.prototype.render.call(this, target, stack);
+    return view.render.call(this, target, stack);
   };
 
   // Create a new attribute with an optional namespace and a name
-  _class(bender.Attribute = function (ns, name) {
+  var attribute = _class(bender.Attribute = function (ns, name) {
     this.init();
     if (arguments.length < 2) {
       this._name = flexo.safe_string(ns);
@@ -959,21 +941,21 @@
   flexo._accessor(bender.Attribute, "name", flexo.safe_string);
   flexo._accessor(bender.Attribute, "ns", flexo.safe_string);
 
-  bender.Environment.prototype.deserialize.attribute = function (elem) {
+  environment.deserialize.attribute = function (elem) {
     var attr = new bender.Attribute(elem.getAttribute("ns"),
         elem.getAttribute("name")).id(elem.getAttribute("id"));
     return this.deserialize_children(attr, elem);
   };
 
   // Only add text content (DOM text nodes or bender Text elements)
-  bender.Attribute.prototype.append_child = function (child) {
+  attribute.append_child = function (child) {
     if (child instanceof bender.DOMTextNode || child instanceof bender.Text) {
-      return bender.Element.prototype.append_child.call(this, child);
+      return element.append_child.call(this, child);
     }
   };
 
   // Render as an attribute of the target
-  bender.Attribute.prototype.render = function (target, stack) {
+  attribute.render = function (target, stack) {
     if (target.nodeType === window.Node.ELEMENT_NODE) {
       var contents = this.children.reduce(function (t, node) {
         return t + node.text ? node.text() : node.textContent;
@@ -986,32 +968,32 @@
 
   // Bender Text element. Although it can only contain text, it can also have an
   // id so that it can be referred to by a watch.
-  _class(bender.Text = function (text) {
+  var text = _class(bender.Text = function (text) {
     this.init();
     this._text = flexo.safe_string(text);
   }, bender.Element);
 
   flexo._accessor(bender.Text, "text", flexo.safe_string);
 
-  bender.Environment.prototype.deserialize.text = function (elem) {
+  environment.deserialize.text = function (elem) {
     return this.deserialize_children(new bender.Text(shallow_text(elem))
         .id(elem.getAttribute("id")), elem);
   };
 
-  bender.Text.prototype.render = function (target, stack) {
+  text.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode(this._text);
     this.add_id_to_scope(node, stack);
     return target.appendChild(node);
   };
 
-  _class(bender.DOMElement = function (ns, name) {
+  var dom_element = _class(bender.DOMElement = function (ns, name) {
     this.init();
     this.ns = ns;
     this.name = flexo.safe_string(name);
     this.attrs = {};
   }, bender.Element);
 
-  bender.DOMElement.prototype.attr = function (ns, name, value) {
+  dom_element.attr = function (ns, name, value) {
     if (arguments.length > 2) {
       if (!this.attrs.hasOwnProperty(ns)) {
         this.attrs[ns] = {};
@@ -1022,9 +1004,9 @@
     return this.attrs[ns] && this.attrs[ns][name];
   };
 
-  bender.DOMElement.prototype.append_child = append_view_child;
+  dom_element.append_child = view.append_child;
 
-  bender.DOMElement.prototype.render = function (target, stack) {
+  dom_element.render = function (target, stack) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
@@ -1035,25 +1017,22 @@
           bindings[""].target = elem;
           bindings[""].ns = ns;
           bindings[""].attr = a;
-          console.log("[%0] (%1) New attribute bindings for %2"
-              .fmt(stack[stack.i].component.index, stack[stack.i].index, a));
           stack[stack.i].bindings.push(bindings);
         }
       }
     }
     this.add_id_to_scope(elem, stack, true);
-    return bender.View.prototype.render.call(this, elem, stack)
-      .then(function () {
-        target.appendChild(elem);
-      });
+    return view.render.call(this, elem, stack).then(function () {
+      target.appendChild(elem);
+    });
   };
 
-  _class(bender.DOMTextNode = function () {
+  var dom_text = _class(bender.DOMTextNode = function () {
     this.init();
     this.instances = [];
   }, bender.Element);
 
-  bender.DOMTextNode.prototype.text = function (text) {
+  dom_text.text = function (text) {
     if (arguments.length > 0) {
       text = flexo.safe_string(text);
       if (text !== this._text) {
@@ -1067,7 +1046,7 @@
     return this._text || "";
   };
 
-  bender.DOMTextNode.prototype.render = function (target, stack) {
+  dom_text.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode("");
     var bindings = bindings_string(this._text);
     if (typeof bindings === "string") {
@@ -1081,7 +1060,7 @@
     return node;
   };
 
-  _class(bender.Property = function (name) {
+  var property = _class(bender.Property = function (name) {
     this.init();
     this.name = flexo.safe_string(name);
   }, bender.Element);
@@ -1090,12 +1069,12 @@
   flexo._accessor(bender.Property, "match");
   flexo._accessor(bender.Property, "value");
 
-  bender.Environment.prototype.deserialize.property = function (elem) {
+  environment.deserialize.property = function (elem) {
     return this.deserialize_element_with_value(new
         bender.Property(elem.getAttribute("name")), elem);
   };
 
-  _class(bender.Watch = function () {
+  var watch = _class(bender.Watch = function () {
     this.init();
     this.gets = [];
     this.sets = [];
@@ -1103,26 +1082,26 @@
 
   flexo._accessor(bender.Watch, "match");
 
-  bender.Environment.prototype.deserialize.watch = function (elem) {
+  environment.deserialize.watch = function (elem) {
     return this.deserialize_children(new bender.Watch()
         .id(elem.getAttribute("id"))
         .match(elem.getAttribute("match")), elem);
   };
 
   // Append Get and Set children to the respective arrays
-  bender.Watch.prototype.append_child = function (child) {
+  watch.append_child = function (child) {
     if (child instanceof bender.Get) {
       this.gets.push(child);
     } else if (child instanceof bender.Set) {
       this.sets.push(child);
     }
-    return bender.Element.prototype.append_child.call(this, child);
+    return element.append_child.call(this, child);
   };
 
   // Render the watch by rendering a vertex for the watch, then a vertex for
   // each of the get elements with an edge to the watch vertex, then an edge
   // from the watch vertex for all set elements for a concrete component
-  bender.Watch.prototype.render = function (instance) {
+  watch.render = function (instance) {
     var watch_vertex = instance.component.scope.$environment.add_vertex(new
         bender.WatchVertex(this, instance));
     this.gets.forEach(function (get) {
@@ -1150,7 +1129,7 @@
 
   _class(bender.Get = function () {}, bender.GetSet);
 
-  _class(bender.GetDOMEvent = function (type, select) {
+  var get_dom_event = _class(bender.GetDOMEvent = function (type, select) {
     this.init();
     this.type = type;
     this.select = select;
@@ -1159,7 +1138,7 @@
   flexo._accessor(bender.Get, "stop_propagation");
   flexo._accessor(bender.Get, "prevent_default");
 
-  bender.GetDOMEvent.prototype.render = function (component) {
+  get_dom_event.render = function (component) {
     var target = component.scope[this.select];
     if (target) {
       return component.scope.$environment
@@ -1167,24 +1146,23 @@
     }
   };
 
-  _class(bender.GetEvent = function (type, select) {
+  var get_event = _class(bender.GetEvent = function (type, select) {
     this.init();
     this.type = type;
     this.select = select;
   }, bender.Get);
 
-  bender.GetEvent.prototype.render = function (component) {
-    console.log("??? %0 %1".fmt(this.type, component.scope[this.select].index));
+  get_event.render = function (component) {
     return get_event_vertex(component.scope[this.select], this.type);
   };
 
-  _class(bender.GetProperty = function (name, select) {
+  var get_property = _class(bender.GetProperty = function (name, select) {
     this.init();
     this.name = name;
     this.select = select;
   }, bender.Get);
 
-  bender.GetProperty.prototype.render = function (component) {
+  get_property.render = function (component) {
     var target = component.scope[this.select];
     if (target) {
       return target.property_vertices[this.name];
@@ -1197,7 +1175,7 @@
     this.select = select;
   }, bender.Get);
 
-  bender.Environment.prototype.deserialize.get = function (elem) {
+  environment.deserialize.get = function (elem) {
     var get;
     var select = elem.getAttribute("select") || "$this";
     if (elem.hasAttribute("dom-event")) {
@@ -1214,11 +1192,11 @@
     return this.deserialize_element_with_value(get, elem);
   };
 
-  _class(bender.Set = function () {
+  var set = _class(bender.Set = function () {
     this.init();
   }, bender.GetSet);
 
-  bender.Set.prototype.render = function (component) {
+  set.render = function (component) {
     return new bender.Edge().init(this, component,
         component.scope.$environment.vortex);
   };
@@ -1229,17 +1207,16 @@
     this.select = select;
   }, bender.Set);
 
-  _class(bender.SetEvent = function (type, select) {
+  var set_event = _class(bender.SetEvent = function (type, select) {
     this.init();
     this.type = type;
     this.select = select;
   }, bender.Set);
 
-  bender.SetEvent.prototype.render = function (component) {
+  set_event.render = function (component) {
     var edges = [];
     for (var target = component.scope[this.select]; target;
         target = target._prototype) {
-      console.log("~~~ %0 > %1".fmt(target.index, this.type));
       var vertex = get_event_vertex(target, this.type);
       if (vertex) {
         edges.push(new bender.EventEdge(this, component, vertex));
@@ -1248,13 +1225,13 @@
     return edges;
   };
 
-  _class(bender.SetDOMProperty = function (name, select) {
+  var set_dom_property = _class(bender.SetDOMProperty = function (name, select) {
     this.init();
     this.name = name;
     this.select = select;
   }, bender.Set);
 
-  bender.SetDOMProperty.prototype.render = function (component) {
+  set_dom_property.render = function (component) {
     var target = typeof this.select === "string" ?
       component.scope[this.select] : this.select;
     if (target) {
@@ -1269,13 +1246,13 @@
     }
   };
 
-  _class(bender.SetProperty = function (name, select) {
+  var set_property = _class(bender.SetProperty = function (name, select) {
     this.init();
     this.name = name;
     this.select = select;
   }, bender.Set);
 
-  bender.SetProperty.prototype.render = function (component) {
+  set_property.render = function (component) {
     var target = typeof this.select === "string" ?
       component.scope[this.select] : this.select;
     if (target) {
@@ -1283,14 +1260,14 @@
     }
   };
 
-  _class(bender.SetDOMAttribute = function (ns, name, select) {
+  var set_dom_attribute = _class(bender.SetDOMAttribute = function (ns, name, select) {
     this.init();
     this.ns = ns;
     this.name = name;
     this.select = select;
   }, bender.Set);
 
-  bender.SetDOMAttribute.prototype.render = function (component) {
+  set_dom_attribute.render = function (component) {
     var target = typeof this.selet === "string" ?
       component.scope[this.select] : this.select;
     if (target) {
@@ -1305,7 +1282,7 @@
     this.select = select;
   }, bender.Set);
 
-  bender.Environment.prototype.deserialize.set = function (elem) {
+  environment.deserialize.set = function (elem) {
     var set;
     var select = elem.getAttribute("select") || "$this";
     if (elem.hasAttribute("dom-event")) {
@@ -1333,20 +1310,20 @@
   // The vortex is the simplest kind of vertex that only has incoming edges
   // (hence the name.) This is the sink of the graph and thus only one is
   // necessary.
-  bender.Vortex = function () {};
+  var vortex = (bender.Vortex = function () {}).prototype;
 
-  bender.Vortex.prototype.init = function () {
+  vortex.init = function () {
     this.incoming = [];
     this.outgoing = [];
     return this;
   };
 
-  bender.Vortex.prototype.add_incoming = function (edge) {
+  vortex.add_incoming = function (edge) {
     edge.dest = this;
     this.incoming.push(edge);
   };
 
-  bender.Vortex.prototype.add_outgoing = function (edge) {
+  vortex.add_outgoing = function (edge) {
     edge.source = this;
     this.outgoing.push(edge);
   };
@@ -1362,13 +1339,13 @@
 
 
   // DOM event vertex
-  _class(bender.DOMEventVertex = function (get, target) {
+  var dom_event_vertex = _class(bender.DOMEventVertex = function (get, target) {
     this.init();
     this.get = get;
     target.addEventListener(get.type, this, false);
   }, bender.Vortex);
 
-  bender.DOMEventVertex.prototype.handleEvent = function (e) {
+  dom_event_vertex.handleEvent = function (e) {
     if (this.get.prevent_default) {
       e.preventDefault();
     }
@@ -1404,16 +1381,16 @@
   }, bender.Vortex);
 
 
-  bender.Edge = function () {};
+  var edge = (bender.Edge = function () {}).prototype;
 
-  bender.Edge.prototype.init = function (elem, component, dest) {
+  edge.init = function (elem, component, dest) {
     this.elem = elem;
     this.component = component;
     dest.add_incoming(this);
     return this;
   };
 
-  bender.Edge.prototype.follow = function (input) {
+  edge.follow = function (input) {
     var value = this.elem.value();
     try {
       return [this.dest, value ? value.call(this.component, input) : input];
@@ -1421,7 +1398,7 @@
     }
   };
 
-  bender.Edge.prototype.remove = function () {
+  edge.remove = function () {
     flexo.remove_from_array(this.source.outgoing, this);
     flexo.remove_from_array(this.dest.incoming, this);
     this.source = null;
@@ -1439,6 +1416,8 @@
   }, bender.Edge);
 
 
+  // TODO review this when simplifyin properties (a simple edge should be
+  // enough)
   _class(bender.DerivedPropertyEdge = function (source, dest) {
     source.add_outgoing(this);
     dest.add_incoming(this);
