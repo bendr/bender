@@ -4,18 +4,19 @@
   /* global flexo, window, console */
   // jshint -W054
 
-  bender.version = "0.8.2";
+  bender.version = "0.8.2 (rev. 0)";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  bender.MAX_VISITS = 10;  // maximum number of visits for a vertex
-
+  // Set up tracing, turned on/off with bender.TRACE
   var _trace;
   Object.defineProperty(bender, "TRACE", {
     enumerable: true,
     get: function () { return _trace !== flexo.nop; },
     set: function (p) { _trace = p ? console.log.bind(console) : flexo.nop; }
   });
+
   bender.TRACE = true;     // show tracing messages
+  bender.MAX_VISITS = 10;  // maximum number of visits for a vertex
 
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
