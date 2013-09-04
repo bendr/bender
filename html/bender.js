@@ -4,7 +4,7 @@
   /* global flexo, window, console */
   // jshint -W054
 
-  bender.version = "0.8.2 (rev. 0)";
+  bender.version = "0.8.2 (rev. 1)";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
   // Set up tracing, turned on/off with bender.TRACE
@@ -58,6 +58,14 @@
     component.index = this.components.length;
     this.components.push(component);
     return component;
+  };
+
+  // Create a new instance for a component
+  environment.instance = function (component) {
+    var instance = new bender.Instance(component);
+    instance.index = this.components.length;
+    this.components.push(this);
+    return instance;
   };
 
   // Load a component from an URL in the environment and return a promise which
@@ -169,6 +177,8 @@
     return this.deserialize_children(e, elem);
   };
 
+  // Schedule a new graph traversal when necessary (non-empty queue; no ongoing
+  // traversal)
   environment.schedule_traversal = function () {
     if (this.queue.length > 0 &&
         (!this.scheduled || this.scheduled.hasOwnProperty("value"))) {
@@ -180,6 +190,7 @@
     }
   };
 
+  // Visit a vertex by adding it to the queue and scheduling a traversal.
   environment.visit_vertex = function (vertex, value) {
     if (vertex) {
       this.queue.push([vertex, value]);
@@ -187,8 +198,10 @@
     }
   };
 
+  // Traverse the graph breadth-first, starting from the queued vertices.
   environment.traverse_graph = function () {
     _trace("[%0] >>> Traverse watch graph".fmt(this.scheduled.id));
+    // Don’t cache the length of the queue as it grows during the traversal
     for (var visited = [], i = 0; i < this.queue.length; ++i) {
       var q = this.queue[i];
       var vertex = q[0];
@@ -229,7 +242,7 @@
   };
 
 
-  // Base for Bender elements with no content
+  // Base for Bender elements.
   var element = (bender.Element = function () {}).prototype;
 
   // All elements may have an id. If the id is modified, the scope for this
@@ -455,32 +468,15 @@
     });
   };
 
-  // Create the component chain for rendering
-  component.chain = function () {
-    for (var chain = [], p = this; p; p = p._prototype) {
-      var concrete = new bender.ConcreteInstance(p);
-      if (p.id()) {
-        Object.getPrototypeOf(p.scope)["@" + p.id()] = concrete;
-      }
-      var derived = chain[chain.length - 1];
-      if (derived) {
-        derived._prototype = concrete;
-        push.apply(derived.property_nodes, concrete.property_nodes);
-      }
-      chain.push(concrete);
-      concrete.scope.$this = chain[0];
-    }
-    chain[0].__chain = chain;
-    return chain;
-  };
-
   // Render this component to a concrete instance for the given target.
   component.render = function (target, stack) {
-    var chain = this.chain();
-    if (stack) {
-      chain[0].parent_component = stack[stack.i];
+    var instance = environment.instance(this);
+    return this.render_links(instance, target);
+
+    /*if (stack) {
+      instance.parent_component = stack[stack.i];
       stack[stack.i].child_components.push(chain[0]);
-    }
+    }*/
     return this.render_links(chain, target).then(function () {
       flexo.hcaErof(chain, function (instance) {
         on(instance, "will-render");
@@ -493,14 +489,14 @@
     });
   };
 
-  // Render all links for the chain, from the further ancestor down to the
+  // Render all links for the instance, from the further ancestor down to the
   // component instance itself. Return a promise that is fulfilled once all
   // links have been loaded in sequence.
-  component.render_links = function (chain, target) {
+  component.render_links = function (instance, target) {
     var links = [];
-    flexo.hcaErof(chain, function (instance) {
-      push.apply(links, instance.component.links);
-    });
+    for (var p = instance.scope.$that; p; p = p._prototype) {
+      unshift.apply(links, p.links);
+    }
     return flexo.promise_fold(links, function (_, link) {
       // jshint unused: false
       return link.render(target);
@@ -734,15 +730,19 @@
     this.scope.$environment.visit_vertex(this.event_vertices[type], value);
   };
 
-  var concrete = (bender.ConcreteInstance = function (component) {
+
+  // Concrete instance getting rendered
+  var instance = (bender.Instance = function (component) {
     this.component = component;
     component.instances.push(this);
-    this.scope = Object.create(component.scope, {
-      $that: { enumerable: true, value: this },
-    });
-    if (component._id) {
-      this.scope["@" + component._id] = this;
+    this.scopes = [];
+    for (var p = component; p; p = p._prototype) {
+      this.scopes.push(Object.create(p.scope, {
+        $that: { enumerable: true, value: p },
+        $this: { enumerable: true, value: this }
+      })
     }
+    this.scope = this.scopes[0];
     this.child_components = [];
     this.properties = {};
     this.index = this.scope.$environment.components.length;
@@ -754,7 +754,7 @@
   }).prototype;
 
   // Send an event notification for this concrete instance only.
-  concrete.notify = component.notify;
+  instance.notify = component.notify;
 
   function on(instance, type) {
     if (instance.component._on.hasOwnProperty(type)) {
