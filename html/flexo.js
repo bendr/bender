@@ -24,7 +24,6 @@
   flexo._class = function (constructor, Proto) {
     var p = constructor.prototype = new Proto();
     Object.defineProperty(p, "constructor", { value: constructor });
-    Object.defineProperty(p, "urproto", { value: Proto });
     return p;
   };
 

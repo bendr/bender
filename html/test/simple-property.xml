@@ -1,7 +1,11 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="x"/>
+  <property select="$this" name="x" as="number" value="1"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>X</html:p>
+    <html:p>X = <html:span id="x"/></html:p>
     <content/>
   </view>
+  <watch>
+    <get property="x"/>
+    <set select="@x" dom-property="textContent"/>
+  </watch>
 </component>

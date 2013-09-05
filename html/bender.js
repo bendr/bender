@@ -460,6 +460,7 @@
         function () {
           target.insertBefore(fragment, ref);
           instance.scope.$target = target;
+          on(instance, "did-render");
           return instance;
         });
     });
@@ -696,6 +697,12 @@
   };
 
   instance.render_watches = function () {
+    _trace("[%0] (%1) render watches".fmt(this.component.index, this.index));
+    this.scopes.forEach(function (scope) {
+      scope.$that.watches.forEach(function (watch) {
+        watch.render(scope.$this);
+      });
+    });
     return this;
   };
 
@@ -1364,27 +1371,26 @@
   };
 
 
+  // Edges that are tied to an element (e.g., watch, get, set) and a component
+  var element_edge = _class(bender.ElementEdge = function () {}, bender.Edge);
+
+  element_edge.init = function (element, component, dest) {
+    edge.init.call(this, dest);
+    this.element = element;
+    this.component = component;
+  };
+
+
+  // Edges to a watch vertex
   _class(bender.WatchEdge = function (get, component, dest) {
     this.init(get, component, dest);
-  }, bender.Edge);
+  }, bender.ElementEdge);
 
 
   _class(bender.EventEdge = function (set, component, dest) {
     this.init(set, component, dest);
-  }, bender.Edge);
+  }, bender.ElementEdge);
 
-
-  // TODO review this when simplifyin properties (a simple edge should be
-  // enough)
-  _class(bender.DerivedPropertyEdge = function (source, dest) {
-    source.add_outgoing(this);
-    dest.add_incoming(this);
-  }, bender.Edge);
-
-  bender.DerivedPropertyEdge.prototype.follow = function (input) {
-    this.dest.value = input;
-    return [this.dest, input];
-  };
 
 
   // TODO refactor
