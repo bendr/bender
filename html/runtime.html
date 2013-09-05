@@ -18,14 +18,20 @@ bender.load_component().then(function (component) {
   window.APP = component;
   ["will-render", "did-render", "will-init", "did-init", "ready"
   ].forEach(function (type) {
-    component.on(type, function (instance, type_) {
-      console.log("[%0] (%1) *%2".fmt(instance.component.index, instance.index,
-        type_));
+    component.on(type, function (source, type_) {
+      if (source.component) {
+        console.log("[%0] (%1) *%2"
+          .fmt(source.component.index, source.index, type_));
+      } else {
+        console.log("[%0] *%1".fmt(source.index, type_));
+      }
     });
   });
   component.render_component(document.body).then(function (instance) {
     console.log("[%0] (%1) *** Rendered"
       .fmt(instance.component.index, instance.index));
+  }, function (reason) {
+    console.error("Did not render component %0:".fmt(component.index), reason);
   });
 }, function (reason) {
   alert(reason && reason.message || reason);
