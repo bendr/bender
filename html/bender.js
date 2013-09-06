@@ -1135,7 +1135,7 @@
   }, bender.Get);
 
   get_event.render = function (scope) {
-    return get_event_vertex(scope[this.select], this.type);
+    return get_event_vertex(scope[this.select], this);
   };
 
   var get_property = _class(bender.GetProperty = function (name, select) {
@@ -1200,7 +1200,7 @@
   set_event.render = function (scope) {
     var edges = [];
     for (var target = scope[this.select]; target; target = target._prototype) {
-      var vertex = get_event_vertex(target, this.type);
+      var vertex = get_event_vertex(target, this);
       if (vertex) {
         edges.push(new bender.EventEdge(this, scope.$this, vertex));
       }
@@ -1328,6 +1328,7 @@
   var dom_event_vertex = _class(bender.DOMEventVertex = function (get, target) {
     this.init();
     this.get = get;
+    this.target = target;
     target.addEventListener(get.type, this, false);
   }, bender.Vertex);
 
@@ -1346,7 +1347,7 @@
 
 
   // TODO Event vertex for a <get event="..."> element
-  _class(bender.EventVertex = function (get, target) {
+  _class(bender.EventVertex = function (target, get) {
     this.init();
     this.get = get;
     this.target = target;
@@ -1556,13 +1557,13 @@
   // Get the event vertex for the component/type pair, returning the existing
   // one if it was already created, or creating a new one if not. Return nothing
   // if the component is not found, or not really a component or instance.
-  function get_event_vertex(component, type) {
+  function get_event_vertex(component, get) {
     if (component && component.event_vertices) {
-      if (!component.event_vertices.hasOwnProperty(type)) {
-        component.event_vertices[type] = component.scope.$environment
-          .add_vertex(new bender.EventVertex(component, type));
+      if (!component.event_vertices.hasOwnProperty(get.type)) {
+        component.event_vertices[get.type] = component.scope.$environment
+          .add_vertex(new bender.EventVertex(component, get));
       }
-      return component.event_vertices[type];
+      return component.event_vertices[get.type];
     }
   }
 

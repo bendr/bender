@@ -41,6 +41,11 @@
     }
   };
 
+  bender.EventVertex.prototype.dot_label = function () {
+    return "%0%1!%2".fmt(this.target instanceof bender.Component ? "#" : "@",
+        this.target.index, this.get.type);
+  };
+
   bender.PropertyVertex.prototype.dot_label = function () {
     return "%0%1`%2".fmt(this.component instanceof bender.Component ? "#" : "@",
         this.component.index, this.property.name);
