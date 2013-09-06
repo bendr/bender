@@ -1,9 +1,14 @@
 <component xmlns="http://bender.igel.co.jp">
+  <property name="ready" as="boolean" value="false"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>Ready ? <html:span id="r"/></html:p>
+    <html:p>Ready ? <html:span id="ready"/></html:p>
   </view>
   <watch>
+    <get property="ready"/>
+    <set select="@ready" dom-property="textContent"/>
+  </watch>
+  <watch>
     <get event="ready"/>
-    <set select="@r" dom-property="textContent" as="string" value="OK"/>
+    <set property="ready" value="true"/>
   </watch>
 </component>

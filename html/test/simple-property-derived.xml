@@ -1,6 +1,10 @@
 <component xmlns="http://bender.igel.co.jp" href="simple-property.xml">
-  <property name="y"/>
+  <property select="$that" name="y" as="number" value="2"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>Y</html:p>
+    <html:p>Y = <html:span id="y"/></html:p>
   </view>
+  <watch>
+    <get property="y"/>
+    <set select="@y" dom-property="textContent"/>
+  </watch>
 </component>

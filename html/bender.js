@@ -20,7 +20,6 @@
 
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
-  var push = Array.prototype.push;
   var unshift = Array.prototype.unshift;
 
   // Load a component and return a promise. The defaults object should contain
@@ -196,11 +195,12 @@
     } else {
       f();
     }
-  }
+  };
 
   // Traverse the graph breadth-first, starting from the queued vertices.
   environment.traverse_graph = function () {
-    _trace("[%0] >>> Traverse watch graph".fmt(this.scheduled.id));
+    _trace("[%0] >>> Traverse watch graph (vertices in queue: %1)"
+        .fmt(this.scheduled.id, this.queue.length));
     // Don’t cache the length of the queue as it grows during the traversal
     for (var visited = [], i = 0; i < this.queue.length; ++i) {
       var q = this.queue[i];
@@ -475,7 +475,7 @@
     var instance = this.scope.$environment.instance(this);
     if (stack) {
       instance.parent_component = stack[stack.i];
-      stack[stack.i].child_components.push(chain[0]);
+      stack[stack.i].$this.child_components.push(this);
     }
     return this.render_links(instance, target).then(function () {
       on(instance, "will-render");
@@ -708,7 +708,7 @@
     _trace("[%0] (%1) render watches".fmt(this.component.index, this.index));
     this.scopes.forEach(function (scope) {
       scope.$that.watches.forEach(function (watch) {
-        watch.render(scope.$this);
+        watch.render(scope);
       });
     });
     return this;
@@ -1037,7 +1037,7 @@
     return node;
   };
 
-  var property = _class(bender.Property = function (name) {
+  _class(bender.Property = function (name) {
     this.init();
     this.name = flexo.safe_string(name);
   }, bender.Element);
@@ -1080,17 +1080,20 @@
   // Render the watch by rendering a vertex for the watch, then a vertex for
   // each of the get elements with an edge to the watch vertex, then an edge
   // from the watch vertex for all set elements for a concrete component
-  watch.render = function (instance) {
-    var watch_vertex = instance.component.scope.$environment.add_vertex(new
-        bender.WatchVertex(this, instance));
+  watch.render = function (scope) {
+    _trace("  watch for %0 in scope %1"
+        .fmt(scope.$this.index, scope.$that.index));
+    var watch_vertex = scope.$environment.add_vertex(new
+        bender.WatchVertex(this, scope.$this));
     this.gets.forEach(function (get) {
-      var vertex = get.render(instance);
+      var vertex = get.render(scope);
       if (vertex) {
-        vertex.add_outgoing(new bender.WatchEdge(get, instance, watch_vertex));
+        vertex.add_outgoing(new
+          bender.WatchEdge(get, scope.$this, watch_vertex));
       }
     });
     this.sets.forEach(function (set) {
-      var edge = set.render(instance);
+      var edge = set.render(scope);
       if (Array.isArray(edge)) {
         edge.forEach(function (e) {
           watch_vertex.add_outgoing(e);
@@ -1117,11 +1120,11 @@
   flexo._accessor(bender.Get, "stop_propagation");
   flexo._accessor(bender.Get, "prevent_default");
 
-  get_dom_event.render = function (component) {
-    var target = component.scope[this.select];
+  get_dom_event.render = function (scope) {
+    var target = scope[this.select];
     if (target) {
-      return component.scope.$environment
-        .add_vertex(new bender.DOMEventVertex(this, target));
+      return scope.$environment.add_vertex(new
+          bender.DOMEventVertex(this, target));
     }
   };
 
@@ -1131,8 +1134,8 @@
     this.select = select;
   }, bender.Get);
 
-  get_event.render = function (component) {
-    return get_event_vertex(component.scope[this.select], this.type);
+  get_event.render = function (scope) {
+    return get_event_vertex(scope[this.select], this.type);
   };
 
   var get_property = _class(bender.GetProperty = function (name, select) {
@@ -1141,8 +1144,8 @@
     this.select = select;
   }, bender.Get);
 
-  get_property.render = function (component) {
-    var target = component.scope[this.select];
+  get_property.render = function (scope) {
+    var target = scope[this.select];
     if (target) {
       return target.property_vertices[this.name];
     }
@@ -1175,9 +1178,11 @@
     this.init();
   }, bender.GetSet);
 
-  set.render = function (component) {
-    return new bender.Edge().init(this, component,
-        component.scope.$environment.vortex);
+  set.render = function (scope) {
+    var target = scope[this.select];
+    if (target) {
+      return new bender.Edge().init(this, target, scope.$environment.vortex);
+    }
   };
 
   _class(bender.SetDOMEvent = function (type, select) {
@@ -1192,13 +1197,12 @@
     this.select = select;
   }, bender.Set);
 
-  set_event.render = function (component) {
+  set_event.render = function (scope) {
     var edges = [];
-    for (var target = component.scope[this.select]; target;
-        target = target._prototype) {
+    for (var target = scope[this.select]; target; target = target._prototype) {
       var vertex = get_event_vertex(target, this.type);
       if (vertex) {
-        edges.push(new bender.EventEdge(this, component, vertex));
+        edges.push(new bender.EventEdge(this, scope.$this, vertex));
       }
     }
     return edges;
@@ -1210,11 +1214,11 @@
     this.select = select;
   }, bender.Set);
 
-  set_dom_property.render = function (component) {
+  set_dom_property.render = function (scope) {
     var target = typeof this.select === "string" ?
-      component.scope[this.select] : this.select;
+      scope[this.select] : this.select;
     if (target) {
-      var edge = new bender.DOMPropertyEdge(this, component, target);
+      var edge = new bender.DOMPropertyEdge(this, scope.$this, target);
       if (this.match) {
         edge.match = this.match;
       }
@@ -1231,26 +1235,27 @@
     this.select = select;
   }, bender.Set);
 
-  set_property.render = function (component) {
+  set_property.render = function (scope) {
     var target = typeof this.select === "string" ?
-      component.scope[this.select] : this.select;
+      scope[this.select] : this.select;
     if (target) {
-      return new bender.PropertyEdge(this, target, component);
+      return new bender.PropertyEdge(this, scope.$this, target);
     }
   };
 
-  var set_dom_attribute = _class(bender.SetDOMAttribute = function (ns, name, select) {
+  var set_dom_attribute =
+    _class(bender.SetDOMAttribute = function (ns, name, select) {
     this.init();
     this.ns = ns;
     this.name = name;
     this.select = select;
   }, bender.Set);
 
-  set_dom_attribute.render = function (component) {
-    var target = typeof this.selet === "string" ?
-      component.scope[this.select] : this.select;
+  set_dom_attribute.render = function (scope) {
+    var target = typeof this.select === "string" ?
+      scope[this.select] : this.select;
     if (target) {
-      var edge = new bender.DOMAttributeEdge(this, target, component);
+      var edge = new bender.DOMAttributeEdge(this, scope.$this, target);
       return edge;
     }
   };
@@ -1434,15 +1439,10 @@
 
 
   // Set a Bender property
-  _class(bender.PropertyEdge = function (set, target, component) {
-    this.set = set;
+  _class(bender.PropertyEdge = function (set, component, target) {
+    this.init(set, component, get_property_vertex(target, set.name));
     this.target = target;
-    this.component = component;
-    var vertex = get_property_vertex(target, set.name);
-    if (vertex) {
-      vertex.add_incoming(this);
-    }
-  }, bender.Edge);
+  }, bender.ElementEdge);
 
   bender.PropertyEdge.prototype.follow = function (input) {
     try {
@@ -1456,12 +1456,10 @@
 
 
   // Set a DOM attribute
-  _class(bender.DOMAttributeEdge = function (set, target, component) {
-    this.set = set;
+  _class(bender.DOMAttributeEdge = function (set, component, target) {
+    this.init(set, component, component.scope.$environment.vortex);
     this.target = target;
-    this.component = component;
-    component.scope.$environment.vortex.add_incoming(this);
-  }, bender.Edge);
+  }, bender.ElementEdge);
 
   bender.DOMAttributeEdge.prototype.follow = function (input) {
     try {
@@ -1603,15 +1601,6 @@
   function normalize_stack(stack) {
     stack = flexo.safe_trim(stack).toLowerCase();
     return stack === "bottom" || stack === "replace" ? stack : "top";
-  }
-
-  function notify(component, event) {
-    var vertex = component.event_vertices[event];
-    if (vertex) {
-      vertex.visit(event);
-    } else if (component.component) {
-      notify(component.component, event);
-    }
   }
 
   function on(component, type) {
