@@ -885,10 +885,14 @@
   flexo.Promise = function () {
     this._queue = [];
     this._resolved = resolved_promise.bind(this);
+    Object.defineProperty(this, "resolved", { enumerable: true,
+      get: function () {
+        return this.hasOwnProperty("value") || this.hasOwnProperty("reason");
+      }
+    });
   };
 
   flexo.Promise.prototype = {
-
     then: function (on_fulfilled, on_rejected) {
       var p = new flexo.Promise();
       this._queue.push([p, on_fulfilled, on_rejected]);
@@ -917,16 +921,7 @@
 
     reject: function (reason) {
       return resolve_promise(this, "reason", reason);
-    },
-
-    each: function (xs, f) {
-      return reduce.call(xs, function (p, x) {
-        return p.then(function (v) {
-          return f(x, v);
-        });
-      }, this);
     }
-
   };
 
   function resolve_promise(promise, resolution, value) {

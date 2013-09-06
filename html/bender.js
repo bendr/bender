@@ -190,6 +190,14 @@
     this.schedule_traversal();
   };
 
+  environment.schedule_next = function (f) {
+    if (this.scheduled && !this.scheduled.resolved) {
+      this.scheduled.then(f);
+    } else {
+      f();
+    }
+  }
+
   // Traverse the graph breadth-first, starting from the queued vertices.
   environment.traverse_graph = function () {
     _trace("[%0] >>> Traverse watch graph".fmt(this.scheduled.id));
@@ -220,9 +228,9 @@
       delete vertex.__visited_value;
       delete vertex.__visited_times;
     });
-    _trace("[%0] <<< Done traversing watch graph".fmt(this.scheduled.id));
     this.queue = [];
     this.scheduled.fulfill(this.scheduled.id);
+    _trace("[%0] <<< Done traversing watch graph".fmt(this.scheduled.id));
   };
 
   // Add a vertex to the watch graph and return it.
@@ -307,7 +315,7 @@
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this }
     });
-    this.rendered = false;           // not rendered yet
+    this.not_ready = true;           // not rendered yet
     this._on = {};                   // on-* attributes
     this.links = [];                 // link nodes
     this.property_definitions = {};  // property nodes
@@ -452,17 +460,13 @@
   component.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     _trace("[%0] render".fmt(this.index));
-    if (!this.rendered) {
-      on(this, "will-render");
-    }
     return this.render(fragment).then(function (instance) {
-      return flexo.then(instance.component.init_properties(instance),
-        function () {
-          target.insertBefore(fragment, ref);
-          instance.scope.$target = target;
-          on(instance, "did-render");
-          return instance;
-        });
+      return flexo.then(instance.init_properties(), function () {
+        target.insertBefore(fragment, ref);
+        instance.scope.$target = target;
+        on(instance, "did-render");
+        return instance;
+      });
     });
   };
 
@@ -498,27 +502,31 @@
   };
 
   // Initialize the component properties after it has been rendered.
-  component.init_properties = function (instance) {
-    // on(this, "will-init");
-    if (this._prototype) {
-      this._prototype.init_properties();
-    }
-    for (var p in this.own_properties) {
-      var property = this.own_properties[p];
-      if (!property.hasOwnProperty("bindings")) {
-        this.properties[p] = property.value().call(this);
+  component.init_properties = function () {
+    if (this.not_ready) {
+      _trace("[%0] init properties".fmt(this.index));
+      if (this._prototype) {
+        this._prototype.init_properties();
       }
-    }
-    // on(this, "did-init");
-    this.child_components.forEach(function (ch) {
-      ch.init_properties();
-    });
-    return flexo.then(this.scope.$environment.scheduled, function (id) {
-      if (instance) {
-        _trace("[%0] (%1) Ready after %2"
-          .fmt(instance.component.index, instance.index, id));
+      for (var p in this.property_vertices) {
+        var property = this.property_vertices[p].property;
+        if (!property.hasOwnProperty("bindings")) {
+          if (typeof property._value === "function") {
+            var v = property._value.call(this);
+            _trace("  * %0 =".fmt(p), v);
+            this.properties[p] = v;
+          }
+        }
       }
-    });
+      this.child_components.forEach(function (ch) {
+        ch.init_properties();
+      });
+      this.scope.$environment.schedule_next(function () {
+        _trace("[%0] ready!".fmt(this.index));
+        this.notify("ready");
+      }.bind(this));
+      delete this.not_ready;
+    }
   };
 
   // Get or set the prototype of the component (must be another component.)
@@ -704,6 +712,17 @@
       });
     });
     return this;
+  };
+
+  instance.init_properties = function () {
+    this.component.init_properties();
+    _trace("[%0] (%1) init properties".fmt(this.component.index, this.index));
+    on(this, "will-init");
+    this.scope.$environment.schedule_next(function () {
+      _trace("[%0] (%1) ready!".fmt(this.component.index, this.index));
+      this.notify("ready");
+    }.bind(this));
+    on(this, "did-init");
   };
 
   // Render watches from the chain
@@ -1195,7 +1214,7 @@
     var target = typeof this.select === "string" ?
       component.scope[this.select] : this.select;
     if (target) {
-      var edge = new bender.DOMPropertyEdge(this, target, component);
+      var edge = new bender.DOMPropertyEdge(this, component, target);
       if (this.match) {
         edge.match = this.match;
       }
@@ -1354,11 +1373,7 @@
   };
 
   edge.follow = function (input) {
-    var value = this.elem.value();
-    try {
-      return [this.dest, value ? value.call(this.component, input) : input];
-    } catch (e) {
-    }
+    return [this.dest, input];
   };
 
   // Remove an edge from its source vertex’s outgoing list and its destination
@@ -1380,6 +1395,14 @@
     this.component = component;
   };
 
+  element_edge.follow = function (input) {
+    var value = this.element.value();
+    try {
+      return [this.dest, value ? value.call(this.component, input) : input];
+    } catch (e) {
+    }
+  };
+
 
   // Edges to a watch vertex
   _class(bender.WatchEdge = function (get, component, dest) {
@@ -1392,20 +1415,18 @@
   }, bender.ElementEdge);
 
 
-
-  // TODO refactor
-  _class(bender.DOMPropertyEdge = function (set, target, component) {
-    this.set = set;
+  // A DOM property edge is associated to a set element and always goes to the
+  // vortex
+  _class(bender.DOMPropertyEdge = function (set, component, target) {
+    this.init(set, component, component.scope.$environment.vortex);
     this.target = target;
-    this.component = component;
-    component.scope.$environment.vortex.add_incoming(this);
-  }, bender.Edge);
+  }, bender.ElementEdge);
 
   bender.DOMPropertyEdge.prototype.follow = function (input) {
     try {
-      var value = this.set.value() ?
-        this.set.value().call(this.component, input) : input;
-      this.target[this.set.name] = value;
+      var value = this.element.value() ?
+        this.element.value().call(this.component, input) : input;
+      this.target[this.element.name] = value;
       return [this.dest, value];
     } catch (e) {
     }

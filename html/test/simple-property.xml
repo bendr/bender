@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property select="$this" name="x" as="number" value="1"/>
+  <property select="$that" name="x" as="number" value="1"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>X = <html:span id="x"/></html:p>
     <content/>
