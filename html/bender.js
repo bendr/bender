@@ -1441,15 +1441,20 @@
 
   // Set a Bender property
   _class(bender.PropertyEdge = function (set, component, target) {
-    this.init(set, component, get_property_vertex(target, set.name));
+    var dest = target.property_vertices[set.name];
+    if (!dest) {
+      console.warn("No property %0 for component %1"
+        .fmt(set.name, target.index));
+    }
+    this.init(set, component, dest);
     this.target = target;
   }, bender.ElementEdge);
 
   bender.PropertyEdge.prototype.follow = function (input) {
     try {
-      var value = this.set.value() ?
-        this.set.value().call(this.component, input) : input;
-      this.target.properties[this.set.name] = value;
+      var value = this.element.value() ?
+        this.element.value().call(this.component, input) : input;
+      this.target.properties[this.element.name] = value;
       return [this.dest, value];
     } catch (e) {
     }
