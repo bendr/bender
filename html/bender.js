@@ -296,7 +296,7 @@
   // TODO render_id="inherit"
   element.add_id_to_scope = function (node, stack, output) {
     if (this._id) {
-      stack[stack.i]["@" + this._id] = node;
+      Object.getPrototypeOf(stack[stack.i])["@" + this._id] = node;
       if (output) {
         set_id_or_class(node, stack, this._id);
       }
@@ -650,10 +650,13 @@
 
   // Concrete instance getting rendered for a given component and a parent
   // instance (if any)
-  // TODO remove component property (=== scope.$that)
   var instance = (bender.Instance = function (component, parent) {
-    this.component = component;
     component.instances.push(this);
+    if (component._id) {
+      // TODO improve this part
+      Object.getPrototypeOf(get_concrete_scope(component, parent))
+        ["@" + component._id] = this;
+    }
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_concrete_scope(p, parent);
@@ -676,10 +679,11 @@
   // Render the properties of this instance from the properties of the component
   // that it is an instance of
   instance.render_properties = function () {
-    _trace("[%0] (%1) render properties".fmt(this.component.index, this.index));
-    for (var p in this.component.property_vertices) {
+    _trace("[%0] (%1) render properties"
+        .fmt(this.scope.$that.index, this.index));
+    for (var p in this.scope.$that.property_vertices) {
       _trace("  * render property %0".fmt(p));
-      render_derived_property(this, this.component.property_vertices[p]);
+      render_derived_property(this, this.scope.$that.property_vertices[p]);
     }
   };
 
@@ -687,7 +691,7 @@
   // immediately fulfill that promise.)
   instance.render_view = function (target) {
     _trace("[%0] (%1) render view; scopes: %2"
-        .fmt(this.component.index, this.index, this.scopes.map(function (s) {
+        .fmt(this.scope.$that.index, this.index, this.scopes.map(function (s) {
           return s.$that.index;
         }).join(", ")));
     var stack = [];
@@ -714,7 +718,7 @@
   };
 
   instance.render_watches = function () {
-    _trace("[%0] (%1) render watches".fmt(this.component.index, this.index));
+    _trace("[%0] (%1) render watches".fmt(this.scope.$that.index, this.index));
     this.scopes.forEach(function (scope) {
       scope.$that.watches.forEach(function (watch) {
         watch.render(scope);
@@ -724,11 +728,11 @@
   };
 
   instance.init_properties = function () {
-    this.component.init_properties();
-    _trace("[%0] (%1) init properties".fmt(this.component.index, this.index));
+    this.scope.$that.init_properties();
+    _trace("[%0] (%1) init properties".fmt(this.scope.$that.index, this.index));
     on(this, "will-init");
     this.scope.$environment.schedule_next(function () {
-      _trace("[%0] (%1) ready!".fmt(this.component.index, this.index));
+      _trace("[%0] (%1) ready!".fmt(this.scope.$that.index, this.index));
       this.notify("ready");
     }.bind(this));
     on(this, "did-init");
@@ -737,7 +741,7 @@
   // Render watches from the chain
   component.render_watches = function (chain) {
     chain.forEach(function (instance) {
-      instance.watches = instance.component.watches.slice();
+      instance.watches = instance.scope.$that.watches.slice();
       // Render property bindings
       instance.property_nodes.forEach(function (prop) {
         if (prop.bindings) {
@@ -1632,7 +1636,7 @@
   }
 
   function on(component, type) {
-    var prototype = component.component || component;
+    var prototype = component.scope.$that || component;
     if (prototype._on.hasOwnProperty(type)) {
       prototype._on[type].forEach(function (handler) {
         handler(component, type);
