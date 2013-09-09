@@ -7,7 +7,7 @@
   bender.version = "0.8.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
-  // Set up tracing, turned on/off with bender.TRACE
+  // Set up tracing, turned on/off with setting bender.TRACE to true or false
   var _trace;
   Object.defineProperty(bender, "TRACE", {
     enumerable: true,
@@ -21,6 +21,7 @@
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
   var unshift = Array.prototype.unshift;
+
 
   // Load a component and return a promise. The defaults object should contain
   // the defaults, including a href property for the URL of the component to
@@ -40,6 +41,7 @@
     );
   };
 
+
   // Create a new environment in a document, or window.document by default.
   var environment = (bender.Environment = function (document) {
     this.scope = { $document: document || window.document, $environment: this };
@@ -56,9 +58,10 @@
     return add_component_to_environment(this, new bender.Component(this.scope));
   };
 
-  // Create a new instance for a component
-  environment.instance = function (component) {
-    return add_component_to_environment(this, new bender.Instance(component));
+  // Create a new instance for a component and an optional parent instance
+  environment.instance = function (component, parent) {
+    return add_component_to_environment(this,
+        new bender.Instance(component, parent));
   };
 
   // Load a component from an URL in the environment and return a promise which
@@ -138,6 +141,7 @@
   environment.deserialize_element_with_value = function (object, elem) {
     object.as(elem.getAttribute("as")).id(elem.getAttribute("id"))
       .match(elem.getAttribute("match"));
+    // TODO change to $scope; use select for this or that
     var scope = object instanceof bender.Property ?
       "this.scope" : "this.scope.$that.scope";
     if (elem.hasAttribute("value")) {
@@ -275,7 +279,7 @@
   element.append_child = function (child) {
     if (child instanceof bender.Element) {
       this.children.push(child);
-      child._parent = this;
+      child.parent = this;
       return child;
     }
   };
@@ -294,20 +298,20 @@
     if (this._id) {
       stack[stack.i]["@" + this._id] = node;
       if (output) {
-        var render = stack[stack.i].$view._render_id;
-        if (render === "id") {
-          node.setAttribute("id", this._id);
-        } else if (render === "class" && node.classList) {
-          node.classList.add(this._id);
-        }
+        set_id_or_class(node, stack, this._id);
       }
     }
     if (output && !stack[stack.i].$first) {
       stack[stack.i].$first = node;
+      if (this._id) {
+        set_id_or_class(node, stack, this._id);
+      }
     }
   };
 
-  // Create a new component in a scope
+
+  // Create a new component in a scope (either the environment scope for
+  // top-level components, or the abstract scope of the parent component.)
   var component = _class(bender.Component = function (scope) {
     this.init();
     var parent_scope = scope.hasOwnProperty("$environment") ?
@@ -463,7 +467,6 @@
     return this.render(fragment).then(function (instance) {
       return flexo.then(instance.init_properties(), function () {
         target.insertBefore(fragment, ref);
-        instance.scope.$target = target;
         on(instance, "did-render");
         return instance;
       });
@@ -472,10 +475,11 @@
 
   // Render this component to a concrete instance for the given target.
   component.render = function (target, stack) {
-    var instance = this.scope.$environment.instance(this);
+    var instance = this.scope.$environment.instance(this,
+        stack && stack[stack.i].$this);
     if (stack) {
-      instance.parent_component = stack[stack.i];
-      stack[stack.i].$this.child_components.push(this);
+      instance.parent = stack[stack.i].$this;
+      stack[stack.i].$this.children.push(instance);
     }
     return this.render_links(instance, target).then(function () {
       on(instance, "will-render");
@@ -614,6 +618,7 @@
   // Add ids to scope when a child is added, and add top-level components as
   // child components (other already have these components as parents so they
   // don’t get added)
+  // TODO check this
   component.add_descendants = function (elem) {
     var scope = Object.getPrototypeOf(this.scope);
     var queue = [elem];
@@ -643,19 +648,22 @@
   };
 
 
-  // Concrete instance getting rendered
-  var instance = (bender.Instance = function (component) {
+  // Concrete instance getting rendered for a given component and a parent
+  // instance (if any)
+  // TODO remove component property (=== scope.$that)
+  var instance = (bender.Instance = function (component, parent) {
     this.component = component;
     component.instances.push(this);
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
-      this.scopes.push(Object.create(p.scope, {
+      var scope = get_concrete_scope(p, parent);
+      this.scopes.push(Object.create(scope, {
         $that: { enumerable: true, value: p },
         $this: { enumerable: true, value: this }
       }));
     }
     this.scope = this.scopes[0];
-    this.child_components = [];
+    this.children = [];
     this.properties = {};
     this.property_vertices = {};
     this.event_vertices = {};
@@ -685,8 +693,8 @@
     var stack = [];
     stack.i = 0;
     flexo.hcaErof(this.scopes, function (scope) {
-      if (scope.$view) {
-        var mode = scope.$view._stack;
+      if (scope.$that.scope.$view) {
+        var mode = scope.$that.scope.$view._stack;
         if (mode === "replace") {
           stack = [scope];
         } else if (mode === "top") {
@@ -696,10 +704,11 @@
         }
       }
     });
-    for (var n = stack.length; stack.i < n && !stack[stack.i].$view; ++stack.i);
-    if (stack.i < n && stack[stack.i].$view) {
+    for (var n = stack.length; stack.i < n && !stack[stack.i].$that.scope.$view;
+        ++stack.i);
+    if (stack.i < n && stack[stack.i].$that.scope.$view) {
       console.log("  * render view %0".fmt(stack[stack.i].$that.index));
-      return stack[stack.i].$view.render(target, stack);
+      return stack[stack.i].$that.scope.$view.render(target, stack);
     }
     return new flexo.Promise().fulfill();
   };
@@ -888,7 +897,7 @@
   content.render = function (target, stack) {
     var indices = [];
     for (var i = stack.i + 1, n = stack.length; i < n; ++i) {
-      if (stack[i].$view) {
+      if (stack[i].$that.scope.$view) {
         indices.push(i);
       }
     }
@@ -896,7 +905,7 @@
       return flexo.promise_each(indices, function (i) {
         var j = stack.i;
         stack.i = i;
-        return stack[i].$view.render(target, stack).then(function () {
+        return stack[i].$that.scope.$view.render(target, stack).then(function () {
           stack.i = j;
         });
       });
@@ -1559,6 +1568,19 @@
     return bindings;
   }
 
+  // Get the concrete scope for an instance from its parent instance, i.e. the
+  // scope in the parent instance pointing to the parent component. If either
+  // instance or component has no parent, there is, simply create a new scope
+  // from the abstract scope, that is the prototype of the component scope.
+  function get_concrete_scope(component, parent) {
+    if (!parent || !component.parent_component) {
+      return Object.create(Object.getPrototypeOf(component.scope));
+    }
+    return flexo.find_first(parent.scopes, function (scope) {
+      return scope.$that === component.parent_component;
+    });
+  }
+
   // Get the event vertex for the component/type pair, returning the existing
   // one if it was already created, or creating a new one if not. Return nothing
   // if the component is not found, or not really a component or instance.
@@ -1621,7 +1643,7 @@
   // Find the closest ancestor of node (including self) that is a component and
   // return it if found
   function parent_component(node) {
-    for (; node && !(node instanceof bender.Component); node = node._parent);
+    for (; node && !(node instanceof bender.Component); node = node.parent);
     if (node) {
       return node;
     }
@@ -1705,6 +1727,16 @@
       dynamic: flexo.id
     }[this.as()]);
     return this;
+  }
+
+  // Set id or class for an output node based on the render-id attribute
+  function set_id_or_class(node, stack, id) {
+    var render = stack[stack.i].$that.scope.$view._render_id;
+    if (render === "id") {
+      node.setAttribute("id", id);
+    } else if (render === "class" && node.classList) {
+      node.classList.add(id);
+    }
   }
 
   // Set the value of an object that has a value/as pair of attributes. Only for
