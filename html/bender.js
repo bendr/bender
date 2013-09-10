@@ -652,20 +652,20 @@
   // instance (if any)
   var instance = (bender.Instance = function (component, parent) {
     component.instances.push(this);
-    if (component._id) {
-      // TODO improve this part
-      Object.getPrototypeOf(get_concrete_scope(component, parent))
-        ["@" + component._id] = this;
-    }
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
-      var scope = get_concrete_scope(p, parent);
+      var scope = get_instance_scope(p, parent);
       this.scopes.push(Object.create(scope, {
         $that: { enumerable: true, value: p },
         $this: { enumerable: true, value: this }
       }));
     }
     this.scope = this.scopes[0];
+    if (component._id) {
+      // TODO handle render_id here?
+      (get_concrete_scope(component, parent) ||
+       Object.getPrototypeOf(this.scope))["@" + component._id] = this;
+    }
     this.children = [];
     this.properties = {};
     this.property_vertices = {};
@@ -1572,11 +1572,25 @@
     return bindings;
   }
 
-  // Get the concrete scope for an instance from its parent instance, i.e. the
-  // scope in the parent instance pointing to the parent component. If either
-  // instance or component has no parent, there is, simply create a new scope
-  // from the abstract scope, that is the prototype of the component scope.
+  // Find an existing concrete scope (do not create it) for a component given
+  // a reference instance. First we find the instance scope, then return its
+  // prototype which is the concrete scope.
   function get_concrete_scope(component, parent) {
+    if (parent && component.parent_component) {
+      var scope = flexo.find_first(parent.scopes, function (scope) {
+        return scope.$that === component.parent_component;
+      });
+      if (scope) {
+        return Object.getPrototypeOf(scope);
+      }
+    }
+  }
+
+  // Get the instance scope for an instance from its parent instance, i.e. the
+  // scope in the parent instance pointing to the parent component. If either
+  // instance or component has no parent, simply create a new scope from the
+  // abstract scope, that is, the prototype of the component scope.
+  function get_instance_scope(component, parent) {
     if (!parent || !component.parent_component) {
       return Object.create(Object.getPrototypeOf(component.scope));
     }

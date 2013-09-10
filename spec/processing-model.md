@@ -1,8 +1,31 @@
 # The Bender processing model
 
-Bender v0.8.2, 1 July 2013
+Bender v0.8.2, 10 Sep 2013
 
 ## An informal sketch of the operational semantics of Bender
+
+### Scopes
+
+The hierarchy of scopes is:
+
+* The *environment scope*, which points to the current environment
+(`$environment`) and its document (`$document`.)
+    * The *abstract scope*, which contains all abstract IDs for a component and
+    its descendants, and is shared by these components. Abstract IDs are
+    prefixed with a `#` sign in `select` attributes.
+        * The *component scope*, which is the scope of a component, and points
+        to that component’s self (`$this`) and its view (`$view`.)
+        * The *concrete scope*, which contains all the concrete IDs for an
+        instance of a component and the instances of its descendants. Concrete
+        IDs are prefixed with a `@` sign in `select` attributes.
+            * The *instance scope*, which is one of the scopes of an instance,
+            and points to that instance’s self (`$this`), the component that it
+            is an instance of (`$that`), and the first rendered node (`$first`.)
+
+**TODO** add an example here.
+
+
+## The following is outdated and needs review
 
 The *Bender runtime* has a single core functionality, which is the *rendering*
 of components.
