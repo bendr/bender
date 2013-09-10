@@ -187,12 +187,15 @@
     }
   };
 
-  // Visit a vertex by adding it to the queue and scheduling a traversal.
+  // Schedule a vertex visit by adding it to the queue and scheduling a
+  // traversal of the watch graph.
   environment.visit_vertex = function (vertex, value) {
     this.queue.push([vertex, value]);
     this.schedule_traversal();
   };
 
+  // Delay f until the scheduled traversal has finished, or execute it
+  // immediately if there is no scheduled traversal.
   environment.schedule_next = function (f) {
     if (this.scheduled && !this.scheduled.resolved) {
       this.scheduled.then(f);
@@ -201,7 +204,7 @@
     }
   };
 
-  // Traverse the graph breadth-first, starting from the queued vertices.
+  // Traverse the graph breadth-first from the queued vertices.
   environment.traverse_graph = function () {
     _trace("[%0] >>> Traverse watch graph (vertices in queue: %1)"
         .fmt(this.scheduled.id, this.queue.length));
@@ -670,7 +673,6 @@
     this.properties = {};
     this.property_vertices = {};
     this.event_vertices = {};
-    this.bindings = [];
   }).prototype;
 
   // Send an event notification for this concrete instance only.
@@ -694,8 +696,7 @@
         .fmt(this.scope.$that.index, this.index, this.scopes.map(function (s) {
           return s.$that.index;
         }).join(", ")));
-    var stack = [];
-    stack.i = 0;
+    var stack = this.__stack = [];
     flexo.hcaErof(this.scopes, function (scope) {
       if (scope.$that.scope.$view) {
         var mode = scope.$that.scope.$view._stack;
@@ -708,6 +709,8 @@
         }
       }
     });
+    stack.i = 0;
+    stack.bindings = stack.map(function () { return [] });
     for (var n = stack.length; stack.i < n && !stack[stack.i].$that.scope.$view;
         ++stack.i);
     if (stack.i < n && stack[stack.i].$that.scope.$view) {
@@ -719,6 +722,48 @@
 
   instance.render_watches = function () {
     _trace("[%0] (%1) render watches".fmt(this.scope.$that.index, this.index));
+
+    for (var p in this.property_vertices) {
+      var prop = this.property_vertices[p].property;
+      if (prop.bindings) {
+        var set = new bender.SetProperty(prop.name, "$this");
+        set_value_from_string.call(set, prop.bindings[""].value, true);
+        var watch = new bender.Watch().child(set);
+        Object.keys(prop.bindings).forEach(function (id) {
+          if (id) {
+            Object.keys(prop.bindings[id]).forEach(function (prop) {
+              watch.append_child(new bender.GetProperty(prop, id));
+            });
+          }
+        });
+        watch.render(this.scope);
+      }
+    }
+
+    var stack = this.__stack;
+    delete this.__stack;
+    stack.bindings.forEach(function (a, i) {
+      a.forEach(function (bindings) {
+        var watch = new bender.Watch();
+        if (bindings[""].hasOwnProperty("attr")) {
+          watch.append_child(new bender.SetDOMAttribute(bindings[""].ns,
+              bindings[""].attr, bindings[""].target)
+            .value(bindings[""].value));
+        } else {
+          watch.append_child(new bender.SetDOMProperty("textContent",
+              bindings[""].target).value(bindings[""].value));
+        }
+        Object.keys(bindings).forEach(function (id) {
+          if (id) {
+            Object.keys(bindings[id]).forEach(function (prop) {
+              watch.append_child(new bender.GetProperty(prop, id));
+            });
+          }
+        });
+        stack[i].$that.watches.push(watch);
+      });
+    });
+    delete this.__stack;
     this.scopes.forEach(function (scope) {
       scope.$that.watches.forEach(function (watch) {
         watch.render(scope);
@@ -736,60 +781,6 @@
       this.notify("ready");
     }.bind(this));
     on(this, "did-init");
-  };
-
-  // Render watches from the chain
-  component.render_watches = function (chain) {
-    chain.forEach(function (instance) {
-      instance.watches = instance.scope.$that.watches.slice();
-      // Render property bindings
-      instance.property_nodes.forEach(function (prop) {
-        if (prop.bindings) {
-          var set = new bender.SetProperty(prop.name, "$this");
-          set_value_from_string.call(set, prop.bindings[""].value, true);
-          var watch = new bender.Watch().child(set);
-          Object.keys(prop.bindings).forEach(function (id) {
-            if (id) {
-              Object.keys(prop.bindings[id]).forEach(function (prop) {
-                watch.append_child(new bender.GetProperty(prop, id));
-              });
-            }
-          });
-          instance.watches.push(watch);
-        }
-      });
-      // Render string bindings
-      instance.bindings.forEach(function (bindings) {
-        var watch = new bender.Watch();
-        if (bindings[""].hasOwnProperty("attr")) {
-          watch.append_child(new bender.SetDOMAttribute(bindings[""].ns,
-              bindings[""].attr, bindings[""].target)
-            .value(bindings[""].value));
-        } else {
-          watch.append_child(new bender.SetDOMProperty("textContent",
-              bindings[""].target).value(bindings[""].value));
-        }
-        Object.keys(bindings).forEach(function (id) {
-          if (id) {
-            Object.keys(bindings[id]).forEach(function (prop) {
-              watch.append_child(new bender.GetProperty(prop, id));
-            });
-          }
-        });
-        instance.watches.push(watch);
-      });
-    });
-    flexo.hcaErof(chain, function (instance) {
-      if (instance.watches.length > 0) {
-      }
-      instance.watches.forEach(function (watch) {
-        watch.render(instance);
-      });
-      delete instance.watches;
-      instance.bindings = [];
-      on(instance, "did-render");
-    });
-    return chain[0];
   };
 
 
@@ -1007,7 +998,7 @@
           bindings[""].target = elem;
           bindings[""].ns = ns;
           bindings[""].attr = a;
-          stack[stack.i].bindings.push(bindings);
+          stack.bindings[stack.i].push(bindings);
         }
       }
     }
@@ -1043,7 +1034,7 @@
       node.textContent = bindings;
     } else {
       bindings[""].target = node;
-      stack[stack.i].bindings.push(bindings);
+      stack.bindings[stack.i].push(bindings);
     }
     target.appendChild(node);
     this.instances.push(node);
@@ -1483,9 +1474,9 @@
 
   bender.DOMAttributeEdge.prototype.follow = function (input) {
     try {
-      var value = this.set.value() ?
-        this.set.value().call(this.component, input) : input;
-      this.target.setAttributeNS(this.set.ns, this.set.name, value);
+      var value = this.element.value() ?
+        this.element.value().call(this.component, input) : input;
+      this.target.setAttributeNS(this.element.ns, this.element.name, value);
       return [this.dest, value];
     } catch (e) {
     }

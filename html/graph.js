@@ -3,14 +3,18 @@
 (function (bender) {
   "use strict";
 
-  // Create a dot description of the watch graph as a string
-  bender.Environment.prototype.dot = function () {
+  function dot(vertices) {
     return "digraph bender {\n  rankdir=LR\n  node [fontname=\"Inconsolata\"];\n%0\n}\n"
-      .fmt(this.vertices.map(function (vertex) {
+      .fmt(vertices.map(function (vertex) {
       return vertex.dot().map(function (line) {
         return "  %0;".fmt(line);
       }).join("\n");
     }).join("\n"));
+  }
+
+  // Create a dot description of the watch graph as a string
+  bender.Environment.prototype.dot = function () {
+    return dot(this.vertices);
   };
 
   bender.Vertex.prototype.dot = function () {
