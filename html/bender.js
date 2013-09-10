@@ -141,16 +141,12 @@
   environment.deserialize_element_with_value = function (object, elem) {
     object.as(elem.getAttribute("as")).id(elem.getAttribute("id"))
       .match(elem.getAttribute("match"));
-    // TODO change to $scope; use select for this or that
-    var scope = object instanceof bender.Property ?
-      "this.scope" : "this.scope.$that.scope";
     if (elem.hasAttribute("value")) {
-      set_value_from_string.call(object, elem.getAttribute("value"), true,
-          scope);
+      set_value_from_string.call(object, elem.getAttribute("value"), true);
     } else {
       var t = shallow_text(elem);
       if (/\S/.test(t)) {
-        set_value_from_string.call(object, t, false, scope);
+        set_value_from_string.call(object, t, false);
       } else {
         set_default_value.call(object);
       }
@@ -509,6 +505,7 @@
   };
 
   // Initialize the component properties after it has been rendered.
+  // TODO identify vertices in the watch graph and initialize those.
   component.init_properties = function () {
     if (this.not_ready) {
       _trace("[%0] init properties".fmt(this.index));
@@ -523,6 +520,8 @@
             _trace("  * %0 =".fmt(p), v);
             this.properties[p] = v;
           }
+        } else {
+            _trace("  - %0 is bound".fmt(p));
         }
       }
       this.child_components.forEach(function (ch) {
@@ -1085,15 +1084,15 @@
   // each of the get elements with an edge to the watch vertex, then an edge
   // from the watch vertex for all set elements for a concrete component
   watch.render = function (scope) {
-    _trace("  watch for %0 in scope %1"
-        .fmt(scope.$this.index, scope.$that.index));
+    _trace("  watch %0 for %1 in scope %2"
+        .fmt(scope.$environment.vertices.length, scope.$this.index,
+          scope.$that.index));
     var watch_vertex = scope.$environment.add_vertex(new
         bender.WatchVertex(this, scope.$this));
     this.gets.forEach(function (get) {
       var vertex = get.render(scope);
       if (vertex) {
-        vertex.add_outgoing(new
-          bender.WatchEdge(get, scope.$this, watch_vertex));
+        vertex.add_outgoing(new bender.WatchEdge(get, scope, watch_vertex));
       }
     });
     this.sets.forEach(function (set) {
@@ -1206,7 +1205,7 @@
     for (var target = scope[this.select]; target; target = target._prototype) {
       var vertex = get_event_vertex(target, this);
       if (vertex) {
-        edges.push(new bender.EventEdge(this, scope.$this, vertex));
+        edges.push(new bender.EventEdge(this, scope, vertex));
       }
     }
     return edges;
@@ -1222,7 +1221,7 @@
     var target = typeof this.select === "string" ?
       scope[this.select] : this.select;
     if (target) {
-      var edge = new bender.DOMPropertyEdge(this, scope.$this, target);
+      var edge = new bender.DOMPropertyEdge(this, scope, target);
       if (this.match) {
         edge.match = this.match;
       }
@@ -1243,7 +1242,7 @@
     var target = typeof this.select === "string" ?
       scope[this.select] : this.select;
     if (target) {
-      return new bender.PropertyEdge(this, scope.$this, target);
+      return new bender.PropertyEdge(this, scope, target);
     }
   };
 
@@ -1259,7 +1258,7 @@
     var target = typeof this.select === "string" ?
       scope[this.select] : this.select;
     if (target) {
-      var edge = new bender.DOMAttributeEdge(this, scope.$this, target);
+      var edge = new bender.DOMAttributeEdge(this, scope, target);
       return edge;
     }
   };
@@ -1398,46 +1397,48 @@
   };
 
 
-  // Edges that are tied to an element (e.g., watch, get, set) and a component
+  // Edges that are tied to an element (e.g., watch, get, set) and a scope
   var element_edge = _class(bender.ElementEdge = function () {}, bender.Edge);
 
-  element_edge.init = function (element, component, dest) {
+  element_edge.init = function (element, scope, dest) {
     edge.init.call(this, dest);
     this.element = element;
-    this.component = component;
+    this.scope = scope;
   };
 
   element_edge.follow = function (input) {
     var value = this.element.value();
     try {
-      return [this.dest, value ? value.call(this.component, input) : input];
+      var value = this.element.value() ?
+        this.element.value().call(this.scope.$this, input, this.scope) : input;
+      return [this.dest, value];
     } catch (e) {
     }
   };
 
 
   // Edges to a watch vertex
-  _class(bender.WatchEdge = function (get, component, dest) {
-    this.init(get, component, dest);
+  _class(bender.WatchEdge = function (get, scope, dest) {
+    this.init(get, scope, dest);
   }, bender.ElementEdge);
 
 
-  _class(bender.EventEdge = function (set, component, dest) {
-    this.init(set, component, dest);
+  _class(bender.EventEdge = function (set, scope, dest) {
+    this.init(set, scope, dest);
   }, bender.ElementEdge);
 
 
   // A DOM property edge is associated to a set element and always goes to the
   // vortex
-  _class(bender.DOMPropertyEdge = function (set, component, target) {
-    this.init(set, component, component.scope.$environment.vortex);
+  _class(bender.DOMPropertyEdge = function (set, scope, target) {
+    this.init(set, scope, scope.$environment.vortex);
     this.target = target;
   }, bender.ElementEdge);
 
   bender.DOMPropertyEdge.prototype.follow = function (input) {
     try {
       var value = this.element.value() ?
-        this.element.value().call(this.component, input) : input;
+        this.element.value().call(this.scope.$this, input, this.scope) : input;
       this.target[this.element.name] = value;
       return [this.dest, value];
     } catch (e) {
@@ -1446,20 +1447,21 @@
 
 
   // Set a Bender property
-  _class(bender.PropertyEdge = function (set, component, target) {
+  _class(bender.PropertyEdge = function (set, scope, target) {
     var dest = target.property_vertices[set.name];
     if (!dest) {
       console.warn("No property %0 for component %1"
         .fmt(set.name, target.index));
     }
-    this.init(set, component, dest);
+    this.init(set, scope, dest);
     this.target = target;
   }, bender.ElementEdge);
 
   bender.PropertyEdge.prototype.follow = function (input) {
     try {
       var value = this.element.value() ?
-        this.element.value().call(this.component, input) : input;
+        this.element.value().call(this.scope.$this, input, this.scope) : input;
+      this.target.properties[this.element.name] = value;
       return [this.dest, value];
     } catch (e) {
     }
@@ -1467,15 +1469,15 @@
 
 
   // Set a DOM attribute
-  _class(bender.DOMAttributeEdge = function (set, component, target) {
-    this.init(set, component, component.scope.$environment.vortex);
+  _class(bender.DOMAttributeEdge = function (set, scope, target) {
+    this.init(set, scope, scope.$environment.vortex);
     this.target = target;
   }, bender.ElementEdge);
 
   bender.DOMAttributeEdge.prototype.follow = function (input) {
     try {
       var value = this.element.value() ?
-        this.element.value().call(this.component, input) : input;
+        this.element.value().call(this.scope.$this, input, this.scope) : input;
       this.target.setAttributeNS(this.element.ns, this.element.name, value);
       return [this.dest, value];
     } catch (e) {
@@ -1505,7 +1507,7 @@
   // are none, return the string unchanged; otherwise, return the dictionary of
   // bindings (indexed by id, then property); bindings[""] will be the new value
   // for the set element of the watch to create.
-  function bindings_dynamic(value, scope) {
+  function bindings_dynamic(value) {
     var bindings = {};
     var r = function (_, b, sigil, id, id_p, prop, prop_p) {
       // jshint unused: false
@@ -1515,9 +1517,8 @@
       }
       var p = (prop || prop_p).replace(/\\(.)/g, "$1");
       bindings[i][p] = true;
-      return "%0%1[%2].properties[%3]"
-        .fmt(b, id || id_p ? scope : "this.scope", flexo.quote(i),
-            flexo.quote(p));
+      return "%0$scope[%1].properties[%2]"
+        .fmt(b, flexo.quote(i), flexo.quote(p));
     };
     var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
     if (Object.keys(bindings).length === 0) {
@@ -1556,7 +1557,7 @@
     }
     var f = "return " + strings.join("+");
     try {
-      bindings[""] = { value: new Function("$in", f) };
+      bindings[""] = { value: new Function("$in", "$scope", f) };
     } catch (e) {
       console.warn("Could not parse “%0” as Javascript".fmt(f));
       bindings[""] = { value: flexo.id };
@@ -1751,7 +1752,7 @@
 
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
-  function set_value_from_string(value, needs_return, scope) {
+  function set_value_from_string(value, needs_return) {
     // jshint validthis:true
     var as = this.as();
     if (as === "boolean") {
@@ -1767,7 +1768,7 @@
           this._value = undefined;
         }
       } else if (as === "dynamic") {
-        var bindings = bindings_dynamic(flexo.safe_string(value), scope);
+        var bindings = bindings_dynamic(flexo.safe_string(value));
         if (typeof bindings === "object") {
           this.bindings = bindings;
           value = bindings[""].value;
@@ -1776,7 +1777,7 @@
           value = "return " + value;
         }
         try {
-          this._value = new Function("$in", value);
+          this._value = new Function("$in", "$scope", value);
         } catch (e) {
           console.warn("Could not parse “%0” as Javascript".fmt(value));
           this._value = flexo.id;
