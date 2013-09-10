@@ -1316,11 +1316,13 @@
   vertex.add_incoming = function (edge) {
     edge.dest = this;
     this.incoming.push(edge);
+    return edge;
   };
 
   vertex.add_outgoing = function (edge) {
     edge.source = this;
     this.outgoing.push(edge);
+    return edge;
   };
 
   vertex.visit = function (value) {
@@ -1467,7 +1469,6 @@
     try {
       var value = this.element.value() ?
         this.element.value().call(this.component, input) : input;
-      this.target.properties[this.element.name] = value;
       return [this.dest, value];
     } catch (e) {
     }
