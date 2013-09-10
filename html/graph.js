@@ -17,6 +17,26 @@
     return dot(this.vertices);
   };
 
+  // Create a dot description of the watch graph with pruning
+  bender.Environment.prototype.dot_pruned = function () {
+    var queue = [this.vortex];
+    var vertices = [];
+    while (queue.length) {
+      var vertex = queue.shift();
+      if (!vertex.__seen) {
+        vertices.push(vertex);
+        vertex.__seen = true;
+        vertex.incoming.forEach(function (edge) {
+          queue.push(edge.source);
+        });
+      }
+    }
+    return dot(vertices.map(function (vertex) {
+      delete vertex.__seen;
+      return vertex;
+    }));
+  };
+
   bender.Vertex.prototype.dot = function () {
     var self = this.dot_name();
     var desc = this.outgoing.map(function (edge) {
@@ -51,8 +71,9 @@
   };
 
   bender.PropertyVertex.prototype.dot_label = function () {
-    return "%0%1`%2".fmt(this.component instanceof bender.Component ? "#" : "@",
-        this.component.index, this.property.name);
+    return "%0%1%2`%3"
+      .fmt(this.component instanceof bender.Component ? "#" : "@",
+          this.component._id, this.component.index, this.property.name);
   };
 
   bender.WatchVertex.prototype.dot_label = function () {

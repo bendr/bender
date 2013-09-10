@@ -760,12 +760,18 @@
           }
         });
         stack[i].$that.watches.push(watch);
+        // TODO clean this up
+        watch.__delete_from = stack[i].$that;
       });
     });
     delete this.__stack;
     this.scopes.forEach(function (scope) {
       scope.$that.watches.forEach(function (watch) {
         watch.render(scope);
+        if (watch.__delete_from) {
+          flexo.remove_from_array(watch.__delete_from.watches, watch);
+          delete watch.__delete_from;
+        }
       });
     });
     return this;

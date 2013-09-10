@@ -3,11 +3,16 @@
     <html:p>Numbers</html:p>
     <html:ul>
       <html:li>
-        <component href="number.xml"/>
+        <component href="number.xml" id="n0"/>
       </html:li>
       <html:li>
-        <component href="number.xml">
+        <component href="number.xml" id="n42">
           <property name="n" value="42"/>
+        </component>
+      </html:li>
+      <html:li>
+        <component href="number.xml" id="n69">
+          <property name="n" value="69"/>
         </component>
       </html:li>
     </html:ul>
