@@ -6,10 +6,10 @@
   function dot(vertices) {
     return "digraph bender {\n  rankdir=LR\n  node [fontname=\"Inconsolata\"];\n%0\n}\n"
       .fmt(vertices.map(function (vertex) {
-      return vertex.dot().map(function (line) {
-        return "  %0;".fmt(line);
-      }).join("\n");
-    }).join("\n"));
+        return vertex.dot().map(function (line) {
+          return "  %0;".fmt(line);
+        }).join("\n");
+      }).join("\n"));
   }
 
   // Create a dot description of the watch graph as a string
@@ -50,7 +50,14 @@
     if (label) {
       desc.unshift("%0 [label=\"%1\"]".fmt(self, label));
     }
+    if (this.uninitialized) {
+      desc.unshift("%0 [color=red]".fmt(self)); 
+    }
     return desc;
+  };
+
+  bender.Vertex.prototype.unmark = function () {
+    return this;
   };
 
   bender.Vertex.prototype.dot_name = function () {
@@ -66,9 +73,13 @@
   };
 
   bender.EventVertex.prototype.dot_label = function () {
-    return "%0%1!%2".fmt(this.target instanceof bender.Component ? "#" : "@",
-        this.target.index, this.get.type);
+    return "%0%1%2!%3".fmt(this.target instanceof bender.Component ? "#" : "@",
+        this.target._id, this.target.index, this.get.type);
   };
+
+  bender.DOMEventVertex.prototype.dot_label = function () {
+    return "%0!%1".fmt(this.target.id || this.target.tagName, this.get.type);
+  }
 
   bender.PropertyVertex.prototype.dot_label = function () {
     return "%0%1%2`%3"

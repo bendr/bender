@@ -1,17 +1,20 @@
-<component xmlns="http://bender.igel.co.jp" id="A">
+<component xmlns="http://bender.igel.co.jp">
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Numbers</html:p>
     <html:ul>
       <html:li>
-        <component href="number.xml" id="n0"/>
+        <component href="number.xml" id="x"/>
       </html:li>
       <html:li>
-        <component href="number.xml" id="n42">
+        <component href="number.xml" id="y">
           <property name="n" value="42"/>
         </component>
       </html:li>
       <html:li>
-        <component href="number.xml" id="n69">
+        <component href="number.xml" id="z"/>
+      </html:li>
+      <html:li>
+        <component href="number.xml" id="t">
           <property name="n" value="69"/>
         </component>
       </html:li>

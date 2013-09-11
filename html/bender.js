@@ -200,6 +200,37 @@
     }
   };
 
+  // Initialize properties
+  environment.init_properties = function () {
+    _trace("Initialize graph");
+    var queue = this.vertices.filter(function (vertex) {
+      return vertex.uninitialized;
+    });
+    while (queue.length) {
+      var vertex = queue.shift();
+      if (vertex.__visited) {
+        delete vertex.uninitialized;
+      } else {
+        vertex.__visited = true;
+        Array.prototype.push.apply(queue, vertex.outgoing.map(function (edge) {
+          return edge.dest;
+        }));
+      }
+    }
+    _trace("init_graph:", this.dot());
+    this.vertices.forEach(function (vertex) {
+      delete vertex.__visited;
+      if (vertex.uninitialized) {
+        delete vertex.uninitialized;
+        var value = vertex.property._value.call(vertex.component, undefined,
+          vertex.component.scope);
+        _trace("  * %0 = %1".fmt(vertex.dot_label(), value));
+        vertex.component.properties[vertex.property.name] = value;
+      }
+    }, this);
+    return this.scheduled;
+  };
+
   // Traverse the graph breadth-first from the queued vertices.
   environment.traverse_graph = function () {
     _trace("[%0] >>> Traverse watch graph (vertices in queue: %1)"
@@ -232,8 +263,8 @@
       delete vertex.__visited_times;
     });
     this.queue = [];
-    this.scheduled.fulfill(this.scheduled.id);
     _trace("[%0] <<< Done traversing watch graph".fmt(this.scheduled.id));
+    this.scheduled.fulfill(this.scheduled.id);
   };
 
   // Add a vertex to the watch graph and return it.
@@ -463,14 +494,36 @@
   component.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     _trace("[%0] render".fmt(this.index));
+    var instance_;
     return this.render(fragment).then(function (instance) {
-      return flexo.then(instance.init_properties(), function () {
-        target.insertBefore(fragment, ref);
-        on(instance, "did-render");
-        return instance;
-      });
+      instance_ = instance;
+      return instance.scope.$environment.init_properties();
+    }).then(function () {
+      target.insertBefore(fragment, ref);
+      instance_.scope.$that.ready();
+      return instance_;
     });
   };
+
+  // Notify that the component is ready, as well as its prototype, its children,
+  // and its instances.
+  component.ready = function () {
+    if (this.not_ready) {
+      if (this._prototype) {
+        this._prototype.ready();
+      }
+      this.instances.forEach(function (instance) {
+        _trace("[%0] (%1) ready".fmt(this.index, instance.index));
+        instance.notify("ready");
+      }, this);
+      this.child_components.forEach(function (child) {
+        child.ready();
+      });
+      _trace("[%0] ready".fmt(this.index));
+      this.notify("ready");
+      delete this.not_ready;
+    }
+  }
 
   // Render this component to a concrete instance for the given target.
   component.render = function (target, stack) {
@@ -502,37 +555,6 @@
       // jshint unused: false
       return link.render(target);
     });
-  };
-
-  // Initialize the component properties after it has been rendered.
-  // TODO identify vertices in the watch graph and initialize those.
-  component.init_properties = function () {
-    if (this.not_ready) {
-      _trace("[%0] init properties".fmt(this.index));
-      if (this._prototype) {
-        this._prototype.init_properties();
-      }
-      for (var p in this.property_vertices) {
-        var property = this.property_vertices[p].property;
-        if (!property.hasOwnProperty("bindings")) {
-          if (typeof property._value === "function") {
-            var v = property._value.call(this);
-            _trace("  * %0 =".fmt(p), v);
-            this.properties[p] = v;
-          }
-        } else {
-            _trace("  - %0 is bound".fmt(p));
-        }
-      }
-      this.child_components.forEach(function (ch) {
-        ch.init_properties();
-      });
-      this.scope.$environment.schedule_next(function () {
-        _trace("[%0] ready!".fmt(this.index));
-        this.notify("ready");
-      }.bind(this));
-      delete this.not_ready;
-    }
   };
 
   // Get or set the prototype of the component (must be another component.)
@@ -721,7 +743,15 @@
 
   instance.render_watches = function () {
     _trace("[%0] (%1) render watches".fmt(this.scope.$that.index, this.index));
-
+    this.scopes.forEach(function (scope) {
+      scope.$that.watches.forEach(function (watch) {
+        watch.render(scope);
+        if (watch.__delete_from) {
+          flexo.remove_from_array(watch.__delete_from.watches, watch);
+          delete watch.__delete_from;
+        }
+      });
+    });
     for (var p in this.property_vertices) {
       var prop = this.property_vertices[p].property;
       if (prop.bindings) {
@@ -738,7 +768,6 @@
         watch.render(this.scope);
       }
     }
-
     var stack = this.__stack;
     delete this.__stack;
     stack.bindings.forEach(function (a, i) {
@@ -759,33 +788,11 @@
             });
           }
         });
-        stack[i].$that.watches.push(watch);
-        // TODO clean this up
-        watch.__delete_from = stack[i].$that;
+        watch.render(stack[i]);
       });
     });
     delete this.__stack;
-    this.scopes.forEach(function (scope) {
-      scope.$that.watches.forEach(function (watch) {
-        watch.render(scope);
-        if (watch.__delete_from) {
-          flexo.remove_from_array(watch.__delete_from.watches, watch);
-          delete watch.__delete_from;
-        }
-      });
-    });
     return this;
-  };
-
-  instance.init_properties = function () {
-    this.scope.$that.init_properties();
-    _trace("[%0] (%1) init properties".fmt(this.scope.$that.index, this.index));
-    on(this, "will-init");
-    this.scope.$environment.schedule_next(function () {
-      _trace("[%0] (%1) ready!".fmt(this.scope.$that.index, this.index));
-      this.notify("ready");
-    }.bind(this));
-    on(this, "did-init");
   };
 
 
@@ -1004,6 +1011,7 @@
           bindings[""].ns = ns;
           bindings[""].attr = a;
           stack.bindings[stack.i].push(bindings);
+          _trace("  + binding: %0".fmt(bindings[""].value));
         }
       }
     }
@@ -1040,6 +1048,7 @@
     } else {
       bindings[""].target = node;
       stack.bindings[stack.i].push(bindings);
+      _trace("  + binding: %0".fmt(bindings[""].value));
     }
     target.appendChild(node);
     this.instances.push(node);
@@ -1371,6 +1380,7 @@
     this.init();
     this.component = component;
     this.property = property;
+    this.uninitialized = true;
   }, bender.Vertex);
 
 
@@ -1552,7 +1562,7 @@
       }
       var prop = (m[5] || m[6]).replace(/\\(.)/g, "$1");
       bindings[id][prop] = true;
-      strings.push("flexo.safe_string(this.scope[%0].properties[%1])"
+      strings.push("flexo.safe_string($scope[%0].properties[%1])"
           .fmt(flexo.quote(id), flexo.quote(prop)));
     }
     if (Object.keys(bindings).length === 0) {
@@ -1617,7 +1627,8 @@
   // instance.
   function get_property_vertex(component, property) {
     if (component && component.property_vertices) {
-      if (!component.property_vertices.hasOwnProperty(property.name)) {
+      if (!component.property_vertices.hasOwnProperty(property.name) ||
+          component.property_vertices[property.name].property !== property) {
         component.property_vertices[property.name] =
           component.scope.$environment.add_vertex(new
               bender.PropertyVertex(component, property));
