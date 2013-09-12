@@ -217,6 +217,7 @@
         }));
       }
     }
+    this.dot_sort();
     _trace("init_graph:", this.dot());
     this.vertices.forEach(function (vertex) {
       delete vertex.__visited;
@@ -755,7 +756,7 @@
     for (var p in this.property_vertices) {
       var prop = this.property_vertices[p].property;
       if (prop.bindings) {
-        var set = new bender.SetProperty(prop.name, "$this");
+        var set = new bender.SetProperty(prop.name, prop._select || "$this");
         set_value_from_string.call(set, prop.bindings[""].value, true);
         var watch = new bender.Watch().child(set);
         Object.keys(prop.bindings).forEach(function (id) {
@@ -1061,7 +1062,7 @@
   }, bender.Element);
 
   flexo._accessor(bender.Property, "as", normalize_as);
-  flexo._accessor(bender.Property, "select", "$this");
+  flexo._accessor(bender.Property, "select");
   flexo._accessor(bender.Property, "match");
   flexo._accessor(bender.Property, "value");
 
@@ -1477,7 +1478,8 @@
     try {
       var value = this.element.value() ?
         this.element.value().call(this.scope.$this, input, this.scope) : input;
-      this.target.properties[this.element.name] = value;
+      // this.target.properties[this.element.name] = value;
+      this.target.property_vertices[this.element.name].value = value;
       return [this.dest, value];
     } catch (e) {
     }

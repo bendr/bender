@@ -4,6 +4,14 @@ Bender v0.8.2, 10 Sep 2013
 
 ## An informal sketch of the operational semantics of Bender
 
+### Components and instances
+
+### Properties
+
+### Views
+
+### Watches
+
 ### Scopes
 
 The hierarchy of scopes is:

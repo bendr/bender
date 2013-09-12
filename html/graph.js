@@ -17,6 +17,33 @@
     return dot(this.vertices);
   };
 
+  // Edge sort using a depth-first search traversal
+  bender.Environment.prototype.dot_sort = function () {
+    // TODO count down incoming edges from event vertices with no incoming edge
+    // Then count down incoming edges from property vertices with no incoming
+    // edge; visit protoedges first (or not at all?)
+    var queue = this.vertices.filter(function (vertex) {
+      return vertex instanceof bender.PropertyVertex &&
+        vertex.incoming.length === 0;
+    });
+    var edges = [];
+    while (queue.length) {
+      var vertex = queue.shift();
+      vertex.outgoing.forEach(function (edge) {
+        var dest = edge.dest;
+        if (edge !== dest.protoedge || dest.incoming.length === 1) {
+          edge.__init_order = edges.length;
+          edges.push(edge);
+          if (!dest.__select) {
+            dest.__select = true;
+            queue.unshift(dest);
+          }
+        }
+      });
+    }
+    return edges;
+  }
+
   // Create a dot description of the watch graph with pruning
   bender.Environment.prototype.dot_pruned = function () {
     var queue = [this.vortex];
@@ -40,7 +67,9 @@
   bender.Vertex.prototype.dot = function () {
     var self = this.dot_name();
     var desc = this.outgoing.map(function (edge) {
-      return "%0 -> %1".fmt(self, edge.dest.dot_name());
+      return edge.hasOwnProperty("__init_order") ?
+        "%0 -> %1 [label=\"%2\", color=red]".fmt(self, edge.dest.dot_name(), edge.__init_order) :
+        "%0 -> %1".fmt(self, edge.dest.dot_name());
     });
     var shape = this.dot_shape();
     if (shape) {
@@ -66,11 +95,7 @@
 
   bender.Vertex.prototype.dot_label = function () {};
 
-  bender.Vertex.prototype.dot_shape = function () {
-    if (this.outgoing.length === 0) {
-      return "doublecircle";
-    }
-  };
+  bender.Vertex.prototype.dot_shape = function () {};
 
   bender.EventVertex.prototype.dot_label = function () {
     return "%0%1%2!%3".fmt(this.target instanceof bender.Component ? "#" : "@",

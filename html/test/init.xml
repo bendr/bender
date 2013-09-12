@@ -1,0 +1,31 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" as="number" value="1"/>
+  <property name="y" value="`x + 2"/>
+  <property name="z" as="number" value="42"/>
+  <property name="t" as="number" value="69"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>x = `x</html:p>
+    <html:p>y = x + 2 = `y</html:p>
+    <html:p>
+      `y × `z = <html:span id="show-result"/>
+    </html:p>
+  </view>
+  <watch>
+    <get select="$that" property="y">
+      console.log("Side effect: y = %0".fmt($in));
+    </get>
+  </watch>
+  <watch>
+    <get select="$document" dom-event="keydown"/>
+    <set property="x" value="`x - 1"/>
+  </watch>
+  <watch>
+    <get select="$document" dom-event="click"/>
+    <set property="x" value="`x + 1"/>
+  </watch>
+  <watch>
+    <get property="y"/>
+    <get property="z"/>
+    <set select="@show-result" dom-property="textContent" value="`y * `z"/>
+  </watch>
+</component>
