@@ -23,6 +23,53 @@
     // Then count down incoming edges from property vertices with no incoming
     // edge; visit protoedges first (or not at all?)
     var queue = this.vertices.filter(function (vertex) {
+      return vertex.incoming.length === 0 &&
+        !(vertex instanceof bender.PropertyVertex);
+    });
+    while (queue.length) {
+      var vertex = queue.shift();
+      vertex.outgoing.forEach(function (edge) {
+        var dest = edge.dest;
+        if (!dest.hasOwnProperty("__incoming")) {
+          dest.__incoming = dest.incoming.length;
+        }
+        if (--dest.__incoming === 0) {
+          queue.push(dest);
+        }
+      });
+    }
+    queue = this.vertices.filter(function (vertex) {
+      return vertex.incoming.length === 0 &&
+        vertex instanceof bender.PropertyVertex;
+    });
+    var edges = [];
+    while (queue.length) {
+      var vertex = queue.shift();
+      vertex.outgoing.forEach(function (edge) {
+        var dest = edge.dest;
+        if (!dest.hasOwnProperty("__incoming")) {
+          dest.__incoming = dest.incoming.length;
+          if (dest.protoedge && dest.__incoming > 1) {
+            dest.protoedge.__nofollow = true;
+            --dest.__incoming;
+          }
+        }
+        if (!edge.__nofollow) {
+          edge.__init_order = edges.length;
+          edges.push(edge);
+          if (--dest.__incoming === 0) {
+            queue.unshift(dest);
+            delete dest.__incoming;
+          }
+        } else {
+          delete edge.__nofollow;
+        }
+      });
+    }
+    return edges;
+
+    /*
+    var queue = this.vertices.filter(function (vertex) {
       return vertex instanceof bender.PropertyVertex &&
         vertex.incoming.length === 0;
     });
@@ -42,6 +89,7 @@
       });
     }
     return edges;
+    */
   }
 
   // Create a dot description of the watch graph with pruning
@@ -69,6 +117,8 @@
     var desc = this.outgoing.map(function (edge) {
       return edge.hasOwnProperty("__init_order") ?
         "%0 -> %1 [label=\"%2\", color=red]".fmt(self, edge.dest.dot_name(), edge.__init_order) :
+      edge.__unfollow ?
+        "%0 -> %1 [color=blue]".fmt(self, edge.dest.dot_name()) :
         "%0 -> %1".fmt(self, edge.dest.dot_name());
     });
     var shape = this.dot_shape();
