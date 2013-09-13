@@ -204,31 +204,66 @@
   environment.init_properties = function () {
     _trace("Initialize graph");
     var queue = this.vertices.filter(function (vertex) {
-      return vertex.uninitialized;
+      return vertex.incoming.length === 0 &&
+        !(vertex instanceof bender.PropertyVertex);
     });
     while (queue.length) {
       var vertex = queue.shift();
-      if (vertex.__visited) {
-        delete vertex.uninitialized;
-      } else {
-        vertex.__visited = true;
-        Array.prototype.push.apply(queue, vertex.outgoing.map(function (edge) {
-          return edge.dest;
-        }));
-      }
+      vertex.outgoing.forEach(function (edge) {
+        var dest = edge.dest;
+        if (!dest.hasOwnProperty("__incoming")) {
+          dest.__incoming = dest.incoming.length;
+        }
+        if (--dest.__incoming === 0) {
+          queue.push(dest);
+        }
+      });
     }
-    this.dot_sort();
+    queue = this.vertices.filter(function (vertex) {
+      return vertex.incoming.length === 0 &&
+        vertex instanceof bender.PropertyVertex;
+    });
+    var edges = [];
+    while (queue.length) {
+      var vertex = queue.shift();
+      vertex.outgoing.forEach(function (edge) {
+        var dest = edge.dest;
+        if (!dest.hasOwnProperty("__incoming")) {
+          dest.__incoming = dest.incoming.length;
+          if (dest.protoedge && dest.__incoming > 1) {
+            dest.protoedge.__nofollow = true;
+            --dest.__incoming;
+          }
+        }
+        if (!edge.__nofollow) {
+          edge.__init_order = edges.length;
+          edges.push(edge);
+          if (--dest.__incoming === 0) {
+            queue.unshift(dest);
+            delete dest.__incoming;
+          }
+        } else {
+          delete edge.__nofollow;
+        }
+      });
+    }
     _trace("init_graph:", this.dot());
-    this.vertices.forEach(function (vertex) {
-      delete vertex.__visited;
-      if (vertex.uninitialized) {
-        delete vertex.uninitialized;
-        var value = vertex.property._value.call(vertex.component, undefined,
-          vertex.component.scope);
-        _trace("  * %0 = %1".fmt(vertex.dot_label(), value));
-        vertex.component.properties[vertex.property.name] = value;
+    edges.forEach(function (edge) {
+      var source = edge.source;
+      if (!source.hasOwnProperty("__value")) {
+        source.__value = source.property._value.call(source.component,
+          undefined, source.component.scope);
+        source.value = source.__value;
+        _trace("  # %0 = %1".fmt(source.dot_label(), source.value));
+      }
+      var follow = edge.follow(source.__value);
+      if (follow) {
+        follow[0].__value = follow[1];
+        _trace("  * %0 = %1".fmt(follow[0].dot_label() || follow[0].dot_name(),
+            follow[1]));
       }
     }, this);
+    // TODO update this
     return this.scheduled;
   };
 
@@ -1414,6 +1449,19 @@
   };
 
 
+  // Derived property edges between a component property and its derived
+  // property
+  var derived_property_edge =
+    _class(bender.DerivedPropertyEdge = function (dest) {
+      this.init(dest);
+    }, bender.Edge);
+
+  derived_property_edge.follow = function (input) {
+    this.dest.value = input;
+    return [this.dest, input];
+  };
+
+
   // Edges that are tied to an element (e.g., watch, get, set) and a scope
   var element_edge = _class(bender.ElementEdge = function () {}, bender.Edge);
 
@@ -1690,12 +1738,12 @@
       var vertex = derived.property_vertices[property.name] =
         get_property_vertex(derived, property);
       vertex.protoedge =
-        protovertex.add_outgoing(new bender.Edge().init(vertex));
+        protovertex.add_outgoing(new bender.DerivedPropertyEdge(vertex));
       Object.defineProperty(derived.properties, property.name, {
         enumerable: true,
         configurable: true,
         get: function () {
-          return protovertex.value;
+          return vertex.value;
         },
         set: function (value) {
           var v = render_own_property(derived, property, value);
