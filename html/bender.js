@@ -4,7 +4,7 @@
   /* global flexo, window, console */
   // jshint -W054
 
-  bender.version = "0.8.2";
+  bender.version = "0.8.2.2";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
   // Set up tracing, turned on/off with setting bender.TRACE to true or false
@@ -256,11 +256,21 @@
         source.value = source.__value;
         _trace("  # %0 = %1".fmt(source.dot_label(), source.value));
       }
-      var follow = edge.follow(source.__value);
-      if (follow) {
-        follow[0].__value = follow[1];
-        _trace("  * %0 = %1".fmt(follow[0].dot_label() || follow[0].dot_name(),
-            follow[1]));
+      try {
+        var follow = edge.follow(source.__value);
+        if (follow) {
+          follow[0].__value = follow[1];
+          _trace("  * %0 = %1".fmt(follow[0].dot_label() || follow[0].dot_name(),
+              follow[1]));
+        } else {
+          edge.dest.__value = undefined;
+          _trace("  * %0 = <undefined>"
+            .fmt(edge.dest.dot_label() || edge.dest.dot_name()));
+        }
+      } catch (e) {
+        console.warn("Initialization failed for %0 (dependency error?)"
+          .fmt(edge.dest.dot_label() || edge.dest.dot_name()));
+        edge.dest.__value = undefined;
       }
     }, this);
     // TODO update this
@@ -741,8 +751,11 @@
     _trace("[%0] (%1) render properties"
         .fmt(this.scope.$that.index, this.index));
     for (var p in this.scope.$that.property_vertices) {
-      _trace("  * render property %0".fmt(p));
-      render_derived_property(this, this.scope.$that.property_vertices[p]);
+      _trace("  * render property %0 (with%1 protoedge)".fmt(p,
+          this.scope.$that.property_vertices[p].property.select() === "$this" ?
+          "out" : ""));
+      render_derived_property(this, this.scope.$that.property_vertices[p],
+          this.scope.$that.property_vertices[p].property.select() === "$this");
     }
   };
 
@@ -771,7 +784,7 @@
     for (var n = stack.length; stack.i < n && !stack[stack.i].$that.scope.$view;
         ++stack.i);
     if (stack.i < n && stack[stack.i].$that.scope.$view) {
-      console.log("  * render view %0".fmt(stack[stack.i].$that.index));
+      _trace("  * render view %0".fmt(stack[stack.i].$that.index));
       return stack[stack.i].$that.scope.$view.render(target, stack);
     }
     return new flexo.Promise().fulfill();
@@ -791,7 +804,7 @@
     for (var p in this.property_vertices) {
       var prop = this.property_vertices[p].property;
       if (prop.bindings) {
-        var set = new bender.SetProperty(prop.name, prop._select || "$this");
+        var set = new bender.SetProperty(prop.name, prop.select());
         set_value_from_string.call(set, prop.bindings[""].value, true);
         var watch = new bender.Watch().child(set);
         Object.keys(prop.bindings).forEach(function (id) {
@@ -1097,7 +1110,7 @@
   }, bender.Element);
 
   flexo._accessor(bender.Property, "as", normalize_as);
-  flexo._accessor(bender.Property, "select");
+  flexo._accessor(bender.Property, "select", normalize_property_select);
   flexo._accessor(bender.Property, "match");
   flexo._accessor(bender.Property, "value");
 
@@ -1695,6 +1708,13 @@
       as === "json" ? as : "dynamic";
   }
 
+  // Normalize the `select` property of a property element so that it matches a
+  // known value. Set to “$this” by default.
+  function normalize_property_select(select) {
+    select = flexo.safe_trim(select);
+    return select === "$that" ? select : "$this";
+  }
+
   // Normalize the `render-id` property of a view element so that it matches a
   // known value. Set to “none” by default.
   function normalize_render_id(render_id) {
@@ -1732,13 +1752,15 @@
   // the prototype vertex to the new vertex so that changes to the original
   // property are propagated. When the derived property gets set, the edge is
   // removed.
-  function render_derived_property(derived, protovertex) {
+  function render_derived_property(derived, protovertex, no_protoedge) {
     var property = protovertex.property;
     if (!derived.properties.hasOwnProperty(property.name)) {
       var vertex = derived.property_vertices[property.name] =
         get_property_vertex(derived, property);
-      vertex.protoedge =
-        protovertex.add_outgoing(new bender.DerivedPropertyEdge(vertex));
+      if (!no_protoedge) {
+        vertex.protoedge =
+          protovertex.add_outgoing(new bender.DerivedPropertyEdge(vertex));
+      }
       Object.defineProperty(derived.properties, property.name, {
         enumerable: true,
         configurable: true,
