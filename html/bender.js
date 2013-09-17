@@ -54,8 +54,9 @@
   }).prototype;
 
   // Create a new Bender component
-  environment.component = function () {
-    return add_component_to_environment(this, new bender.Component(this.scope));
+  environment.component = function (scope) {
+    return add_component_to_environment(this,
+        new bender.Component(scope || this.scope));
   };
 
   // Create a new instance for a component and an optional parent instance
@@ -389,7 +390,11 @@
   // Create a new component in a scope (either the environment scope for
   // top-level components, or the abstract scope of the parent component.)
   var component = _class(bender.Component = function (scope) {
-    this.init();
+    this.init(scope);
+  }, bender.Element);
+
+  component.init = function (scope) {
+    element.init.call(this);
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
     this.scope = Object.create(parent_scope, {
@@ -407,7 +412,7 @@
     this.instances = [];             // rendered instances
     this.watches = [];               // watch nodes
     this.event_vertices = {};        // event vertices (for reuse)
-  }, bender.Element);
+  };
 
   component.on = function (type, handler) {
     if (typeof handler === "string") {
@@ -647,14 +652,7 @@
         this.scope.$view = child;
       }
     } else if (child instanceof bender.Property) {
-      if (this.property_definitions.hasOwnProperty(child.name)) {
-        console.error("Redefinition of property %0 in component %1"
-            .fmt(child.name, this.index));
-      } else {
-        this.property_definitions[child.name] = child;
-        var vertex = render_own_property(this, child);
-        render_derived_property_derived(this, vertex);
-      }
+      this.add_property(child);
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
     } else {
@@ -662,6 +660,17 @@
     }
     this.add_descendants(child);
     return element.append_child.call(this, child);
+  };
+
+  component.add_property = function (child) {
+    if (this.property_definitions.hasOwnProperty(child.name)) {
+      console.error("Redefinition of property %0 in component %1"
+          .fmt(child.name, this.index));
+    } else {
+      this.property_definitions[child.name] = child;
+      var vertex = render_own_property(this, child);
+      render_derived_property_derived(this, vertex);
+    }
   };
 
   // Component children of the view are added as child components with a
