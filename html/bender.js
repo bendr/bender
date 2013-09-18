@@ -535,7 +535,6 @@
           if (!p) {
             this._prototype = prototype;
             prototype.derived.push(this);
-            render_derived_properties(this);
           } else {
             throw "Cycle in prototype chain";
           }
@@ -545,13 +544,6 @@
     }
     return this._prototype;
   };
-
-  function render_derived_properties(component) {
-    for (var p in component._prototype.property_vertices) {
-      var vertex = component._prototype.property_vertices[p];
-      render_derived_property(component, vertex);
-    }
-  }
 
   // Handle new link, view, property and watch children for a component
   component.append_child = function (child) {
@@ -1381,7 +1373,8 @@
       var value = this.element.value() ?
         this.element.value().call(scope.$this, input, scope) : input;
       var scope_ = flexo.find_first(scope.$this.scopes, function (s) {
-        return Object.getPrototypeOf(Object.getPrototypeOf(s))[this.element.select] === this.target;
+        return Object.getPrototypeOf(Object.getPrototypeOf(s))
+          [this.element.select] === this.target;
       }, this);
       if (scope_) {
         var target = scope_[this.element.select];
