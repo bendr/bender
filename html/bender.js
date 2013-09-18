@@ -393,11 +393,13 @@
   };
 
   component.property_list = function () {
-    var l = this.parent_component ? this.parent_component.property_list() : [];
+    var l = this._prototype ? this._prototype.property_list() : [];
     this.children.forEach(function (ch) {
       if (ch instanceof bender.Property) {
-        flexo.remove_from_array(l, ch.name);
-        l.push(ch.name);
+        flexo.remove_first_from_array(l, function (p) {
+          return p.name === ch.name;
+        });
+        l.push(ch);
       }
     });
     return l;
@@ -409,10 +411,9 @@
     this.watches.forEach(function (watch) {
       watch.render(this.scope);
     }, this);
-    this.property_list().forEach(function (p) {
-      var property = this.property_definitions[p];
+    this.property_list().forEach(function (property) {
       if (property._select === "$that") {
-        this.properties[p] = property.value()(this.scope);
+        this.properties[property.name] = property.value()(this.scope);
       }
     }, this);
   };
@@ -535,6 +536,9 @@
           if (!p) {
             this._prototype = prototype;
             prototype.derived.push(this);
+            this.property_vertices = Object.create(prototype.property_vertices);
+            this.properties = init_properties_object(this,
+                Object.create(prototype.properties));
           } else {
             throw "Cycle in prototype chain";
           }
@@ -657,12 +661,11 @@
   }).prototype;
 
   instance.init_properties = function () {
-    this.scope.$that.property_list().forEach(function (p) {
-      var property = this.scope.$that.property_definitions[p];
+    this.scope.$that.property_list().forEach(function (property) {
       if (property._select === "$this") {
-        this.properties[p] = property.value()(this.scope);
+        this.properties[property.name] = property.value()(this.scope);
       } else {
-        this.scope.$that.property_vertices[p].visit(this.scope);
+        property.parent.property_vertices[property.name].visit(this.scope);
       }
     }, this);
   };
@@ -1370,6 +1373,8 @@
 
   dom_property_edge.follow = function (scope, input) {
     try {
+      _trace("{%0} follow dom property edge for %1".fmt(scope.$this.instance,
+            this.element.select));
       var value = this.element.value() ?
         this.element.value().call(scope.$this, input, scope) : input;
       var scope_ = flexo.find_first(scope.$this.scopes, function (s) {
