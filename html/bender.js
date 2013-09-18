@@ -16,7 +16,6 @@
   });
 
   bender.TRACE = true;     // show tracing messages
-  bender.MAX_VISITS = 10;  // maximum number of visits for a vertex
 
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
@@ -650,6 +649,7 @@
 
   // A component instance
   var instance = (bender.Instance = function (component, parent) {
+    component.instances.push(this);
     this.properties = init_properties_object(this,
       Object.create(component.properties));
     this.scopes = [];
@@ -1294,6 +1294,14 @@
     _trace("[%0] Visit property vertex %1=%2"
         .fmt(scope.$this.index, this.name, value));
     this.environment.visit_vertex(this, scope, value);
+    if (scope.$this.instances) {
+      // TODO check that there are no component-only paths
+      scope.$this.instances.forEach(function (instance) {
+        if (!instance.properties.hasOwnProperty(this.name)) {
+          this.environment.visit_vertex(this, instance.scope, value);
+        }
+      }, this);
+    }
   };
 
 
