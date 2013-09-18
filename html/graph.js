@@ -157,9 +157,7 @@
   }
 
   bender.PropertyVertex.prototype.dot_label = function () {
-    return "%0%1%2`%3"
-      .fmt(this.component instanceof bender.Component ? "#" : "@",
-          this.component._id, this.component.index, this.property.name);
+    return "`" + this.name;
   };
 
   bender.WatchVertex.prototype.dot_label = function () {
