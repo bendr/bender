@@ -536,9 +536,15 @@
           if (!p) {
             this._prototype = prototype;
             prototype.derived.push(this);
-            this.property_vertices = Object.create(prototype.property_vertices);
+            this.property_vertices = extend_object(prototype.property_vertices,
+                this.property_vertices);
+            var properties = this.properties;
             this.properties = init_properties_object(this,
                 Object.create(prototype.properties));
+            Object.getOwnPropertyNames(properties).forEach(function (p) {
+              Object.defineProperty(this.properties, p,
+                Object.getOwnPropertyDescriptor(properties, p));
+            }, this);
           } else {
             throw "Cycle in prototype chain";
           }
@@ -548,6 +554,17 @@
     }
     return this._prototype;
   };
+
+  function extend_object(proto) {
+    var object = Object.create(proto);
+    for (var i = 1; i < arguments.length; ++i) {
+      var h = arguments[i];
+      Object.keys(h).forEach(function (key) {
+        object[key] = h[key];
+      });
+    }
+    return object;
+  }
 
   // Handle new link, view, property and watch children for a component
   component.append_child = function (child) {
