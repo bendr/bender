@@ -678,6 +678,10 @@
   }).prototype;
 
   instance.init_properties = function () {
+    _trace("[%0] init properties".fmt(this.index));
+    this.children.forEach(function (ch) {
+      ch.init_properties();
+    });
     this.scope.$that.property_list().forEach(function (property) {
       if (property._select === "$this") {
         this.properties[property.name] = property.value()(this.scope);
