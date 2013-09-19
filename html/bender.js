@@ -186,11 +186,11 @@
     _trace(">>> Traverse watch graph from", vertex);
     var queue = [[vertex, scope, value]];
     // Don’t cache the length of the queue as it grows during the traversal
-    for (var visited = [], i = 0; i < queue.length; ++i) {
+    for (var i = 0; i < queue.length; ++i) {
       var q = queue[i];
-      var vertex = q[0];
-      var scope = q[1];
-      var value = q[2];
+      vertex = q[0];
+      scope = q[1];
+      value = q[2];
       for (var j = 0, n = vertex.outgoing.length; j < n; ++j) {
         var follow = vertex.outgoing[j].follow(scope, value);
         if (follow) {
@@ -403,7 +403,7 @@
       }
     });
     return l;
-  }
+  };
 
   // Render the basic graph for this component
   component.render_graph = function () {
@@ -463,7 +463,6 @@
   component.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     _trace("[%0] render new instance".fmt(this.index));
-    var instance_;
     return this.render(fragment).then(function (instance) {
       instance.init_properties();
       target.insertBefore(fragment, ref);
@@ -490,7 +489,7 @@
       this.notify("ready");
       delete this.not_ready;
     }
-  }
+  };
 
   // Render this component to a concrete instance for the given target.
   component.render = function (target, stack) {
@@ -536,15 +535,9 @@
           if (!p) {
             this._prototype = prototype;
             prototype.derived.push(this);
-            this.property_vertices = extend_object(prototype.property_vertices,
+            this.property_vertices = extend(prototype.property_vertices,
                 this.property_vertices);
-            var properties = this.properties;
-            this.properties = init_properties_object(this,
-                Object.create(prototype.properties));
-            Object.getOwnPropertyNames(properties).forEach(function (p) {
-              Object.defineProperty(this.properties, p,
-                Object.getOwnPropertyDescriptor(properties, p));
-            }, this);
+            this.properties = extend(prototype.properties, this.properties);
           } else {
             throw "Cycle in prototype chain";
           }
@@ -554,17 +547,6 @@
     }
     return this._prototype;
   };
-
-  function extend_object(proto) {
-    var object = Object.create(proto);
-    for (var i = 1; i < arguments.length; ++i) {
-      var h = arguments[i];
-      Object.keys(h).forEach(function (key) {
-        object[key] = h[key];
-      });
-    }
-    return object;
-  }
 
   // Handle new link, view, property and watch children for a component
   component.append_child = function (child) {
@@ -715,7 +697,7 @@
       }
     });
     stack.i = 0;
-    stack.bindings = stack.map(function () { return [] });
+    stack.bindings = stack.map(function () { return []; });
     for (var n = stack.length; stack.i < n && !stack[stack.i].$that.scope.$view;
         ++stack.i);
     if (stack.i < n && stack[stack.i].$that.scope.$view) {
@@ -1425,7 +1407,8 @@
     this.target = target;
   }, bender.ElementEdge);
 
-  bender.PropertyEdge.prototype.follow = function (scope, input) {
+  bender.PropertyEdge.prototype.follow = function (_, input) {
+    // jshint unused: false
     try {
       var value = this.element.value() ?
         this.element.value().call(this.scope.$this, input, this.scope) : input;
@@ -1443,7 +1426,8 @@
     this.target = target;
   }, bender.ElementEdge);
 
-  bender.DOMAttributeEdge.prototype.follow = function (scope, input) {
+  bender.DOMAttributeEdge.prototype.follow = function (_, input) {
+    // jshint unused: false
     try {
       var value = this.element.value() ?
         this.element.value().call(this.scope.$this, input, this.scope) : input;
@@ -1534,18 +1518,14 @@
     return bindings;
   }
 
-  // Find an existing concrete scope (do not create it) for a component given
-  // a reference instance. First we find the instance scope, then return its
-  // prototype which is the concrete scope.
-  function get_concrete_scope(component, parent) {
-    if (parent && component.parent_component) {
-      var scope = flexo.find_first(parent.scopes, function (scope) {
-        return scope.$that === component.parent_component;
-      });
-      if (scope) {
-        return Object.getPrototypeOf(scope);
-      }
-    }
+  // Extend the proto object with properties of the ext object
+  function extend(proto, ext) {
+    var object = Object.create(proto);
+    Object.getOwnPropertyNames(ext).forEach(function (key) {
+      Object.defineProperty(object, key,
+        Object.getOwnPropertyDescriptor(ext, key));
+    });
+    return object;
   }
 
   // Get the instance scope for an instance from its parent instance, i.e. the
