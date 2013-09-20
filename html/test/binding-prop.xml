@@ -1,14 +1,21 @@
 <component xmlns="http://bender.igel.co.jp">
   <property name="x" as="number" value="1"/>
-  <property name="y"/>
   <!--
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>x = `x</html:p>
-    <html:p>y = x + 2 = `y</html:p>
-  </view>
+  <property name="y" value="`x + 2"/>
   -->
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div style="border: solid thin #888; padding: 1rem; display: inline-block">
+      <html:p>Value of x below:</html:p>
+      <html:p>x = `x</html:p>
+      <!--
+      <html:p>y = x + 2 = `y</html:p>
+      -->
+    </html:div>
+  </view>
+  <!--
   <watch>
     <get property="x"/>
     <set property="y" value="$in + 2"/>
   </watch>
+  -->
 </component>

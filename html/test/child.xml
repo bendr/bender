@@ -1,10 +1,10 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="A">
   <property name="x" value="2"/>
   <property name="foo" value="bar" as="string" select="$that"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>x = <html:span id="vx">???</html:span></html:p>
 
-    <component>
+    <component id="B">
       <property name="y" value="true"/>
       <view xmlns:html="http://www.w3.org/1999/xhtml">
         <html:p>y = <html:span id="vy">???</html:span></html:p>
@@ -20,6 +20,7 @@
   <watch>
     <get property="x"/>
     <set select="@vx" dom-property="textContent"/>
+    <set select="@B" property="y" value="$in + 2"/>
   </watch>
   <watch>
     <get property="foo"/>
