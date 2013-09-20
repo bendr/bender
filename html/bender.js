@@ -575,7 +575,9 @@
     if (this.property_definitions.hasOwnProperty(child.name)) {
       console.error("Redefinition of property %0 in component %1"
           .fmt(child.name, this.index));
-    } else if (child.name in this.property_definitions) {
+      return;
+    }
+    if (child.name in this.property_definitions) {
       // TODO redefining property
     } else {
       _trace("[%0] render property %1".fmt(this.index, child.name));
@@ -584,6 +586,17 @@
         new bender.PropertyVertex(child.name)
       );
       render_property_property(this.properties, child.name);
+    }
+    if (child.bindings) {
+      var set = new bender.SetProperty(child.name, child.select());
+      set_value_from_string.call(set, child.bindings[""].value, true);
+      var watch = new bender.Watch().child(set);
+      Object.keys(child.bindings).forEach(function (id) {
+        Object.keys(child.bindings[id]).forEach(function (prop) {
+          watch.append_child(new bender.GetProperty(prop, id));
+        });
+      });
+      this.watches.push(watch);
     }
   };
 
@@ -648,6 +661,7 @@
     this.properties = init_properties_object(this,
       Object.create(component.properties));
     this.scopes = [];
+    this.binding_scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
       this.scopes.push(Object.create(scope, {
@@ -665,10 +679,15 @@
       ch.init_properties();
     });
     this.scope.$that.property_list().forEach(function (property) {
+      var vertex = property.parent.property_vertices[property.name];
+      if (vertex.incoming.length > 0) {
+        // TODO take event edges into account!
+        return;
+      }
       if (property._select === "$this") {
         this.properties[property.name] = property.value()(this.scope);
       } else {
-        property.parent.property_vertices[property.name].visit(this.scope);
+        vertex.visit(this.scope);
       }
     }, this);
   };
@@ -683,7 +702,7 @@
         .fmt(this.scope.$that.index, this.index, this.scopes.map(function (s) {
           return s.$that.index;
         }).join(", ")));
-    var stack = this.__stack = [];
+    var stack = [];
     flexo.hcaErof(this.scopes, function (scope) {
       if (scope.$that.scope.$view) {
         var mode = scope.$that.scope.$view._stack;
@@ -958,9 +977,10 @@
     if (typeof bindings === "string") {
       node.textContent = bindings;
     } else {
-      bindings[""].target = node;
+      bindings[""].target = stack[stack.i].$this.binding_scopes.length;
+      stack[stack.i].$this.binding_scopes.push(node);
       stack.bindings[stack.i].push(bindings);
-      _trace("  + binding: %0".fmt(bindings[""].value));
+      _trace("  + bind %0=%1".fmt(bindings[""].target, bindings[""].value));
     }
     target.appendChild(node);
     this.instances.push(node);
@@ -980,7 +1000,7 @@
   environment.deserialize.property = function (elem) {
     return this.deserialize_element_with_value(new
         bender.Property(elem.getAttribute("name"))
-        .select(elem.getAttribute("select")), elem);
+      .select(elem.getAttribute("select")), elem);
   };
 
   var watch = _class(bender.Watch = function () {
@@ -1157,10 +1177,9 @@
   }, bender.Set);
 
   set_property.render = function (scope) {
-    var target = typeof this.select === "string" ?
-      scope[this.select] : this.select;
+    var target = scope[this.select];
     if (target) {
-      return new bender.PropertyEdge(this, scope, target);
+      return new bender.PropertyEdge(this, target);
     }
   };
 
@@ -1376,7 +1395,7 @@
 
   dom_property_edge.follow = function (scope, input) {
     try {
-      _trace("{%0} follow dom property edge for %1".fmt(scope.$this.instance,
+      _trace("{%0} follow dom property edge for %1".fmt(scope.$this.index,
             this.element.select));
       var value = this.element.value() ?
         this.element.value().call(scope.$this, input, scope) : input;
@@ -1397,24 +1416,34 @@
 
 
   // Set a Bender property
-  _class(bender.PropertyEdge = function (set, scope, target) {
+  _class(bender.PropertyEdge = function (set, target) {
     var dest = target.property_vertices[set.name];
     if (!dest) {
       console.warn("No property %0 for component %1"
         .fmt(set.name, target.index));
+      return;
     }
-    this.init(set, scope, dest);
+    this.init(set, dest);
     this.target = target;
   }, bender.ElementEdge);
 
-  bender.PropertyEdge.prototype.follow = function (_, input) {
-    // jshint unused: false
+  // Follow the property edge by findin the right target in the current scope
+  // and setting the property. Do not return anything as setting the property
+  // will do its own the traversal.
+  bender.PropertyEdge.prototype.follow = function (scope, input) {
+    if (!this.dest) {
+      return;
+    }
+    _trace("{%0} follow property edge for %1`%2"
+        .fmt(scope.$this.index, this.element.select, this.element.name));
     try {
       var value = this.element.value() ?
-        this.element.value().call(this.scope.$this, input, this.scope) : input;
-      // this.target.properties[this.element.name] = value;
-      this.target.property_vertices[this.element.name].value = value;
-      return [this.dest, value];
+        this.element.value().call(scope.$this, scope, input) : input;
+      var scope_ = flexo.find_first(scope.$this.scopes, function (s) {
+        return Object.getPrototypeOf(Object.getPrototypeOf(s))
+          [this.element.select] === this.target;
+      }, this) || scope;
+      scope_[this.element.select].properties[this.element.name] = value;
     } catch (e) {
     }
   };
@@ -1477,7 +1506,7 @@
     if (Object.keys(bindings).length === 0) {
       return value;
     }
-    bindings[""] = { value: v };
+    Object.defineProperty(bindings, "", { value: { value: v }});
     return bindings;
   }
 
@@ -1510,7 +1539,7 @@
     }
     var f = "return " + strings.join("+");
     try {
-      bindings[""] = { value: new Function("$in", "$scope", f) };
+      bindings[""] = { value: new Function("$scope", "$in", f) };
     } catch (e) {
       console.warn("Could not parse “%0” as Javascript".fmt(f));
       bindings[""] = { value: flexo.id };
