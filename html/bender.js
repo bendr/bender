@@ -653,7 +653,6 @@
     this.properties = init_properties_object(this,
       Object.create(component.properties));
     this.scopes = [];
-    this.bindings_scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
       this.scopes.push(Object.create(scope, {
@@ -918,7 +917,19 @@
       if (!this.attrs.hasOwnProperty(ns)) {
         this.attrs[ns] = {};
       }
-      this.attrs[ns][name] = value;
+      var bindings = bindings_string(value);
+      if (typeof bindings === "string") {
+        this.attrs[ns][name] = value;
+      } else {
+        var parent = parent_component(this);
+        if (parent) {
+          push_bindings(parent, this, bindings);
+        } else {
+          this.__bindings = bindings;
+          bindings[""].ns = ns;
+          bindings[""].name = name;
+        }
+      }
       return this;
     }
     return this.attrs[ns] && this.attrs[ns][name];
@@ -927,6 +938,23 @@
   dom_element.append_child = view.append_child;
 
   dom_element.render = function (target, stack) {
+    /*
+    var elem = target.ownerDocument.createElementNS(this.ns, this.name);
+    for (var ns in this.attrs) {
+      for (var a in this.attrs[ns]) {
+
+      }
+    }
+
+
+    var node = target.ownerDocument.createTextNode(this.text());
+    target.appendChild(node);
+    if (this.fake_id) {
+      stack[stack.i][this.fake_id] = node;
+    }
+    return node;
+    */
+
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
@@ -1120,11 +1148,14 @@
     }
   };
 
+
+  // TODO synthesize DOM event
   _class(bender.SetDOMEvent = function (type, select) {
     this.init();
     this.type = type;
     this.select = select;
   }, bender.Set);
+
 
   var set_event = _class(bender.SetEvent = function (type, select) {
     this.init();
@@ -1150,11 +1181,7 @@
   }, bender.Set);
 
   set_dom_property.render = function (scope) {
-    var target = scope[this.select];
-    if (target) {
-      var edge = new bender.DOMPropertyEdge(this, target);
-      return edge;
-    }
+    return render_edge(this, scope, bender.DOMPropertyEdge);
   };
 
   var set_property = _class(bender.SetProperty = function (name, select) {
@@ -1164,10 +1191,7 @@
   }, bender.Set);
 
   set_property.render = function (scope) {
-    var target = scope[this.select];
-    if (target) {
-      return new bender.PropertyEdge(this, target);
-    }
+    return render_edge(this, scope, bender.PropertyEdge);
   };
 
   var set_dom_attribute =
@@ -1179,13 +1203,15 @@
   }, bender.Set);
 
   set_dom_attribute.render = function (scope) {
-    var target = typeof this.select === "string" ?
-      scope[this.select] : this.select;
-    if (target) {
-      var edge = new bender.DOMAttributeEdge(this, scope, target);
-      return edge;
-    }
+    return render_edge(this, scope, bender.DOMAttributeEdge);
   };
+
+  function render_edge(set, scope, Constructor) {
+    var target = scope[set.select];
+    if (target) {
+      return new Constructor(set, target);
+    }
+  }
 
   _class(bender.SetAttribute = function (name, select) {
     this.init();
@@ -1329,7 +1355,7 @@
 
   edge.follow = function (scope, input) {
     if (!this.instance || this.instance === scope.$this) {
-      return [this.dest, input];
+      return [this.dest, scope, input];
     }
   };
 
@@ -1353,12 +1379,23 @@
   };
 
   element_edge.follow = function (scope, input) {
+    if (!this.dest) {
+      return;
+    }
     try {
       var value = this.element.value() ?
         this.element.value().call(scope.$this, scope, input) : input;
-      return [this.dest, scope, value];
+      return this.followed(flexo.find_first(scope.$this.scopes, function (s) {
+        return Object.getPrototypeOf(Object.getPrototypeOf(s))
+          [this.element.select] === this.target;
+      }, this) || scope, value);
     } catch (e) {
+      return;
     }
+  };
+
+  element_edge.followed = function (scope, value) {
+    return [this.dest, scope, value];
   };
 
 
@@ -1380,24 +1417,10 @@
     this.target = target;
   }, bender.ElementEdge);
 
-  dom_property_edge.follow = function (scope, input) {
-    try {
-      _trace("{%0} follow dom property edge for %1".fmt(scope.$this.index,
-            this.element.select));
-      var value = this.element.value() ?
-        this.element.value().call(scope.$this, scope, input) : input;
-      var scope_ = flexo.find_first(scope.$this.scopes, function (s) {
-        return Object.getPrototypeOf(Object.getPrototypeOf(s))
-          [this.element.select] === this.target;
-      }, this);
-      if (scope_) {
-        var target = scope_[this.element.select];
-        if (target instanceof window.Node) {
-          target[this.element.name] = value;
-        }
-        return [this.dest, scope, value];
-      }
-    } catch (e) {
+  dom_property_edge.followed = function (scope, value) {
+    var target = scope[this.element.select];
+    if (target instanceof window.Node) {
+      target[this.element.name] = value;
     }
   };
 
@@ -1417,39 +1440,21 @@
   // Follow the property edge by findin the right target in the current scope
   // and setting the property. Do not return anything as setting the property
   // will do its own the traversal.
-  bender.PropertyEdge.prototype.follow = function (scope, input) {
-    if (!this.dest) {
-      return;
-    }
-    _trace("{%0} follow property edge for %1`%2"
-        .fmt(scope.$this.index, this.element.select, this.element.name));
-    try {
-      var value = this.element.value() ?
-        this.element.value().call(scope.$this, scope, input) : input;
-      var scope_ = flexo.find_first(scope.$this.scopes, function (s) {
-        return Object.getPrototypeOf(Object.getPrototypeOf(s))
-          [this.element.select] === this.target;
-      }, this) || scope;
-      scope_[this.element.select].properties[this.element.name] = value;
-    } catch (e) {
-    }
+  bender.PropertyEdge.prototype.followed = function (scope, value) {
+    scope[this.element.select].properties[this.element.name] = value;
   };
 
 
   // Set a DOM attribute
-  _class(bender.DOMAttributeEdge = function (set, scope, target) {
-    this.init(set, scope, scope.$environment.vortex);
+  _class(bender.DOMAttributeEdge = function (set, target) {
+    this.init(set);
     this.target = target;
   }, bender.ElementEdge);
 
-  bender.DOMAttributeEdge.prototype.follow = function (scope, input) {
-    // jshint unused: false
-    try {
-      var value = this.element.value() ?
-        this.element.value().call(scope.$this, scope, input) : input;
-      this.target.setAttributeNS(this.element.ns, this.element.name, value);
-      return [this.dest, value];
-    } catch (e) {
+  bender.DOMAttributeEdge.prototype.followed = function (scope, value) {
+    var target = scope[this.element.select];
+    if (target instanceof window.Node) {
+      target.setAttributeNS(this.element.ns, this.element.name, value);
     }
   };
 
@@ -1527,7 +1532,7 @@
     var f = "return " + strings.join("+");
     try {
       Object.defineProperty(bindings, "",
-          { value: { value: new Function("$scope", "$in", f) } });;
+          { value: { value: new Function("$scope", "$in", f) } });
       return bindings;
     } catch (e) {
       console.warn("Could not parse “%0” as Javascript".fmt(f));
@@ -1631,6 +1636,7 @@
 
   // Push a bindings object in the bindings scope of a component
   function push_bindings(parent, element, bindings) {
+    // jshint validthis:true
     bindings[""].target = "$%0".fmt(parent.bindings_scope.length);
     parent.bindings_scope.push(this);
     element.fake_id = bindings[""].target;
@@ -1675,7 +1681,7 @@
       boolean: false,
       number: 0,
       string: "",
-      dynamic: flexo.id
+      dynamic: snd
     }[this.as()]);
     return this;
   }
@@ -1720,7 +1726,7 @@
           this._value = new Function("$scope", "$in", value);
         } catch (e) {
           console.warn("Could not parse “%0” as Javascript".fmt(value));
-          this._value = flexo.id;
+          this._value = snd;
         }
       } else {
         // this._as === "string"
@@ -1730,6 +1736,11 @@
     }
     this._value = flexo.funcify(this._value);
     return this;
+  }
+
+  function snd(_, y) {
+    // jshint unused: true
+    return y;
   }
 
   // Return the concatenation of all text children (and only children) of elem
