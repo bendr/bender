@@ -921,13 +921,16 @@
       if (typeof bindings === "string") {
         this.attrs[ns][name] = value;
       } else {
+        bindings[""].set = new bender.SetDOMAttribute(ns, name);
         var parent = parent_component(this);
         if (parent) {
           push_bindings(parent, this, bindings);
         } else {
-          this.__bindings = bindings;
-          bindings[""].ns = ns;
-          bindings[""].name = name;
+          this.attrs[ns][name] = bindings;
+          if (!this.__bindings) {
+            this.__bindings = [];
+          }
+          this.__bindings.push(bindings);
         }
       }
       return this;
@@ -938,36 +941,13 @@
   dom_element.append_child = view.append_child;
 
   dom_element.render = function (target, stack) {
-    /*
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
-    for (var ns in this.attrs) {
-      for (var a in this.attrs[ns]) {
-
-      }
-    }
-
-
-    var node = target.ownerDocument.createTextNode(this.text());
-    target.appendChild(node);
     if (this.fake_id) {
-      stack[stack.i][this.fake_id] = node;
+      stack[stack.i][this.fake_id] = elem;
     }
-    return node;
-    */
-
-    var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     for (var ns in this.attrs) {
       for (var a in this.attrs[ns]) {
-        var bindings = bindings_string(this.attrs[ns][a]);
-        if (typeof bindings === "string") {
-          elem.setAttributeNS(ns, a, bindings);
-        } else {
-          bindings[""].target = elem;
-          bindings[""].ns = ns;
-          bindings[""].attr = a;
-          stack.bindings[stack.i].push(bindings);
-          _trace("  + binding: %0".fmt(bindings[""].value));
-        }
+        elem.setAttributeNS(ns, a, this.attrs[ns][a]);
       }
     }
     this.add_id_to_scope(elem, stack, true);
@@ -988,6 +968,7 @@
         this._text = text;
       } else {
         var parent = parent_component(this);
+        bindings[""].set = new bender.SetDOMProperty("textContent");
         if (parent) {
           push_bindings(parent, this, bindings);
         } else {
@@ -1587,6 +1568,22 @@
     return properties;
   }
 
+  // Make a watch for a set of bindings: add the set element created for the
+  // bindings (e.g., SetDOMProperty to set the text content or SetDOMAttribute
+  // to set an attribute) then a get element for each bound property.
+  function make_watch_for_bindings(parent, bindings, target) {
+    _trace("  + bind %0=%1".fmt(target, bindings[""].value));
+    bindings[""].set.select = target;
+    var watch = new bender.Watch()
+      .child(bindings[""].set.value(bindings[""].value));
+    Object.keys(bindings).forEach(function (id) {
+      Object.keys(bindings[id]).forEach(function (prop) {
+        watch.append_child(new bender.GetProperty(prop, id));
+      });
+    });
+    parent.watches.push(watch);
+  }
+
   // Normalize the `as` property of an element so that it matches a known value.
   // Set to “dynamic” by default.
   function normalize_as(as) {
@@ -1637,20 +1634,17 @@
   // Push a bindings object in the bindings scope of a component
   function push_bindings(parent, element, bindings) {
     // jshint validthis:true
-    bindings[""].target = "$%0".fmt(parent.bindings_scope.length);
+    var target = "$%0".fmt(parent.bindings_scope.length);
+    element.fake_id = target;
     parent.bindings_scope.push(this);
-    element.fake_id = bindings[""].target;
-    Object.getPrototypeOf(parent.scope)[element.fake_id] = element;
-    var watch = new bender.Watch()
-      .child(new bender.SetDOMProperty("textContent", bindings[""].target)
-          .value(bindings[""].value));
-    Object.keys(bindings).forEach(function (id) {
-      Object.keys(bindings[id]).forEach(function (prop) {
-        watch.append_child(new bender.GetProperty(prop, id));
+    Object.getPrototypeOf(parent.scope)[target] = element;
+    if (Array.isArray(bindings)) {
+      bindings.forEach(function (b) {
+        make_watch_for_bindings(parent, b, target);
       });
-    });
-    parent.watches.push(watch);
-    _trace("  + bind %0=%1".fmt(bindings[""].target, bindings[""].value));
+    } else {
+      make_watch_for_bindings(parent, bindings, target);
+    }
   }
 
   // Render a Javascript property in the properties object.
