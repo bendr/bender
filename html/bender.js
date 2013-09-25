@@ -14,6 +14,10 @@
     get: function () { return _trace !== flexo.nop; },
     set: function (p) { _trace = p ? console.log.bind(console) : flexo.nop; }
   });
+  Object.defineProperty(bender, "_trace", {
+    enumerable: true,
+    get: function () { return _trace; }
+  });
 
   bender.TRACE = true;     // show tracing messages
 
@@ -400,7 +404,8 @@
       watch.render(this.scope);
     }, this);
     this.property_list().forEach(function (property) {
-      if (property._select === "$that") {
+      if (property._select === "$that" &&
+        this.properties.hasOwnProperty(property.name)) {
         this.properties[property.name] = property.value()(this.scope);
       }
     }, this);
@@ -1648,6 +1653,7 @@
   }
 
   // Render a Javascript property in the properties object.
+  // TODO do not set the property on the component if select === "$this"
   function render_property_property(properties, name, value) {
     _trace("[%0] setting up js property %1%2".fmt(properties[""].index, name,
           arguments.length > 2 ? "=" + value : ""));
