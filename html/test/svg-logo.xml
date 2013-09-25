@@ -32,13 +32,11 @@
     </svg:svg>
   </view>
 
-  <!--
   <watch>
     <get select="@mask" dom-event="click" match="`clickable">
-      this.scope["@anim_b"].beginElement();
-      this.scope["@anim_p"].beginElement();
+      $scope["@anim_b"].beginElement();
+      $scope["@anim_p"].beginElement();
     </get>
   </watch>
--->
 
 </component>

@@ -458,6 +458,7 @@
     _trace("[%0] render new instance".fmt(this.index));
     return this.render(fragment).then(function (instance) {
       instance.init_properties();
+      instance.add_event_listeners();
       target.insertBefore(fragment, ref);
       instance.scope.$that.ready();
       return instance;
@@ -690,6 +691,22 @@
         vertex.visit(this.scope);
       }
     }, this);
+  };
+
+  instance.add_event_listeners = function () {
+    _trace("[%0] add event listeners".fmt(this.index));
+    for (var i = 0, n = this.scopes.length; i < n; ++i) {
+      var scope = this.scopes[i];
+      for (var select in scope.$that.event_vertices) {
+        for (var type in scope.$that.event_vertices[select]) {
+          var vertex = scope.$that.event_vertices[select][type];
+          vertex.add_event_listener(scope);
+        }
+      }
+    }
+    this.children.forEach(function (ch) {
+      ch.add_event_listeners();
+    });
   };
 
   // Send an event notification for this concrete instance only.
@@ -1060,6 +1077,7 @@
 
   _class(bender.Get = function () {}, bender.GetSet);
 
+
   var get_dom_event = _class(bender.GetDOMEvent = function (type, select) {
     this.init();
     this.type = type;
@@ -1072,10 +1090,17 @@
   get_dom_event.render = function (scope) {
     var target = scope[this.select];
     if (target) {
-      return scope.$environment.add_vertex(new
-          bender.DOMEventVertex(this, target));
+      if (!scope.$this.event_vertices.hasOwnProperty(this.select)) {
+        scope.$this.event_vertices[this.select] = {};
+      }
+      if (!scope.$this.event_vertices[this.select][this.type]) {
+        scope.$this.event_vertices[this.select][this.type] = scope.$environment
+          .add_vertex(new bender.DOMEventVertex(this));
+      }
+      return scope.$this.event_vertices[this.select][this.type];
     }
   };
+
 
   var get_event = _class(bender.GetEvent = function (type, select) {
     this.init();
@@ -1269,24 +1294,24 @@
 
 
   // DOM event vertex
-  var dom_event_vertex = _class(bender.DOMEventVertex = function (get, target) {
+  var dom_event_vertex = _class(bender.DOMEventVertex = function (get) {
     this.init();
     this.get = get;
-    this.target = target;
-    target.addEventListener(get.type, this, false);
   }, bender.Vertex);
 
-  // Event handler for DOM events causes a visit of the vertex. Although the
-  // visit is delayed, prevetDefault() and stopPropagation() need to be called
-  // immediately.
-  dom_event_vertex.handleEvent = function (e) {
-    if (this.get.prevent_default) {
-      e.preventDefault();
+  dom_event_vertex.add_event_listener = function (scope) {
+    var target = scope[this.get.select];
+    if (target && typeof target.addEventListener === "function") {
+      target.addEventListener(this.get.type, function (e) {
+        if (this.get.prevent_default) {
+          e.preventDefault();
+        }
+        if (this.get.stop_propagation) {
+          e.stopPropagation();
+        }
+        this.visit(scope, e);
+      }.bind(this), false);
     }
-    if (this.get.stop_propagation) {
-      e.stopPropagation();
-    }
-    this.visit(e);
   };
 
 
@@ -1547,19 +1572,6 @@
     return flexo.find_first(parent.scopes, function (scope) {
       return scope.$that === component.parent_component;
     });
-  }
-
-  // Get the event vertex for the component/type pair, returning the existing
-  // one if it was already created, or creating a new one if not. Return nothing
-  // if the component is not found, or not really a component or instance.
-  function get_event_vertex(component, get) {
-    if (component && component.event_vertices) {
-      if (!component.event_vertices.hasOwnProperty(get.type)) {
-        component.event_vertices[get.type] = component.scope.$environment
-          .add_vertex(new bender.EventVertex(component, get));
-      }
-      return component.event_vertices[get.type];
-    }
   }
 
   // Initialize the properties object for a component or instance, setting the
