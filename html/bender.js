@@ -457,8 +457,8 @@
     var fragment = target.ownerDocument.createDocumentFragment();
     _trace("[%0] render new instance".fmt(this.index));
     return this.render(fragment).then(function (instance) {
-      instance.init_properties();
       instance.add_event_listeners();
+      instance.init_properties();
       target.insertBefore(fragment, ref);
       instance.scope.$that.ready();
       return instance;
@@ -1079,38 +1079,25 @@
 
 
   var get_dom_event = _class(bender.GetDOMEvent = function (type, select) {
-    this.init();
-    this.type = type;
-    this.select = select;
+    init_event.call(this, type, select);
   }, bender.Get);
 
   flexo._accessor(bender.Get, "stop_propagation");
   flexo._accessor(bender.Get, "prevent_default");
 
   get_dom_event.render = function (scope) {
-    var target = scope[this.select];
-    if (target) {
-      if (!scope.$this.event_vertices.hasOwnProperty(this.select)) {
-        scope.$this.event_vertices[this.select] = {};
-      }
-      if (!scope.$this.event_vertices[this.select][this.type]) {
-        scope.$this.event_vertices[this.select][this.type] = scope.$environment
-          .add_vertex(new bender.DOMEventVertex(this));
-      }
-      return scope.$this.event_vertices[this.select][this.type];
-    }
+    return render_event.call(this, scope, bender.DOMEventVertex);
   };
 
 
   var get_event = _class(bender.GetEvent = function (type, select) {
-    this.init();
-    this.type = type;
-    this.select = select;
+    init_event.call(this, type, select);
   }, bender.Get);
 
   get_event.render = function (scope) {
-    return get_event_vertex(scope[this.select], this);
+    return render_event.call(this, scope, bender.EventVertex);
   };
+
 
   var get_property = _class(bender.GetProperty = function (name, select) {
     this.init();
@@ -1162,27 +1149,19 @@
 
   // TODO synthesize DOM event
   _class(bender.SetDOMEvent = function (type, select) {
-    this.init();
-    this.type = type;
-    this.select = select;
+    init_event.call(this, type, select);
   }, bender.Set);
 
 
   var set_event = _class(bender.SetEvent = function (type, select) {
-    this.init();
-    this.type = type;
-    this.select = select;
+    init_event.call(this, type, select);
   }, bender.Set);
 
   set_event.render = function (scope) {
-    var edges = [];
-    for (var target = scope[this.select]; target; target = target._prototype) {
-      var vertex = get_event_vertex(target, this);
-      if (vertex) {
-        edges.push(new bender.EventEdge(this, scope, vertex));
-      }
+    var vertex = render_event.call(this, scope, bender.EventVertex);
+    if (vertex) {
+      return new bender.EventEdge(this, vertex);
     }
-    return edges;
   };
 
   var set_dom_property = _class(bender.SetDOMProperty = function (name, select) {
@@ -1315,12 +1294,20 @@
   };
 
 
-  // TODO Event vertex for a <get event="..."> element
-  _class(bender.EventVertex = function (target, get) {
+  var event_vertex = _class(bender.EventVertex = function (get) {
     this.init();
     this.get = get;
-    this.target = target;
   }, bender.Vertex);
+
+  // TODO only for delayed events
+  event_vertex.add_event_listener = function (scope) {
+    var target = scope[this.get.select];
+    if (target) {
+      flexo.listen(target, this.get.type, function (e) {
+        this.visit(scope, e);
+      });
+    }
+  };
 
 
   // Create a new property vertex for a component (or instance) and property
@@ -1416,9 +1403,15 @@
   }, bender.ElementEdge);
 
 
-  _class(bender.EventEdge = function (set, scope, dest) {
-    this.init(set, scope, dest);
+  // Edges for a Bender event
+  var event_edge = _class(bender.EventEdge = function (set, dest) {
+    this.init(set, dest);
   }, bender.ElementEdge);
+
+  event_edge.followed = function (scope, value) {
+    _trace("Follow event edge !%0=%1".fmt(this.element.type, value));
+    return [this.dest, scope, { type: this.element.type, value: value }];
+  };
 
 
   // A DOM property edge is associated to a set element and always goes to the
@@ -1574,6 +1567,13 @@
     });
   }
 
+  // Initializer for both Bender and DOM event properties
+  function init_event(type, select) {
+    this.init();
+    this.type = type;
+    this.select = select;
+  }
+
   // Initialize the properties object for a component or instance, setting the
   // hidden epsilon meta-property to point back to the component that owns it.
   // The property is made configurable for inherited components and instances.
@@ -1661,6 +1661,21 @@
       });
     } else {
       make_watch_for_bindings(parent, bindings, target);
+    }
+  }
+
+  // Render both a Bender or DOM event into a vertex in the given scope.
+  // Constructor is a vertex constructor for the vertex to return.
+  function render_event(scope, Constructor) {
+    if (this.select in scope) {
+      if (!scope.$this.event_vertices.hasOwnProperty(this.select)) {
+        scope.$this.event_vertices[this.select] = {};
+      }
+      if (!scope.$this.event_vertices[this.select][this.type]) {
+        scope.$this.event_vertices[this.select][this.type] = scope.$environment
+          .add_vertex(new Constructor(this));
+      }
+      return scope.$this.event_vertices[this.select][this.type];
     }
   }
 

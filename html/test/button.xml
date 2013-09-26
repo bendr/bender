@@ -27,7 +27,7 @@
 
   <watch>
     <get select="$document" dom-event="mouseup"
-      value="flexo.fail(!`down &amp;&amp;
+      value="!flexo.fail(!`down &amp;&amp;
       ($in.target !== this.scope.div || !`enabled))"/>
     <set property="down" value="false"/>
     <set event="pushed"/>

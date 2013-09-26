@@ -18,6 +18,7 @@
     </html:p>
   </view>
 
+  <!--
   <watch>
     <get property="n"/>
     <set select="@minus" property="enabled"/>
@@ -32,5 +33,6 @@
     <get select="@plus" event="pushed"/>
     <set property="n" value="`n + 1"/>
   </watch>
+-->
 
 </component>

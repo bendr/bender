@@ -147,9 +147,12 @@
 
   bender.Vertex.prototype.dot_shape = function () {};
 
+  bender.EventVertex.prototype.dot_shape = function () {
+    return "septagon";
+  };
+
   bender.EventVertex.prototype.dot_label = function () {
-    return "%0%1%2!%3".fmt(this.target instanceof bender.Component ? "#" : "@",
-        this.target._id, this.target.index, this.get.type);
+    return "!%0".fmt(this.get.type);
   };
 
   bender.DOMEventVertex.prototype.dot_label = function () {
