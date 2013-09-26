@@ -380,7 +380,7 @@
       return children;
     }.call(this)).then(function (v) {
       component.render_graph();
-      return v;
+      return component.load_links();
     });
   };
 
@@ -456,13 +456,12 @@
   component.render_component = function (target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     _trace("[%0] render new instance".fmt(this.index));
-    return this.render(fragment).then(function (instance) {
-      instance.add_event_listeners();
-      instance.init_properties();
-      target.insertBefore(fragment, ref);
-      instance.scope.$that.ready();
-      return instance;
-    });
+    var instance = this.render(fragment);
+    instance.add_event_listeners();
+    instance.init_properties();
+    target.insertBefore(fragment, ref);
+    instance.scope.$that.ready();
+    return instance;
   };
 
   // Notify that the component is ready, as well as its prototype, its children,
@@ -489,29 +488,24 @@
   component.render = function (target, stack) {
     var instance = this.scope.$environment.instance(this,
         stack && stack[stack.i].$this);
-    if (stack) {
-      instance.parent = stack[stack.i].$this;
-      stack[stack.i].$this.children.push(instance);
-    }
-    return this.render_links(instance, target).then(function () {
-      on(instance, "will-render");
-      return instance.render_view(target);
-    }).then(function () {
-      return instance;
-    });
+    on(instance, "will-render");
+    return instance.render_view(target);
   };
 
-  // Render all links for the instance, from the further ancestor down to the
-  // component instance itself. Return a promise that is fulfilled once all
+  // Load all links for the component, from the further ancestor down to the
+  // component itself. Return a promise that is fulfilled once all
   // links have been loaded in sequence.
-  component.render_links = function (instance, target) {
+  component.load_links = function () {
     var links = [];
-    for (var p = instance.scope.$that; p; p = p._prototype) {
+    for (var p = this; p; p = p._prototype) {
       unshift.apply(links, p.links);
     }
+    var component = this;
     return flexo.promise_fold(links, function (_, link) {
       // jshint unused: false
-      return link.render(target);
+      return link.load(component.scope.$document);
+    }).then(function () {
+      return component;
     });
   };
 
@@ -667,6 +661,10 @@
       }));
     }
     this.children = [];
+    if (parent) {
+      this.parent = parent;
+      parent.children.push(this);
+    }
   }).prototype;
 
   Object.defineProperty(instance, "scope", {
@@ -712,8 +710,7 @@
   // Send an event notification for this concrete instance only.
   instance.notify = component.notify;
 
-  // Render the view and return a promise (if there are no views in the stack,
-  // immediately fulfill that promise.)
+  // Render the view and return itself
   instance.render_view = function (target) {
     _trace("[%0] (%1) render view; scopes: %2"
         .fmt(this.scope.$that.index, this.index, this.scopes.map(function (s) {
@@ -738,9 +735,9 @@
         ++stack.i);
     if (stack.i < n && stack[stack.i].$that.scope.$view) {
       _trace("  * render view %0".fmt(stack[stack.i].$that.index));
-      return stack[stack.i].$that.scope.$view.render(target, stack);
+      stack[stack.i].$that.scope.$view.render(target, stack);
     }
-    return new flexo.Promise().fulfill();
+    return this;
   };
 
 
@@ -757,52 +754,48 @@
           flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"))), elem);
   };
 
-  // Render links according to their rel attribute. If a link requires delaying
-  // the rest of the rendering, return a promise then fulfill it with a value to
-  // resume rendering (see script rendering below.)
-  link.render = function (target) {
+  // Load links according to their rel attribute. If a link requires delaying
+  // the rest of the loading, return a promise then fulfill it with a value to
+  // resume loading (see script rendering below.)
+  link.load = function (document) {
     if (this.environment.urls[this.href]) {
       return this.environment.urls[this.href];
     }
     this.environment.urls[this.href] = this;
-    var render = link.render[this.rel];
-    if (typeof render === "function") {
-      return render.call(this, target);
+    var load = link.load[this.rel];
+    if (typeof load === "function") {
+      return load.call(this, document);
     }
-    console.warn("Cannot render “%0” link".fmt(this.rel));
-    return this;
+    console.warn("Cannot load “%0” link".fmt(this.rel));
   };
 
   // Scripts are handled for HTML only by default. Override this method to
   // handle other types of documents.
-  link.render.script = function (target) {
-    var ns = target.ownerDocument.documentElement.namespaceURI;
+  link.load.script = function (document) {
+    var ns = document.documentElement.namespaceURI;
     if (ns === flexo.ns.html) {
-      return flexo.promise_script(this.href, target.ownerDocument.head)
+      return flexo.promise_script(this.href, document.head)
         .then(function (script) {
-          this.rendered = script;
+          this.loaded = script;
           return this;
         }.bind(this));
     }
     console.warn("Cannot render script link for namespace %0".fmt(ns));
-    return this;
   };
 
   // Stylesheets are handled for HTML only by default. Override this method to
   // handle other types of documents.
-  link.render.stylesheet = function (target) {
-    var document = target.ownerDocument;
+  link.load.stylesheet = function (target) {
     var ns = document.documentElement.namespaceURI;
     if (ns === flexo.ns.html) {
-      var link = target.ownerDocument.createElement("link");
+      var link = document.createElement("link");
       link.setAttribute("rel", "stylesheet");
       link.setAttribute("href", this.href);
       document.head.appendChild(link);
-      this.rendered = link;
+      this.loaded = link;
     } else {
       console.warn("Cannot render stylesheet link for namespace %0".fmt(ns));
     }
-    return this;
   };
 
   // View of a component
@@ -832,11 +825,10 @@
   };
 
   // Render the contents of the view by appending into the target, passing the
-  // stack of views further down for the <content> element. Return a promise.
+  // stack of views further down for the <content> element.
   view.render = function (target, stack) {
-    return flexo.promise_fold(this.children, function (_, ch) {
-      // jshint unused: false
-      return ch.render(target, stack);
+    this.children.forEach(function (ch) {
+      ch.render(target, stack);
     });
   };
 
@@ -857,15 +849,15 @@
       }
     }
     if (indices.length) {
-      return flexo.promise_each(indices, function (i) {
+      indices.forEach(function (i) {
         var j = stack.i;
         stack.i = i;
-        return stack[i].$that.scope.$view.render(target, stack).then(function () {
-          stack.i = j;
-        });
+        stack[i].$that.scope.$view.render(target, stack);
+        stack.i = j;
       });
+    } else {
+      view.render.call(this, target, stack);
     }
-    return view.render.call(this, target, stack);
   };
 
   // Create a new attribute with an optional namespace and a name
@@ -903,7 +895,6 @@
       }, "");
       var attr = target.setAttributeNS(this.ns(), this.name(), contents);
       this.add_id_to_scope(attr, stack);
-      return target;
     }
   };
 
@@ -924,7 +915,7 @@
   text.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode(this._text);
     this.add_id_to_scope(node, stack);
-    return target.appendChild(node);
+    target.appendChild(node);
   };
 
   var dom_element = _class(bender.DOMElement = function (ns, name) {
@@ -973,9 +964,8 @@
       }
     }
     this.add_id_to_scope(elem, stack, true);
-    return view.render.call(this, elem, stack).then(function () {
-      target.appendChild(elem);
-    });
+    view.render.call(this, elem, stack);
+    target.appendChild(elem);
   };
 
   var dom_text = _class(bender.DOMTextNode = function () {
@@ -1008,7 +998,6 @@
     if (this.fake_id) {
       stack[stack.i][this.fake_id] = node;
     }
-    return node;
   };
 
   _class(bender.Property = function (name) {
@@ -1633,9 +1622,12 @@
   function on(component, type) {
     var prototype = component.scope.$that || component;
     if (prototype._on.hasOwnProperty(type)) {
-      prototype._on[type].forEach(function (handler) {
-        handler(component, type);
-      });
+      try {
+        prototype._on[type].forEach(function (handler) {
+          handler(component, type);
+        });
+      } catch (e) {
+      }
     }
   }
 

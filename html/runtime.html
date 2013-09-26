@@ -19,12 +19,9 @@ var args = flexo.get_args();
 bender.TRACE = !args.hasOwnProperty(":trace") || flexo.is_true(args[":trace"]);
 bender.load_component().then(function (component) {
   window.APP = component;
-  component.render_component(document.body).then(function (instance) {
-    bender._trace("[%0] (%1) *** Rendered"
-      .fmt(instance.scope.$that.index, instance.index));
-  }, function (reason) {
-    console.error("Did not render component %0:".fmt(component.index), reason);
-  });
+  var instance = component.render_component(document.body);
+  bender._trace("[%0] (%1) *** Rendered"
+    .fmt(instance.scope.$that.index, instance.index));
 }, function (reason) {
   alert(reason && reason.message || reason);
 });

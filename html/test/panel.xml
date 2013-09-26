@@ -18,12 +18,12 @@
     </html:p>
   </view>
 
-  <!--
   <watch>
     <get property="n"/>
     <set select="@minus" property="enabled"/>
   </watch>
 
+  <!--
   <watch>
     <get select="@minus" event="pushed"/>
     <set property="n" value="`n - 1"/>
