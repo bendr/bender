@@ -52,6 +52,8 @@
     this.components = [];
     this.vertices = [];
     this.vortex = this.add_vertex(new bender.Vertex().init());
+    // TODO fix this ugly kludge; also breaks rendering
+    this.scope.$document.event_vertices = {};
   }).prototype;
 
   // Create a new Bender component
@@ -525,6 +527,8 @@
             prototype.derived.push(this);
             this.property_vertices = extend(prototype.property_vertices,
                 this.property_vertices);
+            this.event_vertices = extend(prototype.event_vertices,
+                this.event_vertices);
             this.properties = extend(prototype.properties, this.properties);
           } else {
             throw "Cycle in prototype chain";
@@ -652,6 +656,7 @@
     component.instances.push(this);
     this.properties = init_properties_object(this,
       Object.create(component.properties));
+    this.event_vertices = Object.create(component.event_vertices);
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
@@ -681,7 +686,7 @@
       var vertex = property.parent.property_vertices[property.name];
       if (vertex.incoming.length > 0) {
         // TODO take event edges into account!
-        return;
+        // return;
       }
       if (property._select === "$this") {
         this.properties[property.name] = property.value()(this.scope);
@@ -695,11 +700,8 @@
     _trace("[%0] add event listeners".fmt(this.index));
     for (var i = 0, n = this.scopes.length; i < n; ++i) {
       var scope = this.scopes[i];
-      for (var select in scope.$that.event_vertices) {
-        for (var type in scope.$that.event_vertices[select]) {
-          var vertex = scope.$that.event_vertices[select][type];
-          vertex.add_event_listener(scope);
-        }
+      for (var type in scope.$that.event_vertices) {
+        scope.$that.event_vertices[type].add_event_listener(scope);
       }
     }
     this.children.forEach(function (ch) {
@@ -923,6 +925,7 @@
     this.ns = ns;
     this.name = flexo.safe_string(name);
     this.attrs = {};
+    this.event_vertices = {};
   }, bender.Element);
 
   dom_element.attr = function (ns, name, value) {
@@ -965,6 +968,9 @@
     }
     this.add_id_to_scope(elem, stack, true);
     view.render.call(this, elem, stack);
+    for (var type in this.event_vertices) {
+      this.event_vertices[type].add_event_listener(stack[stack.i]);
+    }
     target.appendChild(elem);
   };
 
@@ -1659,15 +1665,13 @@
   // Render both a Bender or DOM event into a vertex in the given scope.
   // Constructor is a vertex constructor for the vertex to return.
   function render_event(scope, Constructor) {
-    if (this.select in scope) {
-      if (!scope.$this.event_vertices.hasOwnProperty(this.select)) {
-        scope.$this.event_vertices[this.select] = {};
+    var target = scope[this.select];
+    if (target) {
+      if (!(this.type in target.event_vertices)) {
+        target.event_vertices[this.type] = scope.$environment.add_vertex(new
+            Constructor(this));
       }
-      if (!scope.$this.event_vertices[this.select][this.type]) {
-        scope.$this.event_vertices[this.select][this.type] = scope.$environment
-          .add_vertex(new Constructor(this));
-      }
-      return scope.$this.event_vertices[this.select][this.type];
+      return target.event_vertices[this.type];
     }
   }
 

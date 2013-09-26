@@ -152,11 +152,15 @@
   };
 
   bender.EventVertex.prototype.dot_label = function () {
-    return "!%0".fmt(this.get.type);
+    return this.get.type;
+  };
+
+  bender.DOMEventVertex.prototype.dot_shape = function () {
+    return "house";
   };
 
   bender.DOMEventVertex.prototype.dot_label = function () {
-    return "%0!%1".fmt(this.target.id || this.target.tagName, this.get.type);
+    return this.get.type;
   }
 
   bender.PropertyVertex.prototype.dot_label = function () {
