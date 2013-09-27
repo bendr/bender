@@ -686,8 +686,7 @@
     });
     this.scope.$that.property_list().forEach(function (property) {
       var vertex = property.parent.property_vertices[property.name];
-      if (vertex.incoming.length > 0) {
-        // TODO take event edges into account!
+      if (!vertex.should_init()) {
         return;
       }
       if (property._select === "$this") {
@@ -1324,6 +1323,22 @@
     this.environment.visit_vertex(this, scope, value);
     visit_property_vertex_derived.call(this, scope.$this, value, "derived");
     visit_property_vertex_derived.call(this, scope.$this, value, "instances");
+  };
+
+  property_vertex.should_init = function() {
+    var queue = this.incoming.slice();
+    while (queue.length) {
+      var edge = queue.shift();
+      if (edge.source instanceof bender.EventVertex ||
+          edge.source instanceof bender.DOMEventVertex) {
+        break;
+      }
+      if (edge.source instanceof bender.PropertyVertex) {
+        return false;
+      }
+      Array.prototype.push.apply(queue, edge.source.incoming);
+    }
+    return true;
   };
 
 

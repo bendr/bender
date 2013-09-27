@@ -22,6 +22,7 @@ bender.load_component().then(function (component) {
   var instance = component.render_component(document.body);
   bender._trace("[%0] (%1) *** Rendered"
     .fmt(instance.scope.$that.index, instance.index));
+  bender._trace(component.scope.$environment.dot());
 }, function (reason) {
   alert(reason && reason.message || reason);
 });
