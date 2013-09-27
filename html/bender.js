@@ -2,6 +2,8 @@
   "use strict";
 
   /* global flexo, window, console */
+  // jshint noempty: false
+  // jshint forin: false
   // jshint -W054
 
   bender.version = "0.8.2.3";
@@ -380,7 +382,7 @@
         }
       }
       return children;
-    }.call(this)).then(function (v) {
+    }.call(this)).then(function () {
       component.render_graph();
       return component.load_links();
     });
@@ -518,7 +520,7 @@
         if (this._prototype !== prototype ) {
           this.__visited = true;
           var visited = [this];
-          for (var p = prototype; p && !p.__visited; p = p._prototype);
+          for (var p = prototype; p && !p.__visited; p = p._prototype) {}
           visited.forEach(function (v) {
             delete v.__visited;
           });
@@ -734,7 +736,7 @@
     stack.i = 0;
     stack.bindings = stack.map(function () { return []; });
     for (var n = stack.length; stack.i < n && !stack[stack.i].$that.scope.$view;
-        ++stack.i);
+        ++stack.i) {}
     if (stack.i < n && stack[stack.i].$that.scope.$view) {
       _trace("  * render view %0".fmt(stack[stack.i].$that.index));
       stack[stack.i].$that.scope.$view.render(target, stack);
@@ -787,7 +789,7 @@
 
   // Stylesheets are handled for HTML only by default. Override this method to
   // handle other types of documents.
-  link.load.stylesheet = function (target) {
+  link.load.stylesheet = function (document) {
     var ns = document.documentElement.namespaceURI;
     if (ns === flexo.ns.html) {
       var link = document.createElement("link");
@@ -1313,19 +1315,15 @@
     this.static = static_;
   }, bender.Vertex);
 
+  // Visit a property vertex for this component, as well as its derived
+  // components and instances if any
   property_vertex.visit = function (scope) {
     var value = scope.$this.properties[this.name];
     _trace("[%0] Visit property vertex %1=%2"
         .fmt(scope.$this.index, this.name, value));
     this.environment.visit_vertex(this, scope, value);
-    if (scope.$this.instances) {
-      // TODO check that there are no component-only paths
-      scope.$this.instances.forEach(function (instance) {
-        if (!instance.properties.hasOwnProperty(this.name)) {
-          this.environment.visit_vertex(this, instance.scope, value);
-        }
-      }, this);
-    }
+    visit_property_vertex_derived.call(this, scope.$this, value, "derived");
+    visit_property_vertex_derived.call(this, scope.$this, value, "instances");
   };
 
 
@@ -1571,6 +1569,7 @@
 
   // Initializer for both Bender and DOM event properties
   function init_event(type, select) {
+    // jshint validthis: true
     this.init();
     this.type = type;
     this.select = select;
@@ -1647,7 +1646,7 @@
   // Find the closest ancestor of node (including self) that is a component and
   // return it if found
   function parent_component(node) {
-    for (; node && !(node instanceof bender.Component); node = node.parent);
+    for (; node && !(node instanceof bender.Component); node = node.parent) {}
     if (node) {
       return node;
     }
@@ -1672,6 +1671,7 @@
   // Render both a Bender or DOM event into a vertex in the given scope.
   // Constructor is a vertex constructor for the vertex to return.
   function render_event(scope, Constructor) {
+    // jshint validthis:true
     var target = scope[this.select];
     if (target) {
       if (!(this.type in target.event_vertices)) {
@@ -1798,6 +1798,20 @@
         scope[h] = node;
         scope["@" + id] = node;
       }
+    }
+  }
+
+  // Visit a property vertex for derived components or instances of a component
+  // (given as a key)
+  function visit_property_vertex_derived(component, value, key) {
+    // jshint validthis:true
+    if (key in component) {
+      component[key].forEach(function (derived) {
+        if (!derived.properties.hasOwnProperty(this.name)) {
+          this.environment.visit_vertex(this, derived.scope, value);
+          visit_property_vertex_derived.call(this, derived, value, "instances");
+        }
+      }, this);
     }
   }
 
