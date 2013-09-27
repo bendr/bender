@@ -4,7 +4,7 @@
   "use strict";
 
   function dot(vertices) {
-    return "digraph bender {\n  rankdir=LR\n  node [fontname=\"Inconsolata\"];\n%0\n}\n"
+    return "digraph bender {\n  node [fontname=\"Inconsolata\"];\n%0\n}\n"
       .fmt(vertices.map(function (vertex) {
         return vertex.dot().map(function (line) {
           return "  %0;".fmt(line);
@@ -129,9 +129,6 @@
     if (label) {
       desc.unshift("%0 [label=\"%1\"]".fmt(self, label));
     }
-    if (this.uninitialized) {
-      desc.unshift("%0 [color=red]".fmt(self)); 
-    }
     return desc;
   };
 
@@ -164,7 +161,11 @@
   }
 
   bender.PropertyVertex.prototype.dot_label = function () {
-    return "`" + this.name;
+    return this.name;
+  };
+
+  bender.PropertyVertex.prototype.dot_shape = function () {
+    return this.static ? "egg" : "oval";
   };
 
   bender.WatchVertex.prototype.dot_label = function () {

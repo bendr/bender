@@ -575,7 +575,7 @@
       _trace("[%0] render property %1".fmt(this.index, child.name));
       this.property_definitions[child.name] = child;
       this.property_vertices[child.name] = this.scope.$environment.add_vertex(
-        new bender.PropertyVertex(child.name)
+        new bender.PropertyVertex(child.name, child.select() === "$that")
       );
       render_property_property(this.properties, child.name);
     }
@@ -686,7 +686,7 @@
       var vertex = property.parent.property_vertices[property.name];
       if (vertex.incoming.length > 0) {
         // TODO take event edges into account!
-        // return;
+        return;
       }
       if (property._select === "$this") {
         this.properties[property.name] = property.value()(this.scope);
@@ -1307,9 +1307,10 @@
 
   // Create a new property vertex for a component (or instance) and property
   // definition pair.
-  var property_vertex = _class(bender.PropertyVertex = function (name) {
+  var property_vertex = _class(bender.PropertyVertex = function (name, static_) {
     this.init();
     this.name = name;
+    this.static = static_;
   }, bender.Vertex);
 
   property_vertex.visit = function (scope) {
@@ -1376,12 +1377,14 @@
       return;
     }
     try {
-      var value = this.element.value() ?
-        this.element.value().call(scope.$this, scope, input) : input;
-      return this.followed(flexo.find_first(scope.$this.scopes, function (s) {
-        return Object.getPrototypeOf(Object.getPrototypeOf(s))
-          [this.element.select] === this.target;
-      }, this) || scope, value);
+      if (!this.should_follow || this.should_follow(scope, input)) {
+        var value = this.element.value() ?
+          this.element.value().call(scope.$this, scope, input) : input;
+        return this.followed(flexo.find_first(scope.$this.scopes, function (s) {
+          return Object.getPrototypeOf(Object.getPrototypeOf(s))
+            [this.element.select] === this.target;
+        }, this) || scope, value);
+      }
     } catch (e) {
       return;
     }
@@ -1425,7 +1428,7 @@
 
 
   // Set a Bender property
-  _class(bender.PropertyEdge = function (set, target) {
+  var property_edge = _class(bender.PropertyEdge = function (set, target) {
     var dest = target.property_vertices[set.name];
     if (!dest) {
       console.warn("No property %0 for component %1"
@@ -1436,10 +1439,14 @@
     this.target = target;
   }, bender.ElementEdge);
 
-  // Follow the property edge by findin the right target in the current scope
+  property_edge.should_follow = function (scope) {
+    return scope.$this !== scope.$that || this.element.select === "$that";
+  };
+
+  // Follow the property edge by finding the right target in the current scope
   // and setting the property. Do not return anything as setting the property
   // will do its own the traversal.
-  bender.PropertyEdge.prototype.followed = function (scope, value) {
+  property_edge.followed = function (scope, value) {
     scope[this.element.select].properties[this.element.name] = value;
   };
 
