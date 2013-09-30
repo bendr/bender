@@ -48,11 +48,27 @@
       .fmt(this.get.select, this.get.type);
   };
 
+  function instances_of(component) {
+    var instances = component.instances.slice();
+    component.derived.forEach(function (derived) {
+      Array.prototype.push.apply(instances, instances_of(derived));
+    });
+    return instances;
+  }
+
   bender.PropertyVertex.prototype.dot_properties = function () {
-    return (this.should_init() ?
+    var instances = instances_of(this.element.parent);
+    var should_init = instances.reduce(function (acc, instance) {
+      return acc + (this.should_init(instance) ? 1 : 0);
+    }.bind(this), 0);
+    bender._trace("should_init(%0): %1/%2"
+        .fmt(this.name, should_init, instances.length));
+    return (should_init === instances.length ?
         "label=\"%0\",style=\"filled\",color=\"%1\",fontcolor=white" :
-        "label=\"%0\",style=\"bold\",color=\"%1\",fontcolor=\"%1\"")
-      .fmt(this.name, this.static ? "#603018" : "#790f5b");
+        should_init === 0 ?
+          "label=\"%0\",style=\"dashed\",color=\"%1\",fontcolor=\"%1\"" :
+          "label=\"%0\",style=\"bold\",color=\"%1\",fontcolor=\"%1\"")
+      .fmt(this.name, this.element.select() === "$that" ? "#9e0b46" : "#4dbce9");
   };
 
   bender.WatchVertex.prototype.dot_properties = function () {

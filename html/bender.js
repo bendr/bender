@@ -577,7 +577,7 @@
       _trace("[%0] render property %1".fmt(this.index, child.name));
       this.property_definitions[child.name] = child;
       this.property_vertices[child.name] = this.scope.$environment.add_vertex(
-        new bender.PropertyVertex(child.name, child.select() === "$that")
+        new bender.PropertyVertex(child.name, child)
       );
       render_property_property(this.properties, child.name);
     }
@@ -686,7 +686,7 @@
     });
     this.scope.$that.property_list().forEach(function (property) {
       var vertex = property.parent.property_vertices[property.name];
-      if (!vertex.should_init()) {
+      if (!vertex.should_init(this)) {
         return;
       }
       if (property._select === "$this") {
@@ -1308,10 +1308,10 @@
 
   // Create a new property vertex for a component (or instance) and property
   // definition pair.
-  var property_vertex = _class(bender.PropertyVertex = function (name, static_) {
+  var property_vertex = _class(bender.PropertyVertex = function (name, element) {
     this.init();
     this.name = name;
-    this.static = static_;
+    this.element = element;
   }, bender.Vertex);
 
   // Visit a property vertex for this component, as well as its derived
@@ -1325,7 +1325,8 @@
     visit_property_vertex_derived.call(this, scope.$this, value, "instances");
   };
 
-  property_vertex.should_init = function() {
+  property_vertex.should_init = function(instance) {
+    var id = instance.scope.$that.id() || instance.index;
     var queue = this.incoming.slice();
     while (queue.length) {
       var edge = queue.shift();
@@ -1333,11 +1334,26 @@
           edge.source instanceof bender.DOMEventVertex) {
         break;
       }
+      if (edge instanceof bender.PropertyEdge &&
+          !flexo.find_first(instance.scopes, function (s) {
+            return s.$that === edge.target;
+           })) {
+        _trace("... don’t follow property edge to %0`%1 for %2`%3"
+            .fmt(edge.element.select, edge.element.name, id, this.name));
+        break;
+      }
+      if (edge instanceof bender.PropertyEdge) {
+        _trace("... *do* follow property edge to %0`%1 for %2`%3"
+            .fmt(edge.element.select, edge.element.name, id, this.name));
+      }
       if (edge.source instanceof bender.PropertyVertex) {
+        _trace("--- don’t init %0`%1: depends on %2"
+            .fmt(id, this.name, edge.source.name));
         return false;
       }
       Array.prototype.push.apply(queue, edge.source.incoming);
     }
+    _trace("+++ init %0`%1".fmt(instance.index, this.name));
     return true;
   };
 

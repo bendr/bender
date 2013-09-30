@@ -23,10 +23,12 @@
     <set select="@minus" property="enabled" value="$in &gt; 0"/>
   </watch>
 
+  <!--
   <watch>
     <get property="n"/>
     <set select="@plus" property="enabled" value="$in &lt; 10"/>
   </watch>
+  -->
 
   <watch>
     <get select="@minus" event="pushed"/>
