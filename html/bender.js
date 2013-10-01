@@ -54,8 +54,6 @@
     this.components = [];
     this.vertices = [];
     this.vortex = this.add_vertex(new bender.Vertex().init());
-    // TODO fix this ugly kludge; also breaks rendering
-    this.scope.$document.event_vertices = {};
   }).prototype;
 
   // Create a new Bender component
@@ -178,7 +176,6 @@
 
   // Traverse the graph breadth-first from the given vertex/scope/value
   environment.visit_vertex = function (vertex, scope, value) {
-    _trace(">>> Traverse watch graph from", vertex);
     var queue = [[vertex, scope, value]];
     // Don’t cache the length of the queue as it grows during the traversal
     for (var i = 0; i < queue.length; ++i) {
@@ -189,11 +186,12 @@
       for (var j = 0, n = vertex.outgoing.length; j < n; ++j) {
         var follow = vertex.outgoing[j].follow(scope, value);
         if (follow) {
+          _trace("follow edge: %0 -> %1 = %2"
+              .fmt(vertex.dot_name(), follow[0].dot_name(), follow[2]));
           queue.push(follow);
         }
       }
     }
-    _trace("<<< Done traversing watch graph");
   };
 
   // Add a vertex to the watch graph and return it.
@@ -279,9 +277,12 @@
     element.init.call(this);
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
+    if (!parent_scope.hasOwnProperty("#top")) {
+      parent_scope["#top"] = this;
+    }
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this },
-      $that: { enumerable: true, writable: true, value: this }
+      $that: { enumerable: true, writable: true, value: this },
     });
     this.bindings_scope = [];
     this._on = {};                   // on-* attributes
@@ -295,6 +296,7 @@
     this.instances = [];             // rendered instances
     this.watches = [];               // watch nodes
     this.event_vertices = {};        // event vertices (for reuse)
+    this.document_vertices = {};     // event vertices for the document
   };
 
   component.on = function (type, handler) {
@@ -531,6 +533,8 @@
                 this.property_vertices);
             this.event_vertices = extend(prototype.event_vertices,
                 this.event_vertices);
+            this.document_vertices = extend(prototype.document_vertices,
+                this.document_vertices);
             this.properties = extend(prototype.properties, this.properties);
           } else {
             throw "Cycle in prototype chain";
@@ -590,7 +594,7 @@
           watch.append_child(new bender.GetProperty(prop, id));
         });
       });
-      this.watches.push(watch);
+      this.append_child(watch);
     }
   };
 
@@ -601,6 +605,7 @@
     this.child_components.push(child);
     var scope = Object.getPrototypeOf(this.scope);
     var old_scope = Object.getPrototypeOf(child.scope);
+    delete old_scope["#top"];
     Object.keys(old_scope).forEach(function (key) {
       if (key in scope && scope[key] !== old_scope[key]) {
         console.error("Redefinition of %0 in scope".fmt(key));
@@ -659,10 +664,23 @@
     this.properties = init_properties_object(this,
       Object.create(component.properties));
     this.event_vertices = Object.create(component.event_vertices);
+    this.document_vertices = Object.create(component.document_vertices);
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
-      this.scopes.push(Object.create(scope, {
+      if (p._id) {
+        var key = "@" + p._id;
+        if (scope.hasOwnProperty(key)) {
+          console.error("Id %0 already in scope".fmt(key));
+        } else {
+          scope[key] = this;
+        }
+      }
+      // TODO check this
+      if (!parent) {
+        scope["@top"]  = this;
+      }
+      var new_scope = this.scopes.push(Object.create(scope, {
         $that: { enumerable: true, value: p },
         $this: { enumerable: true, value: this }
       }));
@@ -676,8 +694,14 @@
 
   Object.defineProperty(instance, "scope", {
     enumerable: true,
-    get: function () { return this.scopes[0]; }
+    get: function () {
+      return this.scopes[0];
+    }
   });
+
+  instance.id = function () {
+    return "@%0/%1".fmt(this.scopes[0].$that.id(), this.index);
+  };
 
   instance.init_properties = function () {
     _trace("[%0] init properties".fmt(this.index));
@@ -698,12 +722,15 @@
   };
 
   instance.add_event_listeners = function () {
-    _trace("[%0] add event listeners".fmt(this.index));
+    _trace("[%0] add event listeners".fmt(this.id()));
     for (var i = 0, n = this.scopes.length; i < n; ++i) {
       var scope = this.scopes[i];
       for (var type in scope.$that.event_vertices) {
         scope.$that.event_vertices[type].add_event_listener(scope);
       }
+    }
+    for (var type in this.document_vertices) {
+      this.document_vertices[type].add_event_listener(scope);
     }
     this.children.forEach(function (ch) {
       ch.add_event_listeners();
@@ -1290,16 +1317,16 @@
   };
 
 
-  var event_vertex = _class(bender.EventVertex = function (get) {
+  var event_vertex = _class(bender.EventVertex = function (element) {
     this.init();
-    this.get = get;
+    this.element = element;
   }, bender.Vertex);
 
   // TODO only for delayed events
   event_vertex.add_event_listener = function (scope) {
-    var target = scope[this.get.select];
+    var target = scope[this.element.select];
     if (target) {
-      flexo.listen(target, this.get.type, function (e) {
+      flexo.listen(target, this.element.type, function (e) {
         this.visit(scope, e);
       });
     }
@@ -1406,7 +1433,7 @@
       return;
     }
     try {
-      if (!this.should_follow || this.should_follow(scope, input)) {
+      if (this.should_follow(scope, input)) {
         var value = this.element.value() ?
           this.element.value().call(scope.$this, scope, input) : input;
         return this.followed(flexo.find_first(scope.$this.scopes, function (s) {
@@ -1416,6 +1443,20 @@
       }
     } catch (e) {
       return;
+    }
+  };
+
+  element_edge.should_follow = function (scope, value) {
+    var target = parent_component(this.element).scope[this.element.select];
+    if (target instanceof bender.Component) {
+      var scope_ = flexo.find_first(scope.$this.scopes, function (scope) {
+        return scope.$that === target;
+      });
+      _trace("??? match target %0 -> %1".fmt(this.element.select, !!scope_));
+      return !!scope_;
+    } else {
+      _trace("??? match target %0 -> ok".fmt(this.element.select));
+      return true;
     }
   };
 
@@ -1451,6 +1492,8 @@
   dom_property_edge.followed = function (scope, value) {
     var target = scope[this.element.select];
     if (target instanceof window.Node) {
+      _trace("(follow edge: %0 -> %1 = %2)"
+          .fmt(this.source.dot_name(), this.dest.dot_name(), value));
       target[this.element.name] = value;
     }
   };
@@ -1476,6 +1519,8 @@
   // and setting the property. Do not return anything as setting the property
   // will do its own the traversal.
   property_edge.followed = function (scope, value) {
+    _trace("(follow edge: %0 -> %1 = %2)"
+        .fmt(this.source.dot_name(), this.dest.dot_name(), value));
     scope[this.element.select].properties[this.element.name] = value;
   };
 
@@ -1593,9 +1638,12 @@
     if (!parent || !component.parent_component) {
       return Object.create(Object.getPrototypeOf(component.scope));
     }
-    return flexo.find_first(parent.scopes, function (scope) {
+    var scope = flexo.find_first(parent.scopes, function (scope) {
       return scope.$that === component.parent_component;
     });
+    if (scope) {
+      return Object.getPrototypeOf(scope);
+    }
   }
 
   // Initializer for both Bender and DOM event properties
@@ -1630,7 +1678,7 @@
         watch.append_child(new bender.GetProperty(prop, id));
       });
     });
-    parent.watches.push(watch);
+    parent.append_child(watch);
   }
 
   // Normalize the `as` property of an element so that it matches a known value.
@@ -1705,11 +1753,13 @@
     // jshint validthis:true
     var target = scope[this.select];
     if (target) {
-      if (!(this.type in target.event_vertices)) {
-        target.event_vertices[this.type] = scope.$environment.add_vertex(new
-            Constructor(this));
+      var vertices = this.select === "$document" ?
+        scope.$this.document_vertices : target.event_vertices;
+      if (!(this.type in vertices)) {
+        vertices[this.type] = scope.$environment
+          .add_vertex(new Constructor(this));
       }
-      return target.event_vertices[this.type];
+      return vertices[this.type];
     }
   }
 
@@ -1822,11 +1872,11 @@
     var p = parent_component(node);
     if (p) {
       var scope = Object.getPrototypeOf(p.scope);
-      var h = "#" + id;
-      if (h in scope) {
-        console.error("Id %0 already in scope".fmt(h));
+      var key = "#" + id;
+      if (key in scope) {
+        console.error("Id %0 already in scope".fmt(key));
       } else {
-        scope[h] = node;
+        scope[key] = node;
         scope["@" + id] = node;
       }
     }

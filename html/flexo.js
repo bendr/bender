@@ -1,18 +1,18 @@
-(function (flexo) {
+(function () {
   "use strict";
 
   /* global exports, global, window, π */
+  var browserp = typeof window === "object";
+  var global_ = browserp ? window : typeof global === "object" ? global :
+    (function () { return this; }());
+  var flexo = typeof exports === "object" ? exports : global_.flexo = {};
 
-  flexo.VERSION = "0.2.3";
+  flexo.VERSION = "0.3.0";
 
   var foreach = Array.prototype.forEach;
   var map = Array.prototype.map;
-  var reduce = Array.prototype.reduce;
   var slice = Array.prototype.slice;
   var splice = Array.prototype.splice;
-
-  var browserp = typeof window === "object";
-  var global_ = browserp ? window : global;
 
   // Define π as a global
   global_.π = Math.PI;
@@ -286,7 +286,7 @@
 
   // Drop elements of an array while the predicate is true
   flexo.drop_while = function (a, p, that) {
-    for (var i = 0, n = a.length; i < n && p.call(that, a[i], i, a); ++i);
+    for (var i = 0, n = a.length; i < n && p.call(that, a[i], i, a); ++i) {}
     return slice.call(a, i);
   };
 
@@ -295,7 +295,7 @@
     if (!Array.isArray(a)) {
       return;
     }
-    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i);
+    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i) {}
     return a[i];
   };
 
@@ -342,7 +342,7 @@
     if (!Array.isArray(a)) {
       return;
     }
-    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i);
+    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i) {}
     if (i < n) {
       return a.splice(i, 1)[0];
     }
@@ -774,10 +774,10 @@
   flexo.unlisten = function (target, type, listener) {
     if (events.hasOwnProperty(type)) {
       for (var i = 0, n = events[type].length;
-          i < n && events[type][i][0] !== target; ++i);
+          i < n && events[type][i][0] !== target; ++i) {}
       if (i < n) {
         for (var j = 1, m = events[type][i].length;
-            j < m && events[type][i][j][0] !== listener; ++j);
+            j < m && events[type][i][j][0] !== listener; ++j) {}
         if (j < m) {
           events[type][i].splice(j, 1);
           if (events[type][i].length === 1) {
@@ -1540,4 +1540,4 @@
     return g;
   };
 
-}(typeof exports === "object" ? exports : this.flexo = {}));
+}());

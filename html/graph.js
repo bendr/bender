@@ -4,7 +4,7 @@
   "use strict";
 
   function dot(vertices) {
-    return "digraph bender {\n  node [fontname=\"Helvetica\"];\n%0\n}\n"
+    return "digraph bender {\n  node [fontname=\"Helvetica\"];\n  edge [fontname=\"Helvetica\"]\n%0\n}\n"
       .fmt(vertices.map(function (vertex) {
         return vertex.dot().map(function (line) {
           return "  %0;".fmt(line);
@@ -21,7 +21,11 @@
   bender.Vertex.prototype.dot = function () {
     var name = this.dot_name();
     var desc = this.outgoing.map(function (edge) {
-      return "%0 -> %1".fmt(name, edge.dest.dot_name());
+      var out = "%0 -> %1".fmt(name, edge.dest.dot_name());
+      if (edge.element && edge.element.select !== "$this") {
+        out += " [label=\"%0\"]".fmt(edge.element.select);
+      }
+      return out;
     });
     var props = this.dot_properties();
     if (props) {
@@ -39,13 +43,13 @@
   };
 
   bender.EventVertex.prototype.dot_properties = function () {
-    return "label=\"%0\\n%1\",shape=septagon"
-      .fmt(this.get.select, this.get.type);
+    return "label=\"%0\\n%1/%2\",shape=septagon"
+      .fmt(this.element.select, this.element.type, this.index);
   };
 
   bender.DOMEventVertex.prototype.dot_properties = function () {
-    return "label=\"%0\\n%1\",shape=invtrapezium"
-      .fmt(this.get.select, this.get.type);
+    return "label=\"%0\\n%1/%2\",shape=hexagon"
+      .fmt(this.get.select, this.get.type, this.index);
   };
 
   function instances_of(component) {
@@ -64,11 +68,12 @@
     bender._trace("should_init(%0): %1/%2"
         .fmt(this.name, should_init, instances.length));
     return (should_init === instances.length ?
-        "label=\"%0\",style=\"filled\",color=\"%1\",fontcolor=white" :
+        "label=\"%0/%2\",style=\"filled\",color=\"%1\",fontcolor=white" :
         should_init === 0 ?
-          "label=\"%0\",style=\"dashed\",color=\"%1\",fontcolor=\"%1\"" :
-          "label=\"%0\",style=\"bold\",color=\"%1\",fontcolor=\"%1\"")
-      .fmt(this.name, this.element.select() === "$that" ? "#9e0b46" : "#4dbce9");
+          "label=\"%0/%2\",style=\"dashed\",color=\"%1\",fontcolor=\"%1\"" :
+          "label=\"%0/%2\",style=\"bold\",color=\"%1\",fontcolor=\"%1\"")
+      .fmt(this.name, this.element.select() === "$that" ? "#9e0b46" : "#4dbce9",
+          this.index);
   };
 
   bender.WatchVertex.prototype.dot_properties = function () {
