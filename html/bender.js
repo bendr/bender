@@ -676,10 +676,6 @@
           scope[key] = this;
         }
       }
-      // TODO check this
-      if (!parent) {
-        scope["@top"]  = this;
-      }
       var new_scope = this.scopes.push(Object.create(scope, {
         $that: { enumerable: true, value: p },
         $this: { enumerable: true, value: this }
@@ -1466,9 +1462,40 @@
 
 
   // Edges to a watch vertex
-  _class(bender.WatchEdge = function (get, dest) {
+  var watch_edge = _class(bender.WatchEdge = function (get, dest) {
     this.init(get, dest);
   }, bender.ElementEdge);
+
+  watch_edge.follow = function (scope, input) {
+    var component = parent_component(this.element);
+
+    for (var watch_this, i = 0, n = scope.$this.scopes.length;
+        i < n && !watch_this; ++i) {
+      if (scope.$this.scopes[i].$that === component) {
+        watch_this = scope.$this;
+        break;
+      }
+      var instances =
+        flexo.values(Object.getPrototypeOf(scope.$this.scopes[i]));
+      watch_this = flexo.find_first(instances,
+        function (instance) {
+          return instance.scope && instance.scope.$that === component;
+        });
+      if (watch_this) {
+        break;
+      }
+    }
+
+    var target = watch_this.scopes[i][this.element.select];
+    if (target instanceof window.Node || scope.$this === target) {
+      try {
+        var value = this.element.value() ?
+          this.element.value().call(scope.$this, scope, input) : input;
+        return this.followed(scope.$this.scopes[i], value);
+      } catch (e) {
+      }
+    }
+  };
 
 
   // Edges for a Bender event
