@@ -653,7 +653,7 @@
   component.notify = function (type, value) {
     var vertex = this.event_vertices[type];
     if (vertex) {
-      vertex.visit(value);
+      vertex.visit(this.scope, value);
     }
   };
 
@@ -696,7 +696,9 @@
   });
 
   instance.id = function () {
-    return "@%0/%1".fmt(this.scopes[0].$that.id(), this.index);
+    return "%0:%1".fmt(this.scopes.map(function (scope) {
+      return "%0,%1".fmt(scope.$that.id(), scope.$that.index);
+    }).join(";"), this.index);
   };
 
   instance.init_properties = function () {
@@ -1457,7 +1459,7 @@
       return;
     }
     try {
-      if (this.should_follow(scope, input)) {
+      if (this.should_follow(scope)) {
         var value = this.element.value() ?
           this.element.value().call(scope.$this, scope, input) : input;
         return this.followed(flexo.find_first(scope.$this.scopes, function (s) {
@@ -1470,18 +1472,8 @@
     }
   };
 
-  element_edge.should_follow = function (scope, value) {
-    var target = parent_component(this.element).scope[this.element.select];
-    if (target instanceof bender.Component) {
-      var scope_ = flexo.find_first(scope.$this.scopes, function (scope) {
-        return scope.$that === target;
-      });
-      _trace("??? match target %0 -> %1".fmt(this.element.select, !!scope_));
-      return !!scope_;
-    } else {
-      _trace("??? match target %0 -> ok".fmt(this.element.select));
-      return true;
-    }
+  element_edge.should_follow = function (scope) {
+    return !!scope[this.element.select];
   };
 
   element_edge.followed = function (scope, value) {
@@ -1770,6 +1762,10 @@
   // Push a bindings object in the bindings scope of a component
   function push_bindings(parent, element, bindings) {
     // jshint validthis:true
+    if (element.parent instanceof bender.Get ||
+        element.parent instanceof bender.Set) {
+      return;
+    }
     var target = "$%0".fmt(parent.bindings_scope.length);
     element.fake_id = target;
     parent.bindings_scope.push(this);

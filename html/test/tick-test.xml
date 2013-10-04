@@ -1,14 +1,14 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="tick-test">
   <view>
     <p xmlns="http://www.w3.org/1999/xhtml">
       Now: <span id="now"/>
     </p>
-    <component href="../lib/ticker.xml" id="ticker">
+    <component href="../lib/ticker.xml" id="t">
       <property name="rate-ms" value="1000"/>
     </component>
   </view>
   <watch>
-    <get select="@ticker" event="tick"/>
+    <get select="@t" event="tick"/>
     <set select="@now" dom-property="textContent" value="new Date($in)"/>
   </watch>
 </component>
