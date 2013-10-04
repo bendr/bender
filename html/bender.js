@@ -53,7 +53,7 @@
     this.urls = {};
     this.components = [];
     this.vertices = [];
-    this.vortex = this.add_vertex(new bender.Vertex().init());
+    this.vortex = this.add_vertex(new bender.Vortex());
   }).prototype;
 
   // Create a new Bender component
@@ -1284,6 +1284,11 @@
     this.environment.visit_vertex(this, scope, value);
   };
 
+
+  // We give the vortex its own class for graph reasoning purposes
+  _class(bender.Vortex = function () {
+    this.init();
+  }, bender.Vertex);
 
   // Watch vertex corresponding to a watch element, gathers the inputs and
   // outputs of the watch

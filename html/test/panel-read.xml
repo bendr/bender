@@ -14,4 +14,11 @@
     <set property="m"/>
   </watch>
 
+  <!--
+  <watch>
+    <get property="m"/>
+    <set select="@p" property="n"/>
+  </watch>
+  -->
+
 </component>
