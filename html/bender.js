@@ -297,6 +297,7 @@
     this.watches = [];               // watch nodes
     this.event_vertices = {};        // event vertices (for reuse)
     this.document_vertices = {};     // event vertices for the document
+    this.not_ready = true;           // not ready
   };
 
   component.on = function (type, handler) {
