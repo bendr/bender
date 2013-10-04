@@ -1312,6 +1312,9 @@
     }
   };
 
+  // The scope of the event handler is the right one so need to shift it.
+  dom_event_vertex.shift_scope = flexo.id;
+
 
   var event_vertex = _class(bender.EventVertex = function (element) {
     this.init();
@@ -1328,6 +1331,29 @@
     }
   };
 
+  event_vertex.shift_scope = function (scope, edge) {
+    var component = parent_component(edge.element);
+    var scopes = scope.$this.scopes;
+    if (scopes) {
+      for (var i = 0, n = scopes.length; i < n; ++i) {
+        for (var key in Object.getPrototypeOf(scopes[i])) {
+          if (scopes[i][key].scopes) {
+            for (var j = 0, m = scopes[i][key].scopes.length;
+              j < m && scopes[i][key].scopes[j].$that !== component; ++j) {}
+            if (j < m) {
+              var scope_ = scopes[i][key].scopes[j];
+              if (scope_[edge.element.select] === scope.$this) {
+                return scope_;
+              }
+            }
+          }
+        }
+      }
+    } else {
+      return component.scope;
+    }
+  };
+
 
   // Create a new property vertex for a component (or instance) and property
   // definition pair.
@@ -1336,6 +1362,8 @@
     this.name = name;
     this.element = element;
   }, bender.Vertex);
+
+  property_vertex.shift_scope = event_vertex.shift_scope;
 
   // Visit a property vertex for this component, as well as its derived
   // components and instances if any
@@ -1467,31 +1495,12 @@
   }, bender.ElementEdge);
 
   watch_edge.follow = function (scope, input) {
-    var component = parent_component(this.element);
-
-    for (var watch_this, i = 0, n = scope.$this.scopes.length;
-        i < n && !watch_this; ++i) {
-      if (scope.$this.scopes[i].$that === component) {
-        watch_this = scope.$this;
-        break;
-      }
-      var instances =
-        flexo.values(Object.getPrototypeOf(scope.$this.scopes[i]));
-      watch_this = flexo.find_first(instances,
-        function (instance) {
-          return instance.scope && instance.scope.$that === component;
-        });
-      if (watch_this) {
-        break;
-      }
-    }
-
-    var target = watch_this.scopes[i][this.element.select];
-    if (target instanceof window.Node || scope.$this === target) {
+    var scope_ = this.source.shift_scope(scope, this);
+    if (scope_) {
       try {
         var value = this.element.value() ?
-          this.element.value().call(scope.$this, scope, input) : input;
-        return this.followed(scope.$this.scopes[i], value);
+          this.element.value().call(scope_.$this, scope_, input) : input;
+        return this.followed(scope_, value);
       } catch (e) {
       }
     }
