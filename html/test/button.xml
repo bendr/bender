@@ -27,10 +27,13 @@
 
   <watch>
     <get select="$document" dom-event="mouseup"
-      value="flexo.fail(!`down &amp;&amp;
+      value="!flexo.fail(!`down &amp;&amp;
       ($in.target !== this.scope.div || !`enabled))"/>
     <set property="down" value="false"/>
-    <set event="pushed"/>
+    <set event="pushed">
+      bender._trace("Pushed! %0 -> %1".fmt(this.id(), $in));
+      return $in;
+    </set>
   </watch>
 
 </component>

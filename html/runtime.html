@@ -15,14 +15,16 @@ body {
     <script src="graph.js"></script>
     <script>
 "use strict";
+var args = flexo.get_args();
+bender.TRACE = !args.hasOwnProperty(":trace") || flexo.is_true(args[":trace"]);
 var now = Date.now();
 bender.load_component().then(function (component) {
   window.APP = component;
-  component.render_component(document.body).then(function (instance) {
-    console.log("*** Time: %0".fmt(Date.now() - now));
-  }, function (reason) {
-    console.error("Did not render component %0:".fmt(component.index), reason);
-  });
+  var instance = component.render_component(document.body);
+  bender._trace("[%0] (%1) *** Rendered"
+    .fmt(instance.scope.$that.index, instance.index));
+  bender._trace(component.scope.$environment.dot());
+  console.log("*** Time: %0".fmt(Date.now() - now));
 }, function (reason) {
   alert(reason && reason.message || reason);
 });

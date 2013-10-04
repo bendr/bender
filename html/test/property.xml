@@ -1,0 +1,17 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" value="2"/>
+  <property name="foo" value="bar" as="string" select="$that"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>x = <html:span id="vx">???</html:span></html:p>
+    <content/>
+    <html:p>foo = <html:span id="vfoo">???</html:span></html:p>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set select="@vx" dom-property="textContent"/>
+  </watch>
+  <watch>
+    <get property="foo"/>
+    <set select="@vfoo" dom-property="textContent"/>
+  </watch>
+</component>

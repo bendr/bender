@@ -1,7 +1,8 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="ticker">
   <link rel="script" href="lib.js"/>
   <property name="rate-ms" as="number" value="0"/>
   <property name="enabled" as="boolean" value="true"/>
+  <event name="tick"/>
   <watch>
     <get property="rate-ms">
       flexo.fail(!`enabled);
