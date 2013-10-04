@@ -15,7 +15,7 @@
     set: function (p) { _trace = p ? console.log.bind(console) : flexo.nop; }
   });
 
-  bender.TRACE = true;     // show tracing messages
+  bender.TRACE = false;     // show tracing messages
   bender.MAX_VISITS = 10;  // maximum number of visits for a vertex
 
   var _class = flexo._class;  // kludge for Chrome to display class names
