@@ -277,9 +277,6 @@
     element.init.call(this);
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
-    if (!parent_scope.hasOwnProperty("#top")) {
-      parent_scope["#top"] = this;
-    }
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this },
       $that: { enumerable: true, writable: true, value: this },
@@ -606,7 +603,6 @@
     this.child_components.push(child);
     var scope = Object.getPrototypeOf(this.scope);
     var old_scope = Object.getPrototypeOf(child.scope);
-    delete old_scope["#top"];
     Object.keys(old_scope).forEach(function (key) {
       if (key in scope && scope[key] !== old_scope[key]) {
         console.error("Redefinition of %0 in scope".fmt(key));
@@ -669,6 +665,10 @@
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
+      if (!scope[""]) {
+        scope[""] = [];
+      }
+      scope[""].push(this);
       if (p._id) {
         var key = "@" + p._id;
         if (scope.hasOwnProperty(key)) {
@@ -1344,15 +1344,13 @@
     var scopes = scope.$this.scopes;
     if (scopes) {
       for (var i = 0, n = scopes.length; i < n; ++i) {
-        for (var key in Object.getPrototypeOf(scopes[i])) {
-          if (scopes[i][key].scopes) {
-            for (var j = 0, m = scopes[i][key].scopes.length;
-              j < m && scopes[i][key].scopes[j].$that !== component; ++j) {}
-            if (j < m) {
-              var scope_ = scopes[i][key].scopes[j];
-              if (scope_[edge.element.select] === scope.$this) {
-                return scope_;
-              }
+        for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
+          for (var k = 0, l = scopes[i][""][j].scopes.length;
+              k < l && scopes[i][""][j].scopes[k].$that !== component; ++k) {}
+          if (k < l) {
+            var scope_ = scopes[i][""][j].scopes[k];
+            if (scope_[edge.element.select] === scope.$this) {
+              return scope_;
             }
           }
         }
