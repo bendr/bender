@@ -196,10 +196,21 @@
 
   // Add a vertex to the watch graph and return it.
   environment.add_vertex = function (vertex) {
-    vertex.index = this.vertices.length;
+    vertex.index = this.vertices.length === 0 ?
+      0 : (this.vertices[this.vertices.length - 1].index + 1);
     vertex.environment = this;
     this.vertices.push(vertex);
     return vertex;
+  };
+
+  environment.remove_vertex = function (vertex) {
+    flexo.remove_from_array(this.vertices, vertex);
+    vertex.incoming.forEach(function (edge) {
+      flexo.remove_from_array(edge.source.outgoing, edge);
+    });
+    vertex.outgoing.forEach(function (edge) {
+      flexo.remove_from_array(edge.dest.incoming, edge);
+    });
   };
 
 
@@ -527,7 +538,9 @@
           if (!p) {
             this._prototype = prototype;
             prototype.derived.push(this);
-            this.property_vertices = extend(prototype.property_vertices,
+            this.property_definitions = extend(prototype.property_definitions,
+                this.property_definitions);
+            this.property_vertices = extend_vertices(prototype.property_vertices,
                 this.property_vertices);
             this.event_vertices = extend(prototype.event_vertices,
                 this.event_vertices);
@@ -573,9 +586,7 @@
           .fmt(child.name, this.index));
       return;
     }
-    if (child.name in this.property_definitions) {
-      // TODO redefining property
-    } else {
+    if (!(child.name in this.property_definitions)) {
       _trace("[%0] render property %1".fmt(this.index, child.name));
       this.property_definitions[child.name] = child;
       this.property_vertices[child.name] = this.scope.$environment.add_vertex(
@@ -585,7 +596,11 @@
     }
     if (child.bindings) {
       var set = new bender.SetProperty(child.name, child.select());
-      set_value_from_string.call(set, child.bindings[""].value, true);
+      if (typeof child.bindings[""].value === "string") {
+        set_value_from_string.call(set, child.bindings[""].value, true);
+      } else {
+        set.value(child.bindings[""].value);
+      }
       var watch = new bender.Watch().child(set);
       Object.keys(child.bindings).forEach(function (id) {
         Object.keys(child.bindings[id]).forEach(function (prop) {
@@ -1662,6 +1677,19 @@
     return object;
   }
 
+  function extend_vertices(proto, ext) {
+    var object = Object.create(proto);
+    Object.getOwnPropertyNames(ext).forEach(function (key) {
+      if (key in proto) {
+        ext[key].environment.remove_vertex(ext[key]);
+      } else {
+        Object.defineProperty(object, key,
+          Object.getOwnPropertyDescriptor(ext, key));
+      }
+    });
+    return object;
+  }
+
   // Get the instance scope for an instance from its parent instance, i.e. the
   // scope in the parent instance pointing to the parent component. If either
   // instance or component has no parent, simply create a new scope from the
@@ -1877,8 +1905,14 @@
         }
       } else {
         // this._as === "string"
-        // TODO string bindings
-        this._value = flexo.safe_string(value);
+        var safe = flexo.safe_string(value);
+        var bindings = bindings_string(safe);
+        if (typeof bindings === "object") {
+          this.bindings = bindings;
+          this._value = bindings[""].value;
+        } else {
+          this._value = safe;
+        }
       }
     }
     this._value = flexo.funcify(this._value);
