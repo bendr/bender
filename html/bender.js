@@ -90,6 +90,7 @@
       }).then(function (d) {
         if (d instanceof bender.Component) {
           delete promise.component;
+          d.ready();
           promise.fulfill(d);
           return d;
         } else {
@@ -475,7 +476,7 @@
     instance.add_event_listeners();
     instance.init_properties();
     target.insertBefore(fragment, ref);
-    instance.scope.$that.ready();
+    instance.ready();
     return instance;
   };
 
@@ -486,10 +487,6 @@
       if (this._prototype) {
         this._prototype.ready();
       }
-      this.instances.forEach(function (instance) {
-        _trace("[%0] (%1) ready".fmt(this.index, instance.index));
-        instance.notify("ready");
-      }, this);
       this.child_components.forEach(function (child) {
         child.ready();
       });
@@ -753,6 +750,16 @@
 
   // Send an event notification for this concrete instance only.
   instance.notify = component.notify;
+
+  // Send a ready notification for this instance, as well as its children (and
+  // so on recursively.)
+  instance.ready = function () {
+    this.children.forEach(function (child) {
+      child.ready();
+    });
+    _trace("[%0] ready".fmt(this.id()));
+    this.notify("ready");
+  };
 
   // Render the view and return itself
   instance.render_view = function (target) {
