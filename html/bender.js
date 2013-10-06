@@ -991,7 +991,6 @@
         if (parent) {
           push_bindings(parent, this, bindings);
         } else {
-          this.attrs[ns][name] = bindings;
           if (!this.__bindings) {
             this.__bindings = [];
           }
