@@ -1,0 +1,14 @@
+<component xmlns="http://bender.igel.co.jp" id="colors">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <component href="binding-attr.xml" id="r">
+      <property name="color" as="string" value="purple"/>
+    </component>
+    <component href="binding-attr.xml" id="b">
+      <property name="r" as="number" value="100"/>
+      <property name="g" as="number" value="200"/>
+      <property name="b" as="number" value="0"/>
+      <property name="color" as="string" value="rgb(`r,`g,`b)"/>
+    </component>
+  </view>
+</component>
+
