@@ -719,18 +719,28 @@
     this.children.forEach(function (ch) {
       ch.init_properties();
     });
+    var uninitialized = [];
     this.scope.$that.property_list().forEach(function (property) {
       var vertex = property.parent.property_vertices[property.name];
       if (!vertex.should_init(this)) {
-        return;
+        uninitialized.push([property, vertex]);
       }
-      if (property._select === "$this") {
-        this.properties[property.name] = property.value()(this.scope);
-      } else {
-        vertex.visit(this.scope);
+      init_property.call(this, property, vertex);
+    }, this);
+    uninitialized.forEach(function (p) {
+      if (typeof this.properties[p[0].name] === "undefined") {
+        init_property.apply(this, p);
       }
     }, this);
   };
+
+  function init_property(property, vertex) {
+    if (property._select === "$this") {
+      this.properties[property.name] = property.value()(this.scope);
+    } else {
+      vertex.visit(this.scope);
+    }
+  }
 
   instance.add_event_listeners = function () {
     _trace("[%0] add event listeners".fmt(this.id()));

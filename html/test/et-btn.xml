@@ -1,0 +1,22 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <property name="scale" value="1.0"/>
+  <property name="down" as="boolean" value="false"/>
+  <property name="btn_on" as="boolean" value="true"/>
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:svg>
+      <svg:g transform="translate(75, 20) scale(`scale)">
+        <svg:rect class="btn" id="btn" width="150" height="40" x="-70" y="-15"/>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+
+  <!-- ボタン押下時のスケールの設定 -->
+  <watch>
+    <get property="down" value="flexo.fail(!`btn_on) || $in"/>
+    <set property="scale" value="$in? '0.95' : '1.0'"/>
+  </watch>
+
+</component>
