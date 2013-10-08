@@ -25,6 +25,7 @@
 
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
+  var push = Array.prototype.push;
   var unshift = Array.prototype.unshift;
 
 
@@ -604,6 +605,10 @@
     this.child_components.push(child);
     var scope = Object.getPrototypeOf(this.scope);
     var old_scope = Object.getPrototypeOf(child.scope);
+    if (scope[""] && old_scope[""]) {
+      push.apply(scope[""], old_scope[""]);
+      delete old_scope[""];
+    }
     Object.keys(old_scope).forEach(function (key) {
       if (key in scope && scope[key] !== old_scope[key]) {
         console.error("Redefinition of %0 in scope".fmt(key));
@@ -718,13 +723,11 @@
       init_property.call(this, property, vertex);
       vertex.visit_init(this.scope);
     }, this);
-    /*
     uninitialized.forEach(function (p) {
       if (typeof this.properties[p[0].name] === "undefined") {
         init_property.apply(this, p);
       }
     }, this);
-    */
   };
 
   instance.add_event_listeners = function () {
@@ -1099,7 +1102,7 @@
       if (v) {
         v.add_outgoing(new bender.WatchEdge(get, w));
       }
-      if (get.bindings) {
+      if (v instanceof bender.PropertyVertex && get.bindings) {
         Object.keys(get.bindings).forEach(function (select) {
           var target = scope[select];
           if (target) {

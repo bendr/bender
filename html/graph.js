@@ -40,10 +40,10 @@
     var name = this.dot_name();
     var desc = this.outgoing.map(function (edge) {
       var out = "%0 -> %1".fmt(name, edge.dest.dot_name());
-      if (edge.element && edge.element.select !== "$this") {
-        out += " [label=\"%0\"]".fmt(edge.element.select);
-      } else if (edge instanceof bender.DependencyEdge) {
+      if (edge instanceof bender.DependencyEdge) {
         out += " [color=\"%0\",style=dashed]".fmt(colors.dependency);
+      } else if (edge.element && edge.element.select !== "$this") {
+        out += " [label=\"%0\"]".fmt(edge.element.select);
       }
       return out;
     });
