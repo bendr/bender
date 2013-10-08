@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
 
-  <property name="scale" value="1.0"/>
+  <property name="scale" value="0.5"/>
   <property name="down" as="boolean" value="false"/>
   <property name="btn_on" as="boolean" value="true"/>
 

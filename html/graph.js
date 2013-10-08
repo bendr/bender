@@ -7,7 +7,8 @@
     world: "#ff6a4d",
     browser: "#5eb26b",
     componentprop: "#0b486b",
-    instanceprop: "#4dbce9"
+    instanceprop: "#4dbce9",
+    dependency: "#f8ca00"
   };
 
   function dot(vertices) {
@@ -41,6 +42,8 @@
       var out = "%0 -> %1".fmt(name, edge.dest.dot_name());
       if (edge.element && edge.element.select !== "$this") {
         out += " [label=\"%0\"]".fmt(edge.element.select);
+      } else if (edge instanceof bender.DependencyEdge) {
+        out += " [color=\"%0\",style=dashed]".fmt(colors.dependency);
       }
       return out;
     });
