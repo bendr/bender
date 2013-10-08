@@ -100,8 +100,6 @@
     var should_init = instances.reduce(function (acc, instance) {
       return acc + (this.should_init(instance) ? 1 : 0);
     }.bind(this), 0);
-    bender._trace("should_init(%0): %1/%2"
-        .fmt(this.name, should_init, instances.length));
     return (should_init === instances.length ?
         "label=\"%0/%2\",style=\"filled\",color=\"%1\",fontcolor=white" :
         should_init === 0 ?

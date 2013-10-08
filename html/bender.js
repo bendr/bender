@@ -1674,6 +1674,17 @@
     }
   }
 
+  // Check that a value is set to the type of its property
+  function check_value(v, property) {
+    var as = property.as();
+    if ((as === "boolean" && typeof v !== "boolean") ||
+        (as === "number" && typeof v !== "number") ||
+        (as === "string" && typeof v !== "string")) {
+      console.warn("Setting property %0 to %1: expected a %2, got %3 instead."
+          .fmt(property.name, v, as, typeof(v)));
+    }
+  }
+
   // Extend the proto object with properties of the ext object
   function extend(proto, ext) {
     var object = Object.create(proto);
@@ -1852,6 +1863,7 @@
       },
       set: function (v) {
         if (this.hasOwnProperty(name)) {
+          check_value(v, this[""].scope.$that.property_definitions[name]);
           value = v;
         } else {
           render_property_property(this[""].properties, name, v);
