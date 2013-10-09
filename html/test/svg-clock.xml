@@ -16,9 +16,7 @@
     <component id="tock" href="../lib/ticker.xml">
       <property name="rate-ms" value="0"/>
     </component>
-    <component id="tick" href="../lib/ticker.xml">
-      <property name="rate-ms" value="flexo.random_int(5000, 120000)"/>
-    </component>
+    <component id="tick" href="../lib/ticker.xml"/>
     <attribute name="viewBox">-200 -200 400 400</attribute>
     <svg:circle r="180" fill="`fill"/>
     <svg:g stroke="`stroke" stroke-linecap="round" stroke-width="4">
@@ -38,6 +36,7 @@
         }
       }
     ]]></get>
+    <set select="@tick" property="rate-ms" value="flexo.random_int(3000, 12000)"/>
   </watch>
 
   <watch>

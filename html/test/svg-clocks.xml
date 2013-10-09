@@ -1,0 +1,19 @@
+<component xmlns="http://bender.igel.co.jp" id="clocks" href="../lib/svg.xml">
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <attribute name="viewBox">0 0 800 800</attribute>
+    <svg:g transform="scale(0.5)">
+      <component href="svg-clock.xml"/>
+    </svg:g>
+    <svg:g transform="translate(400) scale(0.5)">
+      <component href="svg-clock.xml"/>
+    </svg:g>
+    <svg:g transform="translate(0, 400) scale(0.5)">
+      <component href="svg-clock.xml"/>
+    </svg:g>
+    <svg:g transform="translate(400, 400) scale(0.5)">
+      <component href="svg-clock.xml"/>
+    </svg:g>
+  </view>
+
+</component>
