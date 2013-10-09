@@ -5,7 +5,7 @@
       <component href="../lib/button.xml" id="button*">
         <property name="label" as="string" value="B"/>
         <view>
-          #buttons`label/`label
+          @buttons`label/@button\*`label
         </view>
       </component>
       <component href="../lib/button.xml" id="button**">

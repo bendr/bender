@@ -1613,7 +1613,8 @@
   var RX_CONTEXT = "(?:([#@])(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_TICK = "(?:`(?:(%0)|%1))".fmt(RX_ID, RX_PAREN);
   var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK));
-  var RX_PROP_G = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK), "g");
+  var RX_PROP_G = new RegExp("(^|[^\\\\])(?:%0(?:%1)?|%1)"
+      .fmt(RX_CONTEXT, RX_TICK), "g");
 
   // Identify property bindings for a dynamic property value string. When there
   // are none, return the string unchanged; otherwise, return the dictionary of
@@ -1621,20 +1622,25 @@
   // for the set element of the watch to create.
   function bindings_dynamic(value) {
     var bindings = {};
-    var r = function (_, b, sigil, id, id_p, prop, prop_p) {
+    var r = function (_, b, sigil, id, id_p, prop, prop_p, prop_, prop_p_) {
       // jshint unused: false
       var i = (sigil || "") + (id || id_p || "$this").replace(/\\(.)/g, "$1");
-      if (!bindings.hasOwnProperty(i)) {
-        bindings[i] = {};
+      var p = prop || prop_p || prop_ || prop_p_;
+      if (p) {
+        p = p.replace(/\\(.)/g, "$1");
+        if (!bindings.hasOwnProperty(i)) {
+          bindings[i] = {};
+        }
+        bindings[i][p] = true;
+        return "%0$scope[%1].properties[%2]"
+          .fmt(b, flexo.quote(i), flexo.quote(p));
+      } else {
+        return "%0$scope[%1]".fmt(b, flexo.quote(i));
       }
-      var p = (prop || prop_p).replace(/\\(.)/g, "$1");
-      bindings[i][p] = true;
-      return "%0$scope[%1].properties[%2]"
-        .fmt(b, flexo.quote(i), flexo.quote(p));
     };
     var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
     if (Object.keys(bindings).length === 0) {
-      return value;
+      return v;
     }
     Object.defineProperty(bindings, "", { value: { value: v }});
     return bindings;
@@ -1921,6 +1927,8 @@
         if (typeof bindings === "object") {
           this.bindings = bindings;
           value = bindings[""].value;
+        } else {
+          value = bindings;
         }
         if (needs_return) {
           value = "return " + value;
