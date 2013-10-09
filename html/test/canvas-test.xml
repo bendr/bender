@@ -1,0 +1,10 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <component href="../lib/canvas.xml">
+      <property name="width" value="640"/>
+      <property name="height" value="480"/>
+      <property name="stroke" as="string" value="#f8f9f0"/>
+      <property name="stroke-width" value="12"/>
+    </component>
+  </view>
+</component>
