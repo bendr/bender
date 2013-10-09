@@ -1,0 +1,54 @@
+<component xmlns="http://bender.igel.co.jp" href="../lib/svg.xml">
+
+  <property name="palette" value='new flexo.Urn(["\\x23ff6a4d", "#0b486b",
+    "#5eb26b", "#774f38", "\\x23f8ca00", "#9e0b46", "\\x23a61416", "#222222",
+    "\\x23f8f9f0", "#4dbce9", "#06491d", "\\x23f94179"])' select="$that"/>
+  <property name="fill" value="`palette.pick()"/>
+  <property name="stroke" value="`palette.pick()"/>
+
+  <property name="offset" value="new Date().getTimezoneOffset() / 60"/>
+  <property name="n"/>
+  <property name="h" value="((`n / 3600000) % 12 - `offset) * 15"/>
+  <property name="m" value="((`n / 60000) % 60) * 6"/>
+  <property name="s" value="((`n / 1000) % 60) * 6"/>
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <component id="tock" href="../lib/ticker.xml">
+      <property name="rate-ms" value="0"/>
+    </component>
+    <component id="tick" href="../lib/ticker.xml">
+      <property name="rate-ms" value="flexo.random_int(5000, 120000)"/>
+    </component>
+    <attribute name="viewBox">-200 -200 400 400</attribute>
+    <svg:circle r="180" fill="`fill"/>
+    <svg:g stroke="`stroke" stroke-linecap="round" stroke-width="4">
+      <svg:g id="minutes"/>
+      <svg:line x1="80" transform="rotate(`h)"/>
+      <svg:line x1="140" transform="rotate(`m)"/>
+      <svg:line x1="140" transform="rotate(`s)" stroke-dasharray="10 10"/>
+    </svg:g>
+  </view>
+
+  <watch>
+    <get event="ready"><![CDATA[
+      if (@minutes.appendChild) {
+        for (var i = 0; i < 60; ++i) {
+          @minutes.appendChild(flexo.$line({ y1: 170,
+            y2: i % 5 == 0 ? 150 : 160, transform: "rotate(%0)".fmt(i * 6) }));
+        }
+      }
+    ]]></get>
+  </watch>
+
+  <watch>
+    <get select="@tock" event="tick"/>
+    <set property="n" value="Date.now()"/>
+  </watch>
+
+  <watch>
+    <get select="@tick" event="tick"/>
+    <set property="fill" value="`palette.pick()"/>
+    <set property="stroke" value="`palette.pick()"/>
+  </watch>
+
+</component>

@@ -2,7 +2,6 @@
   <link rel="script" href="lib.js"/>
   <property name="rate-ms" as="number" value="0"/>
   <property name="enabled" as="boolean" value="true"/>
-  <event name="tick"/>
   <watch>
     <get property="rate-ms">
       flexo.fail(!`enabled);

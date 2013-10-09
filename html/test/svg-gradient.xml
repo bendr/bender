@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp" id="logo" href="../lib/svg.xml">
+<component xmlns="http://bender.igel.co.jp" id="gradient" href="../lib/svg.xml">
 
   <property name="from" value="#a61416" as="string"/>
   <property name="to" value="#4dbce9" as="string"/>
