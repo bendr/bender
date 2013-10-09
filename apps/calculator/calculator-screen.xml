@@ -9,7 +9,7 @@
   <property name="y-text" value="`y + `font\-size * 1.125"/>
   <property name="x-text" value="`width - `font\-size * 0.25"/>
   <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:rect width="`width" height="`height" x="`x" y="`y" fill="white"
+    <svg:rect width="`width" height="`height" x="`x" y="`y" fill="#f8f9f0"
       stroke="black">
     </svg:rect>
     <svg:text x="`x\-text" y="`y\-text" font-size="`font\-size"

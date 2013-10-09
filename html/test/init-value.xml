@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="x" select="$that" value="1"/>
+  <view>
+    <component href="../lib/button.xml" enabled="false"/>
+  </view>
+</component>

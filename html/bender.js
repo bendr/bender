@@ -6,7 +6,7 @@
   // jshint forin: false
   // jshint -W054
 
-  bender.version = "0.8.2.3";
+  bender.version = "0.8.2.4";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
   // Set up tracing, turned on/off with setting bender.TRACE to true or false
