@@ -22,8 +22,10 @@
     <set property="bg" value="$scope['@bg'].getContext('2d')"/>
     <set property="fg" value="$scope['@fg'].getContext('2d')"/>
     <set>
-      `fg.lineCap = "round";
-      `fg.lineJoin = "round";
+      if (`fg) {
+        `fg.lineCap = "round";
+        `fg.lineJoin = "round";
+      }
     </set>
   </watch>
 
@@ -51,9 +53,8 @@
     <get select="@fg" dom-event="mousedown" prevent-default="true"
       value="flexo.fail(!`fg || !`enabled) || $in"/>
     <set property="down">
-      console.log($scope);
       `fg.beginPath();
-      var p = flexo.event_offset_pos($in, $scope['@fg']);
+      var p = flexo.event_offset_pos($in, $scope["@fg"]);
       `fg.moveTo(p.x, p.y);
       return true;
     </set>
@@ -62,9 +63,9 @@
   <watch>
     <get select="$document" dom-event="mousemove">
       flexo.fail(!`down);
-      var p = flexo.event_offset_pos($in, `fg.canvas);
-      `fg.clearRect(0, 0, `fg.canvas.width, `fg.canvas.height);
+      var p = flexo.event_offset_pos($in, $scope["@fg"]);
       `fg.lineTo(p.x, p.y);
+      `fg.clearRect(0, 0, $scope["@fg"].width, $scope["@fg"].height);
       `fg.stroke();
     </get>
   </watch>
@@ -72,10 +73,9 @@
   <watch>
     <get select="$document" dom-event="mouseup"/>
     <set property="down">
-      console.log($scope);
       flexo.fail(!`down);
-      `bg.drawImage(`fg.canvas, 0, 0);
-      `fg.clearRect(0, 0, `fg.canvas.width, `fg.canvas.height);
+      `bg.drawImage($scope["@fg"], 0, 0);
+      `fg.clearRect(0, 0, $scope["@fg"].width, $scope["@fg"].height);
       return false;
     </set>
   </watch>

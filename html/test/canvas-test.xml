@@ -1,6 +1,6 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" id="canvas-test">
   <view>
-    <component href="../lib/canvas.xml">
+    <component href="../lib/canvas.xml" id="k">
       <property name="width" value="640"/>
       <property name="height" value="480"/>
       <property name="stroke" as="string" value="#f8f9f0"/>

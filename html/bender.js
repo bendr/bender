@@ -733,7 +733,11 @@
       }
     }
     for (var type in this.document_vertices) {
-      this.document_vertices[type].add_event_listener(scope);
+      var vertex = this.document_vertices[type];
+      var component = parent_component(vertex.get);
+      vertex.add_event_listener(flexo.find_first(this.scopes, function (s) {
+        return s.$that === component;
+      }));
     }
     this.children.forEach(function (ch) {
       ch.add_event_listeners();
