@@ -281,7 +281,7 @@
     parent_scope[""].push(this);
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this },
-      $that: { enumerable: true, writable: true, value: this },
+      $that: { enumerable: true, writable: true, value: this }
     });
     this.bindings_scope = [];
     this._on = {};                   // on-* attributes
@@ -726,13 +726,14 @@
   };
 
   instance.add_event_listeners = function () {
+    var type;
     for (var i = 0, n = this.scopes.length; i < n; ++i) {
       var scope = this.scopes[i];
-      for (var type in scope.$that.event_vertices) {
+      for (type in scope.$that.event_vertices) {
         scope.$that.event_vertices[type].add_event_listener(scope);
       }
     }
-    for (var type in this.document_vertices) {
+    for (type in this.document_vertices) {
       var vertex = this.document_vertices[type];
       var component = parent_component(vertex.get);
       vertex.add_event_listener(flexo.find_first(this.scopes, function (s) {
@@ -1754,6 +1755,7 @@
   }
 
   function init_property(property, vertex) {
+    // jshint validthis: true
     if (property._select === "$this") {
       this.properties[property.name] = property.value()(this.scope);
     } else {
@@ -1887,7 +1889,7 @@
   function set_default_value() {
     // jshint validthis:true
     this._value = flexo.funcify({
-      boolean: false,
+      "boolean": false,
       number: 0,
       string: "",
       dynamic: snd
@@ -1909,6 +1911,7 @@
   // deserialized values.
   function set_value_from_string(value, needs_return) {
     // jshint validthis:true
+    var bindings;
     var as = this.as();
     if (as === "boolean") {
       this._value = flexo.is_true(value);
@@ -1923,7 +1926,7 @@
           this._value = undefined;
         }
       } else if (as === "dynamic") {
-        var bindings = bindings_dynamic(flexo.safe_string(value));
+        bindings = bindings_dynamic(flexo.safe_string(value));
         if (typeof bindings === "object") {
           this.bindings = bindings;
           value = bindings[""].value;
@@ -1942,7 +1945,7 @@
       } else {
         // this._as === "string"
         var safe = flexo.safe_string(value);
-        var bindings = bindings_string(safe);
+        bindings = bindings_string(safe);
         if (typeof bindings === "object") {
           this.bindings = bindings;
           this._value = bindings[""].value;
