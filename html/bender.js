@@ -596,7 +596,7 @@
       var set = new bender.SetProperty(child.name, child.select());
       if (typeof child.bindings[""].value === "string") {
         set_value_from_string.call(set, child.bindings[""].value, true,
-            this.uri());
+            this.url());
       } else {
         set.value(child.bindings[""].value);
       }
@@ -2211,8 +2211,11 @@
     }
     if (chunk) {
       v += chunk;
-      if (state === "prop" || state === "propp") {
+      if (prop) {
+        v += "\"]";
         bind_prop();
+      } else if (id) {
+        v += "\"]";
       }
     }
     Object.defineProperty(bindings, "", { value: { value: v }});
