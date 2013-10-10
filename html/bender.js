@@ -2211,10 +2211,10 @@
     }
     if (chunk) {
       v += chunk;
-      if (prop) {
+      if (state === "prop" || state === "propp") {
         v += "\"]";
         bind_prop();
-      } else if (id) {
+      } else if (state === "id" || state === "idp") {
         v += "\"]";
       }
     }
