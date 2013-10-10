@@ -3,7 +3,7 @@
     <component href="../lib/canvas.xml" id="k">
       <property name="width" value="640"/>
       <property name="height" value="480"/>
-      <property name="stroke" as="string" value="#f8f9f0"/>
+      <property name="stroke" as="string" value="#102040"/>
       <property name="stroke-width" value="12"/>
     </component>
   </view>

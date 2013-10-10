@@ -51,6 +51,8 @@
 
   <watch>
     <get select="@fg" dom-event="mousedown" prevent-default="true"
+      value="flexo.fail(!`fg || !`enabled || $in.button !== 0) || $in"/>
+    <get select="@fg" dom-event="touchstart" prevent-default="true"
       value="flexo.fail(!`fg || !`enabled) || $in"/>
     <set property="down">
       `fg.beginPath();
@@ -61,17 +63,20 @@
   </watch>
 
   <watch>
-    <get select="$document" dom-event="mousemove">
+    <get select="$document" dom-event="mousemove"/>
+    <get select="@fg" dom-event="touchmove"/>
+    <set>
       flexo.fail(!`down);
       var p = flexo.event_offset_pos($in, @fg);
       `fg.lineTo(p.x, p.y);
       `fg.clearRect(0, 0, @fg.width, @fg.height);
       `fg.stroke();
-    </get>
+    </set>
   </watch>
 
   <watch>
     <get select="$document" dom-event="mouseup"/>
+    <get select="@fg" dom-event="touchend"/>
     <set property="down">
       flexo.fail(!`down);
       `bg.drawImage(@fg, 0, 0);

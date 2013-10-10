@@ -1606,6 +1606,16 @@
     return component;
   }
 
+  // Identify property bindings for a dynamic property value string. When there
+  // are none, return the string unchanged; otherwise, return the dictionary of
+  // bindings (indexed by id, then property); bindings[""] will be the new value
+  // for the set element of the watch to create.
+  function bindings_dynamic(value) {
+    var bindings = translate_bindings(value);
+    return Object.keys(bindings).length === 0 ? bindings[""].value : bindings;
+  }
+
+
   // Regular expressions to match property bindings, broken into smaller pieces
   // for legibility
   var RX_ID =
@@ -1616,36 +1626,6 @@
   var RX_PROP = new RegExp("(^|[^\\\\])%0?%1".fmt(RX_CONTEXT, RX_TICK));
   var RX_PROP_G = new RegExp("(^|[^\\\\])(?:%0(?:%1)?|%1)"
       .fmt(RX_CONTEXT, RX_TICK), "g");
-
-  // Identify property bindings for a dynamic property value string. When there
-  // are none, return the string unchanged; otherwise, return the dictionary of
-  // bindings (indexed by id, then property); bindings[""] will be the new value
-  // for the set element of the watch to create.
-  function bindings_dynamic(value) {
-    var bindings = {};
-    var r = function (_, b, sigil, id, id_p, prop, prop_p, prop_, prop_p_) {
-      // jshint unused: false
-      var i = (sigil || "") + (id || id_p || "$this").replace(/\\(.)/g, "$1");
-      var p = prop || prop_p || prop_ || prop_p_;
-      if (p) {
-        p = p.replace(/\\(.)/g, "$1");
-        if (!bindings.hasOwnProperty(i)) {
-          bindings[i] = {};
-        }
-        bindings[i][p] = true;
-        return "%0$scope[%1].properties[%2]"
-          .fmt(b, flexo.quote(i), flexo.quote(p));
-      } else {
-        return "%0$scope[%1]".fmt(b, flexo.quote(i));
-      }
-    };
-    var v = value.replace(RX_PROP_G, r).replace(/\\(.)/g, "$1");
-    if (Object.keys(bindings).length === 0) {
-      return v;
-    }
-    Object.defineProperty(bindings, "", { value: { value: v }});
-    return bindings;
-  }
 
   // Indentify property bindings for a string property value string (e.g. from a
   // literal attribute or text node.)
@@ -1680,7 +1660,7 @@
           { value: { value: new Function("$scope", "$in", f) } });
       return bindings;
     } catch (e) {
-      console.warn("Could not parse “%0” as Javascript".fmt(f));
+      console.error("Could not parse “%0” as Javascript".fmt(f));
       return value;
     }
   }
@@ -1973,6 +1953,249 @@
       }
     }
     return text;
+  }
+
+  // Translate bindings from Javascript code (e.g., translate `x into
+  // this.properties["x"] or @foo into $scope["@foo"]), taking care of not
+  // replacing anything that is quoted or between parentheses.
+  function translate_bindings(value) {
+    var bindings = {};
+    var state = "";
+    var chunk = "";
+    var v = "";
+    var id, prop;
+    var escape = false;
+    var rx_start = new RegExp("^[$A-Z_a-z\x80-\uffff]$");
+    var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff]$");
+
+    function bind_prop() {
+      if (!bindings.hasOwnProperty(id)) {
+        bindings[id] = {};
+      }
+      bindings[id][prop] = true;
+    }
+
+    function start(s, c) {
+      if (chunk) {
+        v += chunk;
+      }
+      chunk = c || "";
+      state = s;
+    }
+
+    function end(s, c) {
+      if (c) {
+        chunk += c;
+      }
+      if (chunk) {
+        v += chunk;
+      }
+      chunk = "";
+      state = s;
+    }
+
+    var advance = {
+
+      // Regular code, look for new quoted string, comment, id or property
+      "": function (c, d) {
+        switch (c) {
+          case "'":
+            start("q", c);
+            break;
+          case '"':
+            start("qq", c);
+            break;
+          case "/":
+            switch (d) {
+              case "/": start("comment", c); break;
+              case "*": start("comments", c); break;
+              default: chunk += c;
+            }
+            break;
+          case "@": case "#":
+            var ch = "$scope[\"" + c;
+            if (rx_start.test(d)) {
+              id = d;
+              start("id", ch + d);
+              return 1;
+            } else if (d === "(") {
+              id = "";
+              start("idp", ch);
+              return 1;
+            } else {
+              chunk += c;
+            }
+            break;
+          case "`":
+            var ch = "this.properties[\"";
+            if (rx_start.test(d)) {
+              id = "$this";
+              prop = d;
+              start("prop", ch + d);
+              return 1;
+            } else if (d === "(") {
+              id = "$this";
+              prop = "";
+              start("propp", ch);
+              return 1;
+            } else {
+              chunk += c;
+            }
+            break;
+          default:
+            chunk += c;
+        }
+      },
+
+      // Single-quoted string
+      q: function (c) {
+        switch (c) {
+          case "'": end("", c); break;
+          case "\\": escape = true;
+          default: chunk += c;
+        }
+      },
+
+      // Double-quoted string
+      qq: function (c) {
+        switch (c) {
+          case '"': end("", c); break;
+          case "\\": escape = true;
+          default: chunk += c;
+        }
+      },
+
+      // Single-line comment
+      comment: function (c) {
+        if (c === "\n") {
+          end("", c);
+        } else {
+          chunk += c;
+        }
+      },
+
+      // Multi-line comment:
+      comments: function (c, d) {
+        if (c === "*" && d === "/") {
+          end("", "*/");
+          return 1;
+        } else {
+          chunk += c;
+        }
+      },
+
+      // Component or instance identifier, starting with # or @
+      id: function (c, d) {
+        if (rx_cont.test(c)) {
+          chunk += c;
+          id += c;
+        } else if (c === "\\") {
+          escape = true;
+          if (d === '"') {
+            chunk += c;
+            id += c;
+          }
+        } else if (c === "`") {
+          prop = "";
+          start("prop", "\"].properties[\"");
+        } else {
+          chunk += "\"]";
+          start("", c);
+          id = "";
+        }
+      },
+
+      // Quoted identifier (between parentheses)
+      idp: function (c, d, e) {
+        if (c === "\\") {
+          escape = true;
+          if (d === '"') {
+            chunk += c;
+            id += c;
+          }
+        } else if (c === '"') {
+          chunk += "\\\"";
+          id += c;
+        } else if (c === ")") {
+          if (d === "`") {
+            if (e === "(") {
+              prop = "";
+              start("propp", "\"].properties[\"");
+              return 2;
+            } else if (rx_start.test(e)) {
+              prop = e;
+              start("prop", "\"].properties[\"" + e);
+              return 2;
+            }
+          }
+          id = "";
+          chunk += "\"]";
+          start("");
+        } else {
+          chunk += c;
+          id += c;
+        }
+      },
+
+      // Property name
+      prop: function (c, d) {
+        if (rx_cont.test(c)) {
+          chunk += c;
+          prop += c;
+        } else if (c === "\\") {
+          escape = true;
+          if (d === '"') {
+            chunk += c;
+            prop += c;
+          }
+        } else {
+          bind_prop();
+          chunk += "\"]";
+          start("", c);
+        }
+      },
+
+      // Quoted property name (between parentheses)
+      propp: function (c, d) {
+        if (c === "\\") {
+          escape = true;
+          if (d === '"') {
+            chunk += c;
+            prop += c;
+          }
+        } else if (c === '"') {
+          chunk += "\\\"";
+          prop += c;
+        } else if (c === ")") {
+          bind_prop();
+          chunk += "\"]";
+          start("");
+        } else {
+          chunk += c;
+          prop += c;
+        }
+      }
+    };
+
+    for (var i = 0, n = value.length; i < n; ++i) {
+      if (escape) {
+        escape = false;
+        chunk += value[i];
+      } else {
+        var p = advance[state](value[i], value[i + 1] || "", value[i + 2] || "");
+        if (p > 0) {
+          i += p;
+        }
+      }
+    }
+    if (chunk) {
+      v += chunk;
+      if (state === "prop" || state === "propp") {
+        bind_prop();
+      }
+    }
+    Object.defineProperty(bindings, "", { value: { value: v }});
+    return bindings;
   }
 
   // Update the scope of the parent component of node (if any)
