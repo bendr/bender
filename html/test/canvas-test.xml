@@ -1,4 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" id="canvas-test">
+  <link rel="stylesheet" href="canvas-test.css"/>
   <view>
     <component href="../lib/canvas.xml" id="k">
       <property name="width" value="640"/>

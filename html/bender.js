@@ -91,6 +91,7 @@
       }).then(function (d) {
         if (d instanceof bender.Component) {
           delete promise.component;
+          d.url(url);
           d.ready();
           promise.fulfill(d);
           return d;
@@ -270,6 +271,19 @@
   var component = _class(bender.Component = function (scope) {
     this.init(scope);
   }, bender.Element);
+
+  component.url = function (url) {
+    if (arguments.length === 0) {
+      url = this._url || (this.parent_component &&
+          flexo.normalize_uri(this.parent_component.url())) ||
+        flexo.normalize_uri(this.scope.$document.baseURI);
+      if (this._id) {
+        url += "#" + this._id;
+      }
+      return url;
+    }
+    this._url = url;
+  };
 
   component.init = function (scope) {
     element.init.call(this);
@@ -1571,6 +1585,9 @@
   // and setting the property. Do not return anything as setting the property
   // will do its own the traversal.
   property_edge.followed = function (scope, value) {
+    scope[this.element.select].scope.$that.property_vertices[this.element.name]
+      .element.__loc = "%0: <%1>: "
+        .fmt(parent_component(this.element).url(), this.element.value());
     scope[this.element.select].properties[this.element.name] = value;
   };
 
@@ -1671,9 +1688,10 @@
     if ((as === "boolean" && typeof v !== "boolean") ||
         (as === "number" && typeof v !== "number") ||
         (as === "string" && typeof v !== "string")) {
-      console.warn("Setting property %0 to %1: expected a %2, got %3 instead."
-          .fmt(property.name, v, as, typeof(v)));
+      console.warn("%0Setting property %1 to %2: expected a %3, got %4 instead."
+          .fmt(property.__loc, property.name, v, as, typeof(v)));
     }
+    delete property.__loc;
   }
 
   // Extend the proto object with properties of the ext object

@@ -20,10 +20,13 @@ bender.TRACE = !args.hasOwnProperty(":trace") || flexo.is_true(args[":trace"]);
 var now = Date.now();
 bender.load_component().then(function (component) {
   window.APP = component;
-  var instance = component.render_component(document.body);
-  bender._trace("[%0] (%1) *** Rendered"
-    .fmt(instance.scope.$that.index, instance.index));
-  bender._trace(component.scope.$environment.dot());
+  if (flexo.is_true(args[":graph"])) {
+    console.log(component.scope.$environment.dot());
+  } else {
+    var instance = component.render_component(document.body);
+    bender._trace("[%0] (%1) *** Rendered"
+      .fmt(instance.scope.$that.index, instance.index));
+  }
   console.log("*** Time: %0".fmt(Date.now() - now));
 }, function (reason) {
   alert(reason && reason.message || reason);
