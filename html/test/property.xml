@@ -8,7 +8,7 @@
   </view>
   <watch>
     <get event="ready"/>
-    <set property="x" as="string" value="42"/>
+    <set property="x" value="4 * 2 *"/>
   </watch>
   <watch>
     <get property="foo"/>

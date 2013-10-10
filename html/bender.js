@@ -149,11 +149,12 @@
     object.as(elem.getAttribute("as")).id(elem.getAttribute("id"))
       .match(elem.getAttribute("match"));
     if (elem.hasAttribute("value")) {
-      set_value_from_string.call(object, elem.getAttribute("value"), true);
+      set_value_from_string.call(object, elem.getAttribute("value"), true,
+          elem.baseURI);
     } else {
       var t = shallow_text(elem);
       if (/\S/.test(t)) {
-        set_value_from_string.call(object, t, false);
+        set_value_from_string.call(object, t, false, elem.baseURI);
       } else {
         set_default_value.call(object);
       }
@@ -594,7 +595,8 @@
     if (child.bindings) {
       var set = new bender.SetProperty(child.name, child.select());
       if (typeof child.bindings[""].value === "string") {
-        set_value_from_string.call(set, child.bindings[""].value, true);
+        set_value_from_string.call(set, child.bindings[""].value, true,
+            this.uri());
       } else {
         set.value(child.bindings[""].value);
       }
@@ -1907,7 +1909,7 @@
 
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
-  function set_value_from_string(value, needs_return) {
+  function set_value_from_string(value, needs_return, loc) {
     // jshint validthis:true
     var bindings;
     var as = this.as();
@@ -1920,7 +1922,7 @@
         try {
           this._value = JSON.parse(flexo.safe_string(value));
         } catch (e) {
-          console.warn("Could not parse “%0” as JSON".fmt(value));
+          console.error("%0: Could not parse “%2” as JSON".fmt(loc, value));
           this._value = undefined;
         }
       } else if (as === "dynamic") {
@@ -1937,7 +1939,8 @@
         try {
           this._value = new Function("$scope", "$in", value);
         } catch (e) {
-          console.warn("Could not parse “%0” as Javascript".fmt(value));
+          console.error("%0: Could not parse “%1” as Javascript"
+              .fmt(loc, value));
           this._value = snd;
         }
       } else {
