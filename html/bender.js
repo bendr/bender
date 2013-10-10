@@ -426,7 +426,8 @@
     this.property_list().forEach(function (property) {
       if (property._select === "$that" &&
         this.properties.hasOwnProperty(property.name)) {
-        this.properties[property.name] = property.value()(this.scope);
+        this.properties[property.name] =
+          property.value().call(this, this.scope);
       }
     }, this);
   };
@@ -1757,7 +1758,7 @@
   function init_property(property, vertex) {
     // jshint validthis: true
     if (property._select === "$this") {
-      this.properties[property.name] = property.value()(this.scope);
+      this.properties[property.name] = property.value().call(this, this.scope);
     } else {
       vertex.visit(this.scope);
     }
@@ -2048,7 +2049,7 @@
             }
             break;
           case "`":
-            var ch = "this.properties[\"";
+            var ch = "$scope.$this.properties[\"";
             if (rx_start.test(d)) {
               id = "$this";
               prop = d;
