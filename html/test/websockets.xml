@@ -2,13 +2,13 @@
 
   <view>
     <component href="websocket.xml">
+      <property name="pin" as="number" value="5"/>
+    </component>
+    <component href="websocket.xml">
+      <property name="pin" as="number" value="6"/>
+    </component>
+    <component href="websocket.xml">
       <property name="pin" as="number" value="9"/>
-    </component>
-    <component href="websocket.xml">
-      <property name="pin" as="number" value="10"/>
-    </component>
-    <component href="websocket.xml">
-      <property name="pin" as="number" value="11"/>
     </component>
   </view>
 

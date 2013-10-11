@@ -1,0 +1,32 @@
+<component xmlns="http://bender.igel.co.jp" id="palette">
+
+  <property name="palette" value='new flexo.Urn(["#ff6a4d", "#0b486b",
+    "#5eb26b", "#774f38", "#f8ca00", "#9e0b46", "#a61416", "#222222",
+    "#f8f9f0", "#4dbce9", "#06491d", "#f94179"])' select="$that"/>
+  <property name="bgcolor" value="`palette.pick()"/>
+  <property name="textcolor" value="`palette.pick()"/>
+  <property name="down" as="boolean" value="false"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p style="text-align:center;margin-top:4rem">
+      <html:span style="background-color:`bgcolor;color:`textcolor;font-family:Avenir,sans-serif;font-size:200px;padding:0 1rem;border-radius:1rem">`bgcolor</html:span>
+    </html:p>
+  </view>
+
+  <watch>
+    <get select="$document" dom-event="mousedown" value="$in.button === 0"
+      prevent-event-default="true"/>
+    <get select="$document" dom-event="touchstart" value="true"
+      prevent-event-default="true"/>
+    <set property="down"/>
+  </watch>
+
+  <watch>
+    <get select="$document" dom-event="mouseup" value="flexo.fail(!`down)"/>
+    <get select="$document" dom-event="touchend" value="flexo.fail(!`down)"/>
+    <set property="down"/>
+    <set property="bgcolor" value="`palette.pick()"/>
+    <set property="textcolor" value="`palette.pick()"/>
+  </watch>
+
+</component>

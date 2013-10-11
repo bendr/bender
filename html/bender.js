@@ -1352,12 +1352,19 @@
     this.get = get;
   }, bender.Vertex);
 
-  dom_event_vertex.add_event_listener = function (scope) {
-    var target = scope[this.get.select];
-    if (target && this.get.property) {
-      target = target.properties[this.get.property];
-    }
-    if (target && typeof target.addEventListener === "function") {
+  dom_event_vertex.add_event_listener = function (scope, target) {
+    if (arguments.length === 1) {
+      target = scope[this.get.select];
+      if (target && this.get.property) {
+        if (true || target.scope.$that.property_vertices
+            .hasOwnProperty(this.get.property)) {
+          var v = target.scope.$that.property_vertices[this.get.property];
+          v.add_outgoing(new bender.EventListenerEdge(this, scope, target));
+          target = target.properties[this.get.select];
+        }
+      }
+      this.add_event_listener(scope, target)
+    } else if (target && typeof target.addEventListener === "function") {
       target.addEventListener(this.get.type, function (e) {
         if (this.get.prevent_default) {
           e.preventDefault();
@@ -1490,6 +1497,17 @@
     flexo.remove_from_array(this.dest.incoming, this);
     this.source = null;
     this.dest = null;
+  };
+
+
+  var event_listener_edge =
+    _class(bender.EventListenerEdge = function (dest, scope, target) {
+      this.init(dest);
+      this.scope = scope;
+      this.target = target;
+    }, bender.Edge);
+
+  event_listener_edge.follow = function (scope, value) {
   };
 
 

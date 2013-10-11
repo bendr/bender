@@ -6,7 +6,19 @@
   <property name="msg" as="string" value="(none)"/>
   <property name="status" as="string" value="not connected"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>WS: `(status) — last message on pin #`pin: `msg</html:p>
+    <html:p>
+      WS: `(status) — last message on pin #`pin: `msg
+      <component href="../lib/button.xml" id="on-button">
+        <view>
+          ON
+        </view>
+      </component>
+      <component href="../lib/button.xml" id="off-button">
+        <view>
+          OFF
+        </view>
+      </component>
+    </html:p>
   </view>
   <watch>
     <get property="ws" dom-event="open"/>
@@ -27,9 +39,20 @@
     <get property="ws" dom-event="message">
       var data = $in.data.split(".");
       flexo.fail(!data);
-      debugger;
       return { value: data[0], pin: flexo.to_number(data[1]) };
     </get>
     <set property="msg" value="flexo.fail($in.pin !== `pin) || $in.value"/>
+  </watch>
+  <watch>
+    <get select="@on-button" event="pushed">
+      console.log("%0.255.true".fmt(`pin));
+      `ws.send("%0.255.true".fmt(`pin));
+    </get>
+  </watch>
+  <watch>
+    <get select="@off-button" event="pushed">
+      console.log("%0.0.false".fmt(`pin));
+      `ws.send("%0.0.false".fmt(`pin));
+    </get>
   </watch>
 </component>

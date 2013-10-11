@@ -9,7 +9,8 @@
     componentprop: "#0b486b",
     instanceprop: "#4dbce9",
     dependency: "#f8ca00",
-    dummy: "#f94179"
+    dummy: "#f94179",
+    listener: "#a61416"
   };
 
   function dot(vertices) {
@@ -45,6 +46,8 @@
         out += " [color=\"%0\",style=dashed]".fmt(colors.dependency);
       } else if (edge instanceof bender.DummyEdge) {
         out += " [color=\"%0\",style=dashed]".fmt(colors.dummy);
+      } else if (edge instanceof bender.EventListenerEdge) {
+        out += " [color=\"%0\",style=dashed]".fmt(colors.listener);
       } else if (edge.element && edge.element.select !== "$this") {
         out += " [label=\"%0\"]".fmt(edge.element.select);
       }
