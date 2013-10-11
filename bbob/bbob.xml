@@ -1,0 +1,92 @@
+<b:component xmlns:b="http://bender.igel.co.jp">
+  <b:link rel="stylesheet" href="bbob.css"/>
+  <b:view xmlns="http://www.w3.org/1999/xhtml">
+
+    <heading>
+      <h1>The Big Book Of Bender</h1>
+      <p>Julien Quint, Fri 11 Oct 2013</p>
+    </heading>
+
+    <p>Bender is a declarative Web application framework. A Bender application
+      is built out of components, which are reusable and extensible. The
+      behavior and appearance of components is described through XML or a
+      Javascript API. The current implementation of Bender runs in modern Web
+      browsers on desktop and mobile devices, and supports HTML5 for the
+      rendering of applications.</p>
+
+    <section>
+      <heading>
+        <h2>Anatomy of a Bender component</h2>
+      </heading>
+      <p>A Bender component is the basic block of functionality and consists
+        of:</p>
+      <ul>
+        <li>a view, describing the appearance of the component;</li>
+        <li>zero or more properties, that can be used to represent the state of
+          the component and parametrize its appearance and behavior;</li>
+        <li>zero or more watches, expressing the behavior of the component
+          through the handling of events, messages and property changes.</li>
+      </ul>
+      <p>A component may contain other components, which are its children, by
+        having these components in its view. A component may extend another
+        component through prototype inheritance; it will inherit the view,
+        properties and watches of the prototype component, and may extend or
+        replace the view, and add new properties and watches.</p>
+    </section>
+
+    <section>
+      <heading>
+        <h2>Hello, world! and other simple examples</h2>
+      </heading>
+      <p>This classic example in Bender can be written in XML as:</p>
+      <b:component href="example.xml">
+        <b:view><![CDATA[<component xmlns="http://bender.igel.co.jp">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>Hello, world!</html:p>
+  </view>
+</component>]]></b:view>
+      </b:component>
+      <p>This application simply outputs the message “Hello, world!” using HTML
+        in the browser. It consists of a single component defining by its view,
+        containing a single HTML <code>&lt;p&gt;</code> element. When the
+        application is run, an instance of this component is created and
+        rendered in the browser, showing the HTML paragraph.</p>
+      <p>Bender elements, such as <code>&lt;component&gt;</code> and
+        <code>&lt;view&gt;</code>, are in the Bender namespace:</p>
+      <blockquote>
+        <pre>http://bender.igel.co.jp</pre>
+      </blockquote>
+      <p>This component also includes HTML content in its view, which is
+        indicated explicitely by specifying the HTML namespace for the
+        <code>&lt;p&gt;</code> element (foreign content, such as annotations,
+        documentation, &amp;c. can also be included; when it is outside of the
+        view, the Bender runtime simply ignores it.) When run in a Web browser,
+        the HTML content gets rendered in the host document and so the message
+        gets displayed. Note that even though we are using HTML, the host
+        document is an XML document and as such must be well-formed, so tags
+        must always be closed, attributes quoted, &amp;c.</p>
+      <p>The same application can be written using the Bender Javascript API, as
+        a standalone script or in a <code>&lt;script&gt;</code> tag in a HTML
+        document:</p>
+      <b:component href="example-link.xml">
+        <b:property name="link" value="'hello.html'"/>
+        <b:view><![CDATA[var env = new bender.Environment();
+var component = env.component()
+  .view(new bender.DOMElement(flexo.ns.html, "p").text("Hello, world!"));
+component.render_component(document.body);]]></b:view>
+      </b:component>
+    </section>
+
+    <section>
+      <heading>
+        <h2>Component and Instances</h2>
+      </heading>
+      <p>A component is abstract: it is only the description of what a component
+        is. The contents of its view are not rendered directly by the browser
+        hosting the Bender runtime, but rather a description of the contents to
+        be rendered. An instance of a component is concrete: it does get
+        rendered in the browser.</p>
+    </section>
+
+  </b:view>
+</b:component>

@@ -1030,6 +1030,10 @@
     target.appendChild(elem);
   };
 
+  dom_element.text = function (text) {
+    return this.child(new bender.DOMTextNode().text(text));
+  };
+
   var dom_text = _class(bender.DOMTextNode = function () {
     this.init();
   }, bender.Element);

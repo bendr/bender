@@ -1,0 +1,26 @@
+@import url(http://openfontlibrary.org/face/freeuniversal);
+@import url(http://fonts.googleapis.com/css?family=Inconsolata);
+
+body {
+  font-family: FreeUniversal, "Helvetica Neue", Helvetica, sans-serif;
+  max-width: 48rem;
+  margin: auto;
+}
+
+heading {
+  text-align: center;
+}
+
+h1, h2, h3, h4 {
+  font-weight: normal;
+}
+
+pre, code {
+  font-family: Inconsolata, monospace;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+  font-weight: bold;
+}
