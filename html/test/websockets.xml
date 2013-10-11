@@ -1,0 +1,15 @@
+<component xmlns="http://bender.igel.co.jp">
+
+  <view>
+    <component href="websocket.xml">
+      <property name="pin" as="number" value="9"/>
+    </component>
+    <component href="websocket.xml">
+      <property name="pin" as="number" value="10"/>
+    </component>
+    <component href="websocket.xml">
+      <property name="pin" as="number" value="11"/>
+    </component>
+  </view>
+
+</component>

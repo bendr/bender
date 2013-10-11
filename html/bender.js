@@ -1145,9 +1145,13 @@
   _class(bender.Get = function () {}, bender.GetSet);
 
 
-  var get_dom_event = _class(bender.GetDOMEvent = function (type, select) {
-    init_event.call(this, type, select);
-  }, bender.Get);
+  var get_dom_event =
+    _class(bender.GetDOMEvent = function (type, select, property) {
+      init_event.call(this, type, select);
+      if (property) {
+        this.property = property;
+      }
+    }, bender.Get);
 
   flexo._accessor(bender.Get, "stop_propagation");
   flexo._accessor(bender.Get, "prevent_default");
@@ -1189,7 +1193,8 @@
     var get;
     var select = elem.getAttribute("select") || "$this";
     if (elem.hasAttribute("dom-event")) {
-      get = new bender.GetDOMEvent(elem.getAttribute("dom-event"), select)
+      get = new bender.GetDOMEvent(elem.getAttribute("dom-event"), select,
+          elem.getAttribute("property"))
         .prevent_default(flexo.is_true(elem.getAttribute("prevent-default")))
         .stop_propagation(flexo.is_true(elem.getAttribute("stop-propagation")));
     } else if (elem.hasAttribute("event")) {
@@ -1349,6 +1354,9 @@
 
   dom_event_vertex.add_event_listener = function (scope) {
     var target = scope[this.get.select];
+    if (target && this.get.property) {
+      target = target.properties[this.get.property];
+    }
     if (target && typeof target.addEventListener === "function") {
       target.addEventListener(this.get.type, function (e) {
         if (this.get.prevent_default) {
