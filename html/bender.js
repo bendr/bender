@@ -747,7 +747,9 @@
     for (var i = 0, n = this.scopes.length; i < n; ++i) {
       var scope = this.scopes[i];
       for (type in scope.$that.event_vertices) {
-        scope.$that.event_vertices[type].add_event_listener(scope);
+        if (scope.$that.event_vertices.hasOwnProperty(type)) {
+          scope.$that.event_vertices[type].add_event_listener(scope);
+        }
       }
     }
     for (type in this.document_vertices) {
