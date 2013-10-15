@@ -55,10 +55,10 @@ function read_frame(c, data) {
 }
 
 function send_frame(c, data) {
-  var frame = new Buffer("  " + data);  // 6 bytes for header + data
+  var frame = new Buffer("  " + data);  // 2 bytes for header + data
   var n = frame.length - 2;
-  frame[0] = 0x81;                          // FIN is set; opcode is 1
-  frame[1] = n;                             // masked bit set + length
+  frame[0] = 0x81;                      // FIN is set; opcode is 1
+  frame[1] = n;                         // masked bit set + length
   console.log("Send:", data);
   console.log("Send:", frame);
   c.write(frame);

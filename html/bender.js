@@ -1358,9 +1358,18 @@
     if (arguments.length === 1) {
       target = scope[this.get.select];
       if (target && this.get.property) {
-        if (true || target.scope.$that.property_vertices
-            .hasOwnProperty(this.get.property)) {
-          var v = target.scope.$that.property_vertices[this.get.property];
+        var v;
+        if (target.scopes) {
+          var scope_ = flexo.find_first(target.scopes, function (s) {
+            return s.$that.property_vertices.hasOwnProperty(this.get.property);
+          }, this);
+          if (scope_) {
+            v = scope_.$that.property_vertices[this.get.property];
+          }
+        } else if (target.property_vertices.hasOwnProperty(this.get.property)) {
+          v = target.property_vertices[this.get.property];
+        }
+        if (v) {
           v.add_outgoing(new bender.EventListenerEdge(this, scope, target));
           target = target.properties[this.get.select];
         }
@@ -1510,6 +1519,7 @@
     }, bender.Edge);
 
   event_listener_edge.follow = function (scope, value) {
+    console.log("Follow", this.target);
   };
 
 
