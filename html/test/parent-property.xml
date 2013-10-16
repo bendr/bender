@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp" id="parent">
+  <property name="x" as="number" value="42"/>
+  <view>
+    <component id="child">
+      <!--
+      <property name="y" value="flexo.to_roman(@parent`x)"/>
+      -->
+      <property name="y"/>
+      <watch>
+        <get select="@parent" property="x"/>
+        <set property="y" value="flexo.to_roman($in)"/>
+      </watch>
+    </component>
+    `x = @child`y
+  </view>
+</component>
