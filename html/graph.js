@@ -14,7 +14,7 @@
   };
 
   function dot(vertices) {
-    return "digraph bender {\n  node [fontname=\"Helvetica\"];\n  edge [fontname=\"Helvetica\"]\n%0\n}\n"
+    return "digraph bender {\n  node [fontname=\"Avenir Next\"];\n  edge [fontname=\"Avenir Next\"];\n%0\n}\n"
       .fmt(vertices.map(function (vertex) {
         return (vertex.dot && vertex.dot() || vertex).map(function (line) {
           return "  %0;".fmt(line);

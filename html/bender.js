@@ -85,16 +85,14 @@
     var promise = this.urls[url] = flexo.ez_xhr(url, {
       responseType: "document", mimeType: "text/xml"
     }).then(function (response) {
-      _trace("load_component: got response for %0".fmt(url));
       response_ = response;
       promise.url = url;
       return this.deserialize(response.documentElement, promise);
     }.bind(this)).then(function (d) {
-      _trace("load_component: deserialized %0".fmt(url));
       if (d instanceof bender.Component) {
         delete promise.component;
         d.url(url);
-        d.ready();  // TODO review this
+        d.loaded();  // TODO review this
         return d;
       } else {
         throw { message: "not a Bender component", response: response_ };
@@ -136,14 +134,11 @@
   // Deserialize then add every child of p in the list of children to the Bender
   // element e, then return e
   environment.deserialize_children = function (e, p) {
-    return flexo.collect_promises(map.call(p.childNodes, function (ch) {
-      return this.deserialize(ch);
-    }, this)).then(function (children) {
-      children.forEach(function (ch) {
-        e.append_child(ch);
-      });
-      return e;
-    });
+    return flexo.fold_promises(map.call(p.childNodes, function (ch) {
+        return this.deserialize(ch);
+      }.bind(this)), function (e, ch) {
+        return e.child(ch);
+      }, e);
   };
 
   // Deserialize common properties and contents for objects that have a value
@@ -355,8 +350,6 @@
   environment.deserialize.component = function (elem, promise) {
     var component = this.component();
     if (promise) {
-      _trace("deserialize.component: new component (%0) for %1"
-          .fmt(component.index, promise.url));
       promise.component = component;
     }
     foreach.call(elem.attributes, function (attr) {
@@ -397,7 +390,6 @@
       }
       return children;
     }.call(this)).then(function () {
-      component.render_graph();
       return component.load_links();
     });
   };
@@ -479,6 +471,14 @@
     target.insertBefore(fragment, ref);
     instance.ready();
     return instance;
+  };
+
+  component.loaded = function () {
+    this.child_components.forEach(function (child) {
+      child.loaded();
+    });
+    _trace("Component %0 loaded".fmt(this.index));
+    this.render_graph();
   };
 
   // Notify that the component is ready, as well as its prototype, its children,
@@ -2075,11 +2075,11 @@
           case "@": case "#":
             var ch = "$scope[\"" + c;
             if (rx_start.test(d)) {
-              id = d;
+              id = c + d;
               start("id", ch + d);
               return 1;
             } else if (d === "(") {
-              id = "";
+              id = c;
               start("idp", ch);
               return 1;
             } else {
