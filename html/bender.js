@@ -25,6 +25,7 @@
 
   var _class = flexo._class;  // kludge for Chrome to display class names
   var foreach = Array.prototype.forEach;
+  var map = Array.prototype.map;
   var push = Array.prototype.push;
   var unshift = Array.prototype.unshift;
 
@@ -81,25 +82,24 @@
       return this.urls[url];
     }
     var response_;
-    var promise = this.urls[url] = new flexo.Promise();
-    flexo.ez_xhr(url, { responseType: "document", mimeType: "text/xml" })
-      .then(function (response) {
-        response_ = response;
-        return this.deserialize(response.documentElement, promise);
-      }.bind(this), function (reason) {
-        promise.reject(reason);
-      }).then(function (d) {
-        if (d instanceof bender.Component) {
-          delete promise.component;
-          d.url(url);
-          d.ready();
-          promise.fulfill(d);
-          return d;
-        } else {
-          promise.reject({ response: response_,
-            message: "not a Bender component" });
-        }
-      });
+    var promise = this.urls[url] = flexo.ez_xhr(url, {
+      responseType: "document", mimeType: "text/xml"
+    }).then(function (response) {
+      _trace("load_component: got response for %0".fmt(url));
+      response_ = response;
+      promise.url = url;
+      return this.deserialize(response.documentElement, promise);
+    }.bind(this)).then(function (d) {
+      _trace("load_component: deserialized %0".fmt(url));
+      if (d instanceof bender.Component) {
+        delete promise.component;
+        d.url(url);
+        d.ready();  // TODO review this
+        return d;
+      } else {
+        throw { message: "not a Bender component", response: response_ };
+      }
+    });
     return promise;
   };
 
@@ -129,22 +129,26 @@
         return new bender.DOMTextNode().text(node.textContent);
       }
     } else {
-      throw "Deseralization error: expected a node; got: %0".fmt(node);
+      throw "Deserialization error: expected a node; got: %0".fmt(node);
     }
   };
 
   // Deserialize then add every child of p in the list of children to the Bender
   // element e, then return e
   environment.deserialize_children = function (e, p) {
-    var append = e.child.bind(e);
-    return flexo.promise_fold(p.childNodes, function (_, ch) {
-      // jshint unused: false
-      return flexo.then(this.deserialize(ch), append);
-    }, e, this);
+    return flexo.collect_promises(map.call(p.childNodes, function (ch) {
+      return this.deserialize(ch);
+    }, this)).then(function (children) {
+      children.forEach(function (ch) {
+        e.append_child(ch);
+      });
+      return e;
+    });
   };
 
   // Deserialize common properties and contents for objects that have a value
-  // (property, get, set): handles id, as, value (attribute or text content)
+  // (property, get, set): handles id, as, match, and value (either attribute
+  // or text content.)
   environment.deserialize_element_with_value = function (object, elem) {
     object.as(elem.getAttribute("as")).id(elem.getAttribute("id"))
       .match(elem.getAttribute("match"));
@@ -345,13 +349,15 @@
   };
 
   // Deserialize a component from an element. A component is created and, if the
-  // second parameter p (which is a promise) is passed, its component property
-  // is set to the newly created component, so that further references can be
-  // made before the component is fully deserialized.
-  environment.deserialize.component = function (elem, p) {
+  // second parameter promise is passed, its component property is set to the
+  // newly created component, so that further references can be made before the
+  // component is fully deserialized.
+  environment.deserialize.component = function (elem, promise) {
     var component = this.component();
-    if (p) {
-      p.component = component;
+    if (promise) {
+      _trace("deserialize.component: new component (%0) for %1"
+          .fmt(component.index, promise.url));
+      promise.component = component;
     }
     foreach.call(elem.attributes, function (attr) {
       if (attr.namespaceURI === null) {
@@ -360,7 +366,6 @@
         } else if (attr.localName === "id") {
           component.id(attr.value);
         } else if (attr.localName !== "href") {
-          // TODO use init_values for initialization
           component.init_values[attr.localName] = attr.value;
         }
       } else if (attr.namespaceURI === bender.ns) {
@@ -374,26 +379,18 @@
         var promise = this.urls[url];
         if (promise) {
           if (promise.value) {
-            try {
-              component.prototype(promise.value);
-            } catch (e) {
-              return new flexo.Promise().reject(e);
-            }
+            component.prototype(promise.value);
           } else if (promise.component) {
-            try {
-              component.prototype(promise.component);
-              return flexo.promise_each([promise, children]);
-            } catch (e) {
-              return promise.reject(e);
-            }
+            component.prototype(promise.component);
+            return flexo.collect_promises([promise, children]);
           } else {
-            return flexo.promise_each([promise.then(function (prototype) {
+            return flexo.collect_promises([promise.then(function (prototype) {
               component.prototype(prototype);
             }), children]);
           }
         } else {
-          return flexo.promise_each([
-            this.load_component(url).then(function (prototype) {
+          return flexo.collect_promises([this.load_component(url)
+            .then(function (prototype) {
               component.prototype(prototype);
             }), children]);
         }
@@ -516,10 +513,9 @@
       unshift.apply(links, p.links);
     }
     var component = this;
-    return flexo.promise_fold(links, function (_, link) {
-      // jshint unused: false
+    return flexo.collect_promises(links.map(function (link) {
       return link.load(component.scope.$document);
-    }).then(function () {
+    })).then(function () {
       return component;
     });
   };
