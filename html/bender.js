@@ -311,6 +311,7 @@
     this.event_vertices = {};        // event vertices (for reuse)
     this.document_vertices = {};     // event vertices for the document
     this.not_ready = true;           // not ready
+    this.not_running = true;         // not running
   };
 
   component.on = function (type, handler) {
@@ -477,22 +478,11 @@
     this.child_components.forEach(function (child) {
       child.loaded();
     });
-    _trace("Component %0 loaded".fmt(this.index));
     this.render_graph();
-  };
-
-  // Notify that the component is ready, as well as its prototype, its children,
-  // and its instances.
-  component.ready = function () {
     if (this.not_ready) {
-      if (this._prototype) {
-        this._prototype.ready();
-      }
-      this.child_components.forEach(function (child) {
-        child.ready();
-      });
-      this.notify("ready");
       delete this.not_ready;
+      _trace("ready! %0/%1".fmt(this.id(), this.index));
+      this.notify("ready");
     }
   };
 
@@ -769,6 +759,7 @@
     this.children.forEach(function (child) {
       child.ready();
     });
+    _trace("ready! %0".fmt(this.id()));
     this.notify("ready");
   };
 

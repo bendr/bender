@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" id="r">
-  <property name="ready" as="boolean" value="false"/>
+  <property name="ready" as="number" value="0"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Ready ? <html:span id="ready"/></html:p>
   </view>
@@ -8,7 +8,7 @@
     <set select="@ready" dom-property="textContent"/>
   </watch>
   <watch>
-    <get event="ready"/>
-    <set property="ready" value="true"/>
+    <get event="ready" value="1"/>
+    <set property="ready" value="`ready + $in"/>
   </watch>
 </component>
