@@ -806,7 +806,8 @@
           var q = queue.slice();
           queue = [];
           for (var i = 0, n = q.length; i < n; ++i) {
-            q[i]();
+            var f = q[i];
+            f();
           }
         }
       }, false);

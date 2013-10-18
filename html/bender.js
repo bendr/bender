@@ -56,6 +56,7 @@
     this.components = [];
     this.vertices = [];
     this.vortex = this.add_vertex(new bender.Vortex());
+    this.bindings_count = 0;
   }).prototype;
 
   // Create a new Bender component
@@ -92,7 +93,7 @@
       if (d instanceof bender.Component) {
         delete promise.component;
         d.url(url);
-        d.loaded();  // TODO review this
+        d.loaded();
         return d;
       } else {
         throw { message: "not a Bender component", response: response_ };
@@ -199,6 +200,12 @@
     vertex.outgoing.forEach(function (edge) {
       flexo.remove_from_array(edge.dest.incoming, edge);
     });
+  };
+
+  // Flush the graph to initialize properties of rendered components so far
+  environment.flush_graph = function () {
+    _trace("flush graph");
+
   };
 
 
@@ -311,7 +318,6 @@
     this.event_vertices = {};        // event vertices (for reuse)
     this.document_vertices = {};     // event vertices for the document
     this.not_ready = true;           // not ready
-    this.not_running = true;         // not running
   };
 
   component.on = function (type, handler) {
@@ -468,9 +474,10 @@
     var fragment = target.ownerDocument.createDocumentFragment();
     var instance = this.render(fragment);
     instance.add_event_listeners();
-    instance.init_properties();
+    // instance.init_properties();
+    this.scope.$environment.flush_graph();
     target.insertBefore(fragment, ref);
-    instance.ready();
+    // instance.ready();
     return instance;
   };
 
@@ -478,12 +485,15 @@
     this.child_components.forEach(function (child) {
       child.loaded();
     });
+    _trace("loaded %0/%1".fmt(this.id(), this.index));
     this.render_graph();
+    /*
     if (this.not_ready) {
       delete this.not_ready;
       _trace("ready! %0/%1".fmt(this.id(), this.index));
       this.notify("ready");
     }
+    */
   };
 
   // Render this component to a concrete instance for the given target.
@@ -588,6 +598,7 @@
         set.value(child.bindings[""].value);
       }
       var watch = new bender.Watch().child(set);
+      watch.bindings = true;
       Object.keys(child.bindings).forEach(function (id) {
         Object.keys(child.bindings[id]).forEach(function (prop) {
           watch.append_child(new bender.GetProperty(prop, id));
@@ -693,6 +704,19 @@
       parent.children.push(this);
     }
   }).prototype;
+
+  // Find the current property definition (i.e. Bender property node) for the
+  // property of an instance
+  instance.find_property_definition = function (name) {
+    if (name in this.properties) {
+      var scope = flexo.find_first(this.scopes, function (scope) {
+        return scope.$that.property_definitions.hasOwnProperty(name);
+      });
+      if (scope) {
+        return scope.$that.property_definitions[name];
+      }
+    }
+  };
 
   Object.defineProperty(instance, "scope", {
     enumerable: true,
@@ -1422,6 +1446,7 @@
     this.init();
     this.name = name;
     this.element = element;
+    this.uninitialized = true;
   }, bender.Vertex);
 
   property_vertex.shift_scope = event_vertex.shift_scope;
@@ -1446,27 +1471,10 @@
     }, this);
   };
 
-  property_vertex.should_init = function(instance) {
-    var id = instance.scope.$that.id() || instance.index;
+  property_vertex.should_init = function(component) {
     var queue = this.incoming.slice();
-    while (queue.length) {
-      var edge = queue.shift();
-      if (edge.source instanceof bender.EventVertex ||
-          edge.source instanceof bender.DOMEventVertex) {
-        break;
-      }
-      if (edge instanceof bender.PropertyEdge &&
-          !flexo.find_first(instance.scopes, function (s) {
-            return s.$that === edge.target;
-           })) {
-        break;
-      }
-      if (edge.source instanceof bender.PropertyVertex) {
-        return false;
-      }
-      Array.prototype.push.apply(queue, edge.source.incoming);
-    }
-    return true;
+    return component.scopes ? should_init_instance_property(queue, component) :
+      should_init_component_property(queue, component);
   };
 
 
@@ -1800,6 +1808,7 @@
     bindings[""].set.select = target;
     var watch = new bender.Watch()
       .child(bindings[""].set.value(bindings[""].value));
+    watch.bindings = true;
     Object.keys(bindings).forEach(function (id) {
       Object.keys(bindings[id]).forEach(function (prop) {
         watch.append_child(new bender.GetProperty(prop, id));
@@ -1865,7 +1874,7 @@
         element.parent instanceof bender.Set) {
       return;
     }
-    var target = "$%0".fmt(parent.bindings_scope.length);
+    var target = "$%0".fmt(parent.scope.$environment.bindings_count++);
     element.fake_id = target;
     parent.bindings_scope.push(this);
     Object.getPrototypeOf(parent.scope)[target] = element;
@@ -2005,6 +2014,45 @@
     }
     return text;
   }
+
+  function should_init_component_property(queue, component) {
+    while (queue.length) {
+      var edge = queue.shift();
+      if (edge.source instanceof bender.EventVertex ||
+          edge.source instanceof bender.DOMEventVertex) {
+        break;
+      }
+      if (edge instanceof bender.PropertyEdge && edge.target !== component) {
+        break;
+      }
+      if (edge.source instanceof bender.PropertyVertex) {
+        return false;
+      }
+      Array.prototype.push.apply(queue, edge.source.incoming);
+    }
+    return true;
+  }
+
+  function should_init_instance_property(queue, instance) {
+    while (queue.length) {
+      var edge = queue.shift();
+      if (edge.source instanceof bender.EventVertex ||
+          edge.source instanceof bender.DOMEventVertex) {
+        break;
+      }
+      if (edge instanceof bender.PropertyEdge &&
+          !flexo.find_first(instance.scopes, function (s) {
+            return s.$that === edge.target;
+           })) {
+        break;
+      }
+      if (edge.source instanceof bender.PropertyVertex) {
+        return false;
+      }
+      Array.prototype.push.apply(queue, edge.source.incoming);
+    }
+    return true;
+  };
 
   // Translate bindings from Javascript code (e.g., translate `x into
   // this.properties["x"] or @foo into $scope["@foo"]), taking care of not

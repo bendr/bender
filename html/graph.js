@@ -113,7 +113,8 @@
   };
 
   bender.WatchVertex.prototype.dot_properties = function () {
-    return "label=\"%0\",shape=square,fixedsize=true,width=0.3".fmt(this.index);
+    return "label=\"%0\",%1shape=square,fixedsize=true,width=0.3"
+      .fmt(this.index, this.watch.bindings ? "style=filled," : "");
   };
 
   bender.WatchVertex.prototype.dot_shape = function () {

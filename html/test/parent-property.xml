@@ -1,7 +1,8 @@
 <component xmlns="http://bender.igel.co.jp" id="parent">
   <property name="x" as="number" value="42"/>
+  <property name="z" value="flexo.safe_string(@child`y).toUpperCase()"/>
   <view>
-    `x = @child`y;
+    `x = `z;
     <component id="child">
       <property name="y"
         value="flexo.safe_string(flexo.to_roman(@parent`x)).toUpperCase()"/>
