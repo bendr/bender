@@ -1,6 +1,13 @@
 (function (bender) {
   "use strict";
 
+  // TODO
+  // [ ] set a property silently:
+  //       Object.getOwnPropertyDescriptor(component.properties, property)
+  //         .set.call(component.properties, value, true)
+  // [ ] new vertices for properties and events of specific components
+  // [ ] "inherit" as default value for property/@as
+
   /* global flexo, window, console */
   // jshint noempty: false
   // jshint forin: false
@@ -205,7 +212,39 @@
   // Flush the graph to initialize properties of rendered components so far
   environment.flush_graph = function () {
     _trace("flush graph");
+    var start_vertices = this.vertices.filter(function (vertex) {
+      return vertex.incoming.length === 0;
+    });
+    this.edges = sort_edges(this.vertices);
+    console.log(this.edges.map(function (edge) {
+      return "v%0 -> v%1".fmt(edge.source.index, edge.dest.index);
+    }).join("\n"));
+    this.components.forEach(function (c) {
+      c.__init = {};
+    });
+    // Init properties, then send ready events
+    // Go through property vertices in the order of the edges. For each
+    // property, identify all components/instances for which the property should
+    // be set, storing the pair [value, scope] in the __values property of the
+    // vertex (which is a list of such properties.) If the scope was already in
+    // the vertex, then don’t add a new value. The initial value is the
+    // init_value for the component for this property, or the value of the
+    // property if it is not a binding.
+    this.edges.forEach(function (edge) {
+      if (!edge.source.hasOwnProperty("__values")) {
+        edge.source.__values = [];
+        if (edge.source instanceof bender.PropertyVertex) {
+          var property = edge.source.element;
+          var component = property.parent;
+          if (property.select() === "$that") {
+            console.log("+ init component property %0".fmt(property.name));
 
+          } else {
+            console.log("+ init instance property %0".fmt(property.name));
+          }
+        }
+      }
+    });
   };
 
 
@@ -401,30 +440,10 @@
     });
   };
 
-  component.property_list = function () {
-    var l = this._prototype ? this._prototype.property_list() : [];
-    this.children.forEach(function (ch) {
-      if (ch instanceof bender.Property) {
-        flexo.remove_first_from_array(l, function (p) {
-          return p.name === ch.name;
-        });
-        l.push(ch);
-      }
-    });
-    return l;
-  };
-
   // Render the basic graph for this component
   component.render_graph = function () {
     this.watches.forEach(function (watch) {
       watch.render(this.scope);
-    }, this);
-    this.property_list().forEach(function (property) {
-      if (property._select === "$that" &&
-        this.properties.hasOwnProperty(property.name)) {
-        this.properties[property.name] =
-          property.value().call(this, this.scope);
-      }
     }, this);
   };
 
@@ -729,27 +748,6 @@
     return "%0:%1".fmt(this.scopes.map(function (scope) {
       return "%0,%1".fmt(scope.$that.id(), scope.$that.index);
     }).join(";"), this.index);
-  };
-
-  instance.init_properties = function () {
-    this.children.forEach(function (ch) {
-      ch.init_properties();
-    });
-    var uninitialized = [];
-    this.scope.$that.property_list().forEach(function (property) {
-      var vertex = property.parent.property_vertices[property.name];
-      if (!vertex.should_init(this)) {
-        uninitialized.push([property, vertex]);
-        return;
-      }
-      init_property.call(this, property, vertex);
-      vertex.visit_init(this.scope);
-    }, this);
-    uninitialized.forEach(function (p) {
-      if (typeof this.properties[p[0].name] === "undefined") {
-        init_property.apply(this, p);
-      }
-    }, this);
   };
 
   instance.add_event_listeners = function () {
@@ -1119,10 +1117,11 @@
     return element.append_child.call(this, child);
   };
 
-  // Render the watch and the corresponding get and set edges
+  // Render the watch and the corresponding get and set edges in the parent
+  // component scope
   watch.render = function (scope) {
     var w = scope.$environment.add_vertex(new
-        bender.WatchVertex(this));
+        bender.WatchVertex(this, scope.$that));
     this.gets.forEach(function (get) {
       var v = get.render(scope);
       if (v) {
@@ -1353,9 +1352,10 @@
 
   // Watch vertex corresponding to a watch element, gathers the inputs and
   // outputs of the watch
-  _class(bender.WatchVertex = function (watch) {
+  _class(bender.WatchVertex = function (watch, component) {
     this.init();
     this.watch = watch;
+    this.component = component;
   }, bender.Vertex);
 
 
@@ -1446,8 +1446,14 @@
     this.init();
     this.name = name;
     this.element = element;
-    this.uninitialized = true;
   }, bender.Vertex);
+
+  // Return whether this property applies to the component or its instances
+  Object.defineProperty(property_vertex, "is_component_property", {
+    get: function () {
+      return this.element.select() === "$that";
+    }
+  });
 
   property_vertex.shift_scope = event_vertex.shift_scope;
 
@@ -1458,17 +1464,6 @@
     this.environment.visit_vertex(this, scope, value);
     visit_property_vertex_derived.call(this, scope.$this, value, "derived");
     visit_property_vertex_derived.call(this, scope.$this, value, "instances");
-  };
-
-  property_vertex.visit_init = function (scope) {
-    this.outgoing.forEach(function (edge) {
-      if (edge instanceof bender.DependencyEdge) {
-        var scope_ = this.shift_scope(scope, edge);
-        if (scope_) {
-          edge.dest.visit(scope_);
-        }
-      }
-    }, this);
   };
 
   property_vertex.should_init = function(component) {
@@ -1904,7 +1899,6 @@
   }
 
   // Render a Javascript property in the properties object.
-  // TODO do not set the property on the component if select === "$this"
   function render_property_property(properties, name, value) {
     Object.defineProperty(properties, name, {
       enumerable: true,
@@ -1912,14 +1906,17 @@
       get: function () {
         return value;
       },
-      set: function (v) {
+      set: function (v, silent) {
         if (this.hasOwnProperty(name)) {
           check_value(v, this[""].scope.$that.property_definitions[name]);
           value = v;
         } else {
           render_property_property(this[""].properties, name, v);
         }
-        this[""].scope.$that.property_vertices[name].visit(this[""].scope);
+        if (!silent) {
+          _trace("set %0, visit vertex".fmt(name));
+          // this[""].scope.$that.property_vertices[name].visit(this[""].scope);
+        }
       }
     });
   }
@@ -1998,11 +1995,6 @@
     return this;
   }
 
-  function snd(_, y) {
-    // jshint unused: true
-    return y;
-  }
-
   // Return the concatenation of all text children (and only children) of elem
   function shallow_text(elem) {
     var text = "";
@@ -2013,6 +2005,48 @@
       }
     }
     return text;
+  }
+
+  function snd(_, y) {
+    // jshint unused: true
+    return y;
+  }
+
+  // Sort all edges in a graph from its set of vertices. Simply go through
+  // the list of vertices, starting with the sink vertices (which have no
+  // outgoing edge) and moving edges from the vertices to the sorted list of
+  // edges.
+  function sort_edges(vertices) {
+    var queue = vertices.filter(function (vertex) {
+      if (vertex instanceof bender.PropertyVertex &&
+        vertex.outgoing.length === 0) {
+        vertex.add_outgoing(new bender.Edge().init(vertex.environment.vortex));
+      }
+      vertex.__out = vertex.outgoing.length;
+      return vertex.__out === 0;
+    });
+    var edges = [];
+    while (queue.length) {
+      var v = queue.shift();
+      unshift.apply(edges, v.incoming.map(function (edge) {
+        if (edge.source.hasOwnProperty("__out")) {
+          --edge.source.__out;
+        } else {
+          edge.source.__out = edge.source.outgoing.length - 1;
+        }
+        if (edge.source.__out === 0) {
+          queue.push(edge.source);
+        }
+        return edge;
+      }));
+    }
+    vertices.forEach(function (vertex) {
+      if (vertex.__out !== 0) {
+        console.error("sort_edges: unqueued vertex", vertex);
+      }
+      delete vertex.__out;
+    });
+    return edges;
   }
 
   function should_init_component_property(queue, component) {

@@ -1,6 +1,9 @@
 <component xmlns="http://bender.igel.co.jp">
-  <property name="x" select="$that" value="1"/>
+  <property name="x" select="$that" as="number" value="1"/>
+  <property name="y" value="2"/>
+  <!--
   <view>
     <component href="../lib/button.xml" enabled="false"/>
   </view>
+  -->
 </component>
