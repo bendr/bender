@@ -3,6 +3,86 @@
 (function (bender) {
   "use strict";
 
+  var dom_vertices;
+
+  function graph(vertices, edges) {
+    dom_vertices = [];
+    return (
+      "digraph bender {\n" +
+      "  node [fontname=\"Avenir Next\"];\n" +
+      "  edge [fontname=\"Avenir Next\"];\n" +
+      "%0\n" +
+      "%1\n" +
+      "%2\n" +
+      "}\n").fmt(vertices.map(function (vertex) {
+        return "  %0;".fmt(vertex.graph());
+      }).join("\n"), edges.map(function (edge, i) {
+        return "  %0;".fmt(edge.graph(i));
+      }).join("\n"), dom_vertices.map(function (vertex) {
+        return "  %0;".fmt(vertex.graph());
+      }).join("\n"));
+  }
+
+  bender.Environment.prototype.graph = function () {
+    if (!this.edges) {
+      this.sort_edges();
+    }
+    window.open("data:text/vnd.graphviz;base64," +
+        window.btoa(graph(this.vertices, this.edges)), "Graph");
+  };
+
+  // TODO simpler graph for *this* component
+  bender.Component.prototype.graph = function () {
+    return this.scope.$environment.graph();
+  };
+
+  bender.Vertex.prototype.graph = function () {
+    return this.graph_name();
+  };
+
+  bender.Vertex.prototype.graph_name = function () {
+    return "v%0".fmt(this.index);
+  };
+
+  bender.PropertyVertex.prototype.graph = function () {
+    return "%0 [label=\"%1`%2/%3\"]"
+      .fmt(this.graph_name(), this.component.id() || this.component.index,
+          this.element.name, this.index);
+  };
+
+  bender.WatchVertex.prototype.graph = function () {
+    return "%0 [label=\"%1\",%2shape=square,fixedsize=true,width=0.3]"
+      .fmt(this.graph_name(), this.index,
+          this.watch.bindings ? "style=filled," : "");
+  };
+
+  bender.Edge.prototype.graph = function (i) {
+    return "%0 -> %1 [label=\"%2\"]"
+      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  };
+
+  var target_vertex = (bender.TargetVertex = function (index, target) {
+    this.index = index;
+    this.target = target;
+  }).prototype;
+
+  target_vertex.graph_name = function () {
+    return "w%0".fmt(this.index);
+  };
+
+  target_vertex.graph = function () {
+    return "%0 [label=\"%1\",shape=triangle]"
+      .fmt(this.graph_name(), this.target);
+  };
+
+  bender.DOMPropertyEdge.prototype.graph = function (i) {
+    var dest = new bender.TargetVertex(dom_vertices.length, this.element.select);
+    dom_vertices.push(dest);
+    return "%0 -> %1 [label=\"%2\"]"
+      .fmt(this.source.graph_name(), dest.graph_name(), i);
+  };
+
+
   var colors = {
     world: "#ff6a4d",
     browser: "#5eb26b",
@@ -34,7 +114,9 @@
       }
     }, this);
     vertices.push(world);
-    return dot(vertices);
+    window.open("data:text/vnd.graphviz;base64," +
+        window.btoa(dot(vertices)), "Graph");
+    // return dot(vertices);
   };
 
   // Create a dot representation of the graph
