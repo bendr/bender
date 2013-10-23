@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp" id="C">
+  <view>
+    <component id="A" href="inherit-property-prototype.xml" x="42"/>
+    <component id="B" href="inherit-property-prototype.xml">
+      <property name="x" value="@A`x - 2"/>
+    </component>
+  </view>
+</component>

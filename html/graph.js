@@ -50,6 +50,18 @@
           this.element.name, this.index);
   };
 
+  bender.EventVertex.prototype.graph = function () {
+    return "%0 [label=\"%1\\n%2/%3\",shape=septagon]"
+      .fmt(this.graph_name(), this.element.select, this.element.type,
+          this.index);
+  };
+
+  bender.DOMEventVertex.prototype.graph = function () {
+    return "%0 [label=\"%1\\n%2/%3\",shape=hexagon]"
+      .fmt(this.graph_name(), this.get.select, this.get.type, this.index,
+          this.index);
+  };
+
   bender.WatchVertex.prototype.graph = function () {
     return "%0 [label=\"%1\",%2shape=square,fixedsize=true,width=0.3]"
       .fmt(this.graph_name(), this.index,
@@ -75,12 +87,15 @@
       .fmt(this.graph_name(), this.target);
   };
 
+  bender.DOMAttributeEdge.prototype.graph = 
   bender.DOMPropertyEdge.prototype.graph = function (i) {
-    var dest = new bender.TargetVertex(dom_vertices.length, this.element.select);
+    var dest = new bender.TargetVertex(dom_vertices.length,
+        this.element.select);
     dom_vertices.push(dest);
     return "%0 -> %1 [label=\"%2\"]"
       .fmt(this.source.graph_name(), dest.graph_name(), i);
   };
+
 
 
   var colors = {

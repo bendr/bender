@@ -5,8 +5,9 @@
   // [ ] set a property silently:
   //       Object.getOwnPropertyDescriptor(component.properties, property)
   //         .set.call(component.properties, value, true)
-  // [ ] new vertices for properties and events of specific components
   // [ ] "inherit" as default value for property/@as
+  // [ ] <event> to declare events, treat event vertices as property vertices
+  //       but add transition from prototype to component
 
   /* global flexo, window, console */
   // jshint noempty: false
@@ -215,35 +216,40 @@
       return vertex.incoming.length === 0;
     });
     this.sort_edges();
-    console.log(this.edges.map(function (edge) {
-      return "v%0 -> v%1".fmt(edge.source.index, edge.dest.index);
-    }).join("\n"));
-    this.components.forEach(function (c) {
-      c.__init = {};
+    this.components.forEach(function (component) {
+      component.init_properties();
     });
-    // Init properties, then send ready events
-    // Go through property vertices in the order of the edges. For each
-    // property, identify all components/instances for which the property should
-    // be set, storing the pair [value, scope] in the __values property of the
-    // vertex (which is a list of such properties.) If the scope was already in
-    // the vertex, then don’t add a new value. The initial value is the
-    // init_value for the component for this property, or the value of the
-    // property if it is not a binding.
-    this.edges.forEach(function (edge) {
-      if (!edge.source.hasOwnProperty("__values")) {
-        edge.source.__values = [];
-        if (edge.source instanceof bender.PropertyVertex) {
-          var property = edge.source.element;
-          var component = property.parent;
-          if (property.select() === "$that") {
-            console.log("+ init component property %0".fmt(property.name));
 
-          } else {
-            console.log("+ init instance property %0".fmt(property.name));
-          }
+    // New visit graph
+    this.edges.forEach(function (edge, i) {
+      console.log("[%0] v%1 -> v%2".fmt(i, edge.source.index, edge.dest.index));
+      if (edge.source.__init && !edge.source.__values) {
+        edge.source.__values = edge.source.__init.map(function (init) {
+          var r = [init[0], set_property_silent(init[0].$this,
+            edge.source.element.name, init[1].call(init[0].$this, init[0]))];
+          console.log("  (init v%0=%1)".fmt(edge.source.index, r[1]));
+          return r;
+        });
+        delete edge.source.__init;
+      }
+      if (edge.source.__values) {
+        if (!edge.dest.__values) {
+          edge.dest.__values = [];
         }
+        edge.source.__values.forEach(function (v) {
+          var v_ = edge.follow.apply(edge, v);
+          if (v_) {
+            flexo.remove_first_from_array(edge.dest.__values, function (v__) {
+              return v_[0] === v__[0];
+            });
+            console.log("  %0".fmt(v_[1]));
+            edge.dest.__values.push(v_);
+          }
+        });
+        delete edge.source.__values;
       }
     });
+
   };
 
 
@@ -356,6 +362,27 @@
     this.event_vertices = {};        // event vertices (for reuse)
     this.document_vertices = {};     // event vertices for the document
     this.not_ready = true;           // not ready
+  };
+
+  component.init_properties = function () {
+    var init = function (component, property, value) {
+      component.property_vertices[property.name].__init =
+        property.select === "$that" ?
+          [[component.scope, value]] :
+          component.instances.map(function (instance) {
+            return [flexo.find_first(instance.scopes, function (scope) {
+              return scope.$that === component;
+            }), value];
+          });
+    }
+    for (var p in this.property_vertices) {
+      var property = this.property_definitions[p];
+      if (p in this.init_values) {
+        init(this, property, flexo.funcify(this.init_values[p]));
+      } else if (!property.bindings) {
+        init(this, property, property.value());
+      }
+    }
   };
 
   component.on = function (type, handler) {
@@ -492,10 +519,8 @@
     var fragment = target.ownerDocument.createDocumentFragment();
     var instance = this.render(fragment);
     instance.add_event_listeners();
-    // instance.init_properties();
     this.scope.$environment.flush_graph();
     target.insertBefore(fragment, ref);
-    // instance.ready();
     return instance;
   };
 
@@ -505,13 +530,6 @@
     });
     _trace("loaded %0/%1".fmt(this.id(), this.index));
     this.render_graph();
-    /*
-    if (this.not_ready) {
-      delete this.not_ready;
-      _trace("ready! %0/%1".fmt(this.id(), this.index));
-      this.notify("ready");
-    }
-    */
   };
 
   // Render this component to a concrete instance for the given target.
@@ -728,6 +746,8 @@
       parent.children.push(this);
     }
   }).prototype;
+
+  instance.init_properties = flexo.nop;
 
   // Find the current property definition (i.e. Bender property node) for the
   // property of an instance
@@ -1404,9 +1424,6 @@
     }
   };
 
-  // The scope of the event handler is the right one so need to shift it.
-  dom_event_vertex.shift_scope = flexo.id;
-
 
   var event_vertex = _class(bender.EventVertex = function (element) {
     this.init();
@@ -1420,27 +1437,6 @@
       flexo.listen(target, this.element.type, function (e) {
         this.visit(scope, e);
       });
-    }
-  };
-
-  event_vertex.shift_scope = function (scope, edge) {
-    var component = parent_component(edge.element);
-    var scopes = scope.$this.scopes;
-    if (scopes) {
-      for (var i = 0, n = scopes.length; i < n; ++i) {
-        for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
-          for (var k = 0, l = scopes[i][""][j].scopes.length;
-              k < l && scopes[i][""][j].scopes[k].$that !== component; ++k) {}
-          if (k < l) {
-            var scope_ = scopes[i][""][j].scopes[k];
-            if (scope_[edge.element.select || "$this"] === scope.$this) {
-              return scope_;
-            }
-          }
-        }
-      }
-    } else {
-      return component.scope;
     }
   };
 
@@ -1459,8 +1455,6 @@
       return this.element.select() === "$that";
     }
   });
-
-  property_vertex.shift_scope = event_vertex.shift_scope;
 
   // Visit a property vertex for this component, as well as its derived
   // components and instances if any
@@ -1505,6 +1499,29 @@
     this.dest = null;
   };
 
+  edge.follow = function (scope, input) {
+    try {
+      return [scope, this.followed(scope, this.element.value() ?
+        this.element.value().call(scope.$this, scope, input) : input)];
+    } catch (e) {
+    }
+  };
+
+  edge.followed = snd;
+
+
+  var prototype_edge = _class(bender.PrototypeEdge = function (dest, scope) {
+    this.init(dest);
+    this.dest_scope = scope;
+  }, bender.Edge);
+
+  prototype_edge.follow = function (scope, input) {
+    return [scope.$this.scopes ? flexo.find_first(scope.$this.scopes,
+        function (s) {
+          return s.$that === this.dest_scope.$that
+        }, this) : this.dest_scope, input];
+  };
+
 
   var event_listener_edge =
     _class(bender.EventListenerEdge = function (dest, scope, target) {
@@ -1527,57 +1544,17 @@
     return this;
   };
 
-  element_edge.follow = function (scope, input) {
-    if (!this.dest) {
-      return;
-    }
-    try {
-      if (this.should_follow(scope)) {
-        var value = this.element.value() ?
-          this.element.value().call(scope.$this, scope, input) : input;
-        return this.followed(flexo.find_first(scope.$this.scopes, function (s) {
-          return Object.getPrototypeOf(Object.getPrototypeOf(s))
-            [this.element.select] === this.target;
-        }, this) || scope, value);
-      }
-    } catch (e) {
-      return;
-    }
-  };
-
-  element_edge.should_follow = function (scope) {
-    return !!scope[this.element.select];
-  };
-
-  element_edge.followed = function (scope, value) {
-    return [this.dest, scope, value];
-  };
-
 
   // Edges with no target
   var dummy_edge = _class(bender.DummyEdge = function (element, dest) {
     this.init(element, dest);
   }, bender.ElementEdge);
 
-  dummy_edge.should_follow = flexo.funcify(true);
-
 
   // Edges to a watch vertex
   var watch_edge = _class(bender.WatchEdge = function (get, dest) {
     this.init(get, dest);
   }, bender.ElementEdge);
-
-  watch_edge.follow = function (scope, input) {
-    var scope_ = this.source.shift_scope(scope, this);
-    if (scope_) {
-      try {
-        var value = this.element.value() ?
-          this.element.value().call(scope_.$this, scope_, input) : input;
-        return this.followed(scope_, value);
-      } catch (e) {
-      }
-    }
-  };
 
 
   // Edges for a Bender event
@@ -1586,7 +1563,7 @@
   }, bender.ElementEdge);
 
   event_edge.followed = function (scope, value) {
-    return [this.dest, scope, { type: this.element.type, value: value }];
+    return { type: this.element.type, value: value };
   };
 
 
@@ -1602,6 +1579,7 @@
     if (target instanceof window.Node) {
       target[this.element.name] = value;
     }
+    return value;
   };
 
 
@@ -1617,18 +1595,14 @@
     this.target = target;
   }, bender.ElementEdge);
 
-  property_edge.should_follow = function (scope) {
-    return scope.$this !== scope.$that || this.element.select === "$that";
-  };
-
-  // Follow the property edge by finding the right target in the current scope
-  // and setting the property. Do not return anything as setting the property
-  // will do its own the traversal.
-  property_edge.followed = function (scope, value) {
-    scope[this.element.select].scope.$that.property_vertices[this.element.name]
-      .element.__loc = "%0: <%1>: "
-        .fmt(parent_component(this.element).url(), this.element.value());
-    scope[this.element.select].properties[this.element.name] = value;
+  property_edge.follow = function (scope, input) {
+    if (scope.$this !== scope.$that || this.element.select === "$that") {
+      var scope_ = shift_scope(scope, this);
+      var value = this.element.value() ?
+        this.element.value().call(scope_.$this, scope_, input) : input;
+      set_property_silent(scope_[this.element.select], this.element.name, value);
+      return [scope_, value];
+    }
   };
 
 
@@ -1757,7 +1731,8 @@
                 prototype.property_definitions[p]));
       }
       component.property_vertices[p]
-        .add_outgoing(new bender.Edge().init(prototype.property_vertices[p]));
+        .add_outgoing(new bender.PrototypeEdge(prototype.property_vertices[p],
+              prototype.scope));
     }
   }
 
@@ -1951,6 +1926,17 @@
     }
   }
 
+  // Silently set a property value for a component
+  function set_property_silent(component, property, value) {
+    for (var p = component.properties, descriptor; p && !descriptor;
+        descriptor = Object.getOwnPropertyDescriptor(p, property),
+        p = Object.getPrototypeOf(p)) {}
+    if (descriptor) {
+      descriptor.set.call(component.properties, value, true);
+      return value;
+    }
+  }
+
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
   function set_value_from_string(value, needs_return, loc) {
@@ -2013,6 +1999,27 @@
       }
     }
     return text;
+  }
+
+  function shift_scope(scope, edge) {
+    var component = parent_component(edge.element);
+    var scopes = scope.$this.scopes;
+    if (scopes) {
+      for (var i = 0, n = scopes.length; i < n; ++i) {
+        for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
+          for (var k = 0, l = scopes[i][""][j].scopes.length;
+              k < l && scopes[i][""][j].scopes[k].$that !== component; ++k) {}
+          if (k < l) {
+            var scope_ = scopes[i][""][j].scopes[k];
+            if (scope_[edge.element.select || "$this"] === scope.$this) {
+              return scope_;
+            }
+          }
+        }
+      }
+    } else {
+      return component.scope;
+    }
   }
 
   function snd(_, y) {
