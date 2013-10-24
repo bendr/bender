@@ -1,13 +1,12 @@
 <component xmlns="http://bender.igel.co.jp" id="parent">
   <property name="x" as="number" value="42"/>
-  <property name="z" value="flexo.safe_string(@child`y).toUpperCase()"/>
+  <property name="z" value="@child`y.toUpperCase()"/>
   <view>
-    `x = `z;
+    [parent] `x = `z;
     <component id="child">
-      <property name="y"
-        value="flexo.safe_string(flexo.to_roman(@parent`x)).toUpperCase()"/>
+      <property name="y" value="flexo.safe_string(flexo.to_roman(@parent`x))"/>
       <view>
-        `y = @parent`x
+        [child] `y = @parent`x
       </view>
     </component>
   </view>

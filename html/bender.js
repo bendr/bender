@@ -2,9 +2,6 @@
   "use strict";
 
   // TODO
-  // [ ] set a property silently:
-  //       Object.getOwnPropertyDescriptor(component.properties, property)
-  //         .set.call(component.properties, value, true)
   // [ ] "inherit" as default value for property/@as
   // [ ] <event> to declare events, treat event vertices as property vertices
   //       but add transition from prototype to component
@@ -246,9 +243,12 @@
             edge.dest.__values.push(v_);
           }
         });
-        delete edge.source.__values;
       }
     });
+    this.vertices.forEach(function (v) {
+      delete v.__values;
+    });
+
 
   };
 
@@ -1377,11 +1377,38 @@
 
   // Watch vertex corresponding to a watch element, gathers the inputs and
   // outputs of the watch
-  _class(bender.WatchVertex = function (watch, component) {
+  var watch_vertex = _class(bender.WatchVertex = function (watch, component) {
     this.init();
     this.watch = watch;
     this.component = component;
   }, bender.Vertex);
+
+  // Shift the input dynamic scope to the new scope for the watch
+  watch_vertex.shift_scope = function (scope, select) {
+    if (scope.$this.scopes) {
+      var scopes = scope.$this.scopes;
+      for (var i = 0, n = scopes.length; i < n; ++i) {
+        for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
+          for (var k = 0, l = scopes[i][""][j].scopes.length;
+              k < l && scopes[i][""][j].scopes[k].$that !== this.component; ++k)
+            {}
+          if (k < l) {
+            var scope_ = scopes[i][""][j].scopes[k];
+            if (scope_[select || "$this"] === scope.$this) {
+              return scope_;
+            }
+          }
+        }
+      }
+    } else {
+      for (var i = 0, n = scope.$this[""].length; i < n; ++i) {
+        if (scope.$this[""][i] === this.component) {
+          return scope.$this[""][i].scope;
+        }
+      }
+    }
+  };
+
 
 
   // DOM event vertex
@@ -1556,6 +1583,19 @@
     this.init(get, dest);
   }, bender.ElementEdge);
 
+  // Follow a watch edge: shift the input scope to match that of the destination
+  // watch node, and evaluate the value of the edge using the watch’s context.
+  watch_edge.follow = function (scope, input) {
+    try {
+      var scope_ = this.dest.shift_scope(scope, this.element.select);
+      return [scope_, this.element.value() ?
+        this.element.value().call(scope_.$this, scope_, input) : input];
+    } catch (e) {
+      console.warn("Error following watch edge v%0 -> v%1: %2"
+          .fmt(this.source.index, this.dest.index, e));
+    }
+  };
+
 
   // Edges for a Bender event
   var event_edge = _class(bender.EventEdge = function (set, dest) {
@@ -1597,11 +1637,10 @@
 
   property_edge.follow = function (scope, input) {
     if (scope.$this !== scope.$that || this.element.select === "$that") {
-      var scope_ = shift_scope(scope, this);
       var value = this.element.value() ?
-        this.element.value().call(scope_.$this, scope_, input) : input;
-      set_property_silent(scope_[this.element.select], this.element.name, value);
-      return [scope_, value];
+        this.element.value().call(scope.$this, scope, input) : input;
+      set_property_silent(scope[this.element.select], this.element.name, value);
+      return [scope, value];
     }
   };
 
@@ -1999,27 +2038,6 @@
       }
     }
     return text;
-  }
-
-  function shift_scope(scope, edge) {
-    var component = parent_component(edge.element);
-    var scopes = scope.$this.scopes;
-    if (scopes) {
-      for (var i = 0, n = scopes.length; i < n; ++i) {
-        for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
-          for (var k = 0, l = scopes[i][""][j].scopes.length;
-              k < l && scopes[i][""][j].scopes[k].$that !== component; ++k) {}
-          if (k < l) {
-            var scope_ = scopes[i][""][j].scopes[k];
-            if (scope_[edge.element.select || "$this"] === scope.$this) {
-              return scope_;
-            }
-          }
-        }
-      }
-    } else {
-      return component.scope;
-    }
   }
 
   function snd(_, y) {
