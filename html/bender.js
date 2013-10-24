@@ -376,10 +376,8 @@
           });
     }
     for (var p in this.property_vertices) {
-      var property = this.property_definitions[p];
-      if (p in this.init_values) {
-        init(this, property, flexo.funcify(this.init_values[p]));
-      } else if (!property.bindings) {
+      var property = this.init_values[p] || this.property_definitions[p];
+      if (!property.bindings) {
         init(this, property, property.value());
       }
     }
@@ -462,12 +460,21 @@
       }
       return children;
     }.call(this)).then(function () {
+      for (var p in component.init_values) {
+        var property = new bender.Property(p);
+        property.init_value = true;
+        component.append_child(property);
+        set_value_from_string.call(property, component.init_values[p], true,
+            component.url());
+        component.init_values[p] = property;
+      }
       return component.load_links();
     });
   };
 
   // Render the basic graph for this component
   component.render_graph = function () {
+
     this.watches.forEach(function (watch) {
       watch.render(this.scope);
     }, this);
@@ -612,12 +619,14 @@
   // Add a new property to the component, if no property with the same name was
   // already defined in the same component.
   component.add_property = function (child) {
-    if (this.property_definitions.hasOwnProperty(child.name)) {
-      console.error("Redefinition of property %0 in component %1"
-          .fmt(child.name, this.index));
-      return;
+    if (!child.init_value) {
+      if (this.property_definitions.hasOwnProperty(child.name)) {
+        console.error("Redefinition of property %0 in component %1"
+            .fmt(child.name, this.index));
+        return;
+      }
+      this.property_definitions[child.name] = child;
     }
-    this.property_definitions[child.name] = child;
     if (!this.property_vertices.hasOwnProperty(child.name)) {
       this.property_vertices[child.name] = this.scope.$environment.add_vertex(
         new bender.PropertyVertex(this, child)
@@ -1102,7 +1111,7 @@
     }
   };
 
-  _class(bender.Property = function (name) {
+  var property = _class(bender.Property = function (name) {
     this.init();
     this.name = flexo.safe_string(name);
   }, bender.Element);
@@ -1111,6 +1120,23 @@
   flexo._accessor(bender.Property, "select", normalize_property_select);
   flexo._accessor(bender.Property, "match");
   flexo._accessor(bender.Property, "value");
+
+  // Resolve the “inherit” value for `as`
+  property.resolve_as = function () {
+    var as = this.as();
+    if (as !== "inherit") {
+      return as;
+    }
+    for (var p = parent_component(this); p; p = p._prototype) {
+      if (p.property_definitions.hasOwnProperty(this.name)) {
+        as = p.property_definitions[this.name].as();
+        if (as !== "inherit") {
+          return as;
+        }
+      }
+    }
+    return "dynamic"
+  };
 
   environment.deserialize.property = function (elem) {
     return this.deserialize_element_with_value(new
@@ -1174,10 +1200,13 @@
     });
   };
 
-  _class(bender.GetSet = function () {}, bender.Element);
+  var get_set = _class(bender.GetSet = function () {}, bender.Element);
+
   flexo._accessor(bender.GetSet, "as", normalize_as);
   flexo._accessor(bender.GetSet, "match");
   flexo._accessor(bender.GetSet, "value");
+
+  get_set.resolve_as = property.resolve_as;
 
   _class(bender.Get = function () {}, bender.GetSet);
 
@@ -1737,7 +1766,7 @@
 
   // Check that a value is set to the type of its property
   function check_value(v, property) {
-    var as = property.as();
+    var as = property.resolve_as();
     if ((as === "boolean" && typeof v !== "boolean") ||
         (as === "number" && typeof v !== "number") ||
         (as === "string" && typeof v !== "string")) {
@@ -1840,7 +1869,7 @@
   function normalize_as(as) {
     as = flexo.safe_trim(as).toLowerCase();
     return as === "string" || as === "number" || as === "boolean" ||
-      as === "json" ? as : "dynamic";
+      as === "json" || as === "dynamic" ? as : "inherit";
   }
 
   // Normalize the `select` property of a property element so that it matches a
@@ -1951,7 +1980,7 @@
       number: 0,
       string: "",
       dynamic: snd
-    }[this.as()]);
+    }[this.resolve_as()]);
     return this;
   }
 
@@ -1981,7 +2010,7 @@
   function set_value_from_string(value, needs_return, loc) {
     // jshint validthis:true
     var bindings;
-    var as = this.as();
+    var as = this.resolve_as();
     if (as === "boolean") {
       this._value = flexo.is_true(value);
     } else if (as === "number") {
@@ -2012,8 +2041,7 @@
               .fmt(loc, value));
           this._value = snd;
         }
-      } else {
-        // this._as === "string"
+      } else { // if (as === "string") {
         var safe = flexo.safe_string(value);
         bindings = bindings_string(safe);
         if (typeof bindings === "object") {
