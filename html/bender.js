@@ -2,7 +2,6 @@
   "use strict";
 
   // TODO
-  // [ ] "inherit" as default value for property/@as
   // [ ] <event> to declare events, treat event vertices as property vertices
   //       but add transition from prototype to component
 

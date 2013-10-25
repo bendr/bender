@@ -1,0 +1,118 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  v0 [label="#A`x", style=filled, color="#333333", fontcolor="#f8f9f0"];
+  v1 [label="@A`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v0 -> v1 [color="#c0c0c0"];
+  v0 -> v5 [style="dashed"];
+  v2 [label="#A`y", style=filled, color="#c0c0c0", fontcolor=white];
+  v3 [label="@A`y"];
+  v2 -> v3 [color="#c0c0c0"];
+  w0 [label="", shape=square, fixedsize=true, width=0.3]
+  w1 [label="", shape=square, fixedsize=true, width=0.3]
+  t0 [shape=triangle];
+  v0 -> w0;
+  w0 -> v3;
+  v3 -> w1;
+  w1 -> t0;
+  e1000 [label="#A!ready", shape=septagon, color="#c0c0c0", fontcolor=white, style=filled];
+  e1001 [label="@A!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  e1000 -> e1001 [color="#c0c0c0"];
+
+  v4 [label="#B`x", style=filled, color="#c0c0c0", fontcolor=white];
+  v5 [label="@B`x"];
+  v0 -> v4 [color="#c0c0c0"];
+  v4 -> v5 [color="#c0c0c0"];
+  v1 -> v5 [color="#c0c0c0"];
+  v6 [label="#B`y", style=filled, color="#c0c0c0", fontcolor=white];
+  v7 [label="@B`y"];
+  v2 -> v6 [color="#c0c0c0"];
+  v6 -> v7 [color="#c0c0c0"];
+  v3 -> v7 [color="#c0c0c0"];
+  v3 -> v7 [style=dashed];
+  v8 [label="#B`z", style=filled, color="#c0c0c0", fontcolor=white];
+  v9 [label="@B`z"];
+  v8 -> v9 [color="#c0c0c0"];
+  w2 [label="", shape=square, fixedsize=true, width=0.3]
+  w3 [label="", shape=square, fixedsize=true, width=0.3]
+  t1 [shape=triangle];
+  t2 [shape=triangle];
+  v5 -> w2;
+  w2 -> t1;
+  v7 -> w3;
+  v9 -> w3;
+  w3 -> t2;
+  e0 [label="#B!ready", shape=septagon, color="#c0c0c0", fontcolor=white, style=filled];
+  e1 [label="@B!ready", shape=septagon];
+  e0 -> e1 [color="#c0c0c0"];
+  e1000 -> e0 [color="#c0c0c0"];
+  e1001 -> e1 [color="#c0c0c0"];
+  w4 [label="", shape=square, fixedsize=true, width=0.3]
+  e1 -> w4;
+  w4 -> v9;
+
+  v10 [label="#C`x", style=filled, color="#c0c0c0", fontcolor=white];
+  v11 [label="@C`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v10 -> v11 [color="#c0c0c0"];
+  v4 -> v10 [color="#c0c0c0"];
+  v5 -> v11 [color="#c0c0c0"];
+  v12 [label="#C`y", style=filled, color="#c0c0c0", fontcolor=white];
+  v13 [label="@C`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v12 -> v13 [color="#c0c0c0"];
+  v6 -> v12 [color="#c0c0c0"];
+  v7 -> v13 [color="#c0c0c0"];
+  v14 [label="#C`z", style=filled, color="#c0c0c0", fontcolor=white];
+  v15 [label="@C`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v14 -> v15 [color="#c0c0c0"];
+  v8 -> v14 [color="#c0c0c0"];
+  v9 -> v15 [color="#c0c0c0"];
+  e2 [label="#C!ready", shape=septagon, color="#c0c0c0", fontcolor=white, style=filled];
+  e3 [label="@C!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  e0 -> e2 [color="#c0c0c0"];
+  e1 -> e3 [color="#c0c0c0"];
+  e2 -> e3 [color="#c0c0c0"];
+
+  v110 [label="#D`x", style=filled, color="#c0c0c0", fontcolor=white];
+  v111 [label="@D`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v110 -> v111 [color="#c0c0c0"];
+  v4 -> v110 [color="#c0c0c0"];
+  v5 -> v111 [color="#c0c0c0"];
+  v112 [label="#D`y", style=filled, color="#c0c0c0", fontcolor=white];
+  v113 [label="@D`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v112 -> v113 [color="#c0c0c0"];
+  v6 -> v112 [color="#c0c0c0"];
+  v7 -> v113 [color="#c0c0c0"];
+  v114 [label="#D`z", style=filled, color="#c0c0c0", fontcolor=white];
+  v115 [label="@D`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v114 -> v115 [color="#c0c0c0"];
+  v8 -> v114 [color="#c0c0c0"];
+  v9 -> v115 [color="#c0c0c0"];
+  e12 [label="#D!ready", shape=septagon, color="#c0c0c0", fontcolor=white, style=filled];
+  e13 [label="@D!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  e0 -> e12 [color="#c0c0c0"];
+  e1 -> e13 [color="#c0c0c0"];
+  e12 -> e13 [color="#c0c0c0"];
+
+  v210 [label="#E`x", style=filled, color="#c0c0c0", fontcolor=white];
+  v211 [label="@E`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v210 -> v211 [color="#c0c0c0"];
+  v4 -> v210 [color="#c0c0c0"];
+  v5 -> v211 [color="#c0c0c0"];
+  v212 [label="#E`y", style=filled, color="#c0c0c0", fontcolor=white];
+  v213 [label="@E`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v212 -> v213 [color="#c0c0c0"];
+  v6 -> v212 [color="#c0c0c0"];
+  v7 -> v213 [color="#c0c0c0"];
+  v214 [label="#E`z", style=filled, color="#c0c0c0", fontcolor=white];
+  v215 [label="@E`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  v214 -> v215 [color="#c0c0c0"];
+  v8 -> v214 [color="#c0c0c0"];
+  v9 -> v215 [color="#c0c0c0"];
+  e22 [label="#E!ready", shape=septagon, color="#c0c0c0", fontcolor=white, style=filled];
+  e23 [label="@E!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  e0 -> e22 [color="#c0c0c0"];
+  e1 -> e23 [color="#c0c0c0"];
+  e22 -> e23 [color="#c0c0c0"];
+
+}
