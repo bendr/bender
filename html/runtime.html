@@ -17,14 +17,10 @@ body {
 "use strict";
 var args = flexo.get_args();
 bender.TRACE = !args.hasOwnProperty(":trace") || flexo.is_true(args[":trace"]);
-bender.load_component().then(function (component) {
-  window.APP = component;
-  if (flexo.is_true(args[":graph"])) {
-    console.log(component.scope.$environment.dot());
-  } else {
-    var instance = component.render_component(document.body);
-    bender._trace("*** Rendered %0".fmt(instance.id()));
-  }
+bender.render_component(args.href).then(function (instance) {
+  window.APP = instance.scope.$that;
+  window.ENV = instance.scope.$environment;
+  bender._trace("*** Rendered %0".fmt(instance.id()));
 }, function (reason) {
   alert(reason && reason.message || reason);
 });

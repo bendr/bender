@@ -1,14 +1,15 @@
 (function (bender) {
   "use strict";
 
-  // TODO
-  // [ ] <event> to declare events, treat event vertices as property vertices
-  //       but add transition from prototype to component
-
   /* global flexo, window, console */
   // jshint noempty: false
   // jshint forin: false
   // jshint -W054
+
+  // TODO
+  // [ ] <event> to declare events
+  // [ ] match attribute
+  // [ ] implicit transitions in graph
 
   bender.version = "0.8.2.5";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
@@ -47,6 +48,19 @@
     );
   };
 
+  bender.render_component = function (href, target, ref, env) {
+    if (!(env instanceof bender.Environment)) {
+      env = new bender.Environment();
+    }
+    if (!target) {
+      target = env.scope.$document.body || env.scope.$document.documentElement;
+    }
+    return env.load_component(
+        flexo.absolute_uri(env.scope.$document.baseURI, href)
+      ).then(function (component) {
+        return component.render_component(target, ref);
+      });
+  };
 
   // Create a new environment in a document, or window.document by default.
   var environment = (bender.Environment = function (document) {
@@ -58,16 +72,22 @@
     this.bindings_count = 0;
   }).prototype;
 
-  // Create a new Bender component
+  // Add a component or instance to the environment
+  environment.add_component = function (component) {
+    component.index = this.components.length;
+    this.components.push(component);
+    return component;
+  }
+
+  // Create a new Bender component in this environment and return it.
   environment.component = function (scope) {
-    return add_component_to_environment(this,
-        new bender.Component(scope || this.scope));
+    return this.add_component(new bender.Component(scope || this.scope));
   };
 
-  // Create a new instance for a component and an optional parent instance
+  // Create a new instance for a component and an optional parent instance, add
+  // it to the environment and return it.
   environment.instance = function (component, parent) {
-    return add_component_to_environment(this,
-        new bender.Instance(component, parent));
+    return this.add_component(new bender.Instance(component, parent));
   };
 
   // Load a component from an URL in the environment and return a promise which
@@ -136,9 +156,7 @@
   environment.deserialize_children = function (e, p) {
     return flexo.fold_promises($map(p.childNodes, function (ch) {
         return this.deserialize(ch);
-      }.bind(this)), function (e, ch) {
-        return e.child(ch);
-      }, e);
+      }, this), $call.bind(component.child), e);
   };
 
   // Deserialize common properties and contents for objects that have a value
@@ -1120,23 +1138,6 @@
   flexo._accessor(bender.Property, "match");
   flexo._accessor(bender.Property, "value");
 
-  // Resolve the “inherit” value for `as`
-  property.resolve_as = function () {
-    var as = this.as();
-    if (as !== "inherit") {
-      return as;
-    }
-    for (var p = parent_component(this); p; p = p._prototype) {
-      if (p.property_definitions.hasOwnProperty(this.name)) {
-        as = p.property_definitions[this.name].as();
-        if (as !== "inherit") {
-          return as;
-        }
-      }
-    }
-    return "dynamic"
-  };
-
   environment.deserialize.property = function (elem) {
     return this.deserialize_element_with_value(new
         bender.Property(elem.getAttribute("name"))
@@ -1204,8 +1205,6 @@
   flexo._accessor(bender.GetSet, "as", normalize_as);
   flexo._accessor(bender.GetSet, "match");
   flexo._accessor(bender.GetSet, "value");
-
-  get_set.resolve_as = property.resolve_as;
 
   _class(bender.Get = function () {}, bender.GetSet);
 
@@ -1697,13 +1696,6 @@
 
 
 
-  // Add a component or instance to the environment
-  function add_component_to_environment(environment, component) {
-    component.index = environment.components.length;
-    environment.components.push(component);
-    return component;
-  }
-
   // Identify property bindings for a dynamic property value string. When there
   // are none, return the string unchanged; otherwise, return the dictionary of
   // bindings (indexed by id, then property); bindings[""] will be the new value
@@ -1765,7 +1757,7 @@
 
   // Check that a value is set to the type of its property
   function check_value(v, property) {
-    var as = property.resolve_as();
+    var as = resolve_as.call(property);
     if ((as === "boolean" && typeof v !== "boolean") ||
         (as === "number" && typeof v !== "number") ||
         (as === "string" && typeof v !== "string")) {
@@ -1971,6 +1963,23 @@
     });
   }
 
+  // Resolve the “inherit” value for `as`
+  function resolve_as() {
+    var as = this.as();
+    if (as !== "inherit") {
+      return as;
+    }
+    for (var p = parent_component(this); p; p = p._prototype) {
+      if (p.property_definitions.hasOwnProperty(this.name)) {
+        as = p.property_definitions[this.name].as();
+        if (as !== "inherit") {
+          return as;
+        }
+      }
+    }
+    return "dynamic"
+  };
+
   // Set a default value depending on the as attribute
   function set_default_value() {
     // jshint validthis:true
@@ -1979,7 +1988,7 @@
       number: 0,
       string: "",
       dynamic: snd
-    }[this.resolve_as()]);
+    }[resolve_as.call(this)]);
     return this;
   }
 
@@ -2009,7 +2018,7 @@
   function set_value_from_string(value, needs_return, loc) {
     // jshint validthis:true
     var bindings;
-    var as = this.resolve_as();
+    var as = resolve_as.call(this);
     if (as === "boolean") {
       this._value = flexo.is_true(value);
     } else if (as === "number") {

@@ -11,12 +11,14 @@
 
   // Make free-standing versions of array functions to work on array-like
   // objects.
-  "filter forEach map push slice splice unshift".split(" ").forEach(function (f) {
-    global_["$" + f.toLowerCase()] =
-      Function.prototype.call.bind(Array.prototype[f]);
-    global_["$$" + f.toLowerCase()] =
-      Function.prototype.apply.bind(Array.prototype[f]);
-  });
+  global_.$call = Function.prototype.call;
+  global_.$apply = Function.prototype.apply;
+  global_.$bind = $call.bind(Function.prototype.bind);
+  "filter forEach map push slice splice unshift".split(" ")
+    .forEach(function (f) {
+      global_["$" + f.toLowerCase()] = $call.bind(Array.prototype[f]);
+      global_["$$" + f.toLowerCase()] = $apply.bind(Array.prototype[f]);
+    });
 
   // Define π as a global
   global_.π = Math.PI;
