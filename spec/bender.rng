@@ -381,6 +381,7 @@
   <define name="render-id">
     <attribute name="render-id">
       <choice>
+        <value>inherit</value>
         <value>class</value>
         <value>id</value>
         <value>none</value>
