@@ -10,6 +10,8 @@
   // [ ] <event> to declare events
   // [ ] match attribute
   // [ ] implicit transitions in graph
+  // [ ] evaluated expressions in string bindings, e.g.
+  //       <html:div class="button {{ `down ? 'down' : '' }}">...</html:div>
 
   bender.version = "0.8.2.5";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
@@ -235,6 +237,8 @@
     });
 
     // New visit graph
+    // TODO factor out the visit part; just initialize the value of vertices
+    // first. But then we have no explicit vertex?
     this.edges.forEach(function (edge, i) {
       console.log("[%0] v%1 -> v%2".fmt(i, edge.source.index, edge.dest.index));
       if (edge.source.__init && !edge.source.__values) {
@@ -265,8 +269,6 @@
     this.vertices.forEach(function (v) {
       delete v.__values;
     });
-
-
   };
 
 
@@ -340,19 +342,6 @@
     this.init(scope);
   }, bender.Element);
 
-  component.url = function (url) {
-    if (arguments.length === 0) {
-      url = this._url || (this.parent_component &&
-          flexo.normalize_uri(this.parent_component.url())) ||
-        flexo.normalize_uri(this.scope.$document.baseURI);
-      if (this._id) {
-        url += "#" + this._id;
-      }
-      return url;
-    }
-    this._url = url;
-  };
-
   component.init = function (scope) {
     element.init.call(this);
     var parent_scope = scope.hasOwnProperty("$environment") ?
@@ -372,13 +361,27 @@
     this.properties = init_properties_object(this, {});  // values
     this.property_vertices = {};     // property vertices (for reuse)
     this.init_values = {};           // initial property values from attributes
+    this.event_definitions = {};     // event nodes
+    this.event_vertices = {};        // event vertices (for reuse)
     this.child_components = [];      // all child components
     this.derived = [];               // derived components
     this.instances = [];             // rendered instances
     this.watches = [];               // watch nodes
-    this.event_vertices = {};        // event vertices (for reuse)
     this.document_vertices = {};     // event vertices for the document
     this.not_ready = true;           // not ready
+  };
+
+  component.url = function (url) {
+    if (arguments.length === 0) {
+      url = this._url || (this.parent_component &&
+          flexo.normalize_uri(this.parent_component.url())) ||
+        flexo.normalize_uri(this.scope.$document.baseURI);
+      if (this._id) {
+        url += "#" + this._id;
+      }
+      return url;
+    }
+    this._url = url;
   };
 
   component.init_properties = function () {
@@ -491,7 +494,6 @@
 
   // Render the basic graph for this component
   component.render_graph = function () {
-
     this.watches.forEach(function (watch) {
       watch.render(this.scope);
     }, this);
@@ -506,6 +508,11 @@
   // directly and not interpreted in any way)
   component.property = function (name, value) {
     return this.child(new bender.Property(name).value(value));
+  };
+
+  // Create a new event with the given name
+  component.event = function (name) {
+    return this.child(new bender.Event(name));
   };
 
   // Set the view of the component and return the component. If a view is given,
@@ -624,6 +631,8 @@
       }
     } else if (child instanceof bender.Property) {
       this.add_property(child);
+    } else if (child instanceof bender.Event) {
+      this.add_event(child);
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
     } else {
@@ -674,6 +683,16 @@
       });
       this.append_child(watch);
     }
+  };
+
+  // Add a new event to the component
+  component.add_event = function (child) {
+    if (this.event_definitions.hasOwnProperty(child.name)) {
+      console.warn("Redefinition of event %0 in component %1"
+          .fmt(child.name, this.index));
+      return;
+    }
+    this.event_definitions[child.name] = child;
   };
 
   // Component children of the view are added as child components with a
@@ -1128,6 +1147,7 @@
     }
   };
 
+
   var property = _class(bender.Property = function (name) {
     this.init();
     this.name = flexo.safe_string(name);
@@ -1143,6 +1163,17 @@
         bender.Property(elem.getAttribute("name"))
       .select(elem.getAttribute("select")), elem);
   };
+
+
+  var event = _class(bender.Event = function (name) {
+    this.init();
+    this.name = flexo.safe_string(name);
+  }, bender.Element);
+
+  environment.deserialize.event = function (elem) {
+    return new bender.Event(elem.getAttribute("name"));
+  };
+
 
   var watch = _class(bender.Watch = function () {
     this.init();

@@ -4,6 +4,7 @@
   <property name="down" as="boolean" value="false"/>
   <property name="down-class" value="`down ? 'down' : ''"/>
   <property name="enabled" as="boolean" value="true"/>
+  <event name="pushed"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:style scoped="scoped">
