@@ -6,14 +6,6 @@
   // jshint forin: false
   // jshint -W054
 
-  // TODO
-  // > implicit transitions in graph
-  // * replace $this/$that with @this/#this, $environment/$document don’t need $
-  // * render-id for every element
-  // * match attribute
-  // * evaluated expressions in string bindings, e.g.
-  //     <html:div class="button {{ `down ? 'down' : '' }}">...</html:div>
-
   bender.version = "0.8.2.5";
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
@@ -201,11 +193,6 @@
     return this.deserialize_children(e, elem);
   };
 
-  // Traverse the graph breadth-first from the given vertex/scope/value
-  environment.visit_vertex = function (vertex, scope, value) {
-    visit_queue([[vertex, scope, value]]);
-  };
-
   // Add a vertex to the watch graph and return it.
   environment.add_vertex = function (vertex) {
     vertex.index = this.vertices.length === 0 ?
@@ -268,6 +255,17 @@
     });
     this.vertices.forEach(function (v) {
       delete v.__values;
+    });
+  };
+
+  environment.visit_edges = function () {
+    this.edges.forEach(function (edge) {
+      edge.source.values.forEach(function (v) {
+        var v_ = edge.follow.apply(edge, v);
+        if (v_) {
+          edge.dest.values.push(v_);
+        }
+      }
     });
   };
 
@@ -588,22 +586,6 @@
     });
   };
 
-  component.find_vertices(kind, level, name) {
-    var queue = [this];
-    var vertices = [];
-    while (queue.length > 0) {
-      var q = queue.shift();
-      if (name in q.vertices[kind][level]) {
-        vertices.push(q.vertices[kind][level][name]);
-      }
-      if (level === "component" && name in q.vertices[kind].instance) {
-        vertices.push(q.vertices[kind].instance[name]);
-      }
-      $$push(queue, q.derived);
-    }
-    return vertices;
-  };
-
   // Get or set the prototype of the component (must be another component.)
   component.prototype = function (prototype) {
     if (arguments.length > 0) {
@@ -636,9 +618,9 @@
                             this.vertices.document.instance)
               }
             };
+            this.properties = extend(prototype.properties, this.properties);
             this.property_definitions = extend(prototype.property_definitions,
                 this.property_definitions);
-            this.properties = extend(prototype.properties, this.properties);
             this.event_definitions = extend(prototype.event_definitions,
                 this.event_definitions);
           } else {
@@ -1425,6 +1407,7 @@
   vertex.init = function () {
     this.incoming = [];
     this.outgoing = [];
+    this.values = [];
     return this;
   };
 
@@ -1442,10 +1425,6 @@
       edge.dest.incoming.push(edge);
     }
     return edge;
-  };
-
-  vertex.visit = function (scope, value) {
-    this.environment.visit_vertex(this, scope, value);
   };
 
 
@@ -1561,15 +1540,6 @@
       return this.element.select() === "$that";
     }
   });
-
-  // Visit a property vertex for this component, as well as its derived
-  // components and instances if any
-  property_vertex.visit = function (scope) {
-    var value = scope.$this.properties[this.element.name];
-    this.environment.visit_vertex(this, scope, value);
-    visit_property_vertex_derived.call(this, scope.$this, value, "derived");
-    visit_property_vertex_derived.call(this, scope.$this, value, "instances");
-  };
 
   property_vertex.should_init = function(component) {
     var queue = this.incoming.slice();
@@ -1829,6 +1799,25 @@
     return object;
   }
 
+  // Find all explicit vertices of the given kind (“property,” “event” or
+  // “document”) and level (“component” or “instance”) with the given name for a
+  // component.
+  function find_vertices(component, kind, level, name) {
+    var queue = [component];
+    var vertices = [];
+    while (queue.length > 0) {
+      var q = queue.shift();
+      if (name in q.vertices[kind][level]) {
+        vertices.push(q.vertices[kind][level][name]);
+      }
+      $$push(queue, q.derived);
+    }
+    if (level === "component") {
+      $$push(vertices, find_vertices(component, kind, "instance", name));
+    }
+    return vertices;
+  }
+
   // Get the instance scope for an instance from its parent instance, i.e. the
   // scope in the parent instance pointing to the parent component. If either
   // instance or component has no parent, simply create a new scope from the
@@ -1990,8 +1979,7 @@
           render_property_js(this[""].properties, name, v);
         }
         if (!silent) {
-          // TODO visit vertex
-          // this[""].scope.$that.property_vertices[name].visit(this[""].scope);
+          visit_vertices(this[""].scope, "property", name, v);
         }
       }
     });
@@ -2453,34 +2441,20 @@
     }
   }
 
-  // Visit a property vertex for derived components or instances of a component
-  // (given as a key)
-  function visit_property_vertex_derived(component, value, key) {
-    // jshint validthis:true
-    if (key in component) {
-      component[key].forEach(function (derived) {
-        if (!derived.properties.hasOwnProperty(this.element.name)) {
-          this.environment.visit_vertex(this, derived.scope, value);
-          visit_property_vertex_derived.call(this, derived, value, "instances");
-        }
-      }, this);
-    }
-  }
-
-  function visit_queue(queue) {
-    // Don’t cache the length of the queue as it grows during the traversal
-    for (var i = 0; i < queue.length; ++i) {
-      var q = queue[i];
-      var vertex = q[0];
-      var scope = q[1];
-      var value = q[2];
-      for (var j = 0, n = vertex.outgoing.length; j < n; ++j) {
-        var follow = vertex.outgoing[j].follow(scope, value);
-        if (follow) {
-          queue.push(follow);
+  function visit_vertices(scope, kind, name, value) {
+    var level = scope.$this === scope.$that ? "component" : "instance";
+    var v = [scope, value];
+    for (var p = scope.$that; p; p = p.prototype) {
+      if (name in p.vertices[kind][level]) {
+        p.vertices[kind][level][name].values.push(v);
+      }
+      if (level === "component") {
+        if (name in p.vertices[kind].instances) {
+          p.vertices[kind].instances[name].values.push(v);
         }
       }
     }
+    scope.$environment.visit_edges();
   }
 
 }(this.bender = {}));
