@@ -355,7 +355,6 @@
     this.vertices = {
       property: { component: {}, instance: {} },
       event: { component: {}, instance: {} },
-      document: { instance: {} }
     };
     this._on = {};                   // on-* attributes
     this.links = [];                 // link nodes
@@ -612,10 +611,6 @@
                                this.vertices.event.component),
                 instance: extend(prototype.vertices.event.instance,
                                this.vertices.event.instance)
-              },
-              document: {
-                instance: extend(prototype.vertices.document.instance,
-                            this.vertices.document.instance)
               }
             };
             this.properties = extend(prototype.properties, this.properties);
@@ -1277,7 +1272,11 @@
   get_property.render = function (scope) {
     var target = scope[this.select];
     if (target) {
-      return target.property_vertices[this.name];
+      var vertices = target.vertices.property[select_level(this.select)];
+      if (vertices.hasOwnProperty(this.name)) {
+        vertices[this.name] = new bender.PropertyVertex(scope.$that, this);
+      }
+      return vertices[this.name];
     }
   };
 
@@ -1528,16 +1527,18 @@
 
   // Create a new property vertex for a component (or instance) and property
   // definition pair.
-  var property_vertex = _class(bender.PropertyVertex = function (component, element) {
-    this.init();
-    this.component = component;
-    this.element = element;
-  }, bender.Vertex);
+  var property_vertex = _class(bender.PropertyVertex =
+      function (component, element) {
+        this.init();
+        this.component = component;
+        this.element = element;
+      }, bender.Vertex);
 
   // Return whether this property applies to the component or its instances
   Object.defineProperty(property_vertex, "is_component_property", {
     get: function () {
-      return this.element.select() === "$that";
+      var select = this.element.select();
+      return select === "$that" || select[0] === "#";
     }
   });
 
@@ -1953,9 +1954,8 @@
     // jshint validthis:true
     var target = scope[this.select];
     if (target) {
-      var vertices = this.select === "$document" ?
-        scope.$this.document_vertices : target.event_vertices;
-      if (!(this.type in vertices)) {
+      var vertices = target.vertices.events[select_level];
+      if (!vertices.hasOwnProperty(this.type)) {
         vertices[this.type] = scope.$environment
           .add_vertex(new Constructor(this));
       }
@@ -2001,6 +2001,11 @@
     }
     return "dynamic"
   };
+
+  function select_level(select) {
+    return select === "$that" || (select && select[0] === "#") ?
+      "component" : "instance";
+  }
 
   // Set a default value depending on the as attribute
   function set_default_value() {
