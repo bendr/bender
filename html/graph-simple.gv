@@ -4,14 +4,14 @@ digraph bender {
 
   ax [label="#A`x"];
   bbx [label="@B`x"];
-  ax -> bbx [color="#f8ca00", fontcolor="#f8ca00"];
+  ax -> bbx [color="#f8ca00"];
   bbx -> w0 [color="#ff6a4d"];
   w0 -> t0 [color="#ff6a4d"];
   aay [label="@A`y"];
   bby [label="@B`y"];
-  aay -> bby [color="#f8ca00", fontcolor="#f8ca00"];
-  ax -> w1 [color="#4dbce9", fontcolor="#4dbce9"];
-  w1 -> aay [color="#ff6a4d", fontcolor="#ff6a4d"];
+  aay -> bby [color="#f8ca00"];
+  ax -> w1 [color="#4dbce9"];
+  w1 -> aay [color="#ff6a4d"];
   aay -> w2 [color="#ff6a4d"];
   w2 -> t1 [color="#ff6a4d"];
   bby -> w3 [color="#ff6a4d"];

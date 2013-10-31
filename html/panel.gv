@@ -1,0 +1,54 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  idown [label="@b`down"];
+
+  idown -> w0;
+  w0 -> t0;
+
+  ienabled [label="@b`enabled"];
+
+  ienabled -> w7;
+  w7 -> t0;
+
+  mousedown [label="@div!mousedown", shape=septagon];
+  mousedown -> w2;
+  w2 -> idown;
+
+  mouseup [label="document!mouseup", shape=septagon];
+  mouseup -> w3;
+  w3 -> idown;
+
+  ipushed [label="@b`pushed", shape=septagon];
+  idown -> w4;
+  w4 -> ipushed [style=dotted];
+
+  in [label="@p`n"];
+
+  pipushed [label="@plus`pushed", shape=septagon];
+  ipushed -> pipushed [color="#f8ca00"];
+  pipushed -> w5;
+  w5 -> in;
+
+  mipushed [label="@minus`pushed", shape=septagon];
+  ipushed -> mipushed [color="#f8ca00"];
+  mipushed -> w6;
+  w6 -> in;
+
+  menabled [label="@minus`enabled"];
+  in -> w9;
+  w9 -> menabled;
+  menabled -> w7 [color="#f8ca00", style=dashed];
+
+  w0 [label="", shape=square, fixedsize=true, width=0.3];
+  w2 [label="", shape=square, fixedsize=true, width=0.3];
+  w3 [label="", shape=square, fixedsize=true, width=0.3];
+  w4 [label="", shape=square, fixedsize=true, width=0.3];
+  w5 [label="", shape=square, fixedsize=true, width=0.3];
+  w6 [label="", shape=square, fixedsize=true, width=0.3];
+  w7 [label="", shape=square, fixedsize=true, width=0.3];
+  w9 [label="", shape=square, fixedsize=true, width=0.3];
+  t0 [label="", shape=triangle, fixedsize=true];
+
+}
