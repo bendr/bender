@@ -4,9 +4,9 @@ digraph bender {
 
   ax [label="#A`x"];
   aay [label="@A`y"];
-  ax -> w0 [dirtype=diamond, style=dashed];
-  ax -> w0 [dirtype=diamond, color="#5eb26b"];
-  ax -> w2 [dirtype=diamond, color="#5eb26b"];
+  ax -> w0 [arrowhead=diamond, style=dashed];
+  ax -> w0 [arrowhead=diamond, color="#5eb26b"];
+  ax -> w2 [arrowhead=diamond, color="#5eb26b"];
   w0 -> aay [style=dashed];
   w0 -> aay [color="#5eb26b"];
   w0 -> bby [color="#5eb26b"];
@@ -14,13 +14,13 @@ digraph bender {
   w1 -> t0;
 
   bbx [label="@B`x"];
-  ax -> bbx [color="#774f38", dirtype=none];
+  ax -> bbx [color="#774f38", arrowhead=none];
   bbx -> w2;
   bbx -> w0 [color="#f94179"];
   w2 -> t1;
 
   bby [label="@B`y"];
-  aay -> bby [color="#774f38", dirtype=none];
+  aay -> bby [color="#774f38", arrowhead=none];
   bby -> w3;
   bby -> w1 [color="#f94179"];
   w3 -> t2;
