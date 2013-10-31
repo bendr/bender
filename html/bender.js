@@ -265,7 +265,7 @@
         if (v_) {
           edge.dest.values.push(v_);
         }
-      }
+      });
     });
   };
 
@@ -760,8 +760,16 @@
     component.instances.push(this);
     this.properties = init_properties_object(this,
       Object.create(component.properties));
-    this.event_vertices = Object.create(component.event_vertices);
-    this.document_vertices = Object.create(component.document_vertices);
+    this.vertices = {
+      property: {
+        component: Object.create(component.vertices.property.component),
+        instance: Object.create(component.vertices.property.instance)
+      },
+      event: {
+        component: Object.create(component.vertices.event.component),
+        instance: Object.create(component.vertices.event.instance)
+      }
+    };
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
@@ -1212,7 +1220,7 @@
           var target = scope[select];
           if (target) {
             for (var p in get.bindings[select]) {
-              var u = target.property_vertices[p];
+              var u = vertex_property(target, scope);
               if (u) {
                 u.add_outgoing(new bender.DependencyEdge(this, v));
               }
@@ -1333,8 +1341,8 @@
   }, bender.Set);
 
   set_dom_property.render = function (scope) {
-    var dest = vertex_property(this.select, scope, 
-    return render_edge(this, scope, bender.DOMPropertyEdge);
+    return render_edge(this, scope, scope.$environment.vortex,
+        bender.DOMPropertyEdge);
   };
 
   var set_property = _class(bender.SetProperty = function (name, select) {
@@ -1344,7 +1352,8 @@
   }, bender.Set);
 
   set_property.render = function (scope) {
-    return render_edge(this, scope, bender.PropertyEdge);
+    return render_edge(this, scope, vertex_property(this, scope),
+        bender.PropertyEdge);
   };
 
   var set_dom_attribute =
@@ -1356,7 +1365,8 @@
   }, bender.Set);
 
   set_dom_attribute.render = function (scope) {
-    return render_edge(this, scope, bender.DOMAttributeEdge);
+    return render_edge(this, scope, scope.$environment.vortex,
+        bender.DOMAttributeEdge);
   };
 
   _class(bender.SetAttribute = function (name, select) {
@@ -1416,7 +1426,7 @@
     return edge;
   };
 
-  Object.defineProperty(property_vertex, "is_component_vertex", {
+  Object.defineProperty(vertex, "is_component_vertex", {
     get: function () {
       var select = this.element.select();
       return select === "$that" || select[0] === "#";
@@ -1616,7 +1626,6 @@
 
   // Edges for a Bender event
   var event_edge = _class(bender.EventEdge = function (set, target) {
-    var dest = vertex_event(this.element
     this.init(set, dest);
   }, bender.ElementEdge);
 
@@ -1627,10 +1636,11 @@
 
   // A DOM property edge is associated to a set element and always goes to the
   // vortex
-  var dom_property_edge = _class(bender.DOMPropertyEdge = function (set, target) {
-    this.init(set);
-    this.target = target;
-  }, bender.ElementEdge);
+  var dom_property_edge =
+    _class(bender.DOMPropertyEdge = function (set, target, scope) {
+      this.init(set);
+      this.target = target;
+    }, bender.ElementEdge);
 
   dom_property_edge.followed = function (scope, value) {
     var target = scope[this.element.select];
@@ -1642,16 +1652,17 @@
 
 
   // Set a Bender property
-  var property_edge = _class(bender.PropertyEdge = function (set, target) {
-    var dest = target.property_vertices[set.name];
-    if (!dest) {
-      console.warn("No property %0 for component %1"
-        .fmt(set.name, target.index));
-      return;
-    }
-    this.init(set, dest);
-    this.target = target;
-  }, bender.ElementEdge);
+  var property_edge =
+    _class(bender.PropertyEdge = function (set, target, scope) {
+      var dest = vertex_property(set, scope);
+      if (!dest) {
+        console.warn("No property %0 for component %1"
+          .fmt(set.name, target.index));
+        return;
+      }
+      this.init(set, dest);
+      this.target = target;
+    }, bender.ElementEdge);
 
   property_edge.follow = function (scope, input) {
     if (scope.$this !== scope.$that || this.element.select === "$that") {
@@ -1916,10 +1927,10 @@
     }
   }
 
-  function render_edge(set, scope, Constructor) {
+  function render_edge(set, scope, dest, Constructor) {
     var target = scope[set.select];
     if (target) {
-      return new Constructor(set, target, dest);
+      return new Constructor(set, target, scope, dest);
     }
   }
 
@@ -2408,13 +2419,18 @@
 
   function vertex_event(element, scope, Constructor) {
     var target = scope[element.select];
-    if (target) {
-      var vertices = target.vertices.events[select_level(element.select)];
+    if (target.vertices && target.vertices.event) {
+      var vertices = target.vertices.event[select_level(element.select)];
       if (!vertices.hasOwnProperty(element.type)) {
         vertices[element.type] = scope.$environment
           .add_vertex(new Constructor(scope.$that, element));
       }
       return vertices[element.type];
+    } else {
+
+      // TODO
+      // DOM Node
+
     }
   }
 
