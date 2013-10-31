@@ -3,31 +3,42 @@ digraph bender {
   edge [fontname="Avenir Next"];
 
   ax [label="#A`x"];
-  bbx [label="@B`x"];
-  ax -> bbx [color="#f8ca00"];
-  bbx -> w0 [color="#ff6a4d"];
-  w0 -> t0 [color="#ff6a4d"];
   aay [label="@A`y"];
+  ax -> w0 [dirtype=diamond, style=dashed];
+  ax -> w0 [dirtype=diamond, color="#5eb26b"];
+  ax -> w2 [dirtype=diamond, color="#5eb26b"];
+  w0 -> aay [style=dashed];
+  w0 -> aay [color="#5eb26b"];
+  w0 -> bby [color="#5eb26b"];
+  aay -> w1;
+  w1 -> t0;
+
+  bbx [label="@B`x"];
+  ax -> bbx [color="#774f38", dirtype=none];
+  bbx -> w2;
+  bbx -> w0 [color="#f94179"];
+  w2 -> t1;
+
   bby [label="@B`y"];
-  aay -> bby [color="#f8ca00"];
-  ax -> w1 [color="#4dbce9"];
-  w1 -> aay [color="#ff6a4d"];
-  aay -> w2 [color="#ff6a4d"];
-  w2 -> t1 [color="#ff6a4d"];
-  bby -> w3 [color="#ff6a4d"];
-  bbz -> w3 [color="#ff6a4d"];
-  w3 -> t2 [color="#ff6a4d"];
+  aay -> bby [color="#774f38", dirtype=none];
+  bby -> w3;
+  bby -> w1 [color="#f94179"];
+  w3 -> t2;
+
   bbz [label="@B`z"];
-  bbr [label="@B!ready", shape=septagon];
-  bbr -> w4 [color="#ff6a4d"];
-  w4 -> bbz [color="#ff6a4d"];
+  bbz -> w3;
+
+  br [label="@B!ready", shape=septagon];
+  br -> w4;
+  w4 -> bbz;
+
   w0 [label="", shape=square, fixedsize=true, width=0.3];
   w1 [label="", shape=square, fixedsize=true, width=0.3];
   w2 [label="", shape=square, fixedsize=true, width=0.3];
   w3 [label="", shape=square, fixedsize=true, width=0.3];
   w4 [label="", shape=square, fixedsize=true, width=0.3];
-  t0 [label="", shape=triangle, fixedsize=true];
-  t1 [label="", shape=triangle, fixedsize=true];
-  t2 [label="", shape=triangle, fixedsize=true];
+  t0 [label="", shape=triangle, fixedsize=true, width=0.5];
+  t1 [label="", shape=triangle, fixedsize=true, width=0.5];
+  t2 [label="", shape=triangle, fixedsize=true, width=0.5];
 
 }

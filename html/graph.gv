@@ -4,106 +4,113 @@ digraph bender {
 
   ax [label="#A`x"];
   aax [label="@A`x", color="#c0c0c0", fontcolor="#c0c0c0"];
-  bx [label="#B`x", color="#c0c0c0", fontcolor="#c0c0c0"];
-  bbx [label="@B`x"];
-  cx [label="#C`x", color="#c0c0c0", fontcolor="#c0c0c0"];
-  ccx [label="@C`x", color="#c0c0c0", fontcolor="#c0c0c0"];
-  dx [label="#D`x", color="#c0c0c0", fontcolor="#c0c0c0"];
-  ddx [label="@D`x", color="#c0c0c0", fontcolor="#c0c0c0"];
-
-  ax -> aax [color="#c0c0c0"];
-  ax -> bx [color="#c0c0c0"];
-  ax -> bbx [color="#f8ca00", fontcolor="#f8ca00", label="redirection"];
-  aax -> bbx [color="#c0c0c0"];
-  bx -> bbx [color="#c0c0c0"];
-  bx -> cx [color="#c0c0c0", fontcolor="#c0c0c0", label="implicit"];
-  bx -> dx [color="#c0c0c0"];
-  bbx -> ccx [color="#c0c0c0"];
-  bbx -> ddx [color="#c0c0c0"];
-  cx -> ccx [color="#c0c0c0"];
-  dx -> ddx [color="#c0c0c0"];
-
-  bbx -> w0 [color="#ff6a4d"];
-  w0 -> t0 [color="#ff6a4d"];
-
+  ax -> aax [dirtype=none, color="#c0c0c0"];
   ay [label="#A`y", color="#c0c0c0", fontcolor="#c0c0c0"];
   aay [label="@A`y"];
+  ay -> aay [dirtype=none, color="#c0c0c0"];
+  ax -> w0 [dirtype=diamond, style=dashed];
+  ax -> w0 [dirtype=diamond, color="#5eb26b"];
+  ax -> w2 [dirtype=diamond, color="#5eb26b"];
+  w0 -> aay [style=dashed];
+  w0 -> aay [color="#5eb26b"];
+  w0 -> bby [color="#5eb26b"];
+  aay -> w1;
+  w1 -> t0;
+
+  bx [label="#B`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  ax -> bx [dirtype=none, color="#c0c0c0"];
+  bbx [label="@B`x"];
+  bx -> bbx [dirtype=none, color="#c0c0c0"];
+  aax -> bbx [dirtype=none, color="#c0c0c0"];
+  ax -> bbx [color="#774f38", dirtype=none];
+  bbx -> w2;
+  bbx -> w0 [color="#f94179"];
+  w2 -> t1;
+
+  cx [label="#C`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  bx -> cx [dirtype=none, color="#c0c0c0"];
+  ccx [label="@C`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  cx -> ccx [dirtype=none, color="#c0c0c0"];
+  bbx -> ccx [dirtype=none, color="#c0c0c0"];
+  dx [label="#D`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  bx -> dx [dirtype=none, color="#c0c0c0"];
+  ddx [label="@D`x", color="#c0c0c0", fontcolor="#c0c0c0"];
+  dx -> ddx [dirtype=none, color="#c0c0c0"];
+  bbx -> ddx [dirtype=none, color="#c0c0c0"];
+  
   by [label="#B`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  ay -> by [dirtype=none, color="#c0c0c0"];
   bby [label="@B`y"];
+  by -> bby [dirtype=none, color="#c0c0c0"];
+  aay -> bby [color="#774f38", dirtype=none];
+  bby -> w3;
+  bby -> w1 [color="#f94179"];
+  w3 -> t2;
+
   cy [label="#C`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  by -> cy [dirtype=none, color="#c0c0c0"];
   ccy [label="@C`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  cy -> ccy [dirtype=none, color="#c0c0c0"];
+  bby -> ccy [dirtype=none, color="#c0c0c0"];
   dy [label="#D`y", color="#c0c0c0", fontcolor="#c0c0c0"];
+  by -> dy [dirtype=none, color="#c0c0c0"];
   ddy [label="@D`y", color="#c0c0c0", fontcolor="#c0c0c0"];
-
-  ay -> aay [color="#c0c0c0"];
-  ay -> by [color="#c0c0c0"];
-  aay -> bby [color="#f8ca00"];
-  by -> bby [color="#c0c0c0"];
-  by -> cy [color="#c0c0c0"];
-  by -> dy [color="#c0c0c0"];
-  cy -> ccy [color="#c0c0c0"];
-  dy -> ddy [color="#c0c0c0"];
-  bby -> ccy [color="#c0c0c0"];
-  bby -> ddy [color="#c0c0c0"];
-
-  ax -> w1 [color="#4dbce9", fontcolor="#4dbce9", label="component"];
-  w1 -> aay [color="#ff6a4d", fontcolor="#ff6a4d", label="instance"];
-  aay -> w2 [color="#ff6a4d"];
-  w2 -> t1 [color="#ff6a4d"];
-  bby -> w3 [color="#ff6a4d"];
-  bbz -> w3 [color="#ff6a4d"];
-  w3 -> t2 [color="#ff6a4d"];
+  dy -> ddy [dirtype=none, color="#c0c0c0"];
+  bby -> ddy [dirtype=none, color="#c0c0c0"];
 
   bz [label="#B`z", color="#c0c0c0", fontcolor="#c0c0c0"];
   bbz [label="@B`z"];
-  cz [label="#C`z", color="#c0c0c0", fontcolor="#c0c0c0"];
-  dz [label="#D`z", color="#c0c0c0", fontcolor="#c0c0c0"];
-  ccz [label="@C`z", color="#c0c0c0", fontcolor="#c0c0c0"];
-  ddz [label="@D`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  bz -> bbz [dirtype=none, color="#c0c0c0"];
+  bbz -> w3;
 
-  bz -> bbz [color="#c0c0c0"];
-  bz -> cz [color="#c0c0c0"];
-  cz -> ccz [color="#c0c0c0"];
-  bz -> dz [color="#c0c0c0"];
-  dz -> ddz [color="#c0c0c0"];
-  bbz -> ccz [color="#c0c0c0"];
-  bbz -> ddz [color="#c0c0c0"];
+  cz [label="#C`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  bz -> cz [dirtype=none, color="#c0c0c0"];
+  ccz [label="@C`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  cz -> ccz [dirtype=none, color="#c0c0c0"];
+  bbz -> ccz [dirtype=none, color="#c0c0c0"];
+  dz [label="#D`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  bz -> dz [dirtype=none, color="#c0c0c0"];
+  ddz [label="@D`z", color="#c0c0c0", fontcolor="#c0c0c0"];
+  dz -> ddz [dirtype=none, color="#c0c0c0"];
+  bbz -> ddz [dirtype=none, color="#c0c0c0"];
+
+  ar [label="#A!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  aar [label="@A!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  ar -> aar [dirtype=none, color="#c0c0c0"];
+  ar -> br [dirtype=none, color="#c0c0c0"];
+  br [label="#B!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  bbr [label="@B!ready", shape=septagon];
+  br -> bbr [dirtype=none, color="#c0c0c0"];
+  aar -> bbr [dirtype=none, color="#c0c0c0"];
+  bbr -> w4;
+  w4 -> bbz;
+
+  cr [label="#C!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  ccr [label="@C!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  bbr -> ccr [dirtype=none, color="#c0c0c0"];
+  br -> cr [dirtype=none, color="#c0c0c0"];
+  cr -> ccr [dirtype=none, color="#c0c0c0"];
+
+  dr [label="#D!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  ddr [label="@D!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  bbr -> ddr [dirtype=none, color="#c0c0c0"];
+  br -> dr [dirtype=none, color="#c0c0c0"];
+  dr -> ddr [dirtype=none, color="#c0c0c0"];
 
   kr [label="#K!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  ar [label="#A!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  br [label="#B!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  cr [label="#C!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  dr [label="#D!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
   kkr [label="@K!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  aar [label="@A!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  bbr [label="@B!ready", shape=septagon];
-  ccr [label="@C!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
-  ddr [label="@D!ready", shape=septagon, color="#c0c0c0", fontcolor="#c0c0c0"];
+  kr -> kkr [dirtype=none, color="#c0c0c0"];
+  kr -> cr [color="#c0c0c0"];
+  kr -> dr [color="#c0c0c0"];
 
-  kr -> kkr [color="#c0c0c0"];
-  kkr -> ccr [color="#c0c0c0"];
-  kkr -> ddr [color="#c0c0c0"];
-  ar -> br [color="#c0c0c0"];
-  ar -> aar [color="#c0c0c0"];
-  aar -> bbr [color="#c0c0c0"];
-  br -> bbr [color="#c0c0c0"];
-  br -> cr [color="#c0c0c0"];
-  br -> dr [color="#c0c0c0"];
-  bbr -> ccr [color="#c0c0c0"];
-  bbr -> ddr [color="#c0c0c0"];
-  cr -> ccr [color="#c0c0c0"];
-  dr -> ddr [color="#c0c0c0"];
-
-  bbr -> w4 [color="#ff6a4d"];
-  w4 -> bbz [color="#ff6a4d"];
 
   w0 [label="", shape=square, fixedsize=true, width=0.3];
   w1 [label="", shape=square, fixedsize=true, width=0.3];
   w2 [label="", shape=square, fixedsize=true, width=0.3];
   w3 [label="", shape=square, fixedsize=true, width=0.3];
   w4 [label="", shape=square, fixedsize=true, width=0.3];
-  t0 [label="", shape=triangle, fixedsize=true];
-  t1 [label="", shape=triangle, fixedsize=true];
-  t2 [label="", shape=triangle, fixedsize=true];
+  t0 [label="", shape=triangle, fixedsize=true, width=0.5];
+  t1 [label="", shape=triangle, fixedsize=true, width=0.5];
+  t2 [label="", shape=triangle, fixedsize=true, width=0.5];
 
 }
