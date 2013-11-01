@@ -19,25 +19,22 @@ digraph bender {
 
   pushed [label="pushed", shape=septagon];
   down -> w3;
-  w3 -> pushed [arrowhead=empty, style=dashed];
-  w3 -> pushed [arrowhead=empty, color="#5eb26b"];
+  w3 -> pushed [arrowhead=empty];
 
   n [label="n"];
 
   ppushed [label="+pushed", shape=septagon];
-  pushed -> ppushed [color="#774f38", arrowhead=none];
+  pushed -> ppushed [color="#f8ca00"];
   ppushed -> w4;
-  w3 -> ppushed [arrowhead=empty, color="#5eb26b"];
   w4 -> n;
 
   mpushed [label="-pushed", shape=septagon];
-  pushed -> mpushed [color="#774f38", arrowhead=none];
+  pushed -> mpushed [color="#f8ca00"];
   mpushed -> w5;
-  w3 -> mpushed [arrowhead=empty, color="#5eb26b"];
   w5 -> n;
 
   menabled [label="-enabled"];
-  enabled -> menabled [color="#774f38", arrowhead=none];
+  enabled -> menabled [color="#f8ca00"];
   n -> w6;
   w6 -> menabled;
   menabled -> w0 [color="#f94179"];
