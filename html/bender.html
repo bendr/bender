@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Bender HTML Runtime</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: "Avenir Next", "Helvetica Neue", Helvetica, sans-serif;
+}
+    </style>
+  </head>
+  <body>
+    <script src="flexo.js"></script>
+    <script src="src/core.js"></script>
+    <script src="src/tree.js"></script>
+    <script src="src/graph.js"></script>
+    <script src="src/xml.js"></script>
+    <script>
+"use strict";
+var env = new bender.Environment();
+var A = env.component().id("A").child(new bender.Property("x").value("42"));
+var B = env.component().id("B").prototype(A);
+var C = env.component().id("C").prototype(B);
+var D = env.component().id("D").prototype(B);
+var E = env.component().id("E").prototype(B);
+var K = env.component().id("K").child(A).child(B).view(C, D, E);
+console.log(K.serialize());
+// console.log(K.as_xml());
+    </script>
+  </body>
+</html>

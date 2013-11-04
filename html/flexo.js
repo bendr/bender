@@ -6,6 +6,7 @@
   var global_ = browserp ? window : typeof global === "object" ? global :
     (function () { return this; }());
   var flexo = typeof exports === "object" ? exports : global_.flexo = {};
+  flexo.global = global_;
 
   flexo.VERSION = "0.3.0";
 
@@ -457,6 +458,17 @@
 
   };
 
+  // Extend the proto object with properties of the ext object. Note that this
+  // creates a new object that proto should be replaced with.
+  flexo.replace_prototype = function (proto, ext) {
+    var object = Object.create(proto);
+    Object.getOwnPropertyNames(ext).forEach(function (key) {
+      Object.defineProperty(object, key,
+        Object.getOwnPropertyDescriptor(ext, key));
+    });
+    return object;
+  };
+
   // Return all the values of an object (presumably used as a dictionary)
   flexo.values = function (object) {
     return Object.keys(object).map(function (key) {
@@ -858,6 +870,16 @@
   // Identity function
   flexo.id = function (x) {
     return x;
+  };
+
+  // A function that returns its second argument and discard the first.
+  flexo.snd = function (_, y) {
+    // jshint unused: true
+    return y;
+  };
+
+  flexo.self = function () {
+    return this;
   };
 
   // No-op function, returns nothing
