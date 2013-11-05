@@ -21,6 +21,51 @@
   };
 
 
+  bender.Component.prototype.render_graph = function () {
+    this.watches.forEach(function (watch) {
+      watch.render(this.scope);
+    }, this);
+  };
+
+
+  // Render the watch and the corresponding get and set edges in the parent
+  // component scope
+  bender.Watch.prototype.render = function (scope) {
+    var w = scope.$environment.add_vertex(new
+        bender.WatchVertex(this, scope.$that));
+    this.gets.forEach(function (get) {
+      var v = get.render(scope);
+      if (v) {
+        v.add_outgoing(new bender.WatchEdge(get, w));
+      }
+      if (v instanceof bender.PropertyVertex && get.bindings) {
+        Object.keys(get.bindings).forEach(function (select) {
+          var target = scope[select];
+          if (target) {
+            for (var _ in get.bindings[select]) {  // jshint unused: false
+              var u = vertex_property(target, scope);
+              if (u) {
+                u.add_outgoing(new bender.DependencyEdge(this, v));
+              }
+            }
+          }
+        }, this);
+      }
+    }, this);
+    this.sets.forEach(function (set) {
+      var edge = set.render(scope);
+      if (edge) {
+        w.add_outgoing(edge);
+      }
+    });
+  };
+
+
+  bender.GetProperty.prototype.render = function (scope) {
+    return vertex_property(this, scope);
+  };
+
+
   bender.Instance.prototype.add_event_listeners = function () {};
 
 
@@ -96,6 +141,14 @@
     }
   };
 
+  // Create a new property vertex for a component (or instance) and property
+  // definition pair.
+  _class(bender.PropertyVertex = function (component, element) {
+    this.init();
+    this.component = component;
+    this.element = element;
+  }, bender.Vertex);
+
 
 
 
@@ -151,5 +204,24 @@
 
 
 
+  // Get the right level (component or instance) for a select value.
+  function select_level(select) {
+    return select === "$that" || (select && select[0] === "#") ?
+      "component" : "instance";
+  }
+
+  // Get a vertex for a property from an element and its scope, creating it
+  // first if necessary.
+  function vertex_property(element, scope) {
+    var target = scope[element.select];
+    if (target) {
+      var vertices = target.vertices.property[select_level(element.select)];
+      if (!vertices.hasOwnProperty(element.name)) {
+        vertices[element.name] = scope.$environment.add_vertex(new
+            bender.PropertyVertex(scope.$that, element));
+      }
+      return vertices[element.name];
+    }
+  }
   
 }(this.bender));

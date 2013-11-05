@@ -280,7 +280,7 @@
 
   var loaded = bender.Component.prototype.loaded = function () {
     this.child_components.forEach($call.bind(loaded));
-    // render graph
+    this.render_graph();
     return this;
   };
 

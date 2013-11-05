@@ -603,7 +603,6 @@
 
   flexo._accessor(bender.ValueElement, "as", normalize_as);
   flexo._accessor(bender.ValueElement, "match");
-  flexo._accessor(bender.ValueElement, "select");
   flexo._accessor(bender.ValueElement, "value");
 
   // Check that a value is set to the type of its property
