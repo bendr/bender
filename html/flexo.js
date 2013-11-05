@@ -867,8 +867,8 @@
     };
   };
 
-  // Identity function
-  flexo.id = function (x) {
+  // Identity function (also named `fst` to match `snd`)
+  flexo.id = flexo.fst = function (x) {
     return x;
   };
 
@@ -878,6 +878,7 @@
     return y;
   };
 
+  // Sort of like id, but for `this`.
   flexo.self = function () {
     return this;
   };

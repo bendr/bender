@@ -1,8 +1,28 @@
 (function (bender) {
   "use strict";
 
-  /* global flexo */
+  /* global console, flexo */
+
   var _class = flexo._class;
+
+
+  // Add a vertex to the watch graph and return it.
+  // TODO [mutations] Remove a vertex from the watch graph.
+  bender.Environment.prototype.add_vertex = function (vertex) {
+    vertex.index = this.vertices.length === 0 ?
+      0 : (this.vertices[this.vertices.length - 1].index + 1);
+    vertex.environment = this;
+    this.vertices.push(vertex);
+    return vertex;
+  };
+
+  // TODO Flush the graph to initialize properties of rendered components so far
+  bender.Environment.prototype.flush_graph = function () {
+  };
+
+
+  bender.Instance.prototype.add_event_listeners = function () {};
+
 
   // Simple vertex, simply has incoming and outgoing edges.
   var vertex = (bender.Vertex = function () {}).prototype;
@@ -51,9 +71,10 @@
 
   // Shift the input dynamic scope to the new scope for the watch
   watch_vertex.shift_scope = function (scope, select) {
+    var i, n;
     if (scope.$this.scopes) {
       var scopes = scope.$this.scopes;
-      for (var i = 0, n = scopes.length; i < n; ++i) {
+      for (i = 0, n = scopes.length; i < n; ++i) {
         for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
           for (var k = 0, l = scopes[i][""][j].scopes.length;
               k < l && scopes[i][""][j].scopes[k].$that !== this.component; ++k)
@@ -67,7 +88,7 @@
         }
       }
     } else {
-      for (var i = 0, n = scope.$this[""].length; i < n; ++i) {
+      for (i = 0, n = scope.$this[""].length; i < n; ++i) {
         if (scope.$this[""][i] === this.component) {
           return scope.$this[""][i].scope;
         }
