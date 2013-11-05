@@ -1172,20 +1172,4 @@
     return bindings;
   }
 
-  // Update the scope of the parent component of node (if any)
-  // TODO remove the id when it changes
-  function update_scope(node, id) {
-    var p = parent_component(node);
-    if (p) {
-      var scope = Object.getPrototypeOf(p.scope);
-      var key = "#" + id;
-      if (key in scope) {
-        console.error("Id %0 already in scope".fmt(key));
-      } else {
-        scope[key] = node;
-        scope["@" + id] = node;
-      }
-    }
-  }
-
 }(window.bender = {}));
