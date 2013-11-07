@@ -28,6 +28,8 @@
     this.flush_graph();
   };
 
+  // Request the graph to be flushed (several requests in a row will result in
+  // flushing only once.)
   bender.Environment.prototype.flush_graph = function () {
     if (this.__will_flush) {
       return;
@@ -38,7 +40,9 @@
         bender.trace("flush graph: edge #%0: %1 -> %2"
           .fmt(i, edge.source.graph_name(), edge.dest.graph_name()));
         if (edge.source.__init) {
-          edge.source.values = edge.source.__init;
+          edge.source.__init.forEach(function (v) {
+            push_value(edge.source, v);
+          });
           bender.trace("  init values: %0"
             .fmt(edge.source.__init.map(function (v) {
               return "%0/%1".fmt(v[0].$this.id(), v[1]);
@@ -56,7 +60,7 @@
           if (v_) {
             bender.trace("  new value for v%0: %1/%2"
               .fmt(edge.dest.index, v_[0].$this.id(), v_[1]));
-            edge.dest.values.push(v_);
+            push_value(edge.dest, v_);
           }
         });
       });
@@ -68,44 +72,53 @@
   };
 
 
+  // Render the graph for the component by rendering all watches.
   bender.Component.prototype.render_graph = function () {
     this.watches.forEach(function (watch) {
       watch.render(this.scope);
     }, this);
   };
 
+  // Init properties for the component: every component for which the value is
+  // not a binding is initialized. First, the property value is set silently,
+  // then the corresponding vertices in the graph get their initial values
+  // before the graph is flushed.
   bender.Component.prototype.init_properties = function () {
     flexo.values(this.property_definitions).forEach(function (property) {
       if (!property.bindings) {
         var value = property.value();
         if (property.is_component_value) {
-          vertices_property(property, this.scope).forEach(function (vertex) {
-            var v = value.call(this.scope.$this, this.scope);
-            set_property_silent(this, property.name, v);
-            vertex.__init = [[this.scope, v]];
-          }, this);
+          set_property_silent(this, property.name,
+            value.call(this, this.scope));
         } else {
-          vertices_property(property, this.scope).forEach(function (vertex) {
+          this.instances.forEach(function (instance) {
+            set_property_silent(instance, property.name,
+              value.call(instance, instance.scope));
+          });
+        }
+        vertices_property(property, this.scope).forEach(function (vertex) {
+          if (vertex.element.is_component_value) {
+            vertex.__init = [[this.scope, this.properties[property.name]]];
+          } else {
             vertex.__init = this.instances.map(function (instance) {
               var scope = flexo.find_first(instance.scopes, function (scope) {
                 return scope.$that === this;
               }, this);
-              var v = value.call(scope.$this, scope);
-              set_property_silent(instance, property.name, v);
-              return [scope, v];
+              return [scope, instance.properties[property.name]];
             }, this);
-          }, this);
-        }
+          }
+        }, this);
       }
     }, this);
   };
 
+  // Flush the graph after setting a property on a component.
   bender.Component.prototype.did_set_property = function (name, value) {
     var queue = [this];
     while (queue.length > 0) {
       var q = queue.shift();
       if (q.vertices.property.component.hasOwnProperty(name)) {
-        q.vertices.property.component[name].values.push([q.scope, value]);
+        push_value(q.vertices.property.component[name], [q.scope, value]);
       } else if (q.vertices.property.instance.hasOwnProperty(name)) {
         $$push(q.vertices.property.instance[name].values,
             q.instances.map(function (instance) {
@@ -119,12 +132,13 @@
   };
 
 
+  // Flush the graph after setting a property on an instance.
   bender.Instance.prototype.did_set_property = function (name, value) {
     var queue = [this.scope.$that];
     while (queue.length > 0) {
       var q = queue.shift();
       if (q.vertices.property.instance.hasOwnProperty(name)) {
-        q.vertices.property.instance[name].values.push([this.scope, value]);
+        push_value(q.vertices.property.instance[name], [this.scope, value]);
       } else {
         $$push(q, q.derived);
       }
@@ -358,8 +372,16 @@
   };
 
 
+  // Push a value (really, a scope/value pair) to the values of a vertex in the
+  // graph.
+  function push_value(vertex, v) {
+    flexo.remove_first_from_array(vertex.values, function (w) {
+      return v[0] === w[0];
+    });
+    vertex.values.push(v);
+  }
 
-
+  // Render an edge from a set element.
   function render_edge(set, scope, dest, Constructor) {
     var target = scope[set.select()];
     if (target) {
@@ -367,7 +389,7 @@
     }
   }
 
-  // Silently set a property value for a component
+  // Silently set a property value for a component.
   function set_property_silent(component, name, value) {
     for (var p = component.properties, descriptor; p && !descriptor;
         descriptor = Object.getOwnPropertyDescriptor(p, name),
