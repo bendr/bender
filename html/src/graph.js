@@ -84,8 +84,10 @@
   // then the corresponding vertices in the graph get their initial values
   // before the graph is flushed.
   bender.Component.prototype.init_properties = function () {
-    flexo.values(this.property_definitions).forEach(function (property) {
+    for (var name in this.property_definitions) {
+      var property = this.property_definitions[name];
       if (!property.bindings) {
+        // TODO check if there is an initial value
         var value = property.value();
         if (property.is_component_value) {
           set_property_silent(this, property.name,
@@ -97,19 +99,22 @@
           });
         }
         vertices_property(property, this.scope).forEach(function (vertex) {
+          if (!vertex.__init) {
+            vertex.__init = [];
+          }
           if (vertex.element.is_component_value) {
-            vertex.__init = [[this.scope, this.properties[property.name]]];
+            vertex.__init.push([[this.scope, this.properties[property.name]]]);
           } else {
-            vertex.__init = this.instances.map(function (instance) {
+            $$push(vertex.__init, this.instances.map(function (instance) {
               var scope = flexo.find_first(instance.scopes, function (scope) {
                 return scope.$that === this;
               }, this);
               return [scope, instance.properties[property.name]];
-            }, this);
+            }, this));
           }
         }, this);
       }
-    }, this);
+    }
   };
 
   // Flush the graph after setting a property on a component.
@@ -474,14 +479,17 @@
     var found = [];
     if (target) {
       var level = element.is_component_value ? "component" : "instance";
+      while (target._prototype) {
+        target = target._prototype;
+      }
       var queue = [target];
       while (queue.length > 0) {
         var q = queue.shift();
         var vertices = q.vertices.property[level];
-        if (vertices.hasOwnProperty(element.name)) {
+        if (element.name in vertices) {
           found.push(vertices[element.name]);
         } else if (element.is_component_value &&
-            q.vertices.property.instance.hasOwnProperty(element.name)) {
+            element.name in q.vertices.property.instance) {
           found.push(q.vertices.property.instance[element.name]);
         } else {
           $$push(queue, q.derived);

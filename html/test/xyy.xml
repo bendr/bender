@@ -1,0 +1,3 @@
+<component xmlns="http://bender.igel.co.jp" id="XYY" href="xy.xml">
+  <property name="y" value="777"/>
+</component>

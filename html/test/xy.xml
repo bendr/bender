@@ -1,0 +1,15 @@
+<component xmlns="http://bender.igel.co.jp" id="XY">
+  <property name="x" value="1"/>
+  <property name="y"/>
+  <view>
+    y = <text id="vy"/>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set property="y" value="$in + 1"/>
+  </watch>
+  <watch>
+    <get property="y"/>
+    <set select="@vy" dom-property="textContent"/>
+  </watch>
+</component>
