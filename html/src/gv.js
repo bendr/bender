@@ -5,7 +5,7 @@
 
   bender.Environment.prototype.to_gv = function () {
     if (!this.edges) {
-      this.flush_graph();
+      this.update_graph();
     }
     this.vortex.__incoming = this.vortex.incoming.length;
     window.open("data:text/vnd.graphviz;base64," +

@@ -295,7 +295,7 @@
           this[""].define_js_property(name, v);
         }
         if (!silent) {
-          // TODO visit property vertex
+          this[""].did_set_property(name, v);
         }
       }
     });

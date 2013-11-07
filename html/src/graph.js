@@ -17,7 +17,7 @@
   };
 
   // Flush the graph to initialize properties of rendered components so far
-  bender.Environment.prototype.flush_graph = function () {
+  bender.Environment.prototype.update_graph = function () {
     this.components.forEach(function (component) {
       if (component.not_ready) {
         component.init_properties();
@@ -25,24 +25,46 @@
       }
     });
     this.edges = sort_edges(this.vertices);
-    this.edges.forEach(function (edge, i) {
-      bender.trace("flush graph: edge #%0: %1 -> %2"
-        .fmt(i, edge.source.graph_name(), edge.dest.graph_name()));
-      if (edge.source.__init) {
-        edge.source.values = edge.source.__init;
-        delete edge.source.__init;
-        bender.trace("  init values:", edge.source.values);
-      }
-      edge.source.values.forEach(function (v) {
-        var v_ = edge.follow.apply(edge, v);
-        if (v_) {
-          edge.dest.values.push(v_);
+    this.flush_graph();
+  };
+
+  bender.Environment.prototype.flush_graph = function () {
+    if (this.__will_flush) {
+      return;
+    }
+    this.__will_flush = true;
+    flexo.asap(function () {
+      this.edges.forEach(function (edge, i) {
+        bender.trace("flush graph: edge #%0: %1 -> %2"
+          .fmt(i, edge.source.graph_name(), edge.dest.graph_name()));
+        if (edge.source.__init) {
+          edge.source.values = edge.source.__init;
+          bender.trace("  init values: %0"
+            .fmt(edge.source.__init.map(function (v) {
+              return "%0/%1".fmt(v[0].$this.id(), v[1]);
+            }).join(", ")));
+          delete edge.source.__init;
         }
+        if (edge.source.values.length) {
+          bender.trace("  values: %0"
+            .fmt(edge.source.values.map(function (v) {
+              return "%0/%1".fmt(v[0].$this.id(), v[1]);
+            }).join(", ")));
+        }
+        edge.source.values.forEach(function (v) {
+          var v_ = edge.follow.apply(edge, v);
+          if (v_) {
+            bender.trace("  new value for v%0: %1/%2"
+              .fmt(edge.dest.index, v_[0].$this.id(), v_[1]));
+            edge.dest.values.push(v_);
+          }
+        });
       });
-    });
-    this.vertices.forEach(function (vertex) {
-      vertex.values = [];
-    });
+      this.vertices.forEach(function (vertex) {
+        vertex.values = [];
+      });
+      delete this.__will_flush;
+    }.bind(this));
   };
 
 
@@ -76,6 +98,38 @@
         }
       }
     }, this);
+  };
+
+  bender.Component.prototype.did_set_property = function (name, value) {
+    var queue = [this];
+    while (queue.length > 0) {
+      var q = queue.shift();
+      if (q.vertices.property.component.hasOwnProperty(name)) {
+        q.vertices.property.component[name].values.push([q.scope, value]);
+      } else if (q.vertices.property.instance.hasOwnProperty(name)) {
+        $$push(q.vertices.property.instance[name].values,
+            q.instances.map(function (instance) {
+              return [instance.scope, value];
+            }));
+      } else {
+        $$push(queue, q.derived);
+      }
+    }
+    this.scope.$environment.flush_graph();
+  };
+
+
+  bender.Instance.prototype.did_set_property = function (name, value) {
+    var queue = [this.scope.$that];
+    while (queue.length > 0) {
+      var q = queue.shift();
+      if (q.vertices.property.instance.hasOwnProperty(name)) {
+        q.vertices.property.instance[name].values.push([this.scope, value]);
+      } else {
+        $$push(q, q.derived);
+      }
+    }
+    this.scope.$environment.flush_graph();
   };
 
 
@@ -372,6 +426,9 @@
     }
   }
 
+  // Find all vertices that can be visited for a property. If the vertex already
+  // exists, return only this vertex, otherwise all closest descendants. Do not
+  // create any new vertex.
   function vertices_property(element, scope) {
     var target = scope[element.select()];
     var found = [];

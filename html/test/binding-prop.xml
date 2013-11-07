@@ -2,15 +2,10 @@
   <property name="x" as="number" value="42"/>
   <property name="y" value="`x + `p"/>
   <property name="p" value="2" select="$that"/>
-  <view>
-    y = `y
-  </view>
-  <!--
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div style="border: solid thin #888; padding: 1rem; display: inline-block">
       <html:p>x = `x</html:p>
       <html:p>y = x + `p = `y</html:p>
     </html:div>
   </view>
-  -->
 </component>

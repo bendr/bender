@@ -68,7 +68,7 @@
     var fragment = target.ownerDocument.createDocumentFragment();
     var instance = component.render(fragment);
     instance.add_event_listeners();
-    this.flush_graph();
+    this.update_graph();
     target.insertBefore(fragment, ref);
     return instance;
   };
