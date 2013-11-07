@@ -87,7 +87,7 @@
   function to_gv(vertices, edges) {
     var dom_vertices = [];
 
-    // bender.DOMAttributeEdge.prototype.to_gv = 
+    bender.DOMAttributeEdge.prototype.to_gv = 
     bender.DOMPropertyEdge.prototype.to_gv = function (i) {
       var dest = new bender.TargetVertex(dom_vertices.length,
           this.element.select());

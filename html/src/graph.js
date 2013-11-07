@@ -191,6 +191,12 @@
   };
 
 
+  bender.SetDOMAttribute.prototype.render = function (scope) {
+    return render_edge(this, scope, scope.$environment.vortex,
+        bender.DOMAttributeEdge);
+  };
+
+
   bender.SetProperty.prototype.render = function (scope) {
     var dest = vertex_property(this, scope);
     if (!dest) {
@@ -354,6 +360,18 @@
     if (target instanceof window.Node) {
       target[this.element.name] = value;
     }
+    return value;
+  };
+
+
+  var dom_attribute_edge = _class(bender.DOMAttributeEdge = function (set) {
+    this.init(set);
+  }, bender.ElementEdge);
+  
+  dom_attribute_edge.follow_value = function (scope, input) {
+    var value = element_edge.follow_value.call(this, scope, input);
+    scope[this.element.select()].setAttributeNS(this.element.ns,
+        this.element.name, value);
     return value;
   };
 

@@ -1,0 +1,10 @@
+<component xmlns="http://bender.igel.co.jp" id="X">
+  <property name="x" value="1"/>
+  <view>
+    x = <text id="vx"/>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set select="@vx" dom-property="textContent"/>
+  </watch>
+</component>

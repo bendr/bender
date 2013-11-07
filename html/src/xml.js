@@ -212,40 +212,46 @@
 
   bender.Environment.prototype.deserialize.get = function (elem) {
     var get;
-    var select = elem.getAttribute("select") || "$this";
     if (elem.hasAttribute("dom-event")) {
-      get = new bender.GetDOMEvent(elem.getAttribute("dom-event"), select,
+      get = new bender.GetDOMEvent(elem.getAttribute("dom-event"),
           elem.getAttribute("property"))
+        .select(elem.getAttribute("select"))
         .prevent_default(flexo.is_true(elem.getAttribute("prevent-default")))
         .stop_propagation(flexo.is_true(elem.getAttribute("stop-propagation")));
     } else if (elem.hasAttribute("event")) {
-      get = new bender.GetEvent(elem.getAttribute("event"), select);
+      get = new bender.GetEvent(elem.getAttribute("event"))
+          .select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("property")) {
-      get = new bender.GetProperty(elem.getAttribute("property"), select);
+      get = new bender.GetProperty(elem.getAttribute("property"))
+          .select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("attr")) {
-      get = new bender.GetAttribute(elem.getAttribute("attr"), select);
+      get = new bender.GetAttribute(elem.getAttribute("attr"))
+          .select(elem.getAttribute("select"));
     }
     return this.deserialize_element_with_value(get, elem);
   };
 
   bender.Environment.prototype.deserialize.set = function (elem) {
     var set;
-    var select = elem.getAttribute("select") || "$this";
     if (elem.hasAttribute("dom-event")) {
-      set = new bender.SetDOMEvent(elem.getAttribute("dom-event"), select);
+      set = new bender.SetDOMEvent(elem.getAttribute("dom-event"))
+            .select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("event")) {
-      set = new bender.SetEvent(elem.getAttribute("event"), select);
+      set = new bender.SetEvent(elem.getAttribute("event"))
+          .select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("dom-property")) {
-      set = new bender.SetDOMProperty(elem.getAttribute("dom-property"),
-          select);
+      set = new bender.SetDOMProperty(elem.getAttribute("dom-property"))
+          .select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("property")) {
-      set = new bender.SetProperty(elem.getAttribute("property"), select);
+      set = new bender.SetProperty(elem.getAttribute("property"))
+          .select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("dom-attr")) {
       set = new bender.SetDOMAttribute(
-          flexo.safe_string(elem.getAttribute("ns")),
-          elem.getAttribute("dom-attr"), select);
+        flexo.safe_string(elem.getAttribute("ns")),
+        elem.getAttribute("dom-attr")).select(elem.getAttribute("select"));
     } else if (elem.hasAttribute("attr")) {
-      set = new bender.SetAttribute(elem.getAttribute("attr"), select);
+      set = new bender.SetAttribute(elem.getAttribute("attr"))
+          .select(elem.getAttribute("select"));
     } else {
       set = new bender.Set();
     }

@@ -602,7 +602,7 @@
     _class(bender.ValueElement = function () {}, bender.Element);
 
   flexo._accessor(bender.ValueElement, "as", normalize_as);
-  flexo._accessor(bender.ValueElement, "select");
+  flexo._accessor(bender.ValueElement, "select", normalize_select);
   flexo._accessor(bender.ValueElement, "match");
   flexo._accessor(bender.ValueElement, "value");
 
@@ -724,8 +724,8 @@
   _class(bender.Get = function () {}, bender.ValueElement);
 
 
-  _class(bender.GetDOMEvent = function (type, select, property) {
-    init_event.call(this, type, select);
+  _class(bender.GetDOMEvent = function (type, property) {
+    init_event.call(this, type);
     if (property) {
       this.property = property;
     }
@@ -735,22 +735,20 @@
   flexo._accessor(bender.GetDOMEvent, "prevent_default");
 
 
-  _class(bender.GetEvent = function (type, select) {
-    init_event.call(this, type, select);
+  _class(bender.GetEvent = function (type) {
+    init_event.call(this, type);
   }, bender.Get);
 
 
-  _class(bender.GetProperty = function (name, select) {
+  _class(bender.GetProperty = function (name) {
     this.init();
     this.name = name;
-    this._select = select;
   }, bender.Get);
 
 
-  _class(bender.GetAttribute = function (name, select) {
+  _class(bender.GetAttribute = function (name) {
     this.init();
     this.name = name;
-    this._select = select;
   }, bender.Get);
   
 
@@ -759,13 +757,13 @@
   }, bender.ValueElement);
 
 
-  _class(bender.SetDOMEvent = function (type, select) {
-    init_event.call(this, type, select);
+  _class(bender.SetDOMEvent = function (type) {
+    init_event.call(this, type);
   }, bender.Set);
 
 
-  _class(bender.SetEvent = function (type, select) {
-    init_event.call(this, type, select);
+  _class(bender.SetEvent = function (type) {
+    init_event.call(this, type);
   }, bender.Set);
 
 
@@ -776,25 +774,22 @@
   }, bender.Set);
 
 
-  _class(bender.SetProperty = function (name, select) {
+  _class(bender.SetProperty = function (name) {
     this.init();
     this.name = name;
-    this._select = select;
   }, bender.Set);
 
 
-  _class(bender.SetDOMAttribute = function (ns, name, select) {
+  _class(bender.SetDOMAttribute = function (ns, name) {
     this.init();
     this.ns = ns;
     this.name = name;
-    this._select = select;
   }, bender.Set);
 
 
-  _class(bender.SetAttribute = function (name, select) {
+  _class(bender.SetAttribute = function (name) {
     this.init();
     this.name = name;
-    this._select = select;
   }, bender.Set);
 
 
@@ -855,11 +850,10 @@
   }
 
   // Initializer for both Bender and DOM event properties
-  function init_event(type, select) {
+  function init_event(type) {
     // jshint validthis: true
     this.init();
     this.type = type;
-    this._select = select;
   }
 
   // Make a watch for a set of bindings: add the set element created for the
@@ -900,6 +894,10 @@
     render_id = flexo.safe_trim(render_id).toLowerCase();
     return render_id === "class" || render_id === "id" ||
       render_id === "none" ? render_id : "inherit";
+  }
+
+  function normalize_select(select) {
+    return typeof select === "string" ? select : "$this";
   }
 
   // Normalize the `stack` property of an element so that it matches a known
