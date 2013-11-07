@@ -25,7 +25,7 @@
   // Bender DOMElement or DOMTextNode.
   element.append_child = function (child) {
     if (!(child instanceof bender.Element)) {
-      throw "Cannot append child: not a Bender element.";
+      return;
     }
     if (child.parent && child.parent !== this) {
       child.parent.remove_child(child);
@@ -656,7 +656,7 @@
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
   value_element.set_value_from_string = function (value, needs_return, loc) {
-    var bindings;
+    var bindings, p;
     var as = this.resolve_as();
     if (as === "boolean") {
       this._value = flexo.is_true(value);
@@ -683,7 +683,7 @@
         }
         try {
           this._value = new Function("$scope", "$in", value);
-          var p = this.current_component;
+          p = this.current_component;
           if (p) {
             push_bindings(p, this, bindings);
           }
@@ -698,7 +698,7 @@
         if (typeof bindings === "object") {
           this.bindings = bindings;
           this._value = bindings[""].value;
-          var p = this.current_component;
+          p = this.current_component;
           if (p) {
             push_bindings(p, this, bindings);
           }

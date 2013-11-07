@@ -15,6 +15,7 @@ body {
     <script src="src/render.js"></script>
     <script src="src/graph.js"></script>
     <script src="src/xml.js"></script>
+    <script src="src/gv.js"></script>
     <script>
 "use strict";
 var args = flexo.get_args();
@@ -23,6 +24,9 @@ bender.render_href(args.href).then(function (instance) {
   window.APP = instance.scope.$that;
   window.ENV = instance.scope.$environment;
   bender.trace("*** Rendered %0".fmt(instance.id()));
+  if (flexo.is_true(args[":graph"])) {
+    instance.scope.$environment.to_gv();
+  }
 }, function (reason) {
   alert(reason && reason.message || reason);
 });

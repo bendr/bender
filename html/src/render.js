@@ -140,6 +140,8 @@
     }
   }).prototype;
 
+  instance.define_js_property = bender.Component.prototype.define_js_property;
+
   // By default, the scope of the instance is the lowest scope in the chain.
   Object.defineProperty(instance, "scope", {
     enumerable: true,

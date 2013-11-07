@@ -1,7 +1,7 @@
 (function (bender) {
   "use strict";
 
-  /* global console, flexo */
+  /* global console, flexo, window, $$unshift */
 
   var _class = flexo._class;
 
@@ -16,7 +16,7 @@
     return vertex;
   };
 
-  // TODO Flush the graph to initialize properties of rendered components so far
+  // Flush the graph to initialize properties of rendered components so far
   bender.Environment.prototype.flush_graph = function () {
     this.components.forEach(function (component) {
       if (component.not_ready) {
@@ -25,13 +25,19 @@
       }
     });
     this.edges = sort_edges(this.vertices);
-    this.edges.forEach(function (edge) {
+    this.edges.forEach(function (edge, i) {
+      bender.trace("flush graph: edge #%0: %1 -> %2"
+        .fmt(i, edge.source.graph_name(), edge.dest.graph_name()));
       if (edge.source.__init) {
         edge.source.values = edge.source.__init;
         delete edge.source.__init;
+        bender.trace("  init values:", edge.source.values);
       }
       edge.source.values.forEach(function (v) {
-        // var v_ = edge.follow.apply(edge, v);
+        var v_ = edge.follow.apply(edge, v);
+        if (v_) {
+          edge.dest.values.push(v_);
+        }
       });
     });
     this.vertices.forEach(function (vertex) {
@@ -49,18 +55,24 @@
   bender.Component.prototype.init_properties = function () {
     flexo.values(this.property_definitions).forEach(function (property) {
       if (!property.bindings) {
-        var vertex = vertex_property(property, this.scope);
-        if (vertex) {
-          if (property.is_component_value) {
-            vertex.__init = [[this.scope, value]];
-          } else {
-            var value = property.value();
+        var value = property.value();
+        if (property.is_component_value) {
+          vertices_property(property, this.scope).forEach(function (vertex) {
+            var v = value.call(this.scope.$this, this.scope);
+            set_property_silent(this, property.name, v);
+            vertex.__init = [[this.scope, v]];
+          }, this);
+        } else {
+          vertices_property(property, this.scope).forEach(function (vertex) {
             vertex.__init = this.instances.map(function (instance) {
-              return [flexo.find_first(instance.scopes, function (scope) {
+              var scope = flexo.find_first(instance.scopes, function (scope) {
                 return scope.$that === this;
-              }, this), value];
+              }, this);
+              var v = value.call(scope.$this, scope);
+              set_property_silent(instance, property.name, v);
+              return [scope, v];
             }, this);
-          }
+          }, this);
         }
       }
     }, this);
@@ -189,9 +201,9 @@
         }
       }
     } else {
-      for (i = 0, n = scope.$this[""].length; i < n; ++i) {
-        if (scope.$this[""][i] === this.component) {
-          return scope.$this[""][i].scope;
+      for (i = 0, n = scope[""].length; i < n; ++i) {
+        if (scope[""][i] === this.component) {
+          return scope[""][i].scope;
         }
       }
     }
@@ -221,11 +233,18 @@
   // for that scope; or nothing at all.
   edge.follow = function (scope, input) {
     try {
-      return [scope, this.followed(scope, this.element.value() ?
-        this.element.value().call(scope.$this, scope, input) : input)];
+      var new_scope = this.follow_scope(scope, input);
+      return [new_scope, this.follow_value(new_scope, input)];
     } catch (e) {
+      console.warn("Exception while following edge:", e);
     }
   };
+
+  // Return the new scope for the destination of the edge
+  edge.follow_scope = flexo.fst;
+
+  // Return the new value for the destination of the edge
+  edge.follow_value = flexo.snd;
 
 
   // Edges that are tied to an element (e.g., watch, get, set) and a scope
@@ -237,6 +256,11 @@
     return this;
   };
 
+  element_edge.follow_value = function (scope, input) {
+    var f = this.element.value();
+    return typeof f === "function" ? f.call(scope.$this, scope, input) : input;
+  };
+
 
   // Edges to a watch vertex
   var watch_edge = _class(bender.WatchEdge = function (get, dest) {
@@ -245,32 +269,39 @@
 
   // Follow a watch edge: shift the input scope to match that of the destination
   // watch node, and evaluate the value of the edge using the watch’s context.
-  watch_edge.follow = function (scope, input) {
-    try {
-      var scope_ = this.dest.shift_scope(scope, this.element.select);
-      return [scope_, this.element.value() ?
-        this.element.value().call(scope_.$this, scope_, input) : input];
-    } catch (e) {
-      console.warn("Error following watch edge v%0 -> v%1: %2"
-          .fmt(this.source.index, this.dest.index, e));
-    }
+  watch_edge.follow_scope = function (scope) {
+    return this.dest.shift_scope(scope, this.element.select());
   };
 
 
   // Edges to a DOM node (so, as far as the graph is concerned, to the vortex.)
   // TODO with mutation events, we may have DOM property vertices as well.
-  var dom_property_edge =
-    _class(bender.DOMPropertyEdge = function (set, target) {
-      this.init(set);
-      this.target = target;
-    }, bender.ElementEdge);
+  var dom_property_edge = _class(bender.DOMPropertyEdge = function (set) {
+    this.init(set);
+  }, bender.ElementEdge);
+
+  dom_property_edge.follow_value = function (scope, input) {
+    var value = element_edge.follow_value.call(this, scope, input);
+    var target = scope[this.element.select()];
+    if (target instanceof window.Node) {
+      target[this.element.name] = value;
+    }
+    return value;
+  };
 
 
-  var property_edge = _class(bender.PropertyEdge = function (set, target, dest) {
+  var property_edge =
+  _class(bender.PropertyEdge = function (set, target, dest) {
     this.init(set, dest);
     this.target = target;
   }, bender.ElementEdge);
 
+  property_edge.follow_value = function (scope, input) {
+    var value = element_edge.follow_value.call(this, scope, input);
+    var target = scope[this.element.select()];
+    set_property_silent(target, this.element.name, value);
+    return value;
+  };
 
 
 
@@ -283,9 +314,9 @@
   }
 
   // Silently set a property value for a component
-  function set_property_silent(component, property, value) {
+  function set_property_silent(component, name, value) {
     for (var p = component.properties, descriptor; p && !descriptor;
-        descriptor = Object.getOwnPropertyDescriptor(p, property),
+        descriptor = Object.getOwnPropertyDescriptor(p, name),
         p = Object.getPrototypeOf(p)) {}
     if (descriptor) {
       descriptor.set.call(component.properties, value, true);
@@ -303,19 +334,19 @@
       return vertex.__out === 0;
     });
     var edges = [];
+    var process_incoming_edge = function (edge) {
+      if (edge.source.hasOwnProperty("__out")) {
+        --edge.source.__out;
+      } else {
+        edge.source.__out = edge.source.outgoing.length - 1;
+      }
+      if (edge.source.__out === 0) {
+        queue.push(edge.source);
+      }
+      return edge;
+    };
     while (queue.length) {
-      var v = queue.shift();
-      $$unshift(edges, v.incoming.map(function (edge) {
-        if (edge.source.hasOwnProperty("__out")) {
-          --edge.source.__out;
-        } else {
-          edge.source.__out = edge.source.outgoing.length - 1;
-        }
-        if (edge.source.__out === 0) {
-          queue.push(edge.source);
-        }
-        return edge;
-      }));
+      $$unshift(edges, queue.shift().incoming.map(process_incoming_edge));
     }
     vertices.forEach(function (vertex) {
       if (vertex.__out !== 0) {
@@ -340,5 +371,27 @@
       return vertices[element.name];
     }
   }
-  
+
+  function vertices_property(element, scope) {
+    var target = scope[element.select()];
+    var found = [];
+    if (target) {
+      var level = element.is_component_value ? "component" : "instance";
+      var queue = [target];
+      while (queue.length > 0) {
+        var q = queue.shift();
+        var vertices = q.vertices.property[level];
+        if (vertices.hasOwnProperty(element.name)) {
+          found.push(vertices[element.name]);
+        } else if (element.is_component_value &&
+            q.vertices.property.instance.hasOwnProperty(element.name)) {
+          found.push(q.vertices.property.instance[element.name]);
+        } else {
+          $$push(queue, q.derived);
+        }
+      }
+    }
+    return found;
+  }
+
 }(this.bender));

@@ -1,6 +1,8 @@
 (function (bender) {
   "use strict";
 
+  /* global window */
+
   bender.Environment.prototype.to_gv = function () {
     if (!this.edges) {
       this.flush_graph();
@@ -34,7 +36,7 @@
 
   bender.PropertyVertex.prototype.to_gv = function () {
     return "%0 [label=\"%1%2`%3/%4\"]"
-      .fmt(this.graph_name(), this.is_component_value ? "#" : "@",
+      .fmt(this.graph_name(), this.element.is_component_value ? "#" : "@",
           this.component.id() || this.component.index, this.element.name,
           this.index);
   };
@@ -95,7 +97,7 @@
         .fmt(this.source.graph_name(), dest.graph_name(), i);
     };
 
-    var to_gv = function (xs) {
+    var gv = function (xs) {
       return xs.map(function (x, i) {
         return "  %0;".fmt(x.to_gv(i));
       }).join("\n");
@@ -108,7 +110,7 @@
       "%0\n" +
       "%1\n" +
       "%2\n" +
-      "}\n").fmt(to_gv(edges), to_gv(vertices), to_gv(dom_vertices));
+      "}\n").fmt(gv(edges), gv(vertices), gv(dom_vertices));
   }
 
 }(window.bender));
