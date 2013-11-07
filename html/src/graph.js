@@ -18,12 +18,51 @@
 
   // TODO Flush the graph to initialize properties of rendered components so far
   bender.Environment.prototype.flush_graph = function () {
+    this.components.forEach(function (component) {
+      if (component.not_ready) {
+        component.init_properties();
+        delete component.not_ready;
+      }
+    });
+    this.edges = sort_edges(this.vertices);
+    this.edges.forEach(function (edge) {
+      if (edge.source.__init) {
+        edge.source.values = edge.source.__init;
+        delete edge.source.__init;
+      }
+      edge.source.values.forEach(function (v) {
+        // var v_ = edge.follow.apply(edge, v);
+      });
+    });
+    this.vertices.forEach(function (vertex) {
+      vertex.values = [];
+    });
   };
 
 
   bender.Component.prototype.render_graph = function () {
     this.watches.forEach(function (watch) {
       watch.render(this.scope);
+    }, this);
+  };
+
+  bender.Component.prototype.init_properties = function () {
+    flexo.values(this.property_definitions).forEach(function (property) {
+      if (!property.bindings) {
+        var vertex = vertex_property(property, this.scope);
+        if (vertex) {
+          if (property.is_component_value) {
+            vertex.__init = [[this.scope, value]];
+          } else {
+            var value = property.value();
+            vertex.__init = this.instances.map(function (instance) {
+              return [flexo.find_first(instance.scopes, function (scope) {
+                return scope.$that === this;
+              }, this), value];
+            }, this);
+          }
+        }
+      }
     }, this);
   };
 
@@ -63,6 +102,23 @@
 
   bender.GetProperty.prototype.render = function (scope) {
     return vertex_property(this, scope);
+  };
+
+
+  bender.SetDOMProperty.prototype.render = function (scope) {
+    return render_edge(this, scope, scope.$environment.vortex,
+        bender.DOMPropertyEdge);
+  };
+
+
+  bender.SetProperty.prototype.render = function (scope) {
+    var dest = vertex_property(this, scope);
+    if (!dest) {
+      console.warn("No property %0 for component %1"
+          .fmt(this.name, scope.$that.url()));
+      return;
+    }
+    return render_edge(this, scope, dest, bender.PropertyEdge);
   };
 
 
@@ -201,21 +257,82 @@
   };
 
 
+  // Edges to a DOM node (so, as far as the graph is concerned, to the vortex.)
+  // TODO with mutation events, we may have DOM property vertices as well.
+  var dom_property_edge =
+    _class(bender.DOMPropertyEdge = function (set, target) {
+      this.init(set);
+      this.target = target;
+    }, bender.ElementEdge);
+
+
+  var property_edge = _class(bender.PropertyEdge = function (set, target, dest) {
+    this.init(set, dest);
+    this.target = target;
+  }, bender.ElementEdge);
 
 
 
-  // Get the right level (component or instance) for a select value.
-  function select_level(select) {
-    return select === "$that" || (select && select[0] === "#") ?
-      "component" : "instance";
+
+
+  function render_edge(set, scope, dest, Constructor) {
+    var target = scope[set.select()];
+    if (target) {
+      return new Constructor(set, target, dest);
+    }
+  }
+
+  // Silently set a property value for a component
+  function set_property_silent(component, property, value) {
+    for (var p = component.properties, descriptor; p && !descriptor;
+        descriptor = Object.getOwnPropertyDescriptor(p, property),
+        p = Object.getPrototypeOf(p)) {}
+    if (descriptor) {
+      descriptor.set.call(component.properties, value, true);
+      return value;
+    }
+  }
+
+  // Sort all edges in a graph from its set of vertices. Simply go through
+  // the list of vertices, starting with the sink vertices (which have no
+  // outgoing edge) and moving edges from the vertices to the sorted list of
+  // edges.
+  function sort_edges(vertices) {
+    var queue = vertices.filter(function (vertex) {
+      vertex.__out = vertex.outgoing.length;
+      return vertex.__out === 0;
+    });
+    var edges = [];
+    while (queue.length) {
+      var v = queue.shift();
+      $$unshift(edges, v.incoming.map(function (edge) {
+        if (edge.source.hasOwnProperty("__out")) {
+          --edge.source.__out;
+        } else {
+          edge.source.__out = edge.source.outgoing.length - 1;
+        }
+        if (edge.source.__out === 0) {
+          queue.push(edge.source);
+        }
+        return edge;
+      }));
+    }
+    vertices.forEach(function (vertex) {
+      if (vertex.__out !== 0) {
+        console.error("sort_edges: unqueued vertex", vertex);
+      }
+      delete vertex.__out;
+    });
+    return edges;
   }
 
   // Get a vertex for a property from an element and its scope, creating it
   // first if necessary.
   function vertex_property(element, scope) {
-    var target = scope[element.select];
+    var target = scope[element.select()];
     if (target) {
-      var vertices = target.vertices.property[select_level(element.select)];
+      var vertices = target.vertices.property[element.is_component_value ?
+        "component" : "instance"];
       if (!vertices.hasOwnProperty(element.name)) {
         vertices[element.name] = scope.$environment.add_vertex(new
             bender.PropertyVertex(scope.$that, element));

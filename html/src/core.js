@@ -374,7 +374,7 @@
   // Create a new property with the given name and value (the value is set
   // directly and not interpreted in any way)
   component.property = function (name, value) {
-    return this.child(new bender.Property(name).value(value));
+    return this.child(new bender.Property(name).value(flexo.funcify(value)));
   };
 
   // Create a new event with the given name
@@ -602,8 +602,17 @@
     _class(bender.ValueElement = function () {}, bender.Element);
 
   flexo._accessor(bender.ValueElement, "as", normalize_as);
+  flexo._accessor(bender.ValueElement, "select");
   flexo._accessor(bender.ValueElement, "match");
   flexo._accessor(bender.ValueElement, "value");
+
+  Object.defineProperty(value_element, "is_component_value", {
+    enumerable: true,
+    get: function () {
+      var select = this.select();
+      return select === "$that" || (select && select[0] === "#");
+    }
+  });
 
   // Check that a value is set to the type of its property
   value_element.check_value = function (v) {
@@ -674,6 +683,10 @@
         }
         try {
           this._value = new Function("$scope", "$in", value);
+          var p = this.current_component;
+          if (p) {
+            push_bindings(p, this, bindings);
+          }
         } catch (e) {
           console.error("%0: Could not parse “%1” as Javascript"
               .fmt(loc, value));
@@ -685,6 +698,10 @@
         if (typeof bindings === "object") {
           this.bindings = bindings;
           this._value = bindings[""].value;
+          var p = this.current_component;
+          if (p) {
+            push_bindings(p, this, bindings);
+          }
         } else {
           this._value = safe;
         }
@@ -726,14 +743,14 @@
   _class(bender.GetProperty = function (name, select) {
     this.init();
     this.name = name;
-    this.select = select;
+    this._select = select;
   }, bender.Get);
 
 
   _class(bender.GetAttribute = function (name, select) {
     this.init();
     this.name = name;
-    this.select = select;
+    this._select = select;
   }, bender.Get);
   
 
@@ -762,7 +779,7 @@
   _class(bender.SetProperty = function (name, select) {
     this.init();
     this.name = name;
-    this.select = select;
+    this._select = select;
   }, bender.Set);
 
 
@@ -770,14 +787,14 @@
     this.init();
     this.ns = ns;
     this.name = name;
-    this.select = select;
+    this._select = select;
   }, bender.Set);
 
 
   _class(bender.SetAttribute = function (name, select) {
     this.init();
     this.name = name;
-    this.select = select;
+    this._select = select;
   }, bender.Set);
 
 
@@ -842,14 +859,14 @@
     // jshint validthis: true
     this.init();
     this.type = type;
-    this.select = select;
+    this._select = select;
   }
 
   // Make a watch for a set of bindings: add the set element created for the
   // bindings (e.g., SetDOMProperty to set the text content or SetDOMAttribute
   // to set an attribute) then a get element for each bound property.
   function make_watch_for_bindings(parent, bindings, target) {
-    bindings[""].set.select = target;
+    bindings[""].set._select = target;
     var watch = new bender.Watch()
       .child(bindings[""].set.value(bindings[""].value));
     watch.bindings = true;
