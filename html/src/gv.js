@@ -45,6 +45,13 @@
     return "%0 [label=\"%1\"]".fmt(this.graph_name(), this.gv_label());
   };
 
+
+  bender.DOMEventVertex.prototype.to_gv = function () {
+    return "%0 [label=\"%1\\n%2/%3\",shape=pentagon]"
+      .fmt(this.graph_name(), this.element.select(), this.element.type,
+          this.index);
+  };
+
   /*
   bender.EventVertex.prototype.graph = function () {
     return "%0 [label=\"%1\\n%2/%3\",shape=septagon]"
@@ -52,11 +59,6 @@
           this.index);
   };
 
-  bender.DOMEventVertex.prototype.graph = function () {
-    return "%0 [label=\"%1\\n%2/%3\",shape=hexagon]"
-      .fmt(this.graph_name(), this.get.select, this.get.type, this.index,
-          this.index);
-  };
   */
 
   bender.WatchVertex.prototype.to_gv = function () {

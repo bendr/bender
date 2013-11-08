@@ -67,7 +67,6 @@
   environment.render_component = function (component, target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     var instance = component.render(fragment);
-    instance.add_event_listeners();
     instance.init_properties();
     target.insertBefore(fragment, ref);
     return instance;
@@ -149,6 +148,14 @@
       return this.scopes[0];
     }
   });
+
+  // Get the dynamic scope matching the static scope of a given element.
+  instance.scope_of = function (element) {
+    var component = element.current_component;
+    return flexo.find_first(this.scopes, function (scope) {
+      return scope.$that === element.current_component
+    }, this);
+  };
 
   // Used mostly for debugging.
   instance.id = function () {

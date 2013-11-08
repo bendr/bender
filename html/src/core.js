@@ -116,7 +116,7 @@
     });
     this.vertices = {
       property: { component: {}, instance: {} },
-      event: { component: {}, instance: {} },
+      event: { component: {}, instance: {}, dom: {} },
     };
     this._on = {};                   // on-* attributes
     this.links = [];                 // link nodes
@@ -166,7 +166,9 @@
         component: flexo.replace_prototype(prototype.vertices.event.component,
                        this.vertices.event.component),
         instance: flexo.replace_prototype(prototype.vertices.event.instance,
-                       this.vertices.event.instance)
+                       this.vertices.event.instance),
+        dom: flexo.replace_prototype(prototype.vertices.event.dom,
+            this.vertices.event.dom),
       }
     };
     this.properties = flexo.replace_prototype(prototype.properties,

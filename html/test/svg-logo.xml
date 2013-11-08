@@ -33,13 +33,11 @@
     </svg:svg>
   </view>
 
-  <!--
   <watch>
     <get select="@mask" dom-event="click" match="`clickable">
       $scope["@anim_b"].beginElement();
       @anim_p.beginElement();
     </get>
   </watch>
-  -->
 
 </component>

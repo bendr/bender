@@ -100,18 +100,18 @@
         var scope = flexo.find_first(instance.scopes, function (scope) {
           return scope.$that === this;
         }, this);
-        console.log("  +++ %0".fmt(instance.id()));
+        bender.trace("  +++ %0".fmt(instance.id()));
         push_value_init(q.vertices.property.instance[property.name],
           [scope, instance.properties[property.name]]);
       };
       while (queue.length > 0) {
         var q = queue.shift();
-        console.log("  ... %0".fmt(q.id()));
+        bender.trace("  ... %0".fmt(q.id()));
         if (q.vertices.property.component.hasOwnProperty(property.name)) {
           push_value_init(q.vertices.property.component[property.name],
               [this.scope, q.properties[property.name]]);
         } else if (q.vertices.property.instance.hasOwnProperty(property.name)) {
-          console.log("  !!! %0 (%1)"
+          bender.trace("  !!! %0 (%1)"
               .fmt(q.vertices.property.instance[property.name].gv_label(),
                 q.all_instances.length));
           q.all_instances.forEach(f.bind(this, q));
@@ -155,6 +155,7 @@
     this.children.forEach(function (child) {
       child.init_properties();
     });
+    this.add_event_listeners();
     this.scope.$environment.unsorted = true;
     this.scope.$environment.flush_graph();
   };
@@ -230,6 +231,11 @@
   };
 
 
+  bender.GetDOMEvent.prototype.render = function (scope) {
+    return vertex_dom_event(this, scope);
+  };
+
+
   bender.GetProperty.prototype.render = function (scope) {
     return vertex_property(this, scope);
   };
@@ -258,7 +264,13 @@
   };
 
 
-  bender.Instance.prototype.add_event_listeners = function () {};
+  bender.Instance.prototype.add_event_listeners = function () {
+    var vertices = this.scope.$that.vertices.event.dom;
+    for (var key in vertices) {
+      var vertex = vertices[key];
+      vertex.add_event_listener(this.scope_of(vertex.element));
+    }
+  };
 
 
   // Simple vertex, simply has incoming and outgoing edges.
@@ -318,7 +330,9 @@
             {}
           if (k < l) {
             var scope_ = scopes[i][""][j].scopes[k];
-            if (scope_[select || "$this"] === scope.$this) {
+            if ((scope_[select || "$this"] === scope.$this) ||
+                (select && scope_[select] === scope[select])) {
+              // Check above
               return scope_;
             }
           }
@@ -332,6 +346,31 @@
       }
     }
   };
+
+
+  var dom_event_vertex =
+  _class(bender.DOMEventVertex = function (element, target) {
+    this.init();
+    this.element = element;
+    this.target = target;
+  }, bender.Vertex);
+
+  dom_event_vertex.add_event_listener = function (scope) {
+    var target = scope[this.element.select()];
+    if (target && typeof target.addEventListener === "function") {
+      target.addEventListener(this.element.type, function (e) {
+        if (this.element.prevent_default) {
+          e.preventDefault();
+        }
+        if (this.element.stop_propagation) {
+          e.stopPropagation();
+        }
+        push_value(this, [scope, e]);
+        scope.$environment.flush_graph();
+      }.bind(this), false);
+    }
+  };
+
 
   // Create a new property vertex for a component (or instance) and property
   // definition pair.
@@ -358,7 +397,9 @@
   edge.follow = function (scope, input) {
     try {
       var new_scope = this.follow_scope(scope, input);
-      return [new_scope, this.follow_value(new_scope, input)];
+      if (new_scope) {
+        return [new_scope, this.follow_value(new_scope, input)];
+      }
     } catch (e) {
       console.warn("Exception while following edge:", e);
     }
@@ -518,6 +559,19 @@
       delete vertex.__out;
     });
     return edges;
+  }
+
+  // Get a DOM event vertex.
+  function vertex_dom_event(element, scope) {
+    var target = scope[element.select()];
+    if (target) {
+      var vertices = element.current_component.vertices.event.dom;
+      if (!vertices.hasOwnProperty(target.id())) {
+        vertices[target.id()] = scope.$environment.add_vertex(new
+            bender.DOMEventVertex(element, target));
+      }
+      return vertices[target.id()];
+    }
   }
 
   // Get a vertex for a property from an element and its scope, creating it
