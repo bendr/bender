@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="X">
   <property name="x" value="1"/>
+  <property name="y" select="$that" value="42"/>
   <view>
     x = <text id="vx"/>
   </view>

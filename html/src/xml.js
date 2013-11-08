@@ -85,8 +85,6 @@
       var t = shallow_text(elem);
       if (/\S/.test(t)) {
         e.set_value_from_string(t, false, elem.baseURI);
-      } else {
-        e.set_default_value();
       }
     }
     return this.deserialize_children(e, elem);

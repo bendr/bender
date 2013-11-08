@@ -3,11 +3,12 @@
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 512 512">
       <svg:g transform="scale(0.25)">
-        <component href="svg-logo.xml"/>
+        <component href="svg-logo.xml" id="A"/>
       </svg:g>
       <svg:g transform="translate(128) scale(0.25)">
-        <component href="svg-logo.xml"/>
+        <component href="svg-logo.xml" id="B"/>
       </svg:g>
+      <!--
       <svg:g transform="translate(256) scale(0.25)">
         <component href="svg-logo.xml"/>
       </svg:g>
@@ -50,6 +51,7 @@
       <svg:g transform="translate(384, 384) scale(0.25)">
         <component href="svg-logo.xml"/>
       </svg:g>
+    -->
     </svg:svg>
   </view>
 

@@ -34,11 +34,15 @@
   };
 
 
-  bender.PropertyVertex.prototype.to_gv = function () {
-    return "%0 [label=\"%1%2`%3/%4\"]"
-      .fmt(this.graph_name(), this.element.is_component_value ? "#" : "@",
+  bender.PropertyVertex.prototype.gv_label = function () {
+    return "%0%1`%2/%3"
+      .fmt(this.element.is_component_value ? "#" : "@",
           this.component.id() || this.component.index, this.element.name,
           this.index);
+  };
+
+  bender.PropertyVertex.prototype.to_gv = function () {
+    return "%0 [label=\"%1\"]".fmt(this.graph_name(), this.gv_label());
   };
 
   /*

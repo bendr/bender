@@ -643,14 +643,13 @@
   };
 
   // Set a default value depending on the as attribute
-  value_element.set_default_value = function () {
-    this._value = flexo.funcify({
+  value_element.default_value = function () {
+    return flexo.funcify({
       "boolean": false,
       number: 0,
       string: "",
       dynamic: flexo.snd
     }[this.resolve_as()]);
-    return this;
   };
 
   // Set the value of an object that has a value/as pair of attributes. Only for

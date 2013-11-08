@@ -19,12 +19,12 @@ body {
     <script>
 "use strict";
 var args = flexo.get_args();
-bender.TRACE = flexo.is_true(args[":trace"]);
+bender.TRACE = flexo.is_true(args.trace);
 bender.render_href(args.href).then(function (instance) {
   window.APP = instance.scope.$that;
   window.ENV = instance.scope.$environment;
   bender.trace("*** Rendered %0".fmt(instance.id()));
-  if (flexo.is_true(args[":graph"])) {
+  if (flexo.is_true(args.graph)) {
     instance.scope.$environment.to_gv();
   }
 }, function (reason) {
