@@ -189,6 +189,20 @@
   Object.defineProperty(component, "current_component", { enumerable: true,
     get: flexo.self });
 
+  Object.defineProperty(component, "all_instances", {
+    enumerable: true,
+    get: function () {
+      var queue = [this];
+      var instances = [];
+      while (queue.length > 0) {
+        var q = queue.shift();
+        $$push(instances, q.instances);
+        $$push(queue, q.derived);
+      }
+      return instances;
+    }
+  });
+
   // TODO [mutations] remove the old id when it changes
   component.update_id_for_element_in_scope = function (element, id) {
     var scope = Object.getPrototypeOf(this.scope);

@@ -1,7 +1,7 @@
 (function (bender) {
   "use strict";
 
-  /* global console, flexo, window, $$unshift */
+  /* global console, flexo, window, $$push, $$unshift */
 
   var _class = flexo._class;
 
@@ -94,22 +94,29 @@
     set_property_silent(this, property.name, value.call(this, this.scope));
     bender.trace("init #%0`%1=%2".fmt(this.id(), property.name,
           this.properties[property.name]));
-    if (property.value()) {
+    if (!property.bindings && property.value()) {
       var queue = [this];
-      var vertices = [];
+      var f = function (q, instance) {
+        var scope = flexo.find_first(instance.scopes, function (scope) {
+          return scope.$that === this;
+        }, this);
+        console.log("  +++ %0".fmt(instance.id()));
+        push_value_init(q.vertices.property.instance[property.name],
+          [scope, instance.properties[property.name]]);
+      };
       while (queue.length > 0) {
         var q = queue.shift();
+        console.log("  ... %0".fmt(q.id()));
         if (q.vertices.property.component.hasOwnProperty(property.name)) {
           push_value_init(q.vertices.property.component[property.name],
               [this.scope, q.properties[property.name]]);
         } else if (q.vertices.property.instance.hasOwnProperty(property.name)) {
-          this.instances.forEach(function (instance) {
-            var scope = flexo.find_first(instance.scopes, function (scope) {
-              return scope.$that === this;
-            }, this);
-            push_value_init(q.vertices.property.instance[property.name],
-              [scope, instance.properties[property.name]]);
-          }, this);
+          console.log("  !!! %0 (%1)"
+              .fmt(q.vertices.property.instance[property.name].gv_label(),
+                q.all_instances.length));
+          q.all_instances.forEach(f.bind(this, q));
+        } else {
+          $$push(queue, this.derived);
         }
       }
     }
@@ -123,6 +130,7 @@
       if (q.vertices.property.component.hasOwnProperty(name)) {
         push_value(q.vertices.property.component[name], [q.scope, value]);
       } else if (q.vertices.property.instance.hasOwnProperty(name)) {
+        // jshint -W083
         $$push(q.vertices.property.instance[name].values,
             q.instances.map(function (instance) {
               return [instance.scope, value];
@@ -157,7 +165,7 @@
     set_property_silent(this, property.name, value.call(this, this.scope));
     bender.trace("init @%0`%1=%2".fmt(this.id(), property.name,
           this.properties[property.name]));
-    if (property.value()) {
+    if (!property.bindings && property.value()) {
       for (var p = this.scope.$that;
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
           p = p._prototype) {}
@@ -425,6 +433,14 @@
   }, bender.ElementEdge);
 
   property_edge.follow_value = function (scope, input) {
+    var s = function (v) {
+      return v[0].$this === scope.$this;
+    };
+    var init = flexo.find_first(this.dest.__init, s) ||
+      flexo.find_first(this.dest.values, s);
+    if (init) {
+      return init[1];
+    }
     var value = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
     set_property_silent(target, this.element.name, value);
@@ -436,7 +452,7 @@
   // graph.
   function push_value(vertex, v) {
     flexo.remove_first_from_array(vertex.values, function (w) {
-      return v[0] === w[0];
+      return v[0].$this === w[0].$this;
     });
     vertex.values.push(v);
   }
@@ -444,7 +460,7 @@
   function push_value_init(vertex, v) {
     if (vertex.__init) {
       flexo.remove_first_from_array(vertex.__init, function (w) {
-        return v[0] === w[0];
+        return v[0].$this === w[0].$this;
       });
     } else {
       vertex.__init = [];

@@ -8,7 +8,6 @@
       <svg:g transform="translate(128) scale(0.25)">
         <component href="svg-logo.xml" id="B"/>
       </svg:g>
-      <!--
       <svg:g transform="translate(256) scale(0.25)">
         <component href="svg-logo.xml"/>
       </svg:g>
@@ -51,7 +50,6 @@
       <svg:g transform="translate(384, 384) scale(0.25)">
         <component href="svg-logo.xml"/>
       </svg:g>
-    -->
     </svg:svg>
   </view>
 

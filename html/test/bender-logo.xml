@@ -1,0 +1,5 @@
+<component xmlns="http://bender.igel.co.jp" href="svg-logo.xml">
+  <property name="sides" value="7"/>
+  <property name="bgcolor" as="string" value="#ff6a4d"/>
+  <property name="fgcolor" as="string" value="#f8f9f0"/>
+</component>
