@@ -1,9 +1,18 @@
-(function (bender) {
+(function () {
   "use strict";
 
-  /* global console, flexo, window, $foreach, $$push, $$unshift */
+  /* global console, exports, require, window, $foreach, $$push, $$unshift */
   // Disable warnings about new Function()
   // jshint -W054
+
+  var bender, flexo;
+  if (typeof require === "function") {
+    flexo = require("flexo");
+    bender = exports;
+  } else {
+    flexo = window.flexo;
+    bender = window.bender = {};
+  }
 
   bender.version = "0.8.2.6";
 
@@ -1201,4 +1210,4 @@
     return bindings;
   }
 
-}(window.bender = {}));
+}());

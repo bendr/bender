@@ -1,7 +1,8 @@
-(function (bender) {
+(function () {
   "use strict";
 
-  /* global console, flexo, window, $$unshift */
+  /* global bender, console, require, window, $$unshift */
+  var flexo = typeof require === "function" ? require("flexo") : window.flexo;
 
   // Set up tracing, turned on/off with setting bender.TRACE to true or false
   var _trace;
@@ -35,7 +36,10 @@
 
   // Create a new environment in a document, or window.document by default.
   var environment = (bender.Environment = function (document) {
-    this.scope = { $document: document || window.document, $environment: this };
+    this.scope = {
+      $document: document || (typeof window === "object" && window.document),
+      $environment: this
+    };
     this.urls = {};
     this.components = [];
     this.vertices = [];
@@ -153,7 +157,7 @@
   instance.scope_of = function (element) {
     var component = element.current_component;
     return flexo.find_first(this.scopes, function (scope) {
-      return scope.$that === element.current_component
+      return scope.$that === component;
     }, this);
   };
 
@@ -344,4 +348,4 @@
     }
   }
 
-}(window.bender));
+}());

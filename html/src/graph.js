@@ -1,8 +1,9 @@
-(function (bender) {
+(function () {
   "use strict";
 
-  /* global console, flexo, window, $$push, $$unshift */
+  /* global bender, console, require, window, $$push, $$unshift */
 
+  var flexo = typeof require === "function" ? require("flexo") : window.flexo;
   var _class = flexo._class;
 
 
@@ -448,7 +449,7 @@
   dom_property_edge.follow_value = function (scope, input) {
     var value = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
-    if (target instanceof window.Node) {
+    if (target) {
       target[this.element.name] = value;
     }
     return value;
@@ -589,4 +590,4 @@
     }
   }
 
-}(this.bender));
+}());

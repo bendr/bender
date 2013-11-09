@@ -7,6 +7,10 @@ var url = require("url");
 var expat = require("node-expat");
 var flexo = require("flexo");
 
+global.bender = require("./core.js");
+require("./render.js");
+require("./graph.js");
+
 function die(message) {
   process.stderr.write(message + "\n");
   process.exit(1);
@@ -16,17 +20,7 @@ function warn(message) {
   process.stderr.write(message + "\n");
 }
 
-var bender = exports;
-bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
-
-
-var environment = (bender.Environment = function () {
-  this.scope = { environment: this };
-  this.urls = {};
-  this.components = [];
-  // this.vertices = [];
-  // this.vortex = this.add_vertex(new bender.Vortex());
-}).prototype;
+var environment = bender.Environment.prototype;
 
 environment.start_element = function (nsuri, name, attrs, loc) {
   if (nsuri === bender.ns) {
@@ -47,83 +41,6 @@ environment.start_element.view = function (loc) {
   return new bender.View(loc);
 };
 
-
-var element = (bender.Element = function () {}).prototype;
-
-element.init = function (loc) {
-  this.loc = loc;
-  this.children = [];
-  return this;
-};
-
-element.append_child = function (child) {
-  if (child instanceof bender.Element) {
-    this.children.push(child);
-    child.parent = this;
-    return child;
-  }
-};
-
-
-var component = flexo._class(bender.Component = function (scope, loc) {
-  return element.init.call(this, loc).init(scope);
-}, bender.Element);
-
-component.init = function(scope) {
-  if (scope.hasOwnProperty("environment")) {
-    scope = Object.create(scope);
-  }
-  if (!scope.hasOwnProperty("")) {
-    scope[""] = [];
-  }
-  scope[""].push(this);
-  this.scope = Object.create(scope, {
-    "#this": { enumerable: true, value: this },
-    "@this": { enumerable: true, value: this }
-  });
-  return this;
-};
-
-component.append_child = function (child) {
-  /*if (child instanceof bender.Link) {
-    this.links.push(child);
-  } else if (child instanceof bender.View) {
-    if (this.scope.$view) {
-      console.error("Component already has a view");
-    } else {
-      this.scope.$view = child;
-    }
-  } else if (child instanceof bender.Property) {
-    this.add_property(child);
-  } else if (child instanceof bender.Watch) {
-    this.watches.push(child);
-  } else {
-    return;
-  }
-  this.add_descendants(child);*/
-  if (child instanceof bender.View) {
-    if (this.scope.view) {
-      warn("%0: Component already has a view".fmt(child.loc));
-    } else {
-      this.scope.view = child;
-    }
-  }
-  return element.append_child.call(this, child);
-};
-
-
-var view = flexo._class(bender.View = function(loc) {
-  return element.init.call(this, loc);
-}, bender.Element);
-
-
-var foreign_element = flexo._class(bender.ForeignElement = function (loc,
-      nsuri, name, attrs) {
-  element.init.call(this, loc);
-  this.nsuri = nsuri;
-  this.name = name;
-  this.attrs = attrs;
-}
 
 
 function parse(environment, text, href) {
