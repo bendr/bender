@@ -95,7 +95,7 @@
     set_property_silent(this, property.name, value.call(this, this.scope));
     bender.trace("init #%0`%1=%2".fmt(this.id(), property.name,
           this.properties[property.name]));
-    if (!property.bindings && property.value()) {
+    if (!property.bindings) {
       var queue = [this];
       var f = function (q, instance) {
         var scope = flexo.find_first(instance.scopes, function (scope) {
@@ -103,14 +103,14 @@
         }, this);
         bender.trace("  +++ %0".fmt(instance.id()));
         push_value_init(q.vertices.property.instance[property.name],
-          [scope, instance.properties[property.name]]);
+          [scope, instance.properties[property.name]], !!property.value());
       };
       while (queue.length > 0) {
         var q = queue.shift();
         bender.trace("  ... %0".fmt(q.id()));
         if (q.vertices.property.component.hasOwnProperty(property.name)) {
           push_value_init(q.vertices.property.component[property.name],
-              [this.scope, q.properties[property.name]]);
+              [this.scope, q.properties[property.name]], !!property.value());
         } else if (q.vertices.property.instance.hasOwnProperty(property.name)) {
           bender.trace("  !!! %0 (%1)"
               .fmt(q.vertices.property.instance[property.name].gv_label(),
@@ -167,7 +167,7 @@
     set_property_silent(this, property.name, value.call(this, this.scope));
     bender.trace("init @%0`%1=%2".fmt(this.id(), property.name,
           this.properties[property.name]));
-    if (!property.bindings && property.value()) {
+    if (!property.bindings) {
       for (var p = this.scope.$that;
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
           p = p._prototype) {}
@@ -178,7 +178,8 @@
       var scope = flexo.find_first(this.scopes, function (scope) {
         return scope.$that === property.current_component;
       });
-      push_value_init(vertex, [scope, this.properties[property.name]]);
+      push_value_init(vertex, [scope, this.properties[property.name]],
+          !!property.value());
       bender.trace("    init value for vertex %0=%1"
         .fmt(vertex.gv_label(), this.properties[property.name]));
     }
@@ -499,7 +500,10 @@
     vertex.values.push(v);
   }
 
-  function push_value_init(vertex, v) {
+  function push_value_init(vertex, v, p) {
+    if (!p) {
+      push_value(vertex, v);
+    }
     if (vertex.__init) {
       flexo.remove_first_from_array(vertex.__init, function (w) {
         return v[0].$this === w[0].$this;
