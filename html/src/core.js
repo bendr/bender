@@ -178,7 +178,7 @@
         instance: flexo.replace_prototype(prototype.vertices.event.instance,
                        this.vertices.event.instance),
         dom: flexo.replace_prototype(prototype.vertices.event.dom,
-            this.vertices.event.dom),
+            this.vertices.event.dom)
       }
     };
     this.properties = flexo.replace_prototype(prototype.properties,

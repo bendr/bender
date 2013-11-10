@@ -293,6 +293,16 @@
   };
 
 
+  bender.SetEvent.prototype.render = function (scope) {
+    var dest = vertex_event(this, scope);
+    if (!dest) {
+      console.warn("No event %0 for component %1"
+          .fmt(this.type, scope.$that.url()));
+    }
+    return render_edge(this, scope, dest, bender.EventEdge);
+  };
+
+
   bender.SetProperty.prototype.render = function (scope) {
     var dest = vertex_property(this, scope);
     if (!dest) {
@@ -515,6 +525,18 @@
   };
 
 
+  var event_edge = _class(bender.EventEdge = function (set, target, dest) {
+    this.init(set, dest);
+    this.target = target;
+  }, bender.ElementEdge);
+
+  event_edge.follow_value = function (scope, input) {
+    var value = element_edge.follow_value.call(this, scope, input);
+    var target = scope[this.element.select()];
+    target.notify({ type: this.element.type, value: value });
+  };
+
+
   var property_edge =
   _class(bender.PropertyEdge = function (set, target, dest) {
     this.init(set, dest);
@@ -617,11 +639,12 @@
     var target = scope[element.select()];
     if (target) {
       var vertices = element.current_component.vertices.event.dom;
-      if (!vertices.hasOwnProperty(target.id())) {
-        vertices[target.id()] = scope.$environment.add_vertex(new
+      var id = target === scope.$document ? "" : target.id();
+      if (!vertices.hasOwnProperty(id)) {
+        vertices[id] = scope.$environment.add_vertex(new
             bender.DOMEventVertex(element, target));
       }
-      return vertices[target.id()];
+      return vertices[id];
     }
   }
 

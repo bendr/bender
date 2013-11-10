@@ -112,7 +112,8 @@
       },
       event: {
         component: Object.create(component.vertices.event.component),
-        instance: Object.create(component.vertices.event.instance)
+        instance: Object.create(component.vertices.event.instance),
+        dom: Object.create(component.vertices.event.dom)
       }
     };
     this.scopes = [];

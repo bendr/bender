@@ -53,8 +53,9 @@
   };
 
   bender.EventVertex.prototype.to_gv = function () {
-    return "%0 [label=\"%1\",shape=septagon]"
-      .fmt(this.graph_name(), this.gv_label());
+    return "%0 [label=\"%1\",shape=septagon%2]"
+      .fmt(this.graph_name(), this.gv_label(),
+          this.name === "ready" ? ",color=\"#4dbce9\",fontcolor=\"#4dbce9\"" : "");
   };
 
 

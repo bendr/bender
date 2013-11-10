@@ -32,7 +32,7 @@
       ($in.target !== this.scope.div || !`enabled))"/>
     <set property="down" value="false"/>
     <set event="pushed">
-      bender._trace("Pushed! %0 -> %1".fmt(this.id(), $in));
+      bender.trace("Pushed! %0 -> %1".fmt(this.id(), $in));
       return $in;
     </set>
   </watch>
