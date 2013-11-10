@@ -138,6 +138,7 @@
     this.instances = [];             // rendered instances
     this.watches = [];               // watch nodes
     this.not_ready = true;           // not ready
+    this.event("ready");             // every component has a “ready” event
   }, bender.Element);
 
   // Get or set the prototype of the component (must be another component.)
@@ -598,8 +599,9 @@
   };
 
 
-  _class(bender.Event = function () {
+  _class(bender.Event = function (name) {
     this.init();
+    this.name = name;
   }, bender.Element);
 
 

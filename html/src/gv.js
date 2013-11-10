@@ -46,20 +46,23 @@
   };
 
 
+  bender.EventVertex.prototype.gv_label = function () {
+    return "%0%1!%2/%3"
+      .fmt(this.is_component ? "#" : "@",
+          this.component.id() || this.component.index, this.name, this.index);
+  };
+
+  bender.EventVertex.prototype.to_gv = function () {
+    return "%0 [label=\"%1\",shape=septagon]"
+      .fmt(this.graph_name(), this.gv_label());
+  };
+
+
   bender.DOMEventVertex.prototype.to_gv = function () {
     return "%0 [label=\"%1\\n%2/%3\",shape=pentagon]"
       .fmt(this.graph_name(), this.element.select(), this.element.type,
           this.index);
   };
-
-  /*
-  bender.EventVertex.prototype.graph = function () {
-    return "%0 [label=\"%1\\n%2/%3\",shape=septagon]"
-      .fmt(this.graph_name(), this.element.select, this.element.type,
-          this.index);
-  };
-
-  */
 
   bender.WatchVertex.prototype.to_gv = function () {
     return "%0 [label=\"%1\",%2shape=square,fixedsize=true,width=0.3]"
@@ -84,7 +87,7 @@
   };
 
   target_vertex.to_gv = function () {
-    return "%0 [label=\"%1\",shape=triangle,fixedsize=true,width=0.6]"
+    return "%0 [label=\"%1\",shape=triangle]"
       .fmt(this.graph_name(), this.target);
   };
 

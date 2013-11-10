@@ -17,6 +17,18 @@
     return vertex;
   };
 
+  bender.Environment.prototype.flush_graph_later = function (f) {
+    if (this.__will_flush) {
+      if (!this.__queue) {
+        this.__queue = [];
+      }
+      this.__queue.push(f);
+    } else {
+      f();
+      this.flush_graph();
+    }
+  };
+
   // Request the graph to be flushed (several requests in a row will result in
   // flushing only once.)
   // TODO [mutations] maintain the unsorted flag to know when to sort the edges
@@ -62,6 +74,13 @@
         vertex.values = [];
       });
       delete this.__will_flush;
+      if (this.__queue) {
+        this.__queue.forEach(function (f) {
+          f();
+        });
+        delete this.__queue;
+        this.flush_graph();
+      }
     }.bind(this));
   };
 
@@ -159,6 +178,7 @@
     this.add_event_listeners();
     this.scope.$environment.unsorted = true;
     this.scope.$environment.flush_graph();
+    this.notify({ type: "ready" });
   };
 
   bender.Instance.prototype.init_property = function (property) {
@@ -232,9 +252,27 @@
     });
   };
 
+  bender.Instance.prototype.notify = function (e) {
+    for (var p = this.scope.$that;
+        p && !(p.vertices.event.instance.hasOwnProperty(e.type));
+        p = p._prototype) {}
+    if (p) {
+      var scope = this.scope;
+      scope.$environment.flush_graph_later(function () {
+        bender.trace("!!! notify %0 from %1".fmt(e.type, scope.$this.id()));
+        push_value(p.vertices.event.instance[e.type], [scope, e]);
+      });
+    }
+  };
+
 
   bender.GetDOMEvent.prototype.render = function (scope) {
     return vertex_dom_event(this, scope);
+  };
+
+
+  bender.GetEvent.prototype.render = function (scope) {
+    return vertex_event(this, scope);
   };
 
 
@@ -372,6 +410,14 @@
       }.bind(this), false);
     }
   };
+
+
+  _class(bender.EventVertex = function (name, is_component, component) {
+    this.init();
+    this.name = name;
+    this.is_component = is_component;
+    this.component = component;
+  }, bender.Vertex);
 
 
   // Create a new property vertex for a component (or instance) and property
@@ -576,6 +622,21 @@
             bender.DOMEventVertex(element, target));
       }
       return vertices[target.id()];
+    }
+  }
+
+  // Get a Bender event vertex.
+  function vertex_event(element, scope) {
+    var target = scope[element.select()];
+    if (target) {
+      var is_component = element.is_component_value;
+      var vertices = target.vertices.event
+        [is_component ? "component" : "instance"];
+      if (!vertices.hasOwnProperty(element.type)) {
+        vertices[element.type] = scope.$environment.add_vertex(new
+            bender.EventVertex(element.type, is_component, target));
+      }
+      return vertices[element.type];
     }
   }
 
