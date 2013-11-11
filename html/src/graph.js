@@ -92,6 +92,10 @@
     }, this);
   };
 
+  bender.Component.prototype.init_events = function () {
+    // TODO
+  };
+
   bender.Component.prototype.init_properties = function () {
     if (!this.not_ready) {
       return;
@@ -108,6 +112,7 @@
     }, this);
   };
 
+  // TODO inherit edges
   bender.Component.prototype.init_property = function (property) {
     var value = (!property.bindings && property.value()) ||
       property.default_value();
@@ -163,12 +168,33 @@
   };
 
 
+  bender.Instance.prototype.init_events = function () {
+    var component = this.scope.$that;
+    component.init_events();
+    flexo.values(component.vertices.event.instance).forEach(function (dest) {
+      for (var p = component._prototype;
+        p && !p.vertices.event.instance.hasOwnProperty(dest.name);
+        p = p._prototype) {}
+      if (p) {
+        p.vertices.event.instance[dest.name]
+          .add_outgoing(new bender.InheritEdge(dest));
+        console.log("  INHERIT EDGE v%0 -> v%1"
+            .fmt(p.vertices.event.instance[dest.name].index, dest.index));
+      }
+    });
+    this.children.forEach(function (child) {
+      child.init_events();
+    });
+  };
+
+
   bender.Instance.prototype.init_properties = function () {
     var component = this.scope.$that;
     component.init_properties();
     for (var p in component.property_definitions) {
       var property = component.property_definitions[p];
       if (!property.is_component_value) {
+        this.inherit_edge(property);
         this.init_property(property);
       }
     }
@@ -179,6 +205,23 @@
     this.scope.$environment.unsorted = true;
     this.scope.$environment.flush_graph();
     this.notify({ type: "ready" });
+  };
+
+  bender.Instance.prototype.inherit_edge = function (property) {
+    var p = this.scope.$that;
+    if (p.vertices.property.instance.hasOwnProperty(property.name)) {
+      var dest = p.vertices.property.instance[property.name];
+      for (p = p._prototype;
+          p && !(p.vertices.property.instance.hasOwnProperty(property.name));
+          p = p._prototype) {};
+      if (p) {
+        p.vertices.property.instance[property.name]
+          .add_outgoing(new bender.InheritEdge(dest));
+        console.log("  INHERIT EDGE v%0 -> v%1"
+            .fmt(p.vertices.property.instance[property.name].index,
+              dest.index));
+      }
+    }
   };
 
   bender.Instance.prototype.init_property = function (property) {
@@ -415,6 +458,8 @@
         if (this.element.stop_propagation) {
           e.stopPropagation();
         }
+        bender.trace("DOM event listener for %0/%1".fmt(scope.$this.id(),
+            this.element.type), e);
         push_value(this, [scope, e]);
         scope.$environment.flush_graph();
       }.bind(this), false);
@@ -456,10 +501,17 @@
     try {
       var new_scope = this.follow_scope(scope, input);
       if (new_scope) {
-        return [new_scope, this.follow_value(new_scope, input)];
+        var value = this.follow_value(new_scope, input);
+        if (edge.delay >= 0) {
+          bender.trace("Delayed edge (%0)".fmt(edge.delay));
+        } else {
+          return [new_scope, this.follow_value(new_scope, input)];
+        }
       }
     } catch (e) {
-      console.warn("Exception while following edge:", e);
+      if (e !== "fail") {
+        console.warn("Exception while following edge:", e);
+      }
     }
   };
 
@@ -468,6 +520,11 @@
 
   // Return the new value for the destination of the edge
   edge.follow_value = flexo.snd;
+
+
+  _class(bender.InheritEdge = function (dest) {
+    this.init(dest);
+  }, bender.Edge);
 
 
   // Edges that are tied to an element (e.g., watch, get, set) and a scope
@@ -528,6 +585,7 @@
   var event_edge = _class(bender.EventEdge = function (set, target, dest) {
     this.init(set, dest);
     this.target = target;
+    this.delay = 0;
   }, bender.ElementEdge);
 
   event_edge.follow_value = function (scope, input) {

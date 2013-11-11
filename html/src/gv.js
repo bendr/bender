@@ -73,7 +73,13 @@
 
 
   bender.Edge.prototype.to_gv = function (i) {
-    return "%0 -> %1 [label=\"%2\"]"
+    return "%0 -> %1 [label=\"%2\"%3]"
+      .fmt(this.source.graph_name(), this.dest.graph_name(), i,
+          this.delay >= 0 ? ",arrowhead=empty" : "");
+  };
+
+  bender.InheritEdge.prototype.to_gv = function (i) {
+    return "%0 -> %1 [label=\"%2\",color=\"#f8ca00\"]"
       .fmt(this.source.graph_name(), this.dest.graph_name(), i);
   };
 

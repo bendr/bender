@@ -71,6 +71,7 @@
   environment.render_component = function (component, target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     var instance = component.render(fragment);
+    instance.init_events();
     instance.init_properties();
     target.insertBefore(fragment, ref);
     return instance;
