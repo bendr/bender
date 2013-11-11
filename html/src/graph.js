@@ -36,12 +36,12 @@
     if (this.__will_flush) {
       return;
     }
-    if (this.unsorted) {
-      this.edges = sort_edges(this.vertices);
-      this.unsorted = false;
-    }
     this.__will_flush = true;
     flexo.asap(function () {
+      if (this.unsorted) {
+        this.edges = sort_edges(this.vertices);
+        this.unsorted = false;
+      }
       this.edges.forEach(function (edge, i) {
         bender.trace("flush graph: edge #%0: %1 -> %2"
           .fmt(i, edge.source.graph_name(), edge.dest.graph_name()));
@@ -467,23 +467,29 @@
   };
 
 
-  _class(bender.EventVertex = function (name, is_component, component) {
-    this.init();
+  // Simple super-class for “outlet” style vertex, i.e., component and event
+  // vertex. An outlet vertex points back to the target component, has a name
+  // property for the desired outlet, and a flag to distinguish component
+  // outlets from instance outlets.
+  var outlet_vertex =
+    _class(bender.OutletVertex = function () {}, bender.Vertex);
+
+  outlet_vertex.init = function (target, name, is_component) {
+    vertex.init.call(this);
+    this.target = target;
     this.name = name;
-    this.is_component = is_component;
-    this.component = component;
-  }, bender.Vertex);
+    this.is_component = !!is_component;
+  };
 
 
-  // Create a new property vertex for a component (or instance) and property
-  // definition pair.
-  _class(bender.PropertyVertex = function (component, element) {
-    this.init();
-    this.component = component;
-    this.element = element;
-  }, bender.Vertex);
+  _class(bender.EventVertex = function (target, name, is_component) {
+    this.init(target, name, is_component);
+  }, bender.OutletVertex);
 
 
+  _class(bender.PropertyVertex = function (target, name, is_component) {
+    this.init(target, name, is_component);
+  }, bender.OutletVertex);
 
 
   var edge = (bender.Edge = function () {}).prototype;
@@ -680,7 +686,7 @@
       }
       return edge;
     };
-    while (queue.length) {
+    while (queue.length > 0) {
       $$unshift(edges, queue.shift().incoming.map(process_incoming_edge));
     }
     vertices.forEach(function (vertex) {
@@ -711,11 +717,11 @@
     var target = scope[element.select()];
     if (target) {
       var is_component = element.is_component_value;
-      var vertices = target.vertices.event
-        [is_component ? "component" : "instance"];
+      var vertices = target.vertices.event[is_component ?
+        "component" : "instance"];
       if (!vertices.hasOwnProperty(element.type)) {
-        vertices[element.type] = scope.$environment.add_vertex(new
-            bender.EventVertex(element.type, is_component, target));
+        vertices[element.type] = scope.$environment.add_vertex(new bender
+            .EventVertex(target, element.type, is_component));
       }
       return vertices[element.type];
     }
@@ -726,11 +732,12 @@
   function vertex_property(element, scope) {
     var target = scope[element.select()];
     if (target) {
-      var vertices = target.vertices.property[element.is_component_value ?
+      var is_component = element.is_component_value;
+      var vertices = target.vertices.property[is_component ?
         "component" : "instance"];
       if (!vertices.hasOwnProperty(element.name)) {
-        vertices[element.name] = scope.$environment.add_vertex(new
-            bender.PropertyVertex(scope.$that, element));
+        vertices[element.name] = scope.$environment.add_vertex(new bender
+            .PropertyVertex(target, element.name, is_component));
       }
       return vertices[element.name];
     }

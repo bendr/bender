@@ -36,9 +36,8 @@
 
   bender.PropertyVertex.prototype.gv_label = function () {
     return "%0%1`%2/%3"
-      .fmt(this.element.is_component_value ? "#" : "@",
-          this.component.id() || this.component.index, this.element.name,
-          this.index);
+      .fmt(this.is_component ? "#" : "@", this.target.id() || this.target.index,
+          this.name, this.index);
   };
 
   bender.PropertyVertex.prototype.to_gv = function () {
@@ -48,8 +47,8 @@
 
   bender.EventVertex.prototype.gv_label = function () {
     return "%0%1!%2/%3"
-      .fmt(this.is_component ? "#" : "@",
-          this.component.id() || this.component.index, this.name, this.index);
+      .fmt(this.is_component ? "#" : "@", this.target.id() || this.target.index,
+          this.name, this.index);
   };
 
   bender.EventVertex.prototype.to_gv = function () {
