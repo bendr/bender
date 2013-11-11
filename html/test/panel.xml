@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="panel">
 
-  <property name="n" as="number" value="0"/>
+  <property name="n" as="number" value="1"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>

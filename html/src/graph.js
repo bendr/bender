@@ -215,11 +215,17 @@
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
           p = p._prototype) {};
       if (p) {
-        p.vertices.property.instance[property.name]
-          .add_outgoing(new bender.InheritEdge(dest));
-        console.log("  INHERIT EDGE v%0 -> v%1"
-            .fmt(p.vertices.property.instance[property.name].index,
-              dest.index));
+        var source = p.vertices.property.instance[property.name];
+        source.add_outgoing(new bender.InheritEdge(dest));
+        console.log("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
+        source.outgoing.forEach(function (edge) {
+          if (edge instanceof bender.InheritEdge) {
+            return;
+          }
+          var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
+          console.log("  REDIRECT EDGE v%0 -> v%1"
+            .fmt(edge_.source.index, edge_.dest.index));
+        });
       }
     }
   };
@@ -531,6 +537,20 @@
   _class(bender.InheritEdge = function (dest) {
     this.init(dest);
   }, bender.Edge);
+
+
+  var redirect_edge = _class(bender.RedirectEdge = function (edge) {
+    this.init(edge.dest);
+    this.original = edge;
+  }, bender.Edge);
+
+  redirect_edge.follow_scope = function (scope) {
+    return this.original.follow_scope(scope);
+  };
+
+  redirect_edge.follow_value = function (scope, input) {
+    return this.original.follow_value(scope, input);
+  };
 
 
   // Edges that are tied to an element (e.g., watch, get, set) and a scope
