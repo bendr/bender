@@ -182,6 +182,14 @@
         .replace(/\n/g, "\\n"));
   };
 
+  // A quick-and-dirty random ID for n alphanumeric characters (default = 6)
+  flexo.random_id = function (n) {
+    if (!(n > 0)) {
+      n = 6;
+    }
+    return Math.random().toString(36).substr(2, n).toUpperCase();
+  };
+
   // Trim a string, or return the empty string if the argument was not a string
   // (for instance, null or undefined.)
   flexo.safe_trim = function (maybe_string) {

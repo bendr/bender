@@ -35,7 +35,7 @@
 
   <watch>
     <get select="@plus" event="pushed"/>
-    <set property="n" value="`n + 1"/>
+    <set property="n" value="`n + 2"/>
   </watch>
 
 </component>

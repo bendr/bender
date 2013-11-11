@@ -52,16 +52,14 @@
   };
 
   bender.EventVertex.prototype.to_gv = function () {
-    return "%0 [label=\"%1\",shape=septagon%2]"
-      .fmt(this.graph_name(), this.gv_label(),
-          this.name === "ready" ? ",color=\"#4dbce9\",fontcolor=\"#4dbce9\"" : "");
+    return "%0 [label=\"%1\",shape=septagon]"
+      .fmt(this.graph_name(), this.gv_label());
   };
 
 
   bender.DOMEventVertex.prototype.to_gv = function () {
     return "%0 [label=\"%1\\n%2/%3\",shape=pentagon]"
-      .fmt(this.graph_name(), this.element.select(), this.element.type,
-          this.index);
+      .fmt(this.graph_name(), this.select, this.type, this.index);
   };
 
   bender.WatchVertex.prototype.to_gv = function () {
@@ -74,7 +72,7 @@
   bender.Edge.prototype.to_gv = function (i) {
     return "%0 -> %1 [label=\"%2\"%3]"
       .fmt(this.source.graph_name(), this.dest.graph_name(), i,
-          this.delay >= 0 ? ",arrowhead=empty" : "");
+          this.delay >= 0 ? ",color=\"#4dbce9\"" : "");
   };
 
   bender.InheritEdge.prototype.to_gv = function (i) {

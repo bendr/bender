@@ -125,7 +125,8 @@
     });
     this.vertices = {
       property: { component: {}, instance: {} },
-      event: { component: {}, instance: {}, dom: {} },
+      event: { component: {}, instance: {} },
+      dom: {}
     };
     this._on = {};                   // on-* attributes
     this.links = [];                 // link nodes
@@ -176,11 +177,14 @@
         component: flexo.replace_prototype(prototype.vertices.event.component,
                        this.vertices.event.component),
         instance: flexo.replace_prototype(prototype.vertices.event.instance,
-                       this.vertices.event.instance),
-        dom: flexo.replace_prototype(prototype.vertices.event.dom,
-            this.vertices.event.dom)
-      }
+                       this.vertices.event.instance)
+      },
+      dom: flexo.replace_prototype(prototype.vertices.dom, this.vertices.dom)
     };
+    for (var id in prototype.vertices.dom) {
+      this.vertices[id] = flexo.replace_prototype(prototype.vertices.dom[id],
+          this.vertices.dom[id]);
+    }
     this.properties = flexo.replace_prototype(prototype.properties,
         this.properties);
     this.property_definitions = flexo.replace_prototype(
@@ -776,7 +780,7 @@
     this.init();
     this.name = name;
   }, bender.Get);
-  
+
 
   _class(bender.Set = function () {
     this.init();

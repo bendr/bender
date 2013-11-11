@@ -34,10 +34,13 @@
   // TODO [mutations] maintain the unsorted flag to know when to sort the edges
   bender.Environment.prototype.flush_graph = function () {
     if (this.__will_flush) {
+      bender.trace("(flush graph: already scheduled.)");
       return;
     }
+    bender.trace("(flush graph: will flush ASAP.)");
     this.__will_flush = true;
     flexo.asap(function () {
+      bender.trace("*** FLUSH GRAPH ***");
       if (this.unsorted) {
         this.edges = sort_edges(this.vertices);
         this.unsorted = false;
@@ -176,10 +179,7 @@
         p && !p.vertices.event.instance.hasOwnProperty(dest.name);
         p = p._prototype) {}
       if (p) {
-        p.vertices.event.instance[dest.name]
-          .add_outgoing(new bender.InheritEdge(dest));
-        console.log("  INHERIT EDGE v%0 -> v%1"
-            .fmt(p.vertices.event.instance[dest.name].index, dest.index));
+        redirect(p.vertices.event.instance[dest.name], dest);
       }
     });
     this.children.forEach(function (child) {
@@ -215,17 +215,7 @@
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
           p = p._prototype) {};
       if (p) {
-        var source = p.vertices.property.instance[property.name];
-        source.add_outgoing(new bender.InheritEdge(dest));
-        console.log("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
-        source.outgoing.forEach(function (edge) {
-          if (edge instanceof bender.InheritEdge) {
-            return;
-          }
-          var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
-          console.log("  REDIRECT EDGE v%0 -> v%1"
-            .fmt(edge_.source.index, edge_.dest.index));
-        });
+        redirect(p.vertices.property.instance[property.name], dest);
       }
     }
   };
@@ -364,10 +354,12 @@
 
 
   bender.Instance.prototype.add_event_listeners = function () {
-    var vertices = this.scope.$that.vertices.event.dom;
-    for (var key in vertices) {
-      var vertex = vertices[key];
-      vertex.add_event_listener(this.scope_of(vertex.element));
+    var vertices = this.scope.$that.vertices.dom;
+    for (var id in vertices) {
+      for (var ev in vertices[id]) {
+        var vertex = vertices[id][ev];
+        vertex.add_event_listener(this.scope_of(vertex.element));
+      }
     }
   };
 
@@ -428,6 +420,9 @@
               k < l && scopes[i][""][j].scopes[k].$that !== this.component; ++k)
             {}
           if (k < l) {
+            if (select === "$document") {
+              return scopes[i];
+            }
             var scope_ = scopes[i][""][j].scopes[k];
             if ((scope_[select || "$this"] === scope.$this) ||
                 (select && scope_[select] === scope[select])) {
@@ -448,24 +443,29 @@
 
 
   var dom_event_vertex =
-  _class(bender.DOMEventVertex = function (element, target) {
+  _class(bender.DOMEventVertex = function (component, select, type) {
     this.init();
-    this.element = element;
-    this.target = target;
+    this.element = component;
+    this.select = select;
+    this.type = type;
   }, bender.Vertex);
 
+  // Use the watch vertex
   dom_event_vertex.add_event_listener = function (scope) {
-    var target = scope[this.element.select()];
+    var target = scope[this.select];
     if (target && typeof target.addEventListener === "function") {
-      target.addEventListener(this.element.type, function (e) {
+      var id = flexo.random_id();
+      bender.trace("New event listener for %0/%1: %2"
+          .fmt(scope.$this.id(), this.type, id), target);
+      target.addEventListener(this.type, function (e) {
         if (this.element.prevent_default) {
           e.preventDefault();
         }
         if (this.element.stop_propagation) {
           e.stopPropagation();
         }
-        bender.trace("DOM event listener for %0/%1".fmt(scope.$this.id(),
-            this.element.type), e);
+        bender.trace("DOM event listener for %0/%1: %2"
+          .fmt(scope.$this.id(), this.type, id), e);
         push_value(this, [scope, e]);
         scope.$environment.flush_graph();
       }.bind(this), false);
@@ -517,7 +517,7 @@
         if (edge.delay >= 0) {
           bender.trace("Delayed edge (%0)".fmt(edge.delay));
         } else {
-          return [new_scope, this.follow_value(new_scope, input)];
+          return [new_scope, value];
         }
       }
     } catch (e) {
@@ -666,6 +666,21 @@
     vertex.__init.push(v);
   }
 
+  // Create inherit and redirect edges from the `source` vertex to the `dest`
+  // vertex (for outlet vertices.)
+  function redirect(source, dest) {
+    source.add_outgoing(new bender.InheritEdge(dest));
+    console.log("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
+    source.outgoing.forEach(function (edge) {
+      if (edge instanceof bender.InheritEdge) {
+        return;
+      }
+      var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
+      console.log("  REDIRECT EDGE v%0 -> v%1"
+        .fmt(edge_.source.index, edge_.dest.index));
+    });
+  }
+
   // Render an edge from a set element.
   function render_edge(set, scope, dest, Constructor) {
     var target = scope[set.select()];
@@ -689,6 +704,8 @@
   // the list of vertices, starting with the sink vertices (which have no
   // outgoing edge) and moving edges from the vertices to the sorted list of
   // edges.
+  // TODO push delayed edges to the back of the list; ignore them for sorting
+  // purposes so that they can be used to break cycles.
   function sort_edges(vertices) {
     var queue = vertices.filter(function (vertex) {
       vertex.__out = vertex.outgoing.length;
@@ -722,13 +739,17 @@
   function vertex_dom_event(element, scope) {
     var target = scope[element.select()];
     if (target) {
-      var vertices = element.current_component.vertices.event.dom;
+      var vertices = element.current_component.vertices.dom;
       var id = target === scope.$document ? "" : target.id();
       if (!vertices.hasOwnProperty(id)) {
-        vertices[id] = scope.$environment.add_vertex(new
-            bender.DOMEventVertex(element, target));
+        vertices[id] = {};
       }
-      return vertices[id];
+      if (!vertices[id].hasOwnProperty(element.type)) {
+        vertices[id][element.type] = scope.$environment.add_vertex(new
+            bender.DOMEventVertex(element.current_component, element.select(),
+              element.type));
+      }
+      return vertices[id][element.type];
     }
   }
 

@@ -114,9 +114,12 @@
       event: {
         component: Object.create(component.vertices.event.component),
         instance: Object.create(component.vertices.event.instance),
-        dom: Object.create(component.vertices.event.dom)
-      }
+      },
+      dom: {}
     };
+    for (var id in component.vertices.dom) {
+      this.vertices.dom[id] = Object.create(component.vertices.dom[id]);
+    }
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
