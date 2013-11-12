@@ -302,25 +302,9 @@
       if (v) {
         v.add_outgoing(new bender.WatchEdge(get, w));
       }
-      if (v instanceof bender.PropertyVertex && get.bindings) {
-        Object.keys(get.bindings).forEach(function (select) {
-          var target = scope[select];
-          if (target) {
-            for (var _ in get.bindings[select]) {  // jshint unused: false
-              var u = vertex_property(target, scope);
-              if (u) {
-                u.add_outgoing(new bender.DependencyEdge(this, v));
-              }
-            }
-          }
-        }, this);
-      }
     }, this);
     this.sets.forEach(function (set) {
-      var edge = set.render(scope);
-      if (edge) {
-        w.add_outgoing(edge);
-      }
+      w.add_outgoing(set.render(scope));
     });
   };
 
@@ -414,6 +398,9 @@
   };
 
   vertex.add_outgoing = function (edge) {
+    if (!edge) {
+      return;
+    }
     edge.source = this;
     this.outgoing.push(edge);
     if (!edge.dest) {
@@ -436,43 +423,11 @@
 
   // Watch vertex corresponding to a watch element, gathers the inputs and
   // outputs of the watch
-  var watch_vertex = _class(bender.WatchVertex = function (watch, component) {
+  _class(bender.WatchVertex = function (watch, component) {
     this.init();
     this.watch = watch;
     this.component = component;
   }, bender.Vertex);
-
-  // Shift the input dynamic scope to the new scope for the watch
-  watch_vertex.shift_scope = function (scope, select) {
-    var i, n;
-    if (scope.$this.scopes) {
-      var scopes = scope.$this.scopes;
-      for (i = 0, n = scopes.length; i < n; ++i) {
-        for (var j = 0, m = scopes[i][""].length; j < m; ++j) {
-          for (var k = 0, l = scopes[i][""][j].scopes.length;
-              k < l && scopes[i][""][j].scopes[k].$that !== this.component; ++k)
-            {}
-          if (k < l) {
-            if (select === "$document") {
-              return scopes[i];
-            }
-            var scope_ = scopes[i][""][j].scopes[k];
-            if ((scope_[select || "$this"] === scope.$this) ||
-                (select && scope_[select] === scope[select])) {
-              // Check above
-              return scope_;
-            }
-          }
-        }
-      }
-    } else {
-      for (i = 0, n = scope[""].length; i < n; ++i) {
-        if (scope[""][i] === this.component) {
-          return scope[""][i].scope;
-        }
-      }
-    }
-  };
 
 
   var dom_event_vertex =
@@ -620,7 +575,22 @@
   // Follow a watch edge: shift the input scope to match that of the destination
   // watch node, and evaluate the value of the edge using the watch’s context.
   watch_edge.follow_scope = function (scope) {
-    return this.dest.shift_scope(scope, this.element.select());
+    return this.element.shift_scope(scope);
+  };
+
+  bender.Get.prototype.shift_scope = flexo.id;
+
+  bender.GetProperty.prototype.shift_scope = function (scope) {
+    var component = this.current_component;
+    var parent_scope = Object.getPrototypeOf(component.scope);
+    var select = this.select();
+    if (scope.$this.scopes) {
+      return flexo.find_first(parent_scope[""], function (s) {
+        return s[select] === scope.$this;
+      });
+    } else {
+      return parent_scope[select];
+    }
   };
 
 

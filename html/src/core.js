@@ -118,11 +118,11 @@
     if (!parent_scope.hasOwnProperty("")) {
       parent_scope[""] = [];
     }
-    parent_scope[""].push(this);
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this },
       $that: { enumerable: true, writable: true, value: this }
     });
+    parent_scope[""].push(this.scope);
     this.vertices = {
       property: { component: {}, instance: {} },
       event: { component: {}, instance: {} },
@@ -543,7 +543,6 @@
     this.ns = ns;
     this.name = flexo.safe_string(name);
     this.attrs = {};
-    this.event_vertices = {};
   }, bender.Element);
 
   dom_element.attr = function (ns, name, value) {

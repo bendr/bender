@@ -106,27 +106,12 @@
     component.instances.push(this);
     this.properties = component.init_properties_object.call(this,
       Object.create(component.properties));
-    this.vertices = {
-      property: {
-        component: Object.create(component.vertices.property.component),
-        instance: Object.create(component.vertices.property.instance)
-      },
-      event: {
-        component: Object.create(component.vertices.event.component),
-        instance: Object.create(component.vertices.event.instance),
-      },
-      dom: {}
-    };
-    for (var id in component.vertices.dom) {
-      this.vertices.dom[id] = Object.create(component.vertices.dom[id]);
-    }
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
       if (!scope.hasOwnProperty("")) {
         scope[""] = [];
       }
-      scope[""].push(this);
       if (p._id) {
         var key = "@" + p._id;
         if (scope.hasOwnProperty(key)) {
@@ -136,10 +121,12 @@
           scope[key] = this;
         }
       }
-      this.scopes.push(Object.create(scope, {
+      var s = Object.create(scope, {
         $that: { enumerable: true, value: p },
         $this: { enumerable: true, value: this }
-      }));
+      });
+      this.scopes.push(s);
+      Object.getPrototypeOf(scope)[""].push(s);
     }
     this.children = [];
     if (parent) {
@@ -308,9 +295,6 @@
     }
     this.add_id_to_scope(elem, stack, true);
     bender.View.prototype.render.call(this, elem, stack);
-    for (var type in this.event_vertices) {
-      this.event_vertices[type].add_event_listener(stack[stack.i]);
-    }
     target.appendChild(elem);
   };
 
