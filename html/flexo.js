@@ -184,6 +184,7 @@
 
   // A quick-and-dirty random ID for n alphanumeric characters (default = 6)
   flexo.random_id = function (n) {
+    // jshint -W018
     if (!(n > 0)) {
       n = 6;
     }

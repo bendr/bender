@@ -683,10 +683,9 @@
     }[this.resolve_as()]);
   };
 
-  // Set the value of an object that has a value/as pair of attributes. Only for
-  // deserialized values.
+  // Set the value of an object that has a value/as pair of attributes.
   value_element.value_from_string = function (value, needs_return, loc) {
-    var bindings, p, value;
+    var bindings;
     var as = this.resolve_as();
     if (as === "boolean") {
       value = flexo.is_true(value);
@@ -713,12 +712,7 @@
         }
         try {
           value = new Function("$scope", "$in", value);
-          if (typeof bindings === "object") {
-            p = this.current_component;
-            if (p) {
-              push_bindings(p, this, bindings);
-            }
-          }
+          push_bindings(this.current_component, this, bindings);
         } catch (e) {
           console.error("%0: Could not parse “%1” as Javascript"
               .fmt(loc, value));
@@ -730,10 +724,7 @@
         if (typeof bindings === "object") {
           this.bindings = bindings;
           value = bindings[""].value;
-          p = this.current_component;
-          if (p) {
-            push_bindings(p, this, bindings);
-          }
+          push_bindings(this.current_component, this, bindings);
         } else {
           value = safe;
         }
@@ -744,6 +735,7 @@
 
   value_element.set_value_from_string = function (value, needs_return, loc) {
     this._value = this.value_from_string(value, needs_return, loc);
+    delete this._value.__bindings;
     return this;
   };
 
@@ -945,9 +937,9 @@
 
   // Push a bindings object in the bindings scope of a component
   // TODO check whether the same element can be used as a target more than once
-  function push_bindings(parent, element, bindings) {
-    // jshint validthis:true
-    if (element.parent instanceof bender.Get ||
+  function push_bindings(parent, element, bindings, name) {
+    if (!parent || typeof bindings !== "object" ||
+        element.parent instanceof bender.Get ||
         element.parent instanceof bender.Set) {
       return;
     }

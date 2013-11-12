@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp" href="svg-logo.xml" sides="7"
-  fgcolor="'#f8f9f0'">
+<component xmlns="http://bender.igel.co.jp" href="svg-logo.xml"
+  sides="7" fgcolor="'#f8f9f0'">
   <property name="bgcolor" as="string" value="#ff6a4d"/>
 </component>

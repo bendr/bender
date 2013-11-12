@@ -131,9 +131,19 @@
 
   // Get the init value from the property, along with a flag to determine
   // whether the property should actually be initialized.
+  // TODO handle bindings properly for initial values (make a new property
+  // element?)
   bender.Component.prototype.init_value = function (property) {
-    if (this.init_values.hasOwnProperty(property.name)) {
-      return [property.value_from_string(this.init_values[property.name], true,
+    var name = property.name;
+    if (this.init_values.hasOwnProperty(name)) {
+      /*property = new bender.Property(name, true);
+      if (this.property_definitions.hasOwnProperty(name)) {
+        prop.as(this.property_definitions[name].as());
+      }
+      this.append_child(property);
+      property.set_value_from_string(this.init_values[name], true, this.url());
+      */
+      return [property.value_from_string(this.init_values[name], true,
           this.url()), true];
     }
     return !property.bindings && property.value() ?
