@@ -299,7 +299,7 @@
       watch.bindings = true;
       Object.keys(child.bindings).forEach(function (id) {
         Object.keys(child.bindings[id]).forEach(function (prop) {
-          watch.append_child(new bender.GetProperty(prop, id));
+          watch.append_child(new bender.GetProperty(prop).select(id));
         });
       });
       this.append_child(watch);
@@ -893,7 +893,7 @@
     watch.bindings = true;
     Object.keys(bindings).forEach(function (id) {
       Object.keys(bindings[id]).forEach(function (prop) {
-        watch.append_child(new bender.GetProperty(prop, id));
+        watch.append_child(new bender.GetProperty(prop).select(id));
       });
     });
     parent.append_child(watch);

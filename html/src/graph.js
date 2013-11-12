@@ -245,12 +245,8 @@
     var p = this.scope.$that;
     if (p.vertices.property.instance.hasOwnProperty(property.name)) {
       var dest = p.vertices.property.instance[property.name];
-      for (p = p._prototype;
-          p && !(p.vertices.property.instance.hasOwnProperty(property.name));
-          p = p._prototype) {}
-      if (p) {
-        redirect(p.vertices.property.instance[property.name], dest);
-      }
+      redirect(p._prototype &&
+          p._prototype.vertices.property.instance[property.name], dest);
     }
   };
 
@@ -582,14 +578,13 @@
 
   bender.GetProperty.prototype.shift_scope = function (scope) {
     var component = this.current_component;
-    var parent_scope = Object.getPrototypeOf(component.scope);
-    var select = this.select();
     if (scope.$this.scopes) {
-      return flexo.find_first(parent_scope[""], function (s) {
-        return s[select] === scope.$this;
-      });
+      return flexo.find_first(Object.getPrototypeOf(component.scope)[""],
+          function (s) {
+            return s.$this.scopes && s.$that === component;
+          });
     } else {
-      return parent_scope[select];
+      return component.scope;
     }
   };
 
@@ -683,6 +678,9 @@
   // Create inherit and redirect edges from the `source` vertex to the `dest`
   // vertex (for outlet vertices.)
   function redirect(source, dest) {
+    if (!source) {
+      return;
+    }
     source.add_outgoing(new bender.InheritEdge(dest));
     console.log("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
     source.outgoing.forEach(function (edge) {
