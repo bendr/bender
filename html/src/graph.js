@@ -511,11 +511,11 @@
     try {
       var new_scope = this.follow_scope(scope, input);
       if (new_scope) {
-        var value = this.follow_value(new_scope, input);
+        var v = this.follow_value(new_scope, input);
         if (edge.delay >= 0) {
           bender.trace("Delayed edge (%0)".fmt(edge.delay));
         } else {
-          return [new_scope, value];
+          return v;
         }
       }
     } catch (e) {
@@ -529,7 +529,9 @@
   edge.follow_scope = flexo.fst;
 
   // Return the new value for the destination of the edge
-  edge.follow_value = flexo.snd;
+  edge.follow_value = function (scope, input) {
+    return [scope, input];
+  };
 
 
   _class(bender.InheritEdge = function (dest) {
@@ -562,7 +564,8 @@
 
   element_edge.follow_value = function (scope, input) {
     var f = this.element.value();
-    return typeof f === "function" ? f.call(scope.$this, scope, input) : input;
+    return [scope,
+           typeof f === "function" ? f.call(scope.$this, scope, input) : input];
   };
 
 
@@ -579,6 +582,7 @@
 
   bender.Get.prototype.shift_scope = flexo.id;
 
+  bender.GetEvent.prototype.shift_scope =
   bender.GetProperty.prototype.shift_scope = function (scope) {
     var component = this.current_component;
     if (scope.$this.scopes) {
@@ -586,11 +590,11 @@
       var s = flexo.find_first(scope.$this.scopes, function (s) {
         return Object.getPrototypeOf(Object.getPrototypeOf(s)) === super_scope;
       });
-      return s && s.$that === component ? s :
+      return s.$that === component ? s :
         flexo.find_first(Object.getPrototypeOf(component.scope)[""],
             function (s) {
-              return s.$this.scopes && s.$that === component;
-            });
+              return s.$that === component && s[this.select()] === scope.$this;
+            }, this);
     } else {
       return component.scope;
     }
@@ -604,12 +608,12 @@
   }, bender.ElementEdge);
 
   dom_property_edge.follow_value = function (scope, input) {
-    var value = element_edge.follow_value.call(this, scope, input);
+    var v = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
     if (target) {
-      target[this.element.name] = value;
+      target[this.element.name] = v[1];
     }
-    return value;
+    return v;
   };
 
 
@@ -618,10 +622,10 @@
   }, bender.ElementEdge);
   
   dom_attribute_edge.follow_value = function (scope, input) {
-    var value = element_edge.follow_value.call(this, scope, input);
+    var v = element_edge.follow_value.call(this, scope, input);
     scope[this.element.select()].setAttributeNS(this.element.ns,
-        this.element.name, value);
-    return value;
+        this.element.name, v[1]);
+    return v;
   };
 
 
@@ -632,9 +636,9 @@
   }, bender.ElementEdge);
 
   event_edge.follow_value = function (scope, input) {
-    var value = element_edge.follow_value.call(this, scope, input);
+    var v = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
-    target.notify({ type: this.element.type, value: value });
+    target.notify({ type: this.element.type, value: v[1] });
   };
 
 
@@ -648,15 +652,15 @@
     var s = function (v) {
       return v[0].$this === scope.$this;
     };
+    var target = scope[this.element.select()];
     var init = flexo.find_first(this.dest.__init, s) ||
       flexo.find_first(this.dest.values, s);
     if (init) {
-      return init[1];
+      return [target.scope, init[1]];
     }
-    var value = element_edge.follow_value.call(this, scope, input);
-    var target = scope[this.element.select()];
-    set_property_silent(target, this.element.name, value);
-    return value;
+    var v = element_edge.follow_value.call(this, scope, input);
+    set_property_silent(target, this.element.name, v[1]);
+    return [target.scope, v[1]];
   };
 
 
