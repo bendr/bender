@@ -923,7 +923,7 @@
 
 
   // Promises (see http://promisesaplus.com/)
-  var promise = (flexo.Promise = function (id) {
+  var promise = (flexo.Promise = function () {
     this.pending = true;
     Object.defineProperty(this, "queue", { value: [], writable: true });
   }).prototype;
@@ -989,7 +989,7 @@
     } else {
       promise2.reject(this.reason);
     }
-  }
+  };
 
   promise.then = function (onFulfilled, onRejected) {
     var promise2 = new flexo.Promise();
@@ -1385,7 +1385,7 @@
   flexo.find_ancestor_or_self = function (node, p) {
     for (; node && !p(node); node = node.parentNode) {}
     return node;
-  }
+  };
 
   // Remove all children of an element
   flexo.remove_children = function (elem) {

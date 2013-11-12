@@ -685,20 +685,20 @@
 
   // Set the value of an object that has a value/as pair of attributes. Only for
   // deserialized values.
-  value_element.set_value_from_string = function (value, needs_return, loc) {
-    var bindings, p;
+  value_element.value_from_string = function (value, needs_return, loc) {
+    var bindings, p, value;
     var as = this.resolve_as();
     if (as === "boolean") {
-      this._value = flexo.is_true(value);
+      value = flexo.is_true(value);
     } else if (as === "number") {
-      this._value = flexo.to_number(value);
+      value = flexo.to_number(value);
     } else {
       if (as === "json") {
         try {
-          this._value = JSON.parse(flexo.safe_string(value));
+          value = JSON.parse(flexo.safe_string(value));
         } catch (e) {
           console.error("%0: Could not parse “%2” as JSON".fmt(loc, value));
-          this._value = undefined;
+          value = undefined;
         }
       } else if (as === "dynamic") {
         bindings = bindings_dynamic(flexo.safe_string(value));
@@ -712,32 +712,38 @@
           value = "return " + value;
         }
         try {
-          this._value = new Function("$scope", "$in", value);
-          p = this.current_component;
-          if (p) {
-            push_bindings(p, this, bindings);
+          value = new Function("$scope", "$in", value);
+          if (typeof bindings === "object") {
+            p = this.current_component;
+            if (p) {
+              push_bindings(p, this, bindings);
+            }
           }
         } catch (e) {
           console.error("%0: Could not parse “%1” as Javascript"
               .fmt(loc, value));
-          this._value = flexo.snd;
+          value = flexo.snd;
         }
       } else { // if (as === "string") {
         var safe = flexo.safe_string(value);
         bindings = bindings_string(safe);
         if (typeof bindings === "object") {
           this.bindings = bindings;
-          this._value = bindings[""].value;
+          value = bindings[""].value;
           p = this.current_component;
           if (p) {
             push_bindings(p, this, bindings);
           }
         } else {
-          this._value = safe;
+          value = safe;
         }
       }
     }
-    this._value = flexo.funcify(this._value);
+    return flexo.funcify(value);
+  };
+
+  value_element.set_value_from_string = function (value, needs_return, loc) {
+    this._value = this.value_from_string(value, needs_return, loc);
     return this;
   };
 

@@ -153,12 +153,6 @@
       }
       return children;
     }.call(this)).then(function () {
-      for (var p in component.init_values) {
-        var property = component.append_child(new bender.Property(p, true));
-        property.set_value_from_string(component.init_values[p], true,
-            component.url());
-        component.init_values[p] = property;
-      }
       return component.load_links();
     });
   };

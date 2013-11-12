@@ -8,30 +8,30 @@
 
 
   // Add a vertex to the watch graph and return it.
-  // TODO [mutations] Remove a vertex from the watch graph.
   bender.Environment.prototype.add_vertex = function (vertex) {
     vertex.index = this.vertices.length === 0 ?
       0 : (this.vertices[this.vertices.length - 1].index + 1);
     vertex.environment = this;
     this.vertices.push(vertex);
+    this.sorted = false;
     return vertex;
   };
 
-  bender.Environment.prototype.flush_graph_later = function (f) {
-    if (this.__will_flush) {
-      if (!this.__queue) {
-        this.__queue = [];
-      }
-      this.__queue.push(f);
-    } else {
-      f();
-      this.flush_graph();
-    }
+  // Remove a vertex from the graph as well as all of its incoming and outgoing
+  // edges.
+  bender.Environment.prototype.remove_vertex = function (vertex) {
+    flexo.remove_from_array(this.vertices, vertex);
+    vertex.incoming.forEach(remove_edge);
+    vertex.outgoing.forEach(remove_edge);
+    delete vertex.index;
+    delete vertex.environment;
+    this.sorted = false;
+    return vertex;
   };
 
   // Request the graph to be flushed (several requests in a row will result in
   // flushing only once.)
-  // TODO [mutations] maintain the unsorted flag to know when to sort the edges
+  // TODO allow delay (uses asap at the moment.)
   bender.Environment.prototype.flush_graph = function () {
     if (this.__will_flush) {
       bender.trace("(flush graph: already scheduled.)");
@@ -87,6 +87,20 @@
     }.bind(this));
   };
 
+  // Schedule a graph flush *after* the currently scheduled flush has happened
+  // (for delayed edges.)
+  bender.Environment.prototype.flush_graph_later = function (f) {
+    if (this.__will_flush) {
+      if (!this.__queue) {
+        this.__queue = [];
+      }
+      this.__queue.push(f);
+    } else {
+      f();
+      this.flush_graph();
+    }
+  };
+
 
   // Render the graph for the component by rendering all watches.
   bender.Component.prototype.render_graph = function () {
@@ -115,14 +129,24 @@
     }, this);
   };
 
+  // Get the init value from the property, along with a flag to determine
+  // whether the property should actually be initialized.
+  bender.Component.prototype.init_value = function (property) {
+    if (this.init_values.hasOwnProperty(property.name)) {
+      return [property.value_from_string(this.init_values[property.name], true,
+          this.url()), true];
+    }
+    return !property.bindings && property.value() ?
+      [property.value(), true] : [property.default_value(), !property.bindings];
+  };
+
   // TODO inherit edges
   bender.Component.prototype.init_property = function (property) {
-    var value = (!property.bindings && property.value()) ||
-      property.default_value();
-    set_property_silent(this, property.name, value.call(this, this.scope));
+    var v = this.init_value(property);
+    set_property_silent(this, property.name, v[0].call(this, this.scope));
     bender.trace("init #%0`%1=%2".fmt(this.id(), property.name,
           this.properties[property.name]));
-    if (!property.bindings) {
+    if (v[1]) {
       var queue = [this];
       var f = function (q, instance) {
         var scope = flexo.find_first(instance.scopes, function (scope) {
@@ -213,7 +237,7 @@
       var dest = p.vertices.property.instance[property.name];
       for (p = p._prototype;
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
-          p = p._prototype) {};
+          p = p._prototype) {}
       if (p) {
         redirect(p.vertices.property.instance[property.name], dest);
       }
@@ -221,12 +245,11 @@
   };
 
   bender.Instance.prototype.init_property = function (property) {
-    var value = (!property.bindings && property.value()) ||
-      property.default_value();
-    set_property_silent(this, property.name, value.call(this, this.scope));
+    var v = this.scope.$that.init_value(property);
+    set_property_silent(this, property.name, v[0].call(this, this.scope));
     bender.trace("init @%0`%1=%2".fmt(this.id(), property.name,
           this.properties[property.name]));
-    if (!property.bindings) {
+    if (v[1]) {
       for (var p = this.scope.$that;
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
           p = p._prototype) {}
@@ -249,7 +272,7 @@
     var queue = [this.scope.$that];
     while (queue.length > 0) {
       var q = queue.shift();
-      if (q.vertices.property.instance.hasOwnProperty(name)) {
+      if (name in q.vertices.property.instance) {
         push_value(q.vertices.property.instance[name], [this.scope, value]);
       } else {
         $$push(q, q.derived);
@@ -506,6 +529,17 @@
     }
     return this;
   };
+
+  // Remove self from the list of outgoing edges of the source and the list of
+  // incoming edges from the destination.
+  edge.remove = function () {
+    flexo.remove_from_array(this.source.outgoing);
+    flexo.remove_from_array(this.dest.incoming);
+    delete this.source;
+    delete this.dest;
+  };
+
+  var remove_edge = Function.prototype.call.bind(edge.remove);
 
   // Follow an edge: return the scope for the destination vertex and the value
   // for that scope; or nothing at all.
