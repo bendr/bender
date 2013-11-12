@@ -579,10 +579,15 @@
   bender.GetProperty.prototype.shift_scope = function (scope) {
     var component = this.current_component;
     if (scope.$this.scopes) {
-      return flexo.find_first(Object.getPrototypeOf(component.scope)[""],
-          function (s) {
-            return s.$this.scopes && s.$that === component;
-          });
+      var super_scope = Object.getPrototypeOf(component.scope);
+      var s = flexo.find_first(scope.$this.scopes, function (s) {
+        return Object.getPrototypeOf(Object.getPrototypeOf(s)) === super_scope;
+      });
+      return s.$that === component ? s :
+        flexo.find_first(Object.getPrototypeOf(component.scope)[""],
+            function (s) {
+              return s.$this.scopes && s.$that === component;
+            });
     } else {
       return component.scope;
     }
