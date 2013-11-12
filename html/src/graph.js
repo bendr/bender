@@ -371,7 +371,10 @@
     for (var id in vertices) {
       for (var ev in vertices[id]) {
         var vertex = vertices[id][ev];
-        vertex.add_event_listener(this.scope_of(vertex.element));
+        var scope = this.scope_of(vertex.element);
+        vertex.outgoing.forEach(function (edge) {
+          vertex.add_event_listener(scope, edge);
+        });
       }
     }
   };
@@ -435,21 +438,21 @@
   }, bender.Vertex);
 
   // Use the watch vertex
-  dom_event_vertex.add_event_listener = function (scope) {
-    var target = scope[this.select];
+  dom_event_vertex.add_event_listener = function (scope, edge) {
+    var target = scope[edge.element.select()];
     if (target && typeof target.addEventListener === "function") {
       var id = flexo.random_id();
       bender.trace("New event listener for %0/%1: %2"
-          .fmt(scope.$this.id(), this.type, id), target);
-      target.addEventListener(this.type, function (e) {
-        if (this.element.prevent_default) {
+          .fmt(scope.$this.id(), edge.element.type, id), target);
+      target.addEventListener(edge.element.type, function (e) {
+        if (edge.element.prevent_default) {
           e.preventDefault();
         }
-        if (this.element.stop_propagation) {
+        if (edge.element.stop_propagation) {
           e.stopPropagation();
         }
         bender.trace("DOM event listener for %0/%1: %2"
-          .fmt(scope.$this.id(), this.type, id), e);
+          .fmt(scope.$this.id(), edge.element.type, id), e);
         push_value(this, [scope, e]);
         scope.$environment.flush_graph();
       }.bind(this), false);
@@ -583,7 +586,7 @@
       var s = flexo.find_first(scope.$this.scopes, function (s) {
         return Object.getPrototypeOf(Object.getPrototypeOf(s)) === super_scope;
       });
-      return s.$that === component ? s :
+      return s && s.$that === component ? s :
         flexo.find_first(Object.getPrototypeOf(component.scope)[""],
             function (s) {
               return s.$this.scopes && s.$that === component;

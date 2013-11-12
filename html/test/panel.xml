@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="panel">
 
-  <property name="n" as="number" value="1"/>
+  <property name="n" as="number" value="5"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
@@ -35,7 +35,7 @@
 
   <watch>
     <get select="@plus" event="pushed"/>
-    <set property="n" value="`n + 2"/>
+    <set property="n" value="`n + 1"/>
   </watch>
 
 </component>
