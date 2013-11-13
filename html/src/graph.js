@@ -228,6 +228,7 @@
   bender.Instance.prototype.init_properties = function () {
     bender.trace("@@@ Init properties: %0".fmt(this.id()));
     var component = this.scope.$that;
+    this.add_event_listeners();
     component.init_properties();
     bender.trace("  init instance properties for %0".fmt(this.id()));
     for (var p in component.property_definitions) {
@@ -243,7 +244,6 @@
     this.children.forEach(function (child) {
       child.init_properties();
     });
-    this.add_event_listeners();
     this.scope.$environment.unsorted = true;
     this.scope.$environment.flush_graph();
     this.notify({ type: "ready" });
@@ -453,30 +453,37 @@
   // Use the watch vertex
   dom_event_vertex.add_event_listener = function (scope, edge) {
     var target = scope[edge.element.select()];
-    if (!target) {
+    if (edge.element.property) {
+      var vertex = vertex_property(edge.element, scope.$that.scope);
+      if (vertex) {
+        vertex.add_outgoing(new bender.DOMEventListenerEdge(this, scope, edge));
+      }
+    } else {
+      this.add_event_listener_to_target(scope, edge, target);
+    }
+  };
+
+  dom_event_vertex.add_event_listener_to_target = function (scope, edge, target) {
+    if (!target || typeof target.addEventListener !== "function") {
       console.warn("No target %0 for event listener %1"
           .fmt(edge.element.select(), edge.element.type));
       return;
     }
-    if (edge.element.property) {
-      console.warn("TODO");
-    } else if (typeof target.addEventListener === "function") {
-      var id = flexo.random_id();
-      bender.trace("New event listener for %0/%1: %2"
-          .fmt(scope.$this.id(), edge.element.type, id), target);
-      target.addEventListener(edge.element.type, function (e) {
-        if (edge.element.prevent_default) {
-          e.preventDefault();
-        }
-        if (edge.element.stop_propagation) {
-          e.stopPropagation();
-        }
-        bender.trace("DOM event listener for %0/%1: %2"
-          .fmt(scope.$this.id(), edge.element.type, id), e);
-        push_value(this, [scope, e]);
-        scope.$environment.flush_graph();
-      }.bind(this), false);
-    }
+    var id = flexo.random_id();
+    bender.trace("New event listener for %0/%1: %2"
+        .fmt(scope.$this.id(), edge.element.type, id), target);
+    target.addEventListener(edge.element.type, function (e) {
+      if (edge.element.prevent_default) {
+        e.preventDefault();
+      }
+      if (edge.element.stop_propagation) {
+        e.stopPropagation();
+      }
+      bender.trace("DOM event listener for %0/%1: %2"
+        .fmt(scope.$this.id(), edge.element.type, id), e);
+      push_value(this, [scope, e]);
+      scope.$environment.flush_graph();
+    }.bind(this), false);
   };
 
 
@@ -570,6 +577,20 @@
 
   redirect_edge.follow_value = function (scope, input) {
     return this.original.follow_value(scope, input);
+  };
+
+
+  var dom_event_listener_edge =
+  _class(bender.DOMEventListenerEdge = function (dest, scope, edge, target) {
+    this.init(dest);
+    this.scope = scope;
+    this.edge = edge;
+  }, bender.Edge);
+
+  // TODO remove previous event listener
+  dom_event_listener_edge.follow_value = function (scope, input) {
+    this.dest.add_event_listener_to_target(this.scope, this.edge, input);
+    return [scope, input];
   };
 
 
@@ -815,18 +836,20 @@
   }
 
   // Get a vertex for a property from an element and its scope, creating it
-  // first if necessary.
+  // first if necessary. Note that this can be called for a property vertex,
+  // but also from an event vertex (when introducing event listener edges.)
   function vertex_property(element, scope) {
     var target = scope[element.select()];
     if (target) {
       var is_component = element.is_component_value;
       var vertices = target.vertices.property[is_component ?
         "component" : "instance"];
-      if (!vertices.hasOwnProperty(element.name)) {
-        vertices[element.name] = scope.$environment.add_vertex(new bender
-            .PropertyVertex(target, element.name, is_component));
+      var name = element.name || element.property;
+      if (!vertices.hasOwnProperty(name)) {
+        vertices[name] = scope.$environment.add_vertex(new bender
+            .PropertyVertex(target, name, is_component));
       }
-      return vertices[element.name];
+      return vertices[name];
     }
   }
 

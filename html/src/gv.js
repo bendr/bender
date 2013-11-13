@@ -85,6 +85,11 @@
       .fmt(this.source.graph_name(), this.dest.graph_name(), i);
   };
 
+  bender.DOMEventListenerEdge.prototype.to_gv = function (i) {
+    return "%0 -> %1 [label=\"%2\",color=\"#5eb26b\"]"
+      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  };
+
 
   var target_vertex = (bender.TargetVertex = function (index, target) {
     this.index = index;
