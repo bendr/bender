@@ -10,11 +10,13 @@
     <html:p>
       WS: `(status) — last message on pin #`pin: `msg
       <component href="../lib/button.xml" id="on-button">
+        <property name="enabled" value="@websocket`status === 'open'"/>
         <view>
           ON
         </view>
       </component>
       <component href="../lib/button.xml" id="off-button">
+        <property name="enabled" value="@websocket`status === 'open'"/>
         <view>
           OFF
         </view>

@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  /* global console, exports, require, window, $foreach, $$push, $$unshift */
+  /* global console, exports, require, window, $call, $foreach, $$push, $$unshift */
   // Disable warnings about new Function()
   // jshint -W054
 
@@ -207,7 +207,7 @@
     this.event_definitions = flexo.replace_prototype(
         this._prototype.event_definitions, this.event_definitions);
     this.derived.forEach($call.bind(component.replace_prototypes));
-  }
+  };
 
   // Initialize the properties object for a component or instance, setting the
   // hidden epsilon meta-property to point back to the component that owns it.
@@ -952,7 +952,7 @@
 
   // Push a bindings object in the bindings scope of a component
   // TODO check whether the same element can be used as a target more than once
-  function push_bindings(parent, element, bindings, name) {
+  function push_bindings(parent, element, bindings) {
     if (!parent || typeof bindings !== "object" ||
         element.parent instanceof bender.Get ||
         element.parent instanceof bender.Set) {

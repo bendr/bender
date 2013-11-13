@@ -230,10 +230,6 @@
     var component = this.scope.$that;
     this.add_event_listeners();
     component.init_properties();
-    bender.trace("  init instance properties for %0".fmt(this.id()));
-    for (var p in component.property_definitions) {
-      bender.trace("    will init instance property %0".fmt(p));
-    }
     for (var p in component.property_definitions) {
       var property = component.property_definitions[p];
       if (!property.is_component_value) {
@@ -379,7 +375,9 @@
   };
 
 
+  // TODO fix jshint warning
   bender.Instance.prototype.add_event_listeners = function () {
+    // jshint -W083
     var vertices = this.scope.$that.vertices.dom;
     for (var id in vertices) {
       for (var ev in vertices[id]) {
@@ -581,7 +579,7 @@
 
 
   var dom_event_listener_edge =
-  _class(bender.DOMEventListenerEdge = function (dest, scope, edge, target) {
+  _class(bender.DOMEventListenerEdge = function (dest, scope, edge) {
     this.init(dest);
     this.scope = scope;
     this.edge = edge;
