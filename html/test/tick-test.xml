@@ -9,6 +9,6 @@
   </view>
   <watch>
     <get select="@t" event="tick"/>
-    <set select="@now" dom-property="textContent" value="new Date($in)"/>
+    <set select="@now" dom-property="textContent" value="new Date($in.t)"/>
   </watch>
 </component>

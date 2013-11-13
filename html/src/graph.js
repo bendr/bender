@@ -308,7 +308,13 @@
     });
   };
 
-  bender.Instance.prototype.notify = function (e) {
+  bender.Instance.prototype.notify = function (type, e) {
+    if (typeof type === "object") {
+      e = type;
+    } else {
+      e.type = type;
+    }
+    e.source = this;
     for (var p = this.scope.$that;
         p && !(p.vertices.event.instance.hasOwnProperty(e.type));
         p = p._prototype) {}

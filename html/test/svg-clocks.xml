@@ -5,12 +5,12 @@
     <svg:g transform="translate(-400)">
       <component href="svg-clock.xml">
         <property name="city" as="string" value="San Francisco"/>
-        <property name="offset" as="number" value="7"/>
+        <property name="offset" as="number" value="8"/>
       </component>
     </svg:g>
     <component href="svg-clock.xml">
       <property name="city" as="string" value="Paris"/>
-      <property name="offset" as="number" value="-2"/>
+      <property name="offset" as="number" value="-1"/>
     </component>
     <svg:g transform="translate(400)">
       <component href="svg-clock.xml">

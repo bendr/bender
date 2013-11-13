@@ -6,10 +6,10 @@
     lib.timer.cancel.call(this);
     var tick = typeof rate_ms !== "number" || isNaN(rate_ms) || rate_ms <= 0 ?
       function () {
-        this.scope.$this.notify("tick", Date.now());
+        this.scope.$this.notify("tick", { t: Date.now() });
         this.__frame = window.requestAnimationFrame(tick);
       }.bind(this) : function () {
-        this.scope.$this.notify("tick", Date.now());
+        this.scope.$this.notify("tick", { t: Date.now() });
         this.__timeout = window.setTimeout(tick, rate_ms);
       }.bind(this);
     tick();

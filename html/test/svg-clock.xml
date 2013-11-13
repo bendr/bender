@@ -10,7 +10,7 @@
     var palette = new flexo.Urn(["#ff6a4d", "#0b486b", "#5eb26b", "#774f38",
       "#f8ca00", "#9e0b46", "#a61416", "#222222", "#f8f9f0", "#4dbce9",
       "#06491d", "#f94179"]);
-    bender._trace("%0: palette".fmt(this.url()));
+    bender.trace("%0: palette".fmt(this.url()));
     return palette;
   </property>
 
@@ -54,7 +54,8 @@
         }
       }
     ]]></get>
-    <set select="@tick" property="rate-ms" value="flexo.random_int(3000, 12000)"/>
+  <set select="@tick" property="rate-ms"
+    value="flexo.random_int(3000, 12000)"/>
   </watch>
 
   <watch>
