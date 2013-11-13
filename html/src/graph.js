@@ -75,6 +75,7 @@
       });
       this.vertices.forEach(function (vertex) {
         vertex.values = [];
+        delete vertex.__init;
       });
       delete this.__will_flush;
       if (this.__queue) {
@@ -337,6 +338,11 @@
 
   bender.GetProperty.prototype.render = function (scope) {
     return vertex_property(this, scope);
+  };
+
+
+  bender.Set.prototype.render = function (scope) {
+    return new bender.ElementEdge().init(this, scope.$environment.vortex);
   };
 
 
@@ -664,7 +670,9 @@
 
   property_edge.follow_value = function (scope, input) {
     var s = function (v) {
-      return v[0].$this === scope.$this;
+      if (v[0].$this === scope.$this) {
+        return true;
+      }
     };
     var target = scope[this.element.select()];
     var init = flexo.find_first(this.dest.__init, s) ||

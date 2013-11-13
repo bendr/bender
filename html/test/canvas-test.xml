@@ -1,11 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" id="canvas-test">
   <link rel="stylesheet" href="canvas-test.css"/>
   <view>
-    <component href="../lib/canvas.xml" id="k">
-      <property name="width" value="640"/>
-      <property name="height" value="480"/>
-      <property name="stroke" as="string" value="#102040"/>
-      <property name="stroke-width" value="12"/>
-    </component>
+    <component href="../lib/canvas.xml" id="k" width="640" height="480"
+      stroke="#f94179" stroke-width="12"/>
   </view>
 </component>
