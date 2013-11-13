@@ -135,7 +135,7 @@
   // element?)
   bender.Component.prototype.init_value = function (property) {
     var name = property.name;
-    if (this.init_values.hasOwnProperty(name)) {
+    if (name in this.init_values) {
       /*property = new bender.Property(name, true);
       if (this.property_definitions.hasOwnProperty(name)) {
         prop.as(this.property_definitions[name].as());
@@ -243,10 +243,10 @@
 
   bender.Instance.prototype.inherit_edge = function (property) {
     var p = this.scope.$that;
-    if (p.vertices.property.instance.hasOwnProperty(property.name)) {
+    if (property.name in p.vertices.property.instance) {
       var dest = p.vertices.property.instance[property.name];
-      redirect(p._prototype &&
-          p._prototype.vertices.property.instance[property.name], dest);
+      p = dest.target._prototype;
+      redirect(p && p.vertices.property.instance[property.name], dest);
     }
   };
 
@@ -440,7 +440,14 @@
   // Use the watch vertex
   dom_event_vertex.add_event_listener = function (scope, edge) {
     var target = scope[edge.element.select()];
-    if (target && typeof target.addEventListener === "function") {
+    if (!target) {
+      console.warn("No target %0 for event listener %1"
+          .fmt(edge.element.select(), edge.element.type));
+      return;
+    }
+    if (edge.element.property) {
+      console.warn("TODO");
+    } else if (typeof target.addEventListener === "function") {
       var id = flexo.random_id();
       bender.trace("New event listener for %0/%1: %2"
           .fmt(scope.$this.id(), edge.element.type, id), target);
@@ -620,7 +627,7 @@
   var dom_attribute_edge = _class(bender.DOMAttributeEdge = function (set) {
     this.init(set);
   }, bender.ElementEdge);
-  
+
   dom_attribute_edge.follow_value = function (scope, input) {
     var v = element_edge.follow_value.call(this, scope, input);
     scope[this.element.select()].setAttributeNS(this.element.ns,

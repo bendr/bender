@@ -4,7 +4,7 @@
     <html:p>
       <component href="../lib/button.xml" id="button*">
         <view>
-          #lib\-button`label
+          @lib\-button`label
         </view>
       </component>
     </html:p>

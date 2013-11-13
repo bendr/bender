@@ -1,7 +1,6 @@
-<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button">
+<component xmlns="http://bender.igel.co.jp" href="ui-elem.xml" id="button"
+  base-class="button">
 
-  <property name="base-class" as="string" value="button"/>
-  <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
   <property name="down" as="boolean" value="false"/>
   <property name="down-class" value="`down ? 'down' : ''"/>
 

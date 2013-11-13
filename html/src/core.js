@@ -165,6 +165,8 @@
     }
     this._prototype = prototype;
     prototype.derived.push(this);
+    this.init_values = flexo.replace_prototype(prototype.init_values,
+        this.init_values);
     this.vertices = {
       property: {
         component: flexo.replace_prototype(
