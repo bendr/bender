@@ -163,38 +163,51 @@
     if (p) {
       throw "Cycle in prototype chain";
     }
+    bender.trace("^^^ %0 < %1".fmt(this.id(), prototype.id()));
     this._prototype = prototype;
     prototype.derived.push(this);
-    this.init_values = flexo.replace_prototype(prototype.init_values,
+    this.replace_prototypes();
+    return this;
+  };
+
+  // Replace the prototype for all objects such as init values, vertices, &c.
+  // when the prototype chain changes.
+  component.replace_prototypes = function () {
+    this.init_values = flexo.replace_prototype(this._prototype.init_values,
         this.init_values);
     this.vertices = {
       property: {
         component: flexo.replace_prototype(
-                       prototype.vertices.property.component,
+                       this._prototype.vertices.property.component,
                        this.vertices.property.component),
-        instance: flexo.replace_prototype(prototype.vertices.property.instance,
+        instance: flexo.replace_prototype(
+                       this._prototype.vertices.property.instance,
                        this.vertices.property.instance)
       },
       event: {
-        component: flexo.replace_prototype(prototype.vertices.event.component,
+        component: flexo.replace_prototype(
+                       this._prototype.vertices.event.component,
                        this.vertices.event.component),
-        instance: flexo.replace_prototype(prototype.vertices.event.instance,
+        instance: flexo.replace_prototype(
+                       this._prototype.vertices.event.instance,
                        this.vertices.event.instance)
       },
-      dom: flexo.replace_prototype(prototype.vertices.dom, this.vertices.dom)
+      dom: flexo.replace_prototype(this._prototype.vertices.dom,
+               this.vertices.dom)
     };
-    for (var id in prototype.vertices.dom) {
-      this.vertices[id] = flexo.replace_prototype(prototype.vertices.dom[id],
+    for (var id in this._prototype.vertices.dom) {
+      this.vertices[id] = flexo.replace_prototype(
+          this._prototype.vertices.dom[id],
           this.vertices.dom[id]);
     }
-    this.properties = flexo.replace_prototype(prototype.properties,
+    this.properties = flexo.replace_prototype(this._prototype.properties,
         this.properties);
     this.property_definitions = flexo.replace_prototype(
-        prototype.property_definitions, this.property_definitions);
+        this._prototype.property_definitions, this.property_definitions);
     this.event_definitions = flexo.replace_prototype(
-        prototype.event_definitions, this.event_definitions);
-    return this;
-  };
+        this._prototype.event_definitions, this.event_definitions);
+    this.derived.forEach($call.bind(component.replace_prototypes));
+  }
 
   // Initialize the properties object for a component or instance, setting the
   // hidden epsilon meta-property to point back to the component that owns it.
@@ -287,6 +300,7 @@
             .fmt(child.name, this.url()));
         return;
       }
+      bender.trace("+++ property %0`%1".fmt(this.id(), child.name));
       this.property_definitions[child.name] = child;
     }
     this.define_js_property(child.name);

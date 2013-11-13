@@ -114,7 +114,9 @@
   };
 
   bender.Component.prototype.init_properties = function () {
+    bender.trace("### Init properties: %0".fmt(this.id()));
     if (!this.not_ready) {
+      bender.trace("  ready, no init.");
       return;
     }
     delete this.not_ready;
@@ -194,7 +196,7 @@
       } else if (q.vertices.property.instance.hasOwnProperty(name)) {
         // jshint -W083
         $$push(q.vertices.property.instance[name].values,
-            q.instances.map(function (instance) {
+            q.all_instances.map(function (instance) {
               return [instance.scope, value];
             }));
       } else {
@@ -223,8 +225,13 @@
 
 
   bender.Instance.prototype.init_properties = function () {
+    bender.trace("@@@ Init properties: %0".fmt(this.id()));
     var component = this.scope.$that;
     component.init_properties();
+    bender.trace("  init instance properties for %0".fmt(this.id()));
+    for (var p in component.property_definitions) {
+      bender.trace("    will init instance property %0".fmt(p));
+    }
     for (var p in component.property_definitions) {
       var property = component.property_definitions[p];
       if (!property.is_component_value) {
@@ -701,13 +708,13 @@
       return;
     }
     source.add_outgoing(new bender.InheritEdge(dest));
-    console.log("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
+    bender.trace("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
     source.outgoing.forEach(function (edge) {
       if (edge instanceof bender.InheritEdge) {
         return;
       }
       var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
-      console.log("  REDIRECT EDGE v%0 -> v%1"
+      bender.trace("  REDIRECT EDGE v%0 -> v%1"
         .fmt(edge_.source.index, edge_.dest.index));
     });
   }
