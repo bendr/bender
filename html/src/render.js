@@ -240,19 +240,13 @@
   // element are rendered as if it were a view element.
   // TODO select attribute (using query selectors)
   bender.Content.prototype.render = function (target, stack) {
-    var indices = [];
-    for (var i = stack.i + 1, n = stack.length; i < n; ++i) {
-      if (stack[i].$that.scope.$view) {
-        indices.push(i);
-      }
-    }
-    if (indices.length) {
-      indices.forEach(function (i) {
-        var j = stack.i;
-        stack.i = i;
-        stack[i].$that.scope.$view.render(target, stack);
-        stack.i = j;
-      });
+    for (var i = stack.i + 1, n = stack.length;
+        i < n && !stack[i].$that.scope.$view; ++i) {}
+    if (i < n) {
+      var j = stack.i;
+      stack.i = i;
+      stack[i].$that.scope.$view.render(target, stack);
+      stack.i = j;
     } else {
       bender.View.prototype.render.call(this, target, stack);
     }
