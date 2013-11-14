@@ -21,6 +21,7 @@ body {
 var args = flexo.get_args();
 bender.TRACE = !args.hasOwnProperty("trace") || flexo.is_true(args.trace);
 bender.render_href(args.href).then(function (instance) {
+  window.$ = instance;
   window.APP = instance.scope.$that;
   window.ENV = instance.scope.$environment;
   bender.trace("*** Rendered %0".fmt(instance.id()));

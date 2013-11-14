@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp" id="C">
+  <property name="z" value="21"/>
+  <view>
+    <component href="B.xml" id="b">
+      <property name="x" value="@C`z * 2"/>
+    </component>
+  </view>
+</component>
