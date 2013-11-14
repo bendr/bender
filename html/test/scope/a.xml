@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp" id="A">
+  <view>
+    A(B=<component href="p.xml" id="B" x="foo"/>,
+    C=<component href="p.xml" id="C" x="bar"/>)
+  </view>
+</component>

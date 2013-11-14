@@ -635,6 +635,9 @@
       var s = flexo.find_first(scope.$this.scopes, function (s) {
         return Object.getPrototypeOf(Object.getPrototypeOf(s)) === super_scope;
       });
+      if (!s.$that) {
+        console.warn("No scope found?");
+      }
       return s.$that === component ? s :
         flexo.find_first(Object.getPrototypeOf(component.scope)[""],
             function (s) {

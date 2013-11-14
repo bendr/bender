@@ -115,13 +115,13 @@
     element.init.call(this);
     var parent_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
-    if (!parent_scope.hasOwnProperty("")) {
-      parent_scope[""] = [];
-    }
     this.scope = Object.create(parent_scope, {
       $this: { enumerable: true, writable: true, value: this },
       $that: { enumerable: true, writable: true, value: this }
     });
+    if (!parent_scope.hasOwnProperty("")) {
+      parent_scope[""] = [];
+    }
     parent_scope[""].push(this.scope);
     this.vertices = {
       property: { component: {}, instance: {} },
@@ -138,7 +138,7 @@
     this.derived = [];               // derived components
     this.instances = [];             // rendered instances
     this.watches = [];               // watch nodes
-    this.not_ready = true;           // not ready
+    this.not_ready = true;           // not ready, will get deleted once ready
     this.event("ready");             // every component has a “ready” event
   }, bender.Element);
 
@@ -363,24 +363,26 @@
   component.add_child_component = function (child) {
     child.parent_component = this;
     this.child_components.push(child);
-    var scope = Object.getPrototypeOf(this.scope);
+    var parent_scope = Object.getPrototypeOf(this.scope);
     var child_scope = Object.getPrototypeOf(child.scope);
-    if (scope[""] && child_scope[""]) {
-      $$push(scope[""], child_scope[""]);
-      delete child_scope[""];
-    }
+    var scopes = child_scope[""];
+    delete child_scope[""];
     Object.keys(child_scope).forEach(function (key) {
-      if (key in scope && scope[key] !== child_scope[key]) {
+      if (key in parent_scope && parent_scope[key] !== child_scope[key]) {
         console.error("Redefinition of %0 in scope".fmt(key));
       } else {
-        scope[key] = child_scope[key];
+        parent_scope[key] = child_scope[key];
       }
     });
-    var new_scope = Object.create(scope);
-    Object.keys(child.scope).forEach(function (key) {
-      new_scope[key] = child.scope[key];
+    scopes.forEach(function (scope) {
+      if (scope.$this === scope.$that) {
+        scope.$this.scope = flexo.replace_prototype(parent_scope, scope);
+        parent_scope[""].push(scope.$this.scope);
+      } else {
+        // TODO [mutations] handle instance scopes as well
+        console.warn("TODO");
+      }
     });
-    child.scope = new_scope;
   };
 
   // Add ids to scope when a child is added, and add top-level components as

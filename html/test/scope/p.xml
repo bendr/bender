@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp" id="P">
+  <property name="x" as="string" value="none"/>
+  <view>
+    P(`x)
+  </view>
+</component>

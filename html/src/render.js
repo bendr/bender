@@ -109,9 +109,6 @@
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
-      if (!scope.hasOwnProperty("")) {
-        scope[""] = [];
-      }
       if (p._id) {
         var key = "@" + p._id;
         if (scope.hasOwnProperty(key)) {
