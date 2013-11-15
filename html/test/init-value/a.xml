@@ -1,6 +1,6 @@
-<component xmlns="http://bender.igel.co.jp" id="A">
-  <property name="x" value="1"/>
-  <property name="y"/>
+<component xmlns="http://bender.igel.co.jp" id="A" x="2">
+  <property name="x" value="`y + 1"/>
+  <property name="y" as="number" value="5"/>
   <view>
     X = `x
   </view>

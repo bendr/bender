@@ -48,34 +48,25 @@
       this.edges.forEach(function (edge, i) {
         bender.trace("flush graph: edge #%0: %1 -> %2"
           .fmt(i, edge.source.graph_name(), edge.dest.graph_name()));
-        if (edge.source.__init) {
-          edge.source.__init.forEach(function (v) {
-            push_value(edge.source, v);
-          });
-          bender.trace("  init values: %0"
-            .fmt(edge.source.__init.map(function (v) {
-              return "%0/%1".fmt(v[0].$this.id(), v[1]);
-            }).join(", ")));
-          delete edge.source.__init;
-        }
         if (edge.source.values.length) {
           bender.trace("  values: %0"
             .fmt(edge.source.values.map(function (v) {
-              return "%0/%1".fmt(v[0].$this.id(), v[1]);
+              return "%0=%1%2".fmt(idx(v[0]), v[1],
+                v[2] ? " (%0)".fmt(idx(v[2])) : "");
             }).join(", ")));
         }
         edge.source.values.forEach(function (v) {
           var v_ = edge.follow.apply(edge, v);
           if (v_) {
-            bender.trace("  new value for v%0: %1/%2"
-              .fmt(edge.dest.index, v_[0].$this.id(), v_[1]));
+            bender.trace("  new value for v%0: %1=%2%3"
+              .fmt(edge.dest.index, idx(v_[0]), v_[1],
+                v_[2] ? " (%0)".fmt(idx(v_[2])) : ""));
             push_value(edge.dest, v_);
           }
         });
       });
       this.vertices.forEach(function (vertex) {
         vertex.values = [];
-        delete vertex.__init;
       });
       delete this.__will_flush;
       if (this.__queue) {
@@ -132,49 +123,50 @@
     }, this);
   };
 
-  // Get the init value from the property, along with a flag to determine
-  // whether the property should actually be initialized.
-  // TODO handle bindings properly for initial values (make a new property
-  // element?)
+  // Get the init value from the property, along with the original scope (or
+  // false if there should not be any further initialization, i.e., if the
+  // property is bound.)
+  // TODO switch order so it matches the scope/value pairs in the graph
   bender.Component.prototype.init_value = function (property) {
     var name = property.name;
-    if (name in this.init_values) {
-      /*property = new bender.Property(name, true);
-      if (this.property_definitions.hasOwnProperty(name)) {
-        prop.as(this.property_definitions[name].as());
+    for (var p = this; p; p = p._prototype) {
+      if (p.init_values.hasOwnProperty(name)) {
+        return [property.value_from_string(p.init_values[name], true,
+            this.url()), p.scope];
       }
-      this.append_child(property);
-      property.set_value_from_string(this.init_values[name], true, this.url());
-      */
-      return [property.value_from_string(this.init_values[name], true,
-          this.url()), true];
+      if (p.property_definitions.hasOwnProperty(name) &&
+          p.property_definitions[name].value() &&
+          !p.property_definitions[name].bindings) {
+        return [p.property_definitions[name].value(), p.scope];
+      }
     }
     return !property.bindings && property.value() ?
-      [property.value(), true] : [property.default_value(), !property.bindings];
+      [property.value(), this.scope] :
+      [property.default_value(), !property.bindings && this.scope];
   };
 
   // TODO inherit edges
   bender.Component.prototype.init_property = function (property) {
     var v = this.init_value(property);
     set_property_silent(this, property.name, v[0].call(this, this.scope));
-    bender.trace("init #%0`%1=%2".fmt(this.id(), property.name,
-          this.properties[property.name]));
+    bender.trace("init #%0`%1: %2=%3".fmt(this.scope._idx, property.name,
+          v[1] ? idx(v[1]) : "_", this.properties[property.name]));
     if (v[1]) {
       var queue = [this];
       var f = function (q, instance) {
         var scope = flexo.find_first(instance.scopes, function (scope) {
-          return scope.$that === this;
-        }, this);
+          return scope.$that === v[1].$this;
+        });
         bender.trace("  +++ %0".fmt(instance.id()));
-        push_value_init(q.vertices.property.instance[property.name],
-          [scope, instance.properties[property.name]], !!property.value());
+        push_value(q.vertices.property.instance[property.name],
+          [scope, instance.properties[property.name]]);
       };
       while (queue.length > 0) {
         var q = queue.shift();
         bender.trace("  ... %0".fmt(q.id()));
         if (q.vertices.property.component.hasOwnProperty(property.name)) {
-          push_value_init(q.vertices.property.component[property.name],
-              [this.scope, q.properties[property.name]], !!property.value());
+          push_value(q.vertices.property.component[property.name],
+              [v[1], q.properties[property.name]]);
         } else if (q.vertices.property.instance.hasOwnProperty(property.name)) {
           bender.trace("  !!! %0 (%1)"
               .fmt(q.vertices.property.instance[property.name].gv_label(),
@@ -257,8 +249,8 @@
   bender.Instance.prototype.init_property = function (property) {
     var v = this.scope.$that.init_value(property);
     set_property_silent(this, property.name, v[0].call(this, this.scope));
-    bender.trace("init @%0`%1=%2".fmt(this.id(), property.name,
-          this.properties[property.name]));
+    bender.trace("init @%0`%1: %2=%3".fmt(this._idx, property.name,
+          v[1] ? idx(v[1]) : "_", this.properties[property.name]));
     if (v[1]) {
       for (var p = this.scope.$that;
           p && !(p.vertices.property.instance.hasOwnProperty(property.name));
@@ -268,12 +260,11 @@
       }
       var vertex = p.vertices.property.instance[property.name];
       var scope = flexo.find_first(this.scopes, function (scope) {
-        return scope.$that === property.current_component;
+        return scope.$that === v[1].$this;
       });
-      push_value_init(vertex, [scope, this.properties[property.name]],
-          !!property.value());
-      bender.trace("    init value for vertex %0=%1"
-        .fmt(vertex.gv_label(), this.properties[property.name]));
+      push_value(vertex, [scope, this.properties[property.name]]);
+      bender.trace("  init value for vertex %0: %1=%2"
+        .fmt(vertex.gv_label(), idx(scope), this.properties[property.name]));
     }
   };
 
@@ -538,7 +529,7 @@
 
   // Follow an edge: return the scope for the destination vertex and the value
   // for that scope; or nothing at all.
-  edge.follow = function (scope, input) {
+  edge.follow = function (scope, input, prev_scope) {
     try {
       var new_scope = this.follow_scope(scope, input);
       if (new_scope) {
@@ -546,6 +537,17 @@
         if (edge.delay >= 0) {
           bender.trace("Delayed edge (%0)".fmt(edge.delay));
         } else {
+          if (this.push_scope) {
+            bender.trace("    (push scope %0)".fmt(idx(scope)));
+            v.push(scope);
+          } else if (this.pop_scope) {
+            if (prev_scope) {
+              bender.trace("    (pop scope %0)".fmt(idx(v[0])));
+              v[0] = prev_scope;
+            } else {
+              console.warn("    (pop scope: no scope to pop?!)");
+            }
+          }
           return v;
         }
       }
@@ -619,6 +621,8 @@
     this.init(get, dest);
   }, bender.ElementEdge);
 
+  Object.defineProperty(watch_edge, "push_scope", { value: true });
+
   // Follow a watch edge: shift the input scope to match that of the destination
   // watch node, and evaluate the value of the edge using the watch’s context.
   watch_edge.follow_scope = function (scope) {
@@ -655,6 +659,8 @@
     this.init(set);
   }, bender.ElementEdge);
 
+  Object.defineProperty(dom_property_edge, "pop_scope", { value: true });
+
   dom_property_edge.follow_value = function (scope, input) {
     var v = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
@@ -668,6 +674,8 @@
   var dom_attribute_edge = _class(bender.DOMAttributeEdge = function (set) {
     this.init(set);
   }, bender.ElementEdge);
+
+  Object.defineProperty(dom_attribute_edge, "pop_scope", { value: true });
 
   dom_attribute_edge.follow_value = function (scope, input) {
     var v = element_edge.follow_value.call(this, scope, input);
@@ -683,6 +691,8 @@
     this.delay = 0;
   }, bender.ElementEdge);
 
+  Object.defineProperty(event_edge, "pop_scope", { value: true });
+
   event_edge.follow_value = function (scope, input) {
     var v = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
@@ -696,6 +706,8 @@
     this.target = target;
   }, bender.ElementEdge);
 
+  Object.defineProperty(property_edge, "pop_scope", { value: true });
+
   property_edge.follow_value = function (scope, input) {
     var s = function (v) {
       if (v[0].$this === scope.$this) {
@@ -703,8 +715,7 @@
       }
     };
     var target = scope[this.element.select()];
-    var init = flexo.find_first(this.dest.__init, s) ||
-      flexo.find_first(this.dest.values, s);
+    var init = flexo.find_first(this.dest.values, s);
     if (init) {
       return [target.scope, init[1]];
     }
@@ -714,6 +725,12 @@
   };
 
 
+  // Detail id for a component or instance (used for debugging.)
+  function idx(scope) {
+    return scope.$this === scope.$that ? scope.$this._idx :
+      "%0[%1]".fmt(scope.$this._idx, scope.$that._idx);
+  }
+
   // Push a value (really, a scope/value pair) to the values of a vertex in the
   // graph.
   function push_value(vertex, v) {
@@ -721,20 +738,6 @@
       return v[0].$this === w[0].$this;
     });
     vertex.values.push(v);
-  }
-
-  function push_value_init(vertex, v, p) {
-    if (!p) {
-      push_value(vertex, v);
-    }
-    if (vertex.__init) {
-      flexo.remove_first_from_array(vertex.__init, function (w) {
-        return v[0].$this === w[0].$this;
-      });
-    } else {
-      vertex.__init = [];
-    }
-    vertex.__init.push(v);
   }
 
   // Create inherit and redirect edges from the `source` vertex to the `dest`

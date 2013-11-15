@@ -146,6 +146,13 @@
     }
   });
 
+  // Debug id: id followed by the index number
+  Object.defineProperty(component, "_idx", {
+    get: function () {
+      return "%0,%1".fmt(this.id() || "_", this.index);
+    }
+  });
+
   // Get or set the prototype of the component (must be another component.)
   // TODO [mutations] what happens to the old prototype if there was one?
   component.prototype = function (prototype) {
@@ -870,6 +877,25 @@
     this.init();
     this.name = name;
   }, bender.Set);
+
+
+  // Debug function for printing scopes
+  bender.print_scope = function (scope, indent) {
+    if (scope.hasOwnProperty("$environment")) {
+      console.log("environment scope", scope);
+    } else {
+      var p = Object.getPrototypeOf(scope);
+      if (p.hasOwnProperty("$environment")) {
+        console.log("abstract scope", scope);
+      } else if (scope.$this && scope.$this === scope.$that) {
+          console.log("component scope [%0]".fmt(scope.$this.id()), scope);
+      } else if (!scope.$this) {
+        console.log("concrete scope", scope);
+      } else {
+        console.log("instance scope [%0]".fmt(scope.$this.id()), scope);
+      }
+    }
+  };
 
 
   // Identify property bindings for a dynamic property value string. When there

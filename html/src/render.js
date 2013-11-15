@@ -144,6 +144,15 @@
     }).join(";"), this.index);
   };
 
+  // Debug id: id followed by the index number
+  Object.defineProperty(instance, "_idx", {
+    get: function () {
+      return "%0:%1".fmt(this.scopes.map(function (scope) {
+        return scope.$that._idx;
+      }).join(";"), this.index);
+    }
+  });
+
   // Render the instance’s stack of views and return itself.
   instance.render_view = function (target) {
     var stack = [];
