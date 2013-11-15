@@ -84,7 +84,7 @@
         this._id = id;
         var p = this.current_component;
         if (p) {
-          p.update_id_for_element_in_scope(this, id);
+          update_id_for_element_in_scope(p, this, id);
         }
       }
       return this;
@@ -97,16 +97,17 @@
   // top-level components, or the abstract scope of the parent component.)
   var component = _class(bender.Component = function (scope) {
     element.init.call(this);
-    var parent_scope = scope.hasOwnProperty("$environment") ?
+    var abstract_scope = scope.hasOwnProperty("$environment") ?
       Object.create(scope) : scope;
-    this.scope = Object.create(parent_scope, {
+    this.scope = Object.create(abstract_scope, {
       $this: { enumerable: true, writable: true, value: this },
       $that: { enumerable: true, writable: true, value: this }
     });
-    if (!parent_scope.hasOwnProperty("")) {
-      parent_scope[""] = [];
+    if (!abstract_scope.hasOwnProperty("")) {
+      Object.defineProperty(abstract_scope, "",
+        { value: [], configurable: true });
     }
-    parent_scope[""].push(this.scope);
+    abstract_scope[""].push(this.scope);
     this.vertices = {
       property: { component: {}, instance: {} },
       event: { component: {}, instance: {} },
@@ -115,7 +116,7 @@
     this._on = {};                   // on-* attributes
     this.links = [];                 // link nodes
     this.property_definitions = {};  // property nodes
-    this.properties = this.init_properties_object({});  // values
+    this.properties = this._init_properties_object({});  // values
     this.init_values = {};           // initial property values from attributes
     this.event_definitions = {};     // event nodes
     this.child_components = [];      // all child components
@@ -125,6 +126,25 @@
     this.not_ready = true;           // not ready, will get deleted once ready
     this.event("ready");             // every component has a “ready” event
   }, bender.Element);
+
+  Object.defineProperty(component, "current_component", { enumerable: true,
+    get: flexo.self });
+
+  // All instances of this component as well as the components that derive from
+  // it.
+  Object.defineProperty(component, "all_instances", {
+    enumerable: true,
+    get: function () {
+      var queue = [this];
+      var instances = [];
+      while (queue.length > 0) {
+        var q = queue.shift();
+        $$push(instances, q.instances);
+        $$push(queue, q.derived);
+      }
+      return instances;
+    }
+  });
 
   // Get or set the prototype of the component (must be another component.)
   // TODO [mutations] what happens to the old prototype if there was one?
@@ -150,13 +170,34 @@
     bender.trace("^^^ %0 < %1".fmt(this.id(), prototype.id()));
     this._prototype = prototype;
     prototype.derived.push(this);
-    this.replace_prototypes();
+    this._replace_prototypes();
+    return this;
+  };
+
+  // Get or set the URL of the component (from the XML file of its description,
+  // or the environment document if created programmatically.) Return the
+  // component for chaining.
+  component.url = function (url) {
+    if (arguments.length === 0) {
+      if (this._url) {
+        return this._url;
+      }
+      url = flexo.normalize_uri((this.parent_component &&
+          this.parent_component.url()) || this.scope.$document.baseURI);
+      if (this._id) {
+        var u = flexo.split_uri(url);
+        u.fragment = this._id;
+        return flexo.unsplit_uri(u);
+      }
+      return url;
+    }
+    this._url = url;
     return this;
   };
 
   // Replace the prototype for all objects such as init values, vertices, &c.
   // when the prototype chain changes.
-  component.replace_prototypes = function () {
+  component._replace_prototypes = function () {
     this.init_values = flexo.replace_prototype(this._prototype.init_values,
         this.init_values);
     this.vertices = {
@@ -190,65 +231,15 @@
         this._prototype.property_definitions, this.property_definitions);
     this.event_definitions = flexo.replace_prototype(
         this._prototype.event_definitions, this.event_definitions);
-    this.derived.forEach($call.bind(component.replace_prototypes));
+    this.derived.forEach($call.bind(component._replace_prototypes));
   };
 
   // Initialize the properties object for a component or instance, setting the
   // hidden epsilon meta-property to point back to the component that owns it.
   // The property is made configurable for inherited components and instances.
-  component.init_properties_object = function (properties) {
+  component._init_properties_object = function (properties) {
     Object.defineProperty(properties, "", { value: this, configurable: true });
     return properties;
-  };
-
-  Object.defineProperty(component, "current_component", { enumerable: true,
-    get: flexo.self });
-
-  Object.defineProperty(component, "all_instances", {
-    enumerable: true,
-    get: function () {
-      var queue = [this];
-      var instances = [];
-      while (queue.length > 0) {
-        var q = queue.shift();
-        $$push(instances, q.instances);
-        $$push(queue, q.derived);
-      }
-      return instances;
-    }
-  });
-
-  // TODO [mutations] remove the old id when it changes
-  component.update_id_for_element_in_scope = function (element, id) {
-    var scope = Object.getPrototypeOf(this.scope);
-    var key = "#" + id;
-    if (key in scope) {
-      console.error("Id %0 already in scope".fmt(key));
-    } else {
-      scope[key] = element;
-      scope["@" + id] = element;
-    }
-  };
-
-  // Get or set the URL of the component (from the XML file of its description,
-  // or the environment document if created programmatically.) Return the
-  // component for chaining.
-  component.url = function (url) {
-    if (arguments.length === 0) {
-      if (this._url) {
-        return this._url;
-      }
-      url = flexo.normalize_uri((this.parent_component &&
-          this.parent_component.url()) || this.scope.$document.baseURI);
-      if (this._id) {
-        var u = flexo.split_uri(url);
-        u.fragment = this._id;
-        return flexo.unsplit_uri(u);
-      }
-      return url;
-    }
-    this._url = url;
-    return this;
   };
 
   // Handle new link, view, property, event, and watch children for a component.
@@ -263,31 +254,29 @@
         this.scope.$view = child;
       }
     } else if (child instanceof bender.Property) {
-      this.add_property(child);
+      this._add_property(child);
     } else if (child instanceof bender.Event) {
-      this.add_event(child);
+      this._add_event(child);
     } else if (child instanceof bender.Watch) {
       this.watches.push(child);
     } else {
       return child;
     }
-    this.add_descendants(child);
+    this._add_descendants(child);
     return child;
   };
 
   // Add a new property to the component, if no property with the same name was
   // already defined in the same component.
-  component.add_property = function (child) {
-    if (!child.init_value) {
-      if (this.property_definitions.hasOwnProperty(child.name)) {
-        console.error("Redefinition of property %0 in component %1"
-            .fmt(child.name, this.url()));
-        return;
-      }
-      bender.trace("+++ property %0`%1".fmt(this.id(), child.name));
-      this.property_definitions[child.name] = child;
+  component._add_property = function (child) {
+    if (this.property_definitions.hasOwnProperty(child.name)) {
+      console.error("Redefinition of property %0 in component %1"
+          .fmt(child.name, this.url()));
+      return;
     }
-    this.define_js_property(child.name);
+    bender.trace("+++ property %0`%1".fmt(this.id(), child.name));
+    this.property_definitions[child.name] = child;
+    this._define_js_property(child.name);
     if (child.bindings) {
       var set = new bender.SetProperty(child.name, child.select());
       if (typeof child.bindings[""].value === "string") {
@@ -310,7 +299,7 @@
   // component’s properties object. Setting a property triggers a visit of the
   // corresponding vertex in the graph; however, a silent flag can be set to
   // prevent this (used during graph traversal.)
-  component.define_js_property = function(name, value) {
+  component._define_js_property = function(name, value) {
     Object.defineProperty(this.properties, name, {
       enumerable: true,
       configurable: true,
@@ -322,7 +311,7 @@
           this[""].scope.$that.property_definitions[name].check_value(v);
           value = v;
         } else {
-          this[""].define_js_property(name, v);
+          this[""]._define_js_property(name, v);
         }
         if (!silent) {
           this[""].did_set_property(name, v);
@@ -333,7 +322,7 @@
 
   // Add a new event to the component (just declare a name.)
   // TODO give more information about the event, such as <value> children?
-  component.add_event = function (child) {
+  component._add_event = function (child) {
     if (this.event_definitions.hasOwnProperty(child.name)) {
       console.warn("Redefinition of event %0 in component %1"
           .fmt(child.name, this.url()));
@@ -344,7 +333,7 @@
 
   // Component children of the view are added as child components with a
   // parent_component link; scopes are merged.
-  component.add_child_component = function (child) {
+  component._add_child_component = function (child) {
     child.parent_component = this;
     this.child_components.push(child);
     var parent_scope = Object.getPrototypeOf(this.scope);
@@ -372,7 +361,7 @@
   // Add ids to scope when a child is added, and add top-level components as
   // child components (other already have these components as parents so they
   // don’t get added)
-  component.add_descendants = function (elem) {
+  component._add_descendants = function (elem) {
     var scope = Object.getPrototypeOf(this.scope);
     var queue = [elem];
     while (queue.length > 0) {
@@ -388,7 +377,7 @@
         }
       }
       if (e instanceof bender.Component && !e.parent_component) {
-        this.add_child_component(e);
+        this._add_child_component(e);
       }
       if (e.__bindings) {
         push_bindings(this, e, e.__bindings);
@@ -443,6 +432,7 @@
     return this.child(watch);
   };
 
+  // TODO review this
   component.on = function (type, handler) {
     if (typeof handler === "string") {
       try {
@@ -462,6 +452,7 @@
     return this;
   };
 
+  // TODO review this
   component.off = function (type, handler) {
     if (typeof handler === "function") {
       flexo.remove_from_array(this._on[type], handler);
@@ -496,7 +487,7 @@
     if (child instanceof bender.Component) {
       var component = this.current_component;
       if (component) {
-        component.add_child_component(child);
+        component._add_child_component(child);
       }
     }
     return element.append_child.call(this, child);
@@ -674,7 +665,7 @@
     return "dynamic";
   };
 
-  // Set a default value depending on the as attribute
+  // Get a default value depending on the as attribute
   value_element.default_value = function () {
     return flexo.funcify({
       "boolean": false,
@@ -741,10 +732,9 @@
   };
 
 
-  _class(bender.Property = function (name, init_value) {
+  _class(bender.Property = function (name) {
     this.init();
     this.name = flexo.safe_string(name);
-    this.init_value = !!init_value;
   }, bender.ValueElement);
 
   flexo._accessor(bender.Property, "select", normalize_property_select);
@@ -1203,5 +1193,17 @@
     Object.defineProperty(bindings, "", { value: { value: v }});
     return bindings;
   }
+
+  // TODO [mutations] remove the old id when it changes
+  function update_id_for_element_in_scope(component, element, id) {
+    var abstract_scope = Object.getPrototypeOf(component.scope);
+    var key = "#" + id;
+    if (key in abstract_scope) {
+      console.error("Id %0 already in scope".fmt(key));
+    } else {
+      abstract_scope[key] = element;
+      abstract_scope["@" + id] = element;
+    }
+  };
 
 }());

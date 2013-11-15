@@ -104,7 +104,7 @@
   // component of `component`.)
   var instance = (bender.Instance = function (component, parent) {
     component.instances.push(this);
-    this.properties = component.init_properties_object.call(this,
+    this.properties = component._init_properties_object.call(this,
       Object.create(component.properties));
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
@@ -132,7 +132,7 @@
     }
   }).prototype;
 
-  instance.define_js_property = bender.Component.prototype.define_js_property;
+  instance._define_js_property = bender.Component.prototype._define_js_property;
 
   // By default, the scope of the instance is the lowest scope in the chain.
   Object.defineProperty(instance, "scope", {
