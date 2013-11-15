@@ -25,8 +25,19 @@
   // Initialize a new element with its basic properties.
   element.init = function () {
     this.children = [];
+    // this.parent is set when the element is added as a child of another
+    // element.
     return this;
   };
+
+  // Get the current component of any Bender element, i.e., the closest
+  // component ancestor of the element, if it exists. For a component element,
+  // it will be itself.
+  Object.defineProperty(element, "current_component", { enumerable: true,
+    get: function () {
+      return this.parent && this.parent.current_component;
+    }
+  });
 
   // Generic append child method, should be overloaded to manage contents.
   // Return the appended child (similar to the DOM appendChild method.)
@@ -62,15 +73,6 @@
     return flexo.remove_from_array(this.children, child);
   };
 
-  // Get the current component of any Bender element, i.e., the closest
-  // component ancestor of the element, if it exists. For a component element,
-  // it will be itself.
-  Object.defineProperty(element, "current_component", { enumerable: true,
-    get: function () {
-      return this.parent && this.parent.current_component;
-    }
-  });
-
   // All elements may have an id. If the id is modified, the scope for this
   // element gets updated.
   // TODO limit the range of ids? Currently any string goes.
@@ -88,24 +90,6 @@
       return this;
     }
     return this._id || "";
-  };
-
-  // Add a concrete node to the scope when the element is rendered.
-  // TODO handle render_id for the component’s own id.
-  // TODO [mutations] remove id from scope.
-  element.add_id_to_scope = function (node, stack, output) {
-    if (this._id) {
-      Object.getPrototypeOf(stack[stack.i])["@" + this._id] = node;
-      if (output) {
-        set_id_or_class(node, stack, this._id);
-      }
-    }
-    if (output && !stack[stack.i].$first) {
-      stack[stack.i].$first = node;
-      if (this._id) {
-        set_id_or_class(node, stack, this._id);
-      }
-    }
   };
 
 
@@ -969,17 +953,6 @@
       });
     } else {
       make_watch_for_bindings(parent, bindings, target);
-    }
-  }
-
-  // Set id or class for an output node based on the render-id attribute
-  // TODO render-id="inherit"
-  function set_id_or_class(node, stack, id) {
-    var render = stack[stack.i].$that.scope.$view._render_id;
-    if (render === "id") {
-      node.setAttribute("id", id);
-    } else if (render === "class" && node.classList) {
-      node.classList.add(id);
     }
   }
 

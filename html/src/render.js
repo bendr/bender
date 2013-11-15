@@ -260,7 +260,7 @@
         return t + node.text ? node.text() : node.textContent;
       }, "");
       var attr = target.setAttributeNS(this.ns(), this.name(), contents);
-      this.add_id_to_scope(attr, stack);
+      add_id_to_scope(this, attr, stack);
     }
   };
 
@@ -268,7 +268,7 @@
   // Render as a text node in the target.
   bender.Text.prototype.render = function (target, stack) {
     var node = target.ownerDocument.createTextNode(this._text);
-    this.add_id_to_scope(node, stack);
+    add_id_to_scope(this, node, stack);
     target.appendChild(node);
   };
 
@@ -284,7 +284,7 @@
         elem.setAttributeNS(ns, a, this.attrs[ns][a]);
       }
     }
-    this.add_id_to_scope(elem, stack, true);
+    add_id_to_scope(this, elem, stack, true);
     bender.View.prototype.render.call(this, elem, stack);
     target.appendChild(elem);
   };
@@ -299,6 +299,24 @@
     }
   };
 
+
+  // Add a concrete node to the scope when the element is rendered.
+  // TODO handle render_id for the component’s own id.
+  // TODO [mutations] remove id from scope.
+  function add_id_to_scope(element, node, stack, output) {
+    if (element._id) {
+      Object.getPrototypeOf(stack[stack.i])["@" + element._id] = node;
+      if (output) {
+        set_id_or_class(node, stack, element._id);
+      }
+    }
+    if (output && !stack[stack.i].$first) {
+      stack[stack.i].$first = node;
+      if (element._id) {
+        set_id_or_class(node, stack, element._id);
+      }
+    }
+  }
 
   // Get the instance scope for an instance from its parent instance, i.e. the
   // scope in the parent instance pointing to the parent component. If either
@@ -325,6 +343,17 @@
         });
       } catch (e) {
       }
+    }
+  }
+
+  // Set id or class for an output node based on the render-id attribute
+  // TODO render-id="inherit"
+  function set_id_or_class(node, stack, id) {
+    var render = stack[stack.i].$that.scope.$view._render_id;
+    if (render === "id") {
+      node.setAttribute("id", id);
+    } else if (render === "class" && node.classList) {
+      node.classList.add(id);
     }
   }
 
