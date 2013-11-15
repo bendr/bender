@@ -389,7 +389,7 @@
 
   // Append a new link and return the component for easy chaining.
   component.link = function (rel, href) {
-    return this.child(new bender.Link(this.scope.$environment, rel, href));
+    return this.child(new bender.Link(rel, href));
   };
 
   // Create a new property with the given name and value (the value is set
@@ -432,6 +432,19 @@
     return this.child(watch);
   };
 
+  // Load all links for the component, from the further ancestor down to the
+  // component itself. Return a promise that is fulfilled once all
+  // links have been loaded in sequence.
+  component.load_links = function () {
+    var links = [];
+    for (var p = this; p; p = p._prototype) {
+      $$unshift(links, p.links);
+    }
+    return flexo.collect_promises(links.map(function (link) {
+      return link.load(this.scope.$document);
+    }, this)).then(flexo.self.bind(this));
+  };
+
   // TODO review this
   component.on = function (type, handler) {
     if (typeof handler === "string") {
@@ -465,12 +478,59 @@
   };
 
 
-  _class(bender.Link = function (environment, rel, href) {
+  var link = _class(bender.Link = function (rel, href) {
     this.init();
-    this.environment = environment;
     this.rel = flexo.safe_trim(rel).toLowerCase();
     this.href = href;
   }, bender.Element);
+
+  // Load links according to their rel attribute. If a link requires delaying
+  // the rest of the loading, return a promise then fulfill it with a value to
+  // resume loading (see script rendering below.)
+  link.load = function () {
+    var component = this.current_component;
+    if (!component) {
+      console.warn("Cannot load link: no environment.");
+    }
+    var env = component.scope.$environment;
+    if (env.urls[this.href]) {
+      return env.urls[this.href];
+    }
+    env.urls[this.href] = this;
+    var load = bender.Link.prototype.load[this.rel];
+    if (typeof load === "function") {
+      return load.call(this, component.scope.$document);
+    }
+    console.warn("Cannot load “%0” link (unsupported value for rel)"
+        .fmt(this.rel));
+  };
+
+  // Scripts are handled for HTML only by default. Override this method to
+  // handle other types of documents.
+  link.load.script = function (document) {
+    if (document.documentElement.namespaceURI === flexo.ns.html) {
+      return flexo.promise_script(this.href, document.head)
+        .then(function (script) {
+          return this.loaded = script, this;
+        }.bind(this));
+    }
+    console.warn("Cannot render script link for namespace %0".fmt(ns));
+  };
+
+  // Stylesheets are handled for HTML only by default. Override this method to
+  // handle other types of documents.
+  link.load.stylesheet = function (document) {
+    if (document.documentElement.namespaceURI === flexo.ns.html) {
+      var link = document.createElement("link");
+      link.setAttribute("rel", "stylesheet");
+      link.setAttribute("href", this.href);
+      document.head.appendChild(link);
+      this.loaded = link;
+    } else {
+      console.warn("Cannot render stylesheet link for namespace %0".fmt(ns));
+    }
+  };
+
 
 
   // View of a component

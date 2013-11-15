@@ -86,19 +86,6 @@
     return instance.render_view(target);
   };
 
-  // Load all links for the component, from the further ancestor down to the
-  // component itself. Return a promise that is fulfilled once all
-  // links have been loaded in sequence.
-  bender.Component.prototype.load_links = function () {
-    var links = [];
-    for (var p = this; p; p = p._prototype) {
-      $$unshift(links, p.links);
-    }
-    return flexo.collect_promises(links.map(function (link) {
-      return link.load(this.scope.$document);
-    }, this)).then(flexo.self.bind(this));
-  };
-
 
   // An instance of `component`, may have a parent instance (from the parent
   // component of `component`.)
@@ -180,50 +167,6 @@
       stack[stack.i].$that.scope.$view.render(target, stack);
     }
     return this;
-  };
-
-
-  // Load links according to their rel attribute. If a link requires delaying
-  // the rest of the loading, return a promise then fulfill it with a value to
-  // resume loading (see script rendering below.)
-  bender.Link.prototype.load = function (document) {
-    if (this.environment.urls[this.href]) {
-      return this.environment.urls[this.href];
-    }
-    this.environment.urls[this.href] = this;
-    var load = bender.Link.prototype.load[this.rel];
-    if (typeof load === "function") {
-      return load.call(this, document);
-    }
-    console.warn("Cannot load “%0” link".fmt(this.rel));
-  };
-
-  // Scripts are handled for HTML only by default. Override this method to
-  // handle other types of documents.
-  bender.Link.prototype.load.script = function (document) {
-    var ns = document.documentElement.namespaceURI;
-    if (ns === flexo.ns.html) {
-      return flexo.promise_script(this.href, document.head)
-        .then(function (script) {
-          return this.loaded = script, this;
-        }.bind(this));
-    }
-    console.warn("Cannot render script link for namespace %0".fmt(ns));
-  };
-
-  // Stylesheets are handled for HTML only by default. Override this method to
-  // handle other types of documents.
-  bender.Link.prototype.load.stylesheet = function (document) {
-    var ns = document.documentElement.namespaceURI;
-    if (ns === flexo.ns.html) {
-      var link = document.createElement("link");
-      link.setAttribute("rel", "stylesheet");
-      link.setAttribute("href", this.href);
-      document.head.appendChild(link);
-      this.loaded = link;
-    } else {
-      console.warn("Cannot render stylesheet link for namespace %0".fmt(ns));
-    }
   };
 
 

@@ -158,8 +158,7 @@
   };
 
   bender.Environment.prototype.deserialize.link = function (elem) {
-    return this.deserialize_children(new bender.Link(this,
-          elem.getAttribute("rel"),
+    return this.deserialize_children(new bender.Link(elem.getAttribute("rel"),
           flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"))), elem);
   };
 
