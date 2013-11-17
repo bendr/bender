@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp" id="C">
+  <view>
+    <component id="X" href="k.xml"/>
+    <component id="Y" href="k.xml"/>
+  </view>
+</component>
