@@ -181,6 +181,11 @@
     return this;
   };
 
+  component.is_descendant_or_self = function (ancestor) {
+    for (var p = this; p && p !== ancestor; p = p._prototype) {}
+    return p === ancestor;
+  };
+
   // Get or set the URL of the component (from the XML file of its description,
   // or the environment document if created programmatically.) Return the
   // component for chaining.
