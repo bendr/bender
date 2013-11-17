@@ -521,7 +521,8 @@
           return this.loaded = script, this;
         }.bind(this));
     }
-    console.warn("Cannot render script link for namespace %0".fmt(ns));
+    console.warn("Cannot render script link for namespace %0"
+        .fmt(document.documentElement.namespaceURI));
   };
 
   // Stylesheets are handled for HTML only by default. Override this method to
@@ -534,7 +535,8 @@
       document.head.appendChild(link);
       this.loaded = link;
     } else {
-      console.warn("Cannot render stylesheet link for namespace %0".fmt(ns));
+      console.warn("Cannot render stylesheet link for namespace %0"
+          .fmt(document.documentElement.namespaceURI));
     }
   };
 
@@ -877,25 +879,6 @@
     this.init();
     this.name = name;
   }, bender.Set);
-
-
-  // Debug function for printing scopes
-  bender.print_scope = function (scope, indent) {
-    if (scope.hasOwnProperty("$environment")) {
-      console.log("environment scope", scope);
-    } else {
-      var p = Object.getPrototypeOf(scope);
-      if (p.hasOwnProperty("$environment")) {
-        console.log("abstract scope", scope);
-      } else if (scope.$this && scope.$this === scope.$that) {
-          console.log("component scope [%0]".fmt(scope.$this.id()), scope);
-      } else if (!scope.$this) {
-        console.log("concrete scope", scope);
-      } else {
-        console.log("instance scope [%0]".fmt(scope.$this.id()), scope);
-      }
-    }
-  };
 
 
   // Identify property bindings for a dynamic property value string. When there
@@ -1290,6 +1273,6 @@
       abstract_scope[key] = element;
       abstract_scope["@" + id] = element;
     }
-  };
+  }
 
 }());

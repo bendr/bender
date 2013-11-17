@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  /* global bender, console, require, window, $$unshift */
+  /* global bender, console, require, window */
   var flexo = typeof require === "function" ? require("flexo") : window.flexo;
 
   // Set up tracing, turned on/off with setting bender.TRACE to true or false
@@ -96,6 +96,9 @@
     this.scopes = [];
     for (var p = component; p; p = p._prototype) {
       var scope = get_instance_scope(p, parent);
+      if (!scope.hasOwnProperty("")) {
+        Object.defineProperty(scope, "", { value: [] });
+      }
       if (p._id) {
         var key = "@" + p._id;
         if (scope.hasOwnProperty(key)) {
@@ -110,7 +113,7 @@
         $this: { enumerable: true, value: this }
       });
       this.scopes.push(s);
-      Object.getPrototypeOf(scope)[""].push(s);
+      scope[""].push(s);
     }
     this.children = [];
     if (parent) {

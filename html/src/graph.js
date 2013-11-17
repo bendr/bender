@@ -142,7 +142,8 @@
     }
     return !property.bindings && property.value() ?
       [property.value(), this.scope] :
-      [property.default_value(), !property.bindings && this.scope];
+      [property.default_value(),
+        !property.bindings && property.value() && this.scope];
   };
 
   // TODO inherit edges
@@ -531,25 +532,28 @@
   // for that scope; or nothing at all.
   edge.follow = function (scope, input, prev_scope) {
     try {
-      var new_scope = this.follow_scope(scope, input);
-      if (new_scope) {
-        var v = this.follow_value(new_scope, input);
+      var enter_scope = this.enter_scope(scope);
+      if (enter_scope) {
+        var v = [enter_scope, this.follow_value(enter_scope, input)];
         if (edge.delay >= 0) {
-          bender.trace("Delayed edge (%0)".fmt(edge.delay));
-        } else {
-          if (this.push_scope) {
-            bender.trace("    (push scope %0)".fmt(idx(scope)));
-            v.push(scope);
-          } else if (this.pop_scope) {
-            if (prev_scope) {
-              bender.trace("    (pop scope %0)".fmt(idx(v[0])));
-              v[0] = prev_scope;
-            } else {
-              console.warn("    (pop scope: no scope to pop?!)");
-            }
-          }
-          return v;
+          bender.trace("  delayed edge (%0)".fmt(edge.delay));
+          return;
         }
+        if (this.push_scope) {
+          bender.trace("    push scope %0 >>> %1"
+              .fmt(idx(enter_scope), idx(scope)));
+          v.push(scope);
+        } else if (this.pop_scope) {
+          if (prev_scope) {
+            bender.trace("    pop scope %0 <<< %1"
+                .fmt(idx(v[0]), idx(prev_scope)));
+            v[0] = prev_scope;
+          } else {
+            console.warn("    pop scope: no scope to pop?!");
+          }
+        }
+        v[0] = this.exit_scope(v[0]);
+        return v;
       }
     } catch (e) {
       if (e !== "fail") {
@@ -560,11 +564,11 @@
 
   // Return the new scope for the destination of the edge
   edge.follow_scope = flexo.fst;
+  edge.enter_scope = flexo.fst;
+  edge.exit_scope = flexo.fst;
 
   // Return the new value for the destination of the edge
-  edge.follow_value = function (scope, input) {
-    return [scope, input];
-  };
+  edge.follow_value = flexo.snd;
 
 
   _class(bender.InheritEdge = function (dest) {
@@ -577,8 +581,8 @@
     this.original = edge;
   }, bender.Edge);
 
-  redirect_edge.follow_scope = function (scope) {
-    return this.original.follow_scope(scope);
+  redirect_edge.follow_scope = function (scope, direction) {
+    return this.original.follow_scope(scope, direction);
   };
 
   redirect_edge.follow_value = function (scope, input) {
@@ -594,9 +598,10 @@
   }, bender.Edge);
 
   // TODO remove previous event listener
-  dom_event_listener_edge.follow_value = function (scope, input) {
+  dom_event_listener_edge.follow_value = function (_, input) {
+    // jshint unused: true
     this.dest.add_event_listener_to_target(this.scope, this.edge, input);
-    return [scope, input];
+    return input;
   };
 
 
@@ -611,8 +616,7 @@
 
   element_edge.follow_value = function (scope, input) {
     var f = this.element.value();
-    return [scope,
-           typeof f === "function" ? f.call(scope.$this, scope, input) : input];
+    return typeof f === "function" ? f.call(scope.$this, scope, input) : input;
   };
 
 
@@ -622,6 +626,26 @@
   }, bender.ElementEdge);
 
   Object.defineProperty(watch_edge, "push_scope", { value: true });
+
+  watch_edge.enter_scope = function (scope) {
+    var component = this.element.current_component;
+    if (scope.$this === scope.$that) {
+      return component.scope;
+    }
+    var select = this.element.select();
+    for (var i = 0, n = scope.$this.scopes.length; i < n; ++i) {
+      var s = scope.$this.scopes[i];
+      if (s.$that === component) {
+        return s;
+      }
+      for (var j = 0, m = s[""].length; j < m; ++j) {
+        var s_ = s[""][j];
+        if (s_.$that === component && s_[select] === scope.$this) {
+          return s_;
+        }
+      }
+    }
+  };
 
   // Follow a watch edge: shift the input scope to match that of the destination
   // watch node, and evaluate the value of the edge using the watch’s context.
@@ -665,7 +689,7 @@
     var v = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
     if (target) {
-      target[this.element.name] = v[1];
+      target[this.element.name] = v;
     }
     return v;
   };
@@ -680,7 +704,7 @@
   dom_attribute_edge.follow_value = function (scope, input) {
     var v = element_edge.follow_value.call(this, scope, input);
     scope[this.element.select()].setAttributeNS(this.element.ns,
-        this.element.name, v[1]);
+        this.element.name, v);
     return v;
   };
 
@@ -696,7 +720,7 @@
   event_edge.follow_value = function (scope, input) {
     var v = element_edge.follow_value.call(this, scope, input);
     var target = scope[this.element.select()];
-    target.notify({ type: this.element.type, value: v[1] });
+    target.notify({ type: this.element.type, value: v });
   };
 
 
@@ -710,18 +734,30 @@
 
   property_edge.follow_value = function (scope, input) {
     var s = function (v) {
-      if (v[0].$this === scope.$this) {
-        return true;
-      }
+      return v[0].$this === scope.$this;
     };
     var target = scope[this.element.select()];
     var init = flexo.find_first(this.dest.values, s);
     if (init) {
-      return [target.scope, init[1]];
+      return init[1];
     }
     var v = element_edge.follow_value.call(this, scope, input);
-    set_property_silent(target, this.element.name, v[1]);
-    return [target.scope, v[1]];
+    set_property_silent(target, this.element.name, v);
+    return v;
+  };
+
+  property_edge.exit_scope = function (scope) {
+    var component = this.dest.target;
+    if (scope.$this === scope.$that) {
+      return component.scope;
+    }
+    var select = this.element.select();
+    return flexo.find_first(scope[""], function (s) {
+      if (s.$that === component && s[select] === s.$this) {
+        bender.trace("??? is %0 near %1???".fmt(scope.$this.id(), idx(s)));
+        return true;
+      }
+    }) || scope;
   };
 
 

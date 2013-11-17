@@ -18,6 +18,33 @@ body {
     <script src="src/gv.js"></script>
     <script>
 "use strict";
+
+bender.Instance.prototype.all_properties = function () {
+  for (var name in this.properties) {
+    console.log("* %0 `%1 = %2".fmt(this.id(), name, this.properties[name]));
+  }
+  this.children.forEach($call.bind(bender.Instance.prototype.all_properties));
+};
+
+// Debug function for printing scopes
+function print_scope(scope) {
+  if (scope.hasOwnProperty("$environment")) {
+    console.log("environment scope", scope);
+  } else {
+    var p = Object.getPrototypeOf(scope);
+    if (p.hasOwnProperty("$environment")) {
+      console.log("abstract scope", scope);
+    } else if (scope.$this && scope.$this === scope.$that) {
+        console.log("component scope [%0]".fmt(scope.$this.id()), scope);
+    } else if (!scope.$this) {
+      console.log("concrete scope", scope);
+    } else {
+      console.log("instance scope [%0]".fmt(scope.$this.id()), scope);
+    }
+  }
+}
+
+
 var args = flexo.get_args();
 bender.TRACE = !args.hasOwnProperty("trace") || flexo.is_true(args.trace);
 bender.render_href(args.href).then(function (instance) {
