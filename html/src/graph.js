@@ -581,8 +581,8 @@
     this.original = edge;
   }, bender.Edge);
 
-  redirect_edge.follow_scope = function (scope, direction) {
-    return this.original.follow_scope(scope, direction);
+  redirect_edge.enter_scope = function (scope) {
+    return this.original.enter_scope(scope);
   };
 
   redirect_edge.follow_value = function (scope, input) {
