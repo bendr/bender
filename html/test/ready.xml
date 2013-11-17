@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" id="r">
-  <property name="ready" as="number"/>
+  <property name="ready" as="number" value="0"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Ready ? <html:span id="ready"/></html:p>
   </view>

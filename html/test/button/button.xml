@@ -1,5 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" id="button">
 
+  <link rel="stylesheet" href="button.css"/>
+
   <property name="enabled-class" value="`enabled ? '' : 'disabled'"/>
   <property name="down" as="boolean" value="false"/>
   <property name="down-class" value="`down ? 'down' : ''"/>
@@ -7,12 +9,6 @@
   <event name="pushed"/>
 
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:style scoped="scoped">
-      .button { display: inline-block; padding: 0.5em; border: solid thin black;
-        cursor: pointer; }
-      .button.disabled { background-color: #888; }
-      .button.down { opacity: 0.5; }
-    </html:style>
     <html:div id="div" class="button `enabled\-class `down\-class">
       <content>
         OK
@@ -28,9 +24,7 @@
 
   <watch>
     <get select="$document" dom-event="mouseup"><![CDATA[
-      console.log(">>> mouseup for %0".fmt(this.id()));
-      flexo.fail(!`down && ($in.target !== this.scope.div || !`enabled));
-      return false;
+      return flexo.fail(!`down && ($in.target !== this.scope.div || !`enabled));
     ]]></get>
     <set property="down"/>
     <set event="pushed">

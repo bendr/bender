@@ -1,0 +1,26 @@
+<component xmlns="http://bender.igel.co.jp" id="simple-count">
+
+  <link rel="stylesheet" href="button.css"/>
+  <event name="push"/>
+  <property name="n" as="number" value="0"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div id="div" class="button">
+      <content>
+        OK*
+      </content>
+    </html:div>
+    `n
+  </view>
+
+  <watch>
+    <get select="@div" dom-event="click"/>
+    <set event="push"/>
+  </watch>
+
+  <watch>
+    <get event="push"/>
+    <set property="n" value="`n + 1"/>
+  </watch>
+
+</component>

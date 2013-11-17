@@ -1,0 +1,14 @@
+.button {
+  display: inline-block;
+  padding: 0.5em;
+  border: solid thin black;
+  cursor: pointer;
+}
+
+.button.disabled {
+  background-color: #888;
+}
+
+.button.down {
+  opacity: 0.5;
+}

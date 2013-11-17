@@ -1,6 +1,6 @@
 // Simple Websocket server for the websocket test
 
-var flexo = require("../src/flexo.js");
+var flexo = require("../../src/flexo.js");
 
 var lights = [5, 6, 9].map(function (pin) { return { pin: pin, vol: 0 } });
 

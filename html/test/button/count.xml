@@ -1,0 +1,22 @@
+<component xmlns="http://bender.igel.co.jp" id="count">
+
+  <property name="n" as="number" value="0"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <component href="button.xml" id="plus">
+        <view>
+          Plus
+        </view>
+      </component>
+      `n
+    </html:p>
+  </view>
+
+  <watch>
+    <get select="@plus" event="pushed"/>
+    <set property="n" value="`n + 1"/>
+  </watch>
+
+</component>
+

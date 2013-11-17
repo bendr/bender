@@ -535,8 +535,8 @@
       var enter_scope = this.enter_scope(scope);
       if (enter_scope) {
         var v = [enter_scope, this.follow_value(enter_scope, input)];
-        if (edge.delay >= 0) {
-          bender.trace("  delayed edge (%0)".fmt(edge.delay));
+        if (this.delay >= 0 || this.delay === "never") {
+          bender.trace("  delayed edge (%0)".fmt(this.delay));
           return;
         }
         if (this.push_scope) {
@@ -589,19 +589,21 @@
     return this.original.follow_value(scope, input);
   };
 
+  Object.defineProperty(redirect_edge, "push_scope", { value: true });
+
 
   var dom_event_listener_edge =
   _class(bender.DOMEventListenerEdge = function (dest, scope, edge) {
     this.init(dest);
     this.scope = scope;
     this.edge = edge;
+    this.delay = "never";
   }, bender.Edge);
 
   // TODO remove previous event listener
   dom_event_listener_edge.follow_value = function (_, input) {
     // jshint unused: true
     this.dest.add_event_listener_to_target(this.scope, this.edge, input);
-    return input;
   };
 
 
@@ -746,17 +748,14 @@
     return v;
   };
 
-  property_edge.exit_scope = function (scope) {
+  event_edge.exit_scope = property_edge.exit_scope = function (scope) {
     var component = this.dest.target;
     if (scope.$this === scope.$that) {
       return component.scope;
     }
     var select = this.element.select();
     return flexo.find_first(scope[""], function (s) {
-      if (s.$that === component && s[select] === s.$this) {
-        bender.trace("??? is %0 near %1???".fmt(scope.$this.id(), idx(s)));
-        return true;
-      }
+      return s.$that === component && s[select] === s.$this;
     }) || scope;
   };
 
