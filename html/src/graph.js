@@ -185,9 +185,9 @@
     var queue = [this];
     while (queue.length > 0) {
       var q = queue.shift();
-      if (q.vertices.property.component.hasOwnProperty(name)) {
+      if (name in q.vertices.property.component) {
         push_value(q.vertices.property.component[name], [q.scope, value]);
-      } else if (q.vertices.property.instance.hasOwnProperty(name)) {
+      } else if (name in q.vertices.property.instance) {
         // jshint -W083
         $$push(q.vertices.property.instance[name].values,
             q.all_instances.map(function (instance) {

@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" id="websocket">
   <property name="ws" select="$that">
-    /* return new WebSocket("ws://10.16.154.2/"); */
+    return new WebSocket("ws://10.16.154.2/");
     return new WebSocket("ws://127.0.0.1:6455/");
   </property>
   <property name="pin" as="number"/>

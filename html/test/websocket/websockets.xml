@@ -1,15 +1,45 @@
 <component xmlns="http://bender.igel.co.jp">
 
   <view>
-    <component href="websocket.xml">
+    <component href="websocket.xml" id="w5">
       <property name="pin" as="number" value="5"/>
     </component>
-    <component href="websocket.xml">
+    <component href="websocket.xml" id="w6">
       <property name="pin" as="number" value="6"/>
     </component>
-    <component href="websocket.xml">
+    <component href="websocket.xml" id="w9">
       <property name="pin" as="number" value="9"/>
     </component>
+
+    WS: @w5`status
+
+    <component href="../../lib/button.xml" id="on-button">
+      <view>
+        ON
+      </view>
+    </component>
+
+    <component href="../../lib/button.xml" id="off-button">
+      <view>
+        OFF
+      </view>
+    </component>
+
   </view>
+
+  <watch>
+    <get select="@on-button" event="pushed">
+      flexo.asap(function () {
+        $scope["@w6"].scope.$that._prototype.properties.ws =
+          new WebSocket("ws://10.16.154.2/");
+      });
+    </get>
+  </watch>
+
+  <watch>
+    <get select="@off-button" event="pushed">
+      @w5`ws.send("0.0.close");
+    </get>
+  </watch>
 
 </component>
