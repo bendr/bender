@@ -468,7 +468,7 @@
     var id = flexo.random_id();
     bender.trace("New event listener for %0/%1: %2"
         .fmt(scope.$this.id(), edge.element.type, id), target);
-    target.addEventListener(edge.element.type, function (e) {
+    var listener = function (e) {
       if (edge.element.prevent_default) {
         e.preventDefault();
       }
@@ -479,7 +479,12 @@
         .fmt(scope.$this.id(), edge.element.type, id), e);
       push_value(this, [scope, e]);
       scope.$environment.flush_graph();
-    }.bind(this), false);
+    }.bind(this);
+    target.addEventListener(edge.element.type, listener, false);
+    return function () {
+      bender.trace("--- remove event listener %0".fmt(id));
+      target.removeEventListener(edge.element.type, listener, false);
+    }
   };
 
 
@@ -615,7 +620,11 @@
   // TODO remove previous event listener
   dom_event_listener_edge.follow_value = function (_, input) {
     // jshint unused: true
-    this.dest.add_event_listener_to_target(this.scope, this.edge, input);
+    if (this.remove_listener) {
+      this.remove_listener();
+    }
+    this.remove_listener =
+      this.dest.add_event_listener_to_target(this.scope, this.edge, input);
   };
 
 
