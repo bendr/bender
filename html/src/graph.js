@@ -112,30 +112,32 @@
   };
 
   // Setup inheritance edges
+  // TODO #A`x -> @B`x
   bender.Component.prototype.inherit_edges = function () {
-    Object.keys(this.vertices.property.component).forEach(function (name) {
-      if (this.vertices.property.instance.hasOwnProperty(name)) {
-        this.vertices.property.component[name].add_outgoing(new
-          bender.InstanceEdge(this.vertices.property.instance[name]));
-      }
-    }, this);
-    var p = this.prototype();
-    if (p) {
-      Object.keys(this.vertices.property.instance).forEach(function (name) {
-        if (name in p.vertices.property.instance) {
-          var source = p.vertices.property.instance[name];
-          var dest = this.vertices.property.instance[name];
-          source.add_outgoing(new bender.InheritEdge(dest));
-          source.outgoing.forEach(function (edge) {
-            if (edge instanceof bender.InheritEdge) {
-              return;
-            }
-            var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
-          });
+    ["event", "property"].forEach(function (kind) {
+      Object.keys(this.vertices[kind].component).forEach(function (name) {
+        if (this.vertices[kind].instance.hasOwnProperty(name)) {
+          this.vertices[kind].component[name].add_outgoing(new
+            bender.InstanceEdge(this.vertices[kind].instance[name]));
         }
       }, this);
-    }
-    // TODO event edges
+      var p = this.prototype();
+      if (p) {
+        Object.keys(this.vertices[kind].instance).forEach(function (name) {
+          if (name in p.vertices[kind].instance) {
+            var source = p.vertices[kind].instance[name];
+            var dest = this.vertices[kind].instance[name];
+            source.add_outgoing(new bender.InheritEdge(dest));
+            source.outgoing.forEach(function (edge) {
+              if (edge instanceof bender.InheritEdge) {
+                return;
+              }
+              var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
+            });
+          }
+        }, this);
+      }
+    }, this);
   };
 
   bender.Component.prototype.init_events = function () {
@@ -242,15 +244,6 @@
   bender.Instance.prototype.init_events = function () {
     var component = this.scope.$that;
     component.init_events();
-    // TODO at component level
-    flexo.values(component.vertices.event.instance).forEach(function (dest) {
-      for (var p = component._prototype;
-        p && !p.vertices.event.instance.hasOwnProperty(dest.name);
-        p = p._prototype) {}
-      if (p) {
-        redirect(p.vertices.event.instance[dest.name], dest);
-      }
-    });
     this.children.forEach(function (child) {
       child.init_events();
     });
@@ -823,24 +816,6 @@
       return v[0].$this === w[0].$this;
     });
     vertex.values.push(v);
-  }
-
-  // Create inherit and redirect edges from the `source` vertex to the `dest`
-  // vertex (for outlet vertices.)
-  function redirect(source, dest) {
-    if (!source) {
-      return;
-    }
-    source.add_outgoing(new bender.InheritEdge(dest));
-    bender.trace("  INHERIT EDGE v%0 -> v%1".fmt(source.index, dest.index));
-    source.outgoing.forEach(function (edge) {
-      if (edge instanceof bender.InheritEdge) {
-        return;
-      }
-      var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
-      bender.trace("  REDIRECT EDGE v%0 -> v%1"
-        .fmt(edge_.source.index, edge_.dest.index));
-    });
   }
 
   // Render an edge from a set element.
