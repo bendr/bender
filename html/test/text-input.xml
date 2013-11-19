@@ -1,0 +1,40 @@
+<component xmlns="http://bender.igel.co.jp" id="K">
+  <property name="first" as="string" value="Bender"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <html:label>
+        First:
+        <component id="text-input">
+          <property name="value"/>
+          <view>
+            <html:input id="input"/>
+          </view>
+          <watch>
+            <get property="value"/>
+            <set select="@input" dom-property="value"/>
+          </watch>
+          <watch>
+            <get select="@input" dom-event="change"/>
+            <set property="value" value="$in.target.value"/>
+          </watch>
+        </component>
+      </html:label>
+    </html:p>
+    <html:p>
+      Hi, `first.
+    </html:p>
+  </view>
+
+  <watch>
+    <get property="first"/>
+    <set select="@text-input" property="value"/>
+  </watch>
+
+  <watch>
+    <get select="@text-input" property="value" match="$in !== `first"
+      delay="0"/>
+    <set property="first"/>
+  </watch>
+
+</component>

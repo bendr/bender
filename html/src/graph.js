@@ -315,7 +315,10 @@
     this.gets.forEach(function (get) {
       var v = get.render(scope);
       if (v) {
-        v.add_outgoing(new bender.WatchEdge(get, w));
+        var edge = v.add_outgoing(new bender.WatchEdge(get, w));
+        if (get.delay() !== "") {
+          edge.delay = get.delay();
+        }
       }
     }, this);
     this.sets.forEach(function (set) {
@@ -332,22 +335,15 @@
     }
   };
 
-  bender.Instance.prototype.notify = function (type, e) {
-    if (typeof type === "object") {
-      e = type;
-    } else {
-      e.type = type;
-    }
+  // TODO does the scope in push_value matter?
+  bender.Instance.prototype.notify = function (e) {
     e.source = this;
-    for (var p = this.scope.$that;
-        p && !(p.vertices.event.instance.hasOwnProperty(e.type));
-        p = p._prototype) {}
-    if (p) {
-      var scope = this.scope;
+    if (e.type in this.scope.$that.vertices.event.instance) {
       scope.$environment.flush_graph_later(function () {
         bender.trace("!!! notify %0 from %1".fmt(e.type, scope.$this.id()));
-        push_value(p.vertices.event.instance[e.type], [scope, e]);
-      });
+        push_value(this.scope.$that.vertices.event.instance[e.type],
+          [this.scope, e]);
+      }.bind(this));
     }
   };
 
@@ -592,6 +588,7 @@
         }
         this.apply_value.apply(this, v);
         if (this.delay >= 0 || this.delay === "never") {
+          // TODO but then we must do something about it!
           bender.trace("    delayed edge (%0)".fmt(this.delay));
           return;
         }
@@ -844,11 +841,17 @@
   // TODO push delayed edges to the back of the list; ignore them for sorting
   // purposes so that they can be used to break cycles.
   function sort_edges(vertices) {
+    var edges = [];
     var queue = vertices.filter(function (vertex) {
-      vertex.__out = vertex.outgoing.length;
+      vertex.__out = vertex.outgoing.filter(function (edge) {
+        if (edge.delay >= 0 || edge.delay === "never") {
+          edges.push(edge);
+          return false;
+        }
+        return true;
+      }).length;
       return vertex.__out === 0;
     });
-    var edges = [];
     var process_incoming_edge = function (edge) {
       if (edge.source.hasOwnProperty("__out")) {
         --edge.source.__out;
@@ -860,8 +863,12 @@
       }
       return edge;
     };
+    var delayed = function (edge) {
+      return !(edge.delay >= 0 || edge.delay === "never");
+    }
     while (queue.length > 0) {
-      $$unshift(edges, queue.shift().incoming.map(process_incoming_edge));
+      $$unshift(edges,
+          queue.shift().incoming.filter(delayed).map(process_incoming_edge));
     }
     vertices.forEach(function (vertex) {
       if (vertex.__out !== 0) {

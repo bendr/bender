@@ -702,6 +702,7 @@
   flexo._accessor(bender.ValueElement, "select", normalize_select);
   flexo._accessor(bender.ValueElement, "match");
   flexo._accessor(bender.ValueElement, "value");
+  flexo._accessor(bender.ValueElement, "delay", normalize_delay);
 
   Object.defineProperty(value_element, "is_component_value", {
     enumerable: true,
@@ -971,6 +972,15 @@
     as = flexo.safe_trim(as).toLowerCase();
     return as === "string" || as === "number" || as === "boolean" ||
       as === "json" || as === "dynamic" ? as : "inherit";
+  }
+
+  // Normalize the `delay` property of an element so that it matches a legal
+  // value (a number of milliseconds >= 0, “never”, “none”, or the empty string
+  // by default.)
+  function normalize_delay(delay) {
+    delay = flexo.safe_trim(delay).toLowerCase();
+    var d = flexo.to_number(delay);
+    return d >= 0 ? d : delay === "never" || delay === "none" ? delay : "";
   }
 
   // Normalize the `select` property of a property element so that it matches a
