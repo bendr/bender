@@ -64,13 +64,13 @@
                     return "%0=%1".fmt(idx(v__[0]), v__[1]);
                   }).join(" ")));
               v_.forEach(function (v__) {
-                push_value(edge.dest, v__);
+                edge.dest.push_value(v__);
               });
             } else {
               bender.trace("  new value for v%0: %1=%2%3"
                 .fmt(edge.dest.index, idx(v_[0]), v_[1],
                   v_[2] ? " (%0)".fmt(idx(v_[2])) : ""));
-              push_value(edge.dest, v_);
+              edge.dest.push_value(v_);
             }
           }
         });
@@ -91,6 +91,8 @@
 
   // Schedule a graph flush *after* the currently scheduled flush has happened
   // (for delayed edges.)
+  // TODO specify delay, which means maintaining a queue of flushes (for
+  // different delays)
   bender.Environment.prototype.flush_graph_later = function (f) {
     if (this.__will_flush) {
       if (!this.__queue) {
@@ -195,15 +197,15 @@
           return scope.$that === v[1].$this;
         });
         bender.trace("  +++ %0".fmt(instance.id()));
-        push_value(q.vertices.property.instance[property.name],
-          [scope, instance.properties[property.name]]);
+        q.vertices.property.instance[property.name].push_value([scope,
+            instance.properties[property.name]]);
       };
       while (queue.length > 0) {
         var q = queue.shift();
         bender.trace("  ... %0".fmt(q.id()));
         if (q.vertices.property.component.hasOwnProperty(property.name)) {
-          push_value(q.vertices.property.component[property.name],
-              [v[1], q.properties[property.name]]);
+         q.vertices.property.component[property.name].push_value([v[1],
+             q.properties[property.name]]);
         } else if (q.vertices.property.instance.hasOwnProperty(property.name)) {
           bender.trace("  !!! %0 (%1)"
               .fmt(q.vertices.property.instance[property.name].gv_label(),
@@ -222,7 +224,7 @@
     while (queue.length > 0) {
       var q = queue.shift();
       if (name in q.vertices.property.component) {
-        push_value(q.vertices.property.component[name], [q.scope, value]);
+        q.vertices.property.component[name].push_value([q.scope, value]);
       } else if (name in q.vertices.property.instance) {
         // jshint -W083
         $$push(q.vertices.property.instance[name].values,
@@ -273,7 +275,7 @@
       var scope = flexo.find_first(this.scopes, function (scope) {
         return scope.$that === v[1].$this;
       });
-      push_value(vertex, [scope, this.properties[property.name]]);
+      vertex.push_value([scope, this.properties[property.name]]);
       bender.trace("  init value for vertex %0: %1=%2"
         .fmt(vertex.gv_label(), idx(scope), this.properties[property.name]));
     }
@@ -285,7 +287,7 @@
     while (queue.length > 0) {
       var q = queue.shift();
       if (name in q.vertices.property.instance) {
-        push_value(q.vertices.property.instance[name], [this.scope, value]);
+        q.vertices.property.instance[name].push_value([this.scope, value]);
       } else {
         $$push(q, q.derived);
       }
@@ -317,7 +319,7 @@
     e.source = this;
     if (e.type in this.vertices.event.component) {
       this.scope.$environment.flush_graph_later(function () {
-        push_value(this.vertices.event.component[e.type], [this.scope, e]);
+        this.vertices.event.component[e.type].push_value([this.scope, e]);
       }.bind(this));
     }
   };
@@ -326,10 +328,9 @@
   bender.Instance.prototype.notify = function (e) {
     e.source = this;
     if (e.type in this.scope.$that.vertices.event.instance) {
-      scope.$environment.flush_graph_later(function () {
-        bender.trace("!!! notify %0 from %1".fmt(e.type, scope.$this.id()));
-        push_value(this.scope.$that.vertices.event.instance[e.type],
-          [this.scope, e]);
+      this.scope.$environment.flush_graph_later(function () {
+        this.scope.$that.vertices.event.instance[e.type].push_value([this.scope,
+          e]);
       }.bind(this));
     }
   };
@@ -431,15 +432,23 @@
     return edge;
   };
 
+  // Push a value (really, a scope/value pair) to the values of a vertex in the
+  // graph.
+  vertex.push_value = function (v) {
+    flexo.remove_first_from_array(this.values, function (w) {
+      return v[0].$this === w[0].$this;
+    });
+    this.values.push(v);
+  };
+
 
   // We give the vortex its own class for graph reasoning purposes
-  _class(bender.Vortex = function () {
+  var vortex_ = _class(bender.Vortex = function () {
     this.init();
   }, bender.Vertex);
 
-  bender.Vortex.prototype.add_outgoing = function () {
-    throw "Cannot add outgoing edge to vortex";
-  };
+  vortex_.add_outgoing = flexo.nop;
+  vortex_.push_value = flexo.nop;
 
 
   // Watch vertex corresponding to a watch element, gathers the inputs and
@@ -490,7 +499,7 @@
       }
       bender.trace("DOM event listener for %0/%1: %2"
         .fmt(scope.$this.id(), edge.element.type, id), e);
-      push_value(this, [scope, e]);
+      this.push_value([scope, e]);
       scope.$environment.flush_graph();
     }.bind(this);
     target.addEventListener(edge.element.type, listener, false);
@@ -577,6 +586,9 @@
         if (this.delay >= 0 || this.delay === "never") {
           // TODO but then we must do something about it!
           bender.trace("    delayed edge (%0)".fmt(this.delay));
+          scope.$environment.flush_graph_later(function () {
+            this.dest.push_value(v);
+          }.bind(this));
           return;
         }
         return v;
@@ -791,15 +803,6 @@
   function idx(scope) {
     return scope.$this === scope.$that ? scope.$this._idx :
       "%0[%1]".fmt(scope.$this._idx, scope.$that._idx);
-  }
-
-  // Push a value (really, a scope/value pair) to the values of a vertex in the
-  // graph.
-  function push_value(vertex, v) {
-    flexo.remove_first_from_array(vertex.values, function (w) {
-      return v[0].$this === w[0].$this;
-    });
-    vertex.values.push(v);
   }
 
   // Render an edge from a set element.
