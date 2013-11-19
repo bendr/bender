@@ -19,6 +19,9 @@
 
   // Load, then render a component from the given href. Return a promise of the
   // instance of the rendered component.
+  // TODO make target/ref optional (test if node or env)
+  // TODO create a document in the owner document of target if no environment is
+  // given
   bender.render_href = function (href, target, ref, env) {
     if (!(env instanceof bender.Environment)) {
       env = new bender.Environment();
@@ -43,27 +46,19 @@
     this.urls = {};
     this.components = [];
     this.vertices = [];
-    this.vortex = this.add_vertex(new bender.Vortex());
-    this.bindings = 0;
+    this.add_vertex(new bender.Vortex());
+    this._bindings_count = 0;
   }).prototype;
-
-  // Add a component or instance to the environment.
-  // TODO [mutations] Remove a component or instance from the environment.
-  environment.add_component = function (component) {
-    component.index = this.components.length;
-    this.components.push(component);
-    return component;
-  };
 
   // Create a new Bender component in this environment and return it.
   environment.component = function (scope) {
-    return this.add_component(new bender.Component(scope || this.scope));
+    return this._add_component(new bender.Component(scope || this.scope));
   };
 
   // Create a new instance for a component and an optional parent instance, add
   // it to the environment and return it.
   environment.instance = function (component, parent) {
-    return this.add_component(new bender.Instance(component, parent));
+    return this._add_component(new bender.Instance(component, parent));
   };
 
   // Render and initialize the component, returning the promise of a concrete
@@ -75,6 +70,19 @@
     instance.init_properties();
     target.insertBefore(fragment, ref);
     return instance;
+  };
+
+  // Add a component or instance to the environment.
+  // TODO [mutations] Remove a component or instance from the environment.
+  environment._add_component = function (component) {
+    component.index = this.components.length;
+    this.components.push(component);
+    return component;
+  };
+
+  environment._remove_component = function (component) {
+    // TODO
+    return component;
   };
 
 
@@ -185,9 +193,8 @@
   // Render the contents of the view by appending into the target, passing the
   // stack of views further down for the <content> element.
   bender.View.prototype.render = function (target, stack) {
-    this.children.forEach(function (ch) {
-      ch.render(target, stack);
-    });
+    stack[0].$span = [];
+    render_view_element(this, target, stack);
   };
 
 
@@ -203,7 +210,7 @@
       stack[i].$that.scope.$view.render(target, stack);
       stack.i = j;
     } else {
-      bender.View.prototype.render.call(this, target, stack);
+      render_view_element(this, target, stack);
     }
   };
 
@@ -240,7 +247,7 @@
       }
     }
     add_id_to_scope(this, elem, stack, true);
-    bender.View.prototype.render.call(this, elem, stack);
+    render_view_element(this, elem, stack);
     target.appendChild(elem);
   };
 
@@ -300,6 +307,12 @@
       }
     }
   }
+
+  function render_view_element(element, target, stack) {
+    element.children.forEach(function (ch) {
+      ch.render(target, stack);
+    });
+  };
 
   // Set id or class for an output node based on the render-id attribute
   // TODO render-id="inherit"

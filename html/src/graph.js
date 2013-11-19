@@ -336,19 +336,17 @@
 
 
   bender.Set.prototype.render = function (scope) {
-    return new bender.ElementEdge().init(this, scope.$environment.vortex);
+    return new bender.ElementEdge().init(this, vortex(scope));
   };
 
 
   bender.SetDOMProperty.prototype.render = function (scope) {
-    return render_edge(this, scope, scope.$environment.vortex,
-        bender.DOMPropertyEdge);
+    return render_edge(this, scope, vortex(scope), bender.DOMPropertyEdge);
   };
 
 
   bender.SetDOMAttribute.prototype.render = function (scope) {
-    return render_edge(this, scope, scope.$environment.vortex,
-        bender.DOMAttributeEdge);
+    return render_edge(this, scope, vortex(scope), bender.DOMAttributeEdge);
   };
 
 
@@ -412,7 +410,7 @@
     edge.source = this;
     this.outgoing.push(edge);
     if (!edge.dest) {
-      edge.dest = this.environment.vortex;
+      edge.dest = vortex(this.environment.scope);
       edge.dest.incoming.push(edge);
     }
     return edge;
@@ -420,11 +418,11 @@
 
 
   // We give the vortex its own class for graph reasoning purposes
-  var vortex = _class(bender.Vortex = function () {
+  _class(bender.Vortex = function () {
     this.init();
   }, bender.Vertex);
 
-  vortex.add_outgoing = function () {
+  bender.Vortex.prototype.add_outgoing = function () {
     throw "Cannot add outgoing edge to vortex";
   };
 
@@ -893,6 +891,12 @@
       }
       return vertices[name];
     }
+  }
+
+  // Get the vortex for this environment
+  // TODO create it on demand
+  function vortex(scope) {
+    return scope.$environment.vertices[0];
   }
 
 }());

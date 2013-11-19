@@ -1008,7 +1008,7 @@
         element.parent instanceof bender.Set) {
       return;
     }
-    var target = "$%0".fmt(parent.scope.$environment.bindings++);
+    var target = "$%0".fmt(parent.scope.$environment._bindings_count++);
     element.fake_id = target;
     Object.getPrototypeOf(parent.scope)[target] = element;
     if (Array.isArray(bindings)) {
