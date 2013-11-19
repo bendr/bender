@@ -140,10 +140,6 @@
     }, this);
   };
 
-  bender.Component.prototype.init_events = function () {
-    // TODO
-  };
-
   bender.Component.prototype.init_properties = function () {
     bender.trace("### Init properties: %0".fmt(this.id()));
     if (!this.not_ready) {
@@ -238,15 +234,6 @@
       }
     }
     this.scope.$environment.flush_graph();
-  };
-
-
-  bender.Instance.prototype.init_events = function () {
-    var component = this.scope.$that;
-    component.init_events();
-    this.children.forEach(function (child) {
-      child.init_events();
-    });
   };
 
 
