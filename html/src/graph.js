@@ -119,6 +119,23 @@
           bender.InstanceEdge(this.vertices.property.instance[name]));
       }
     }, this);
+    var p = this.prototype();
+    if (p) {
+      Object.keys(this.vertices.property.instance).forEach(function (name) {
+        if (name in p.vertices.property.instance) {
+          var source = p.vertices.property.instance[name];
+          var dest = this.vertices.property.instance[name];
+          source.add_outgoing(new bender.InheritEdge(dest));
+          source.outgoing.forEach(function (edge) {
+            if (edge instanceof bender.InheritEdge) {
+              return;
+            }
+            var edge_ = dest.add_outgoing(new bender.RedirectEdge(edge));
+          });
+        }
+      }, this);
+    }
+    // TODO event edges
   };
 
   bender.Component.prototype.init_events = function () {
@@ -225,6 +242,7 @@
   bender.Instance.prototype.init_events = function () {
     var component = this.scope.$that;
     component.init_events();
+    // TODO at component level
     flexo.values(component.vertices.event.instance).forEach(function (dest) {
       for (var p = component._prototype;
         p && !p.vertices.event.instance.hasOwnProperty(dest.name);
@@ -247,7 +265,6 @@
     for (var p in component.property_definitions) {
       var property = component.property_definitions[p];
       if (!property.is_component_value) {
-        this.inherit_edge(property);
         this.init_property(property);
       }
     }
@@ -256,16 +273,8 @@
     });
     this.scope.$environment.unsorted = true;
     this.scope.$environment.flush_graph();
+    component.notify({ type: "ready" });
     this.notify({ type: "ready" });
-  };
-
-  bender.Instance.prototype.inherit_edge = function (property) {
-    var p = this.scope.$that;
-    if (property.name in p.vertices.property.instance) {
-      var dest = p.vertices.property.instance[property.name];
-      p = dest.target._prototype;
-      redirect(p && p.vertices.property.instance[property.name], dest);
-    }
   };
 
   bender.Instance.prototype.init_property = function (property) {
@@ -319,6 +328,15 @@
     this.sets.forEach(function (set) {
       w.add_outgoing(set.render(scope));
     });
+  };
+
+  bender.Component.prototype.notify = function (e) {
+    e.source = this;
+    if (e.type in this.vertices.event.component) {
+      this.scope.$environment.flush_graph_later(function () {
+        push_value(this.vertices.event.component[e.type], [this.scope, e]);
+      }.bind(this));
+    }
   };
 
   bender.Instance.prototype.notify = function (type, e) {
