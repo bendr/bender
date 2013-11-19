@@ -58,10 +58,20 @@
         edge.source.values.forEach(function (v) {
           var v_ = edge.follow.apply(edge, v);
           if (v_) {
-            bender.trace("  new value for v%0: %1=%2%3"
-              .fmt(edge.dest.index, idx(v_[0]), v_[1],
-                v_[2] ? " (%0)".fmt(idx(v_[2])) : ""));
-            push_value(edge.dest, v_);
+            if (v_.multiple) {
+              bender.trace("  new values for v%0: %1".fmt(edge.dest.index,
+                  v_.map(function (v__) {
+                    return "%0=%1".fmt(idx(v__[0]), v__[1]);
+                  }).join(" ")));
+              v_.forEach(function (v__) {
+                push_value(edge.dest, v__);
+              });
+            } else {
+              bender.trace("  new value for v%0: %1=%2%3"
+                .fmt(edge.dest.index, idx(v_[0]), v_[1],
+                  v_[2] ? " (%0)".fmt(idx(v_[2])) : ""));
+              push_value(edge.dest, v_);
+            }
           }
         });
       });
@@ -101,6 +111,16 @@
     }, this);
   };
 
+  // Setup inheritance edges
+  bender.Component.prototype.inherit_edges = function () {
+    Object.keys(this.vertices.property.component).forEach(function (name) {
+      if (this.vertices.property.instance.hasOwnProperty(name)) {
+        this.vertices.property.component[name].add_outgoing(new
+          bender.InstanceEdge(this.vertices.property.instance[name]));
+      }
+    }, this);
+  };
+
   bender.Component.prototype.init_events = function () {
     // TODO
   };
@@ -116,6 +136,7 @@
     if (prototype) {
       prototype.init_properties();
     }
+    this.inherit_edges();
     flexo.values(this.property_definitions).forEach(function (property) {
       if (property.is_component_value) {
         this.init_property(property);
@@ -174,7 +195,7 @@
                 q.all_instances.length));
           q.all_instances.forEach(f.bind(this, q));
         } else {
-          $$push(queue, this.derived);
+          $$push(queue, q.derived);
         }
       }
     }
@@ -585,6 +606,22 @@
   _class(bender.InheritEdge = function (dest) {
     this.init(dest);
   }, bender.Edge);
+
+
+  var instance_edge = _class(bender.InstanceEdge = function (dest) {
+    this.init(dest);
+  }, bender.Edge);
+
+  // An instance edge between a component vertex and an instance vertex requires
+  // to return multiple values, for all instances of the component.
+  // TODO skip instances that have their own property value
+  instance_edge.follow = function (scope, input) {
+    var vs = scope.$that.all_instances.map(function (instance) {
+      return [instance.scope_of(scope.$that), input];
+    });
+    vs.multiple = true;
+    return vs;
+  };
 
 
   var redirect_edge = _class(bender.RedirectEdge = function (edge) {

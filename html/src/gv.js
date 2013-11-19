@@ -7,7 +7,7 @@
     if (!this.edges) {
       this.update_graph();
     }
-    this.vortex.__incoming = this.vortex.incoming.length;
+    this.vertices[0].__incoming = this.vertices[0].incoming.length;
     window.open("data:text/vnd.graphviz;base64," +
         window.btoa(to_gv(this.vertices, this.edges)), "Graph");
   };
@@ -77,6 +77,11 @@
 
   bender.InheritEdge.prototype.to_gv = function (i) {
     return "%0 -> %1 [label=\"%2\",color=\"#f8ca00\"]"
+      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  };
+
+  bender.InstanceEdge.prototype.to_gv = function (i) {
+    return "%0 -> %1 [label=\"%2\",color=\"#ff6a4d\",arrowhead=inv]"
       .fmt(this.source.graph_name(), this.dest.graph_name(), i);
   };
 
