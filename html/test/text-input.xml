@@ -35,8 +35,8 @@
   </watch>
 
   <watch>
-    <get select="@text-input" property="value"
-      value="flexo.fail($in === `first) || $in" delay="0"/>
+    <get select="@text-input" property="value" match="$in !== `first"
+      delay="0"/>
     <set property="first"/>
   </watch>
 

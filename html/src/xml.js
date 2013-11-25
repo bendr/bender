@@ -78,7 +78,8 @@
   // or text content.)
   bender.Environment.prototype.deserialize_element_with_value = function (e, elem) {
     e.as(elem.getAttribute("as")).id(elem.getAttribute("id"))
-      .match(elem.getAttribute("match")).delay(elem.getAttribute("delay"));
+      .match_string(elem.getAttribute("match"))
+      .delay(elem.getAttribute("delay"));
     if (elem.hasAttribute("value")) {
       e.set_value_from_string(elem.getAttribute("value"), true, elem.baseURI);
     } else {

@@ -17,17 +17,14 @@
   </view>
 
   <watch>
-    <get select="@div" dom-event="mousedown" prevent-default="true"
-      value="!flexo.fail(!`enabled)"/>
-    <set property="down"/>
+    <get select="@div" dom-event="mousedown" prevent-default="true"/>
+    <set property="down" match="`enabled" value="true"/>
   </watch>
 
   <watch>
-    <get select="$document" dom-event="mouseup"><![CDATA[
-      return flexo.fail(!`down && ($in.target !== this.scope.div || !`enabled));
-    ]]></get>
-    <set property="down"/>
-    <set event="pushed">
+    <get select="$document" dom-event="mouseup" match="`down"/>
+    <set property="down" value="false"/>
+    <set event="pushed" match="$in.target === @div">
       bender.trace("Pushed! %0 -> %1".fmt(this.id(), $in));
       return $in;
     </set>

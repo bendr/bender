@@ -3,8 +3,25 @@
   /* global bender, require, window */
   var flexo = typeof require === "function" ? require("flexo") : window.flexo;
 
+  flexo._accessor(bender.ValueElement, "match_string");
+
+  // Get the function value of the match attribute for a value element
+  bender.ValueElement.prototype.match_function = function () {
+    if (typeof this._match === "function") {
+      return this._match;
+    }
+    if (this._match_string) {
+      var body = value_as_dynamic(this._match_string, true);
+      try {
+        return new Function("$scope", "$in", body[""] || body);
+      } catch (e) {
+        console.error("Error compiling match function “%0”:".fmt(body), e);
+      }
+    }
+  };
+
   function value_as_dynamic(value, needs_return, bindings) {
-    return chunks_to_value(needs_return ? ("return " : "") + chunk_value(value)
+    return chunks_to_value((needs_return ? "return " : "") + chunk_value(value)
       .map(function (chunk) {
         return chunk_to_js(chunk, bindings);
       }).join(""), bindings);
@@ -25,7 +42,9 @@
           bindings[id] = {};
         }
         bindings[id][chunk[1]] = true;
-        ch += "\"]properties[\"" + chunk[1].replace(/\"/g, "\\\"");
+      }
+      if (chunk.length === 2) {
+        ch += "\"].properties[\"" + chunk[1].replace(/\"/g, "\\\"");
       }
       return ch + "\"]";
     }

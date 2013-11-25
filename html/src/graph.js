@@ -563,29 +563,19 @@
       if (inner_scope) {
         var outer_scope = inner_scope;
         if (this.pop_scope) {
-          if (prev_scope) {
-            bender.trace("    pop scope %0 <<< %1"
-                .fmt(idx(inner_scope), idx(prev_scope)));
-            outer_scope = prev_scope;
-          } else {
-            console.warn("    pop scope: no scope to pop?!");
-          }
+          outer_scope = prev_scope;
         }
         outer_scope = this.exit_scope(inner_scope, outer_scope);
-        if (!outer_scope) {
+        if (!outer_scope || !this.match(inner_scope, input)) {
           return;
         }
         var v = [outer_scope, this.follow_value(inner_scope, input)];
-        bender.trace("  value for edge=%0".fmt(v[1]));
         if (this.push_scope) {
-          bender.trace("    push scope %0 >>> %1"
-              .fmt(idx(inner_scope), idx(scope)));
           v.push(inner_scope);
         }
         this.apply_value.apply(this, v);
+        // TODO change “never” to “Infinity”
         if (this.delay >= 0 || this.delay === "never") {
-          // TODO but then we must do something about it!
-          bender.trace("    delayed edge (%0)".fmt(this.delay));
           scope.$environment.flush_graph_later(function () {
             this.dest.push_value(v);
           }.bind(this));
@@ -595,17 +585,17 @@
       }
     } catch (e) {
       if (e !== "fail") {
-        console.warn("Exception while following edge:", e);
+        console.warn("Exception while following edge:", e.message || e);
       }
     }
   };
 
   // Return the new scope for the destination of the edge
-  edge.follow_scope = flexo.fst;
   edge.enter_scope = flexo.fst;
   edge.exit_scope = flexo.snd;
 
   // Return the new value for the destination of the edge
+  edge.match = flexo.funcify(true);
   edge.follow_value = flexo.snd;
   edge.apply_value = flexo.nop;
 
@@ -676,6 +666,10 @@
   element_edge.init = function (element, dest) {
     edge.init.call(this, dest);
     this.element = element;
+    var match = element.match_function();
+    if (match) {
+      this.match = match;
+    }
     return this;
   };
 
