@@ -61,8 +61,7 @@
     return this._add_component(new bender.Instance(component, parent));
   };
 
-  // Render and initialize the component, returning the promise of a concrete
-  // instance.
+  // Render and initialize the component, returning a concrete instance.
   environment.render_component = function (component, target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
     var instance = component.render(fragment);
@@ -82,6 +81,29 @@
   environment._remove_component = function (component) {
     // TODO
     return component;
+  };
+
+  // Put a component update in the upate queue and set a timeout to flush it if
+  // necessary.
+  environment._update_component = function (update) {
+    if (!this.__update_queue) {
+      this.__update_queue = [];
+      flexo.asap(this._flush_update_queue.bind(this));
+    }
+    this.__update_queue.push(update);
+  };
+
+  // Flush the update queue.
+  environment._flush_update_queue = function () {
+    var queue = this.__update_queue.slice();
+    delete this.__update_queue;
+    for (var i = 0, n = queue.length; i < n; ++i) {
+      var update = queue[i];
+      var f = update.target.update && update.target.update[update.type];
+      if (typeof f === "function") {
+        f(update);
+      }
+    }
   };
 
 
@@ -248,6 +270,14 @@
     add_id_to_scope(this, elem, stack, true);
     render_view_element(this, elem, stack);
     target.appendChild(elem);
+  };
+
+  bender.DOMElement.prototype.update = {
+    add: function (update) {
+      // TODO: reuse view render; find the correct target/reference node and
+      // location in the stack. Do all instances (including instances of derived
+      // components.)
+    }
   };
 
 

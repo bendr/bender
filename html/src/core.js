@@ -39,6 +39,7 @@
     }
   });
 
+
   // Generic append child method, should be overloaded to manage contents.
   // Return the appended child (similar to the DOM appendChild method.)
   // TODO if the child is a DOM node, transform it (and its children) into a
@@ -53,6 +54,10 @@
     if (!child.parent) {
       this.children.push(child);
       child.parent = this;
+      var component = this.current_component;
+      if (component) {
+        component._update({ type: "add", target: child });
+      }
       return child;
     }
   };
@@ -252,6 +257,16 @@
   component._init_properties_object = function (properties) {
     Object.defineProperty(properties, "", { value: this, configurable: true });
     return properties;
+  };
+
+  // Notify the environment of a mutation inside this component after the
+  // component is ready.
+  component._update = function (args) {
+    if (this.not_ready) {
+      return;
+    }
+    args.scope = this.scope;
+    this.scope.$environment._update_component(args);
   };
 
   // Handle new link, view, property, event, and watch children for a component.
@@ -558,10 +573,17 @@
   // Append child for view and its children; needs to keep track of components
   // that are added of child components of the current component (if any.)
   view.append_child = function (child) {
-    if (child instanceof bender.Component) {
-      var component = this.current_component;
-      if (component) {
-        component._add_child_component(child);
+    if (child instanceof bender.Element) {
+      if (child instanceof bender.Component) {
+        var component = this.current_component;
+        if (component) {
+          component._add_child_component(child);
+        }
+      }
+    } else if (child.nodeType) {
+      child = convert_dom_node(child);
+      if (!child) {
+        return;
       }
     }
     return element.append_child.call(this, child);
@@ -940,6 +962,32 @@
     } catch (e) {
       console.error("Could not parse “%0” as Javascript".fmt(f));
       return value;
+    }
+  }
+
+  // Convert an actual DOM node to a Bender DOM element.
+  function convert_dom_node(node) {
+    if (node.nodeType === window.Node.ELEMENT_NODE) {
+      var elem = new bender.DOMElement(node.namespaceURI, node.localName);
+      for (var i = 0, n = node.attributes.length; i < n; ++i) {
+        var attr = node.attributes[i];
+        var ns = attr.namespaceURI || "";
+        if (ns === "" && attr.localName === "id") {
+          e.id(attr.value);
+        } else {
+          e.attr(ns, attr.localName, attr.value);
+        }
+      }
+      for (i = 0, n = node.childNodes.length; i < n; ++i) {
+        var ch = convert_dom_node(node.childNodes[i]);
+        if (ch) {
+          elem.append_child(ch);
+        }
+      }
+      return elem;
+    } else if (node.nodeType === window.Node.TEXT_NODE ||
+        node.nodeType === window.Node.CDATA_SECTION_NODE) {
+      return new bender.DOMTextNode().text(node.textContent);
     }
   }
 

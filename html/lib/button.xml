@@ -14,16 +14,14 @@
 
   <watch>
     <get select="@div" dom-event="mousedown" prevent-default="true"
-      value="!flexo.fail(!`enabled)"/>
-    <set property="down"/>
+      match="`enabled"/>
+    <set property="down" value="true"/>
   </watch>
 
   <watch>
-    <get select="$document" dom-event="mouseup"
-      value="flexo.fail(!`down &amp;&amp;
-      ($in.target !== this.scope['@div'] || !`enabled))"/>
+    <get select="$document" dom-event="mouseup" match="`down"/>
     <set property="down" value="false"/>
-    <set event="pushed"/>
+    <set event="pushed" match="$in.target === @div"/>
   </watch>
 
 </component>

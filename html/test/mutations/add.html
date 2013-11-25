@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚐ Bender HTML Runtime</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: "Avenir Next", "Helvetica Neue", Helvetica, sans-serif;
+}
+    </style>
+  </head>
+  <body>
+    <script src="../../src/flexo.js"></script>
+    <script src="../../src/core.js"></script>
+    <script src="../../src/parse.js"></script>
+    <script src="../../src/render.js"></script>
+    <script src="../../src/graph.js"></script>
+    <script src="../../src/xml.js"></script>
+    <script src="../../src/gv.js"></script>
+    <script>
+"use strict";
+
+var args = flexo.get_args({ trace: "true" });
+bender.TRACE = flexo.is_true(args.trace);
+
+var env = new bender.Environment();
+var k = env.component().view(flexo.$p("Hello, world!"));
+var k_ = env.render_component(k, document.body);
+
+setTimeout(function () {
+  bender.trace("+ Hello again");
+  k.scope.$view.append_child(flexo.$p("Hello again"));
+}, 1000);
+
+    </script>
+  </body>
+</html>
