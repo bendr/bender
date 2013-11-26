@@ -64,7 +64,7 @@
   // Render and initialize the component, returning a concrete instance.
   environment.render_component = function (component, target, ref) {
     var fragment = target.ownerDocument.createDocumentFragment();
-    var instance = component.render(fragment);
+    var instance = component.render(null, fragment);
     instance.init_properties();
     target.insertBefore(fragment, ref);
     return instance;
@@ -108,7 +108,7 @@
 
 
   // Render this component to a concrete instance for the given target.
-  bender.Component.prototype.render = function (target, stack) {
+  bender.Component.prototype.render = function (stack, target, ref) {
     var instance = this.scope.$environment.instance(this,
         stack && stack[stack.i].$this);
     on(instance, "will-render");
@@ -187,25 +187,9 @@
 
   // Render the instance’s stack of views and return itself.
   instance.render_view = function (target) {
-    var stack = [];
-    flexo.hcaErof(this.scopes, function (scope) {
-      if (scope.$that.scope.$view) {
-        var mode = scope.$that.scope.$view._stack;
-        if (mode === "replace") {
-          stack = [scope];
-        } else if (mode === "top") {
-          stack.push(scope);
-        } else {
-          stack.unshift(scope);
-        }
-      }
-    });
-    stack.i = 0;
-    stack.bindings = stack.map(function () { return []; });
-    for (var n = stack.length; stack.i < n && !stack[stack.i].$that.scope.$view;
-        ++stack.i) {}
-    if (stack.i < n && stack[stack.i].$that.scope.$view) {
-      stack[stack.i].$that.scope.$view.render(target, stack);
+    var stack = render_stack(this);
+    if (stack[stack.i]) {
+      stack[stack.i].$that.scope.$view.render(stack, target);
     }
     return this;
   };
@@ -213,31 +197,42 @@
 
   // Render the contents of the view by appending into the target, passing the
   // stack of views further down for the <content> element.
-  bender.View.prototype.render = function (target, stack) {
+  bender.View.prototype.render = function (stack, target, ref) {
     stack[0].$span = [];
-    render_view_element(this, target, stack);
+    render_view_element(this, stack, target);
+  };
+
+  // Render an update for all instances of the update component (which is the
+  // view’s current component)
+  bender.View.prototype.render_update = function (update) {
+    update.scope.$that.all_instances.forEach(function (instance) {
+      var stack = render_stack(instance, update.component);
+      bender.trace("update %0".fmt(instance._idx));
+      // TODO: find parent/ref
+      // render_view_element(update.target, stack, target, ref);
+    });
   };
 
 
   // Render the next view in the stack if any, otherwise the contents of the
   // element are rendered as if it were a view element.
   // TODO select attribute (using query selectors)
-  bender.Content.prototype.render = function (target, stack) {
+  bender.Content.prototype.render = function (stack, target, ref) {
     for (var i = stack.i + 1, n = stack.length;
         i < n && !stack[i].$that.scope.$view; ++i) {}
     if (i < n) {
       var j = stack.i;
       stack.i = i;
-      stack[i].$that.scope.$view.render(target, stack);
+      stack[i].$that.scope.$view.render(stack, target);
       stack.i = j;
     } else {
-      render_view_element(this, target, stack);
+      render_view_element(this, stack, target);
     }
   };
 
 
   // Render as an attribute of the target.
-  bender.Attribute.prototype.render = function (target, stack) {
+  bender.Attribute.prototype.render = function (stack, target, ref) {
     if (target.nodeType === window.Node.ELEMENT_NODE) {
       var contents = this.children.reduce(function (t, node) {
         return t + node.text ? node.text() : node.textContent;
@@ -249,7 +244,7 @@
 
 
   // Render as a text node in the target.
-  bender.Text.prototype.render = function (target, stack) {
+  bender.Text.prototype.render = function (stack, target, ref) {
     var node = target.ownerDocument.createTextNode(this._text);
     add_id_to_scope(this, node, stack);
     target.appendChild(node);
@@ -257,7 +252,7 @@
 
 
   // Render as a DOM element with the same name and attributes.
-  bender.DOMElement.prototype.render = function (target, stack) {
+  bender.DOMElement.prototype.render = function (stack, target, ref) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
     if (this.fake_id) {
       stack[stack.i][this.fake_id] = elem;
@@ -268,7 +263,7 @@
       }
     }
     add_id_to_scope(this, elem, stack, true);
-    render_view_element(this, elem, stack);
+    render_view_element(this, stack, elem);
     target.appendChild(elem);
   };
 
@@ -277,12 +272,13 @@
       // TODO: reuse view render; find the correct target/reference node and
       // location in the stack. Do all instances (including instances of derived
       // components.)
+      update.scope.$view.render_update(update);
     }
   };
 
 
   // Render as a DOM text node with the same text content.
-  bender.DOMTextNode.prototype.render = function (target, stack) {
+  bender.DOMTextNode.prototype.render = function (stack, target, ref) {
     var node = target.ownerDocument.createTextNode(this.text());
     target.appendChild(node);
     if (this.fake_id) {
@@ -337,9 +333,33 @@
     }
   }
 
-  function render_view_element(element, target, stack) {
+  // Build and initialize the render stack for an instance
+  function render_stack(instance, component) {
+    var stack = [];
+    flexo.hcaErof(instance.scopes, function (scope) {
+      if (scope.$that.scope.$view) {
+        var mode = scope.$that.scope.$view._stack;
+        if (mode === "replace") {
+          stack = [scope];
+        } else if (mode === "top") {
+          stack.push(scope);
+        } else {
+          stack.unshift(scope);
+        }
+      }
+    });
+    stack.i = 0;
+    if (component) {
+      for (var n = stack.length;
+          stack.i < n && stack[stack.i].$that !== component; ++stack.i) {}
+    }
+    stack.bindings = stack.map(function () { return []; });
+    return stack;
+  }
+
+  function render_view_element(element, stack, target, ref) {
     element.children.forEach(function (ch) {
-      ch.render(target, stack);
+      ch.render(stack, target, ref);
     });
   };
 

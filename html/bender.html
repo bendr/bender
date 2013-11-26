@@ -46,8 +46,8 @@ function print_scope(scope) {
 }
 
 
-var args = flexo.get_args();
-bender.TRACE = !args.hasOwnProperty("trace") || flexo.is_true(args.trace);
+var args = flexo.get_args({ trace: "true" });
+bender.TRACE = flexo.is_true(args.trace);
 bender.render_href(args.href).then(function (instance) {
   window.$ = instance;
   window.APP = instance.scope.$that;

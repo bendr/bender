@@ -24,13 +24,13 @@ var args = flexo.get_args({ trace: "true" });
 bender.TRACE = flexo.is_true(args.trace);
 
 var env = new bender.Environment();
-var k = env.component().view(flexo.$p("Hello, world!"));
+var k = env.component().id("A").view(flexo.$p("Hello, world!"));
 var k_ = env.render_component(k, document.body);
 
 setTimeout(function () {
   bender.trace("+ Hello again");
   k.scope.$view.append_child(flexo.$p("Hello again"));
-}, 1000);
+}, 50);
 
     </script>
   </body>
