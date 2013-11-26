@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>⚑ Bender HTML Runtime | BAM!</title>
+    <meta charset="UTF-8">
+    <style>
+body, html {
+  height: 100%;
+}
+body {
+  font-family: "Avenir Next", "Helvetica Neue", Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+#inspector, #render {
+  width: 50%;
+  height: 100%;
+}
+#inspector {
+  background-color: #ccc;
+  float: left;
+}
+#render {
+  float: right;
+}
+    </style>
+  </head>
+  <body>
+    <div id="inspector"></div>
+    <div id="render"></div>
+    <script src="src/flexo.js"></script>
+    <script src="src/core.js"></script>
+    <script src="src/parse.js"></script>
+    <script src="src/render.js"></script>
+    <script src="src/graph.js"></script>
+    <script src="src/xml.js"></script>
+    <script src="src/gv.js"></script>
+    <script src="src/bam.js"></script>
+  </body>
+</html>
