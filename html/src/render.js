@@ -67,6 +67,11 @@
     var instance = component.render(null, fragment);
     instance.init_properties();
     target.insertBefore(fragment, ref);
+    for (var i = 0, n = instance.scopes.length;
+        i < n && !instance.scopes[i].$target; ++i);
+    if (i < n) {
+      instance.scopes[i].$target = target;
+    }
     return instance;
   };
 
@@ -199,6 +204,7 @@
   // stack of views further down for the <content> element.
   bender.View.prototype.render = function (stack, target, ref) {
     stack[0].$span = [];
+    stack[0].$target = target;
     render_view_element(this, stack, target);
   };
 
@@ -208,8 +214,9 @@
     update.scope.$that.all_instances.forEach(function (instance) {
       var stack = render_stack(instance, update.component);
       bender.trace("update %0".fmt(instance._idx));
-      // TODO: find parent/ref
-      // render_view_element(update.target, stack, target, ref);
+      var target = find_concrete_target(update, stack);
+      var ref = null;                 // TODO find the right ref element
+      render_view_element(update.target, stack, target, ref);
     });
   };
 
@@ -254,6 +261,7 @@
   // Render as a DOM element with the same name and attributes.
   bender.DOMElement.prototype.render = function (stack, target, ref) {
     var elem = target.ownerDocument.createElementNS(this.ns, this.name);
+    elem.__template = this;
     if (this.fake_id) {
       stack[stack.i][this.fake_id] = elem;
     }
@@ -280,6 +288,7 @@
   // Render as a DOM text node with the same text content.
   bender.DOMTextNode.prototype.render = function (stack, target, ref) {
     var node = target.ownerDocument.createTextNode(this.text());
+    node.__template = this;
     target.appendChild(node);
     if (this.fake_id) {
       stack[stack.i][this.fake_id] = node;
@@ -302,6 +311,23 @@
       if (element._id) {
         set_id_or_class(node, stack, element._id);
       }
+    }
+  }
+
+  // Find the concrete target for an update target given the stack
+  function find_concrete_target (update, stack) {
+    var p = update.target.parent;
+    var t = stack[stack.i].$target;
+    if (p instanceof bender.View) {
+      return t;
+    }
+    var queue = [t];
+    while (queue.length > 0) {
+      var q = queue.shift();
+      if (q.__template === p) {
+        return q;
+      }
+      $$push(queue, q.childNodes);
     }
   }
 

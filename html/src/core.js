@@ -973,9 +973,9 @@
         var attr = node.attributes[i];
         var ns = attr.namespaceURI || "";
         if (ns === "" && attr.localName === "id") {
-          e.id(attr.value);
+          elem.id(attr.value);
         } else {
-          e.attr(ns, attr.localName, attr.value);
+          elem.attr(ns, attr.localName, attr.value);
         }
       }
       for (i = 0, n = node.childNodes.length; i < n; ++i) {

@@ -7,9 +7,16 @@
 body {
   font-family: "Avenir Next", "Helvetica Neue", Helvetica, sans-serif;
 }
+
+.target {
+  padding: 1em;
+  border: solid thin #774f38;
+}
+
     </style>
   </head>
   <body>
+    <div class="target"></div>
     <script src="../../src/flexo.js"></script>
     <script src="../../src/core.js"></script>
     <script src="../../src/parse.js"></script>
@@ -24,12 +31,13 @@ var args = flexo.get_args({ trace: "true" });
 bender.TRACE = flexo.is_true(args.trace);
 
 var env = new bender.Environment();
-var k = env.component().id("A").view(flexo.$p("Hello, world!"));
-var k_ = env.render_component(k, document.body);
+var k = env.component().id("A")
+  .view(flexo.$div({ "class": "target" }, flexo.$p("Hello, world!")));
+var k_ = env.render_component(k, document.querySelector(".target"));
 
 setTimeout(function () {
   bender.trace("+ Hello again");
-  k.scope.$view.append_child(flexo.$p("Hello again"));
+  k.scope.$view.children[0].append_child(flexo.$p("Hello again"));
 }, 50);
 
     </script>

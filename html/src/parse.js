@@ -4,6 +4,7 @@
   var flexo = typeof require === "function" ? require("flexo") : window.flexo;
 
   flexo._accessor(bender.ValueElement, "match_string");
+  flexo._accessor(bender.ValueElement, "value_string");
 
   // Get the function value of the match attribute for a value element
   bender.ValueElement.prototype.match_function = function () {

@@ -1,0 +1,19 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+
+  K -> P1;
+  K -> P2;
+  K -> P3;
+  P -> P1 [style=dashed];
+  P -> P2 [style=dashed];
+  P -> P3 [style=dashed];
+  P -> B1;
+  P -> B2;
+  B -> B1 [style=dashed];
+  B -> B2 [style=dashed];
+  A -> B [style=dashed];
+
+  B1 [label="B+"];
+  B2 [label="B—"];
+
+}
