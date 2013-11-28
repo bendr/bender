@@ -94,7 +94,7 @@
     if (!this.parent) {
       throw "hierarchy error: no parent to remove from";
     }
-    var args = { type: "remove", target: child, parent: this.parent };
+    var args = { type: "remove", target: this, parent: this.parent };
     var component = this.current_component;
     flexo.remove_from_array(this.parent.children, this);
     delete this.parent;

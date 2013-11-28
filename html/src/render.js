@@ -212,11 +212,19 @@
   // view’s current component)
   bender.View.prototype.render_update = function (update) {
     update.scope.$that.all_instances.forEach(function (instance) {
-      var stack = render_stack(instance, update.component);
+      var stack = render_stack(instance);
       bender.trace("update %0".fmt(instance._idx));
-      var target = find_concrete_target(update, stack);
+      var target = find_concrete_parent(update, stack);
       var ref = find_concrete_ref(update, target);
       update.target.render(stack, target, ref);
+    });
+  };
+
+  bender.View.prototype.unrender = function (update) {
+    update.scope.$that.all_instances.forEach(function (instance) {
+      var stack = render_stack(instance);
+      var target = find_concrete_target(update, stack);
+      flexo.safe_remove(target);
     });
   };
 
@@ -277,10 +285,10 @@
 
   bender.DOMElement.prototype.update = {
     add: function (update) {
-      // TODO: reuse view render; find the correct target/reference node and
-      // location in the stack. Do all instances (including instances of derived
-      // components.)
       update.scope.$view.render_update(update);
+    },
+    remove: function (update) {
+      update.scope.$view.unrender(update);
     }
   };
 
@@ -315,7 +323,7 @@
   }
 
   // Find the concrete target for an update target given the stack
-  function find_concrete_target (update, stack) {
+  function find_concrete_parent(update, stack) {
     var p = update.target.parent;
     var t = stack[stack.i].$target;
     if (p instanceof bender.View) {
@@ -338,6 +346,17 @@
     return ref && flexo.find_first(target.childNodes, function (n) {
       return n.__template === ref;
     });
+  }
+
+  function find_concrete_target(update, stack) {
+    var queue = [stack[stack.i].$target];
+    while (queue.length > 0) {
+      var q = queue.shift();
+      if (q.__template === update.target) {
+        return q;
+      }
+      $$push(queue, q.childNodes);
+    }
   }
 
   // Get the instance scope for an instance from its parent instance, i.e. the

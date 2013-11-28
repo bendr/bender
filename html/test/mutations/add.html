@@ -34,14 +34,14 @@ var env = new bender.Environment();
 var k = env.component().id("A").view();
 var div = k.scope.$view.add_child(flexo.$("div.target"));
 var p = div.add_child(flexo.$p("Hello, world!"));
-div.insert_child("(some text first)", p);
-div.insert_child(" (and some more text first)", p);
+// div.insert_child("(some text first)", p);
+// div.insert_child(" (and some more text first)", p);
 var k_ = env.render_component(k, document.querySelector(".target"));
 
 setTimeout(function () {
   bender.trace("+ Hello again");
   k.scope.$view.children[0].insert_child(flexo.$p("Hello again (before!)"), p);
-}, 500);
+}, 1000);
 
     </script>
   </body>

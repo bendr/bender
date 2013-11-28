@@ -1,0 +1,30 @@
+<component xmlns="http://bender.igel.co.jp" id="K">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      <component href="../../lib/button.xml" id="add">
+        <view>
+          Add
+        </view>
+      </component>
+      <component href="../../lib/button.xml" id="remove">
+        <view>
+          Remove
+        </view>
+      </component>
+    </html:p>
+    <html:div id="there"/>
+  </view>
+  <watch>
+    <get event="ready"/>
+    <get select="@add" event="pushed">
+      #there.add_child(flexo.$p("I am #%0".fmt(#there.children.length + 1)));
+    </get>
+    <get select="@remove" event="pushed">
+      var n = #there.children.length - 1;
+      if (n >= 0) {
+        #there.children[n].remove_self();
+      }
+    </get>
+    <set select="@remove" property="enabled" value="#there.children.length"/>
+  </watch>
+</component>
