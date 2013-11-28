@@ -39,7 +39,6 @@
     }
   });
 
-
   // Add child after the given index or reference element, or at the end if no
   // ref argument is given.
   element.add_child = function (child, ref) {

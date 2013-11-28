@@ -310,11 +310,12 @@
 
   // Find the first item x in a such that p(x) is true
   flexo.find_first = function (a, p, that) {
-    if (!Array.isArray(a)) {
+    if (!a || typeof a.length !== "number" || typeof a.item !== "function") {
       return;
     }
-    for (var i = 0, n = a.length; i < n && !p.call(that, a[i], i, a); ++i) {}
-    return a[i];
+    for (var i = 0, n = a.length; i < n && !p.call(that, a.item(i), i, a); ++i)
+      {}
+    return a.item(i);
   };
 
   // Foreach in reverse

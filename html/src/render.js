@@ -215,8 +215,8 @@
       var stack = render_stack(instance, update.component);
       bender.trace("update %0".fmt(instance._idx));
       var target = find_concrete_target(update, stack);
-      var ref = null;                 // TODO find the right ref element
-      render_view_element(update.target, stack, target, ref);
+      var ref = find_concrete_ref(update, target);
+      update.target.render(stack, target, ref);
     });
   };
 
@@ -254,7 +254,7 @@
   bender.Text.prototype.render = function (stack, target, ref) {
     var node = target.ownerDocument.createTextNode(this._text);
     add_id_to_scope(this, node, stack);
-    target.appendChild(node);
+    target.insertBefore(node, ref);
   };
 
 
@@ -272,7 +272,7 @@
     }
     add_id_to_scope(this, elem, stack, true);
     render_view_element(this, stack, elem);
-    target.appendChild(elem);
+    target.insertBefore(elem, ref);
   };
 
   bender.DOMElement.prototype.update = {
@@ -289,7 +289,7 @@
   bender.DOMTextNode.prototype.render = function (stack, target, ref) {
     var node = target.ownerDocument.createTextNode(this.text());
     node.__template = this;
-    target.appendChild(node);
+    target.insertBefore(node, ref);
     if (this.fake_id) {
       stack[stack.i][this.fake_id] = node;
     }
@@ -329,6 +329,15 @@
       }
       $$push(queue, q.childNodes);
     }
+  }
+
+  // Find the concrete ref node for an update target given the concrete target.
+  function find_concrete_ref(update, target) {
+    var p = update.target.parent;
+    var ref = p.children[p.children.indexOf(update.target) + 1];
+    return ref && flexo.find_first(target.childNodes, function (n) {
+      return n.__template === ref;
+    });
   }
 
   // Get the instance scope for an instance from its parent instance, i.e. the
