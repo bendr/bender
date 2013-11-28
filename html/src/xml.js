@@ -70,7 +70,10 @@
   bender.Environment.prototype.deserialize_children = function (e, p) {
     return flexo.fold_promises($map(p.childNodes, function (ch) {
         return this.deserialize(ch);
-      }, this), $call.bind(bender.Component.prototype.child), e);
+      }, this), $call.bind(function (child) {
+        return child && bender.Component.prototype.child.call(this, child) ||
+          this;
+      }), e);
   };
 
   // Deserialize common properties and contents for elements that have a value

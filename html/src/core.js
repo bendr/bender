@@ -42,12 +42,13 @@
   // Add child after the given index or reference element, or at the end if no
   // ref argument is given.
   element.add_child = function (child, ref) {
-    if (child) {
-      if (child.nodeType) {
-        child = convert_dom_node(child);
-      } else if (typeof child === "string") {
-        child = new bender.Text(child);
-      }
+    if (!child) {
+      throw "hierarchy error: no child";
+    }
+    if (child.nodeType) {
+      child = convert_dom_node(child);
+    } else if (typeof child === "string") {
+      child = new bender.Text(child);
     }
     if (!(child instanceof bender.Element)) {
       throw "hierarchy error: not a bender element";
