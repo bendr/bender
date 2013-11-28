@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>⚐ Bender HTML Runtime</title>
+    <title>Add | Mutations | Bender</title>
     <meta charset="UTF-8">
     <style>
 body {
@@ -31,14 +31,17 @@ var args = flexo.get_args({ trace: "true" });
 bender.TRACE = flexo.is_true(args.trace);
 
 var env = new bender.Environment();
-var k = env.component().id("A")
-  .view(flexo.$div({ "class": "target" }, flexo.$p("Hello, world!")));
+var k = env.component().id("A").view();
+var div = k.scope.$view.add_child(flexo.$("div.target"));
+var p = div.add_child(flexo.$p("Hello, world!"));
+div.insert_child("(some text first)", p);
+div.insert_child(" (and some more text first)", p);
 var k_ = env.render_component(k, document.querySelector(".target"));
 
 setTimeout(function () {
   bender.trace("+ Hello again");
-  k.scope.$view.children[0].append_child(flexo.$p("Hello again"));
-}, 50);
+  k.scope.$view.children[0].insert_child(flexo.$p("Hello again (before!)"), p);
+}, 500);
 
     </script>
   </body>

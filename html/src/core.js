@@ -40,42 +40,72 @@
   });
 
 
-  // Generic append child method, should be overloaded to manage contents.
-  // Return the appended child (similar to the DOM appendChild method.)
-  // TODO if the child is a DOM node, transform it (and its children) into a
-  // Bender DOMElement or DOMTextNode.
-  element.append_child = function (child) {
-    if (!(child instanceof bender.Element)) {
-      return;
-    }
-    if (child.parent && child.parent !== this) {
-      child.parent.remove_child(child);
-    }
-    if (!child.parent) {
-      this.children.push(child);
-      child.parent = this;
-      var component = this.current_component;
-      if (component) {
-        component._update({ type: "add", target: child });
+  // Add child after the given index or reference element, or at the end if no
+  // ref argument is given.
+  element.add_child = function (child, ref) {
+    if (child) {
+      if (child.nodeType) {
+        child = convert_dom_node(child);
+      } else if (typeof child === "string") {
+        child = new bender.Text(child);
       }
-      return child;
     }
+    if (!(child instanceof bender.Element)) {
+      throw "hierarchy error: not a bender element";
+    }
+    if (child.parent) {
+      if (child.parent === this) {
+        throw "hierarchy error: already a child of the parent";
+      }
+      child.remove_self();
+    }
+    if (ref instanceof bender.Element) {
+      if (ref.parent !== this) {
+        throw "hierarchy error: ref element is not a child of the parent";
+      }
+      ref = this.children.indexOf(ref) + 1;
+    }
+    var n = this.children.length;
+    var index = ref >= 0 ? ref : ref < 0 ? n + 1 + ref : n;
+    if (index < 0 || index > n) {
+      throw "hierarchy error: index out of bounds";
+    }
+    this.children.splice(index, 0, child);
+    child.parent = this;
+    update(this.current_component, { type: "add", target: child });
+    return child;
+  };
+
+  // Same as add_child, but insert before the ref child, or as the first child
+  // instead of after/at the end.
+  element.insert_child = function (child, ref) {
+    if (ref instanceof bender.Element) {
+      if (ref.parent !== this) {
+        throw "hierarchy error: ref element is not a child of the parent";
+      }
+      ref = this.children.indexOf(ref);
+    } else if (typeof ref !== "number") {
+      ref = 0;
+    }
+    return this.add_child(child, ref);
+  };
+
+  // Remove self from parent (if any) and return self.
+  element.remove_self = function () {
+    if (!this.parent) {
+      throw "hierarchy error: no parent to remove from";
+    }
+    var args = { type: "remove", target: child, parent: this.parent };
+    var component = this.current_component;
+    flexo.remove_from_array(this.parent.children, this);
+    delete this.parent;
+    update(component, args);
+    return this;
   };
 
   // Same but return the element rather than the child for chainability.
-  element.child = function (child) {
-    return this.append_child(child), this;
-  };
-
-  // Generic remove child method, should be overloaded to manage contents.
-  // Return the removed child.
-  // TODO [mutations] handle child removal for all elements.
-  element.remove_child = function (child) {
-    if (child.parent !== this) {
-      throw "Cannot remove child: hierarchy error";
-    }
-    delete child.parent;
-    return flexo.remove_from_array(this.children, child);
+  element.child = function (child, ref) {
+    return this.add_child(child, ref), this;
   };
 
   // All elements may have an id. If the id is modified, the scope for this
@@ -270,8 +300,8 @@
   };
 
   // Handle new link, view, property, event, and watch children for a component.
-  component.append_child = function (child) {
-    element.append_child.call(this, child);
+  component.add_child = function (child, ref) {
+    child = element.add_child.call(this, child, ref);
     if (child instanceof bender.Link) {
       this.links.push(child);
     } else if (child instanceof bender.View) {
@@ -315,10 +345,10 @@
       watch.bindings = true;
       Object.keys(child.bindings).forEach(function (id) {
         Object.keys(child.bindings[id]).forEach(function (prop) {
-          watch.append_child(new bender.GetProperty(prop).select(id));
+          watch.add_child(new bender.GetProperty(prop).select(id));
         });
       });
-      this.append_child(watch);
+      this.add_child(watch);
     }
   };
 
@@ -438,10 +468,10 @@
   component.view = function (view) {
     if (!(view instanceof bender.View)) {
       view = this.scope.$view || new bender.View();
-      $foreach(arguments, view.append_child.bind(view));
+      $foreach(arguments, view.add_child.bind(view));
     }
     if (!this.scope.$view) {
-      this.append_child(view);
+      this.add_child(view);
     }
     return this;
   };
@@ -454,7 +484,7 @@
   component.watch = function (watch) {
     if (!(watch instanceof bender.Watch)) {
       watch = new bender.Watch();
-      $foreach(arguments, watch.append_child.bind(watch));
+      $foreach(arguments, watch.add_child.bind(watch));
     }
     return this.child(watch);
   };
@@ -572,21 +602,14 @@
 
   // Append child for view and its children; needs to keep track of components
   // that are added of child components of the current component (if any.)
-  view.append_child = function (child) {
-    if (child instanceof bender.Element) {
-      if (child instanceof bender.Component) {
-        var component = this.current_component;
-        if (component) {
-          component._add_child_component(child);
-        }
-      }
-    } else if (child.nodeType) {
-      child = convert_dom_node(child);
-      if (!child) {
-        return;
+  view.add_child = function (child, ref) {
+    if (child instanceof bender.Component) {
+      var component = this.current_component;
+      if (component) {
+        component._add_child_component(child);
       }
     }
-    return element.append_child.call(this, child);
+    return element.add_child.call(this, child, ref);
   };
 
 
@@ -608,13 +631,6 @@
 
   flexo._accessor(bender.Attribute, "name", flexo.safe_string);
   flexo._accessor(bender.Attribute, "ns", flexo.safe_string);
-
-  // Only add text content (DOM text nodes or bender Text elements)
-  attribute.append_child = function (child) {
-    if (child instanceof bender.DOMTextNode || child instanceof bender.Text) {
-      return element.append_child.call(this, child);
-    }
-  };
 
 
   // Bender Text element. Although it can only contain text, it can also have an
@@ -659,7 +675,7 @@
     return this.attrs[ns] && this.attrs[ns][name];
   };
 
-  dom_element.append_child = view.append_child;
+  dom_element.add_child = view.add_child;
 
   dom_element.text = function (text) {
     return this.child(new bender.DOMTextNode().text(text));
@@ -706,13 +722,13 @@
   flexo._accessor(bender.Watch, "match");
 
   // Append Get and Set children to the respective arrays
-  watch.append_child = function (child) {
+  watch.add_child = function (child, ref) {
     if (child instanceof bender.Get) {
       this.gets.push(child);
     } else if (child instanceof bender.Set) {
       this.sets.push(child);
     }
-    return element.append_child.call(this, child);
+    return element.add_child.call(this, child);
   };
 
 
@@ -981,7 +997,7 @@
       for (i = 0, n = node.childNodes.length; i < n; ++i) {
         var ch = convert_dom_node(node.childNodes[i]);
         if (ch) {
-          elem.append_child(ch);
+          elem.add_child(ch);
         }
       }
       return elem;
@@ -1008,10 +1024,10 @@
     watch.bindings = true;
     Object.keys(bindings).forEach(function (id) {
       Object.keys(bindings[id]).forEach(function (prop) {
-        watch.append_child(new bender.GetProperty(prop).select(id));
+        watch.add_child(new bender.GetProperty(prop).select(id));
       });
     });
-    parent.append_child(watch);
+    parent.add_child(watch);
   }
 
   // Normalize the `as` property of an element so that it matches a known value.
@@ -1324,6 +1340,13 @@
     }
     Object.defineProperty(bindings, "", { value: { value: v }});
     return bindings;
+  }
+
+  // Safe update (can be called for nodes that are not in a component yet.)
+  function update(component, args) {
+    if (component) {
+      component._update(args);
+    }
   }
 
   // TODO [mutations] remove the old id when it changes
