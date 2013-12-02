@@ -2,16 +2,17 @@
 
   var lib = window.lib = { old_lib: window.lib, timer: {} };
 
+  // TODO frame/asap
   lib.timer.tick = function (rate_ms) {
     lib.timer.cancel.call(this);
-    var tick = typeof rate_ms !== "number" || isNaN(rate_ms) || rate_ms <= 0 ?
+    var tick = (rate_ms >= 0 ?
       function () {
-        this.scope.$this.notify("tick", { t: Date.now() });
-        this.__frame = window.requestAnimationFrame(tick);
-      }.bind(this) : function () {
-        this.scope.$this.notify("tick", { t: Date.now() });
+        this.notify("tick", { t: Date.now() });
         this.__timeout = window.setTimeout(tick, rate_ms);
-      }.bind(this);
+      } : function () {
+        this.notify("tick", { t: Date.now() });
+        this.__frame = window.requestAnimationFrame(tick);
+      }).bind(this);
     tick();
   };
 

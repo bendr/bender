@@ -4,18 +4,6 @@
   /* global bender, console, require, window */
   var flexo = typeof require === "function" ? require("flexo") : window.flexo;
 
-  // Set up tracing, turned on/off with setting bender.TRACE to true or false
-  var _trace;
-  Object.defineProperty(bender, "TRACE", {
-    enumerable: true,
-    get: function () { return _trace !== flexo.nop; },
-    set: function (p) { _trace = p ? console.log.bind(console) : flexo.nop; }
-  });
-  Object.defineProperty(bender, "trace", {
-    enumerable: true,
-    get: function () { return _trace; }
-  });
-
 
   // Load, then render a component from the given href. Return a promise of the
   // instance of the rendered component.

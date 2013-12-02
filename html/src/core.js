@@ -14,9 +14,22 @@
     bender = window.bender = {};
   }
 
-  bender.version = "0.8.2.6";
+  bender.version = "0.8.2.7";
 
   var _class = flexo._class;
+
+
+  // Set up tracing, turned on/off with setting bender.TRACE to true or false
+  var _trace;
+  Object.defineProperty(bender, "TRACE", {
+    enumerable: true,
+    get: function () { return _trace !== flexo.nop; },
+    set: function (p) { _trace = p ? console.log.bind(console) : flexo.nop; }
+  });
+  Object.defineProperty(bender, "trace", {
+    enumerable: true,
+    get: function () { return _trace; }
+  });
 
 
   // Base for Bender elements.

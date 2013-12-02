@@ -255,8 +255,8 @@
     });
     this.scope.$environment.unsorted = true;
     this.scope.$environment.flush_graph();
-    component.notify({ type: "ready" });
-    this.notify({ type: "ready" });
+    component.notify("ready");
+    this.notify("ready");
   };
 
   bender.Instance.prototype.init_property = function (property) {
@@ -315,24 +315,13 @@
     });
   };
 
-  bender.Component.prototype.notify = function (e) {
-    e.source = this;
-    if (e.type in this.vertices.event.component) {
-      this.scope.$environment.flush_graph_later(function () {
-        this.vertices.event.component[e.type].push_value([this.scope, e]);
-      }.bind(this));
-    }
+  bender.Component.prototype.notify = function (type, e) {
+    notify.call(this, type, e, this.vertices.event.component);
   };
 
   // TODO does the scope in push_value matter?
-  bender.Instance.prototype.notify = function (e) {
-    e.source = this;
-    if (e.type in this.scope.$that.vertices.event.instance) {
-      this.scope.$environment.flush_graph_later(function () {
-        this.scope.$that.vertices.event.instance[e.type].push_value([this.scope,
-          e]);
-      }.bind(this));
-    }
+  bender.Instance.prototype.notify = function (type, e) {
+    notify.call(this, type, e, this.scope.$that.vertices.event.instance);
   };
 
 
@@ -749,7 +738,7 @@
 
   event_edge.apply_value = function (scope, value) {
     var target = scope[this.element.select()];
-    target.notify({ type: this.element.type, value: value });
+    target.notify(this.element.type, { value: value });
   };
 
 
@@ -797,6 +786,24 @@
   function idx(scope) {
     return scope.$this === scope.$that ? scope.$this._idx :
       "%0[%1]".fmt(scope.$this._idx, scope.$that._idx);
+  }
+
+  // Event notification, from either the component or instance vertices.
+  function notify(type, e, vertices) {
+    if (typeof type === "object") {
+      e = type;
+    } else {
+      if (typeof e !== "object") {
+        e = {};
+      }
+      e.type = type;
+    }
+    e.source = this;
+    if (type in vertices) {
+      this.scope.$environment.flush_graph_later(function () {
+        vertices[type].push_value([this.scope, e]);
+      }.bind(this));
+    }
   }
 
   // Render an edge from a set element.

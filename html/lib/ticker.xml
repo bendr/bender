@@ -2,9 +2,9 @@
   <link rel="script" href="lib.js"/>
   <property name="rate-ms" as="number" value="0"/>
   <property name="enabled" as="boolean" value="true"/>
+  <event name="tick"/>
   <watch>
-    <get property="rate-ms">
-      flexo.fail(!`enabled);
+    <get property="rate-ms" match="`enabled">
       lib.timer.tick.call(this, $in);
     </get>
   </watch>
@@ -16,5 +16,6 @@
         lib.timer.tick.call(this, `(rate-ms));
       }
     </get>
+    <set event="tick" match="false"/>
   </watch>
 </component>
