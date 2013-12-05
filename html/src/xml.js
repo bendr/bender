@@ -101,8 +101,14 @@
     for (var i = 0, n = elem.attributes.length; i < n; ++i) {
       var attr = elem.attributes[i];
       var ns = attr.namespaceURI || "";
-      if (ns === "" && attr.localName === "id") {
-        e.id(attr.value);
+      if (ns === "") {
+        if (attr.localName === "id") {
+          e.id(attr.value);
+        } else if (attr.localName === "render-id") {
+          e.render_id(attr.value);
+        } else {
+          e.attr(ns, attr.localName, attr.value);
+        }
       } else {
         e.attr(ns, attr.localName, attr.value);
       }
@@ -175,7 +181,8 @@
 
   bender.Environment.prototype.deserialize.content = function (elem) {
     return this.deserialize_children(new bender.Content()
-        .id(elem.getAttribute("id")), elem);
+        .id(elem.getAttribute("id"))
+        .render_id(elem.getAttribute("render-id")), elem);
   };
 
   bender.Environment.prototype.deserialize.attribute = function (elem) {

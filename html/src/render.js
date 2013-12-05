@@ -193,6 +193,7 @@
   bender.View.prototype.render = function (stack, target, ref) {
     stack[0].$span = [];
     stack[0].$target = target;
+    update_stack_render_id(this, stack);
     render_view_element(this, stack, target);
   };
 
@@ -225,9 +226,11 @@
         i < n && !stack[i].$that.scope.$view; ++i) {}
     if (i < n) {
       var j = stack.i;
+      var render_id = stack.render_id.slice();
       stack.i = i;
       stack[i].$that.scope.$view.render(stack, target);
       stack.i = j;
+      stack.render_id = render_id;
     } else {
       render_view_element(this, stack, target);
     }
@@ -266,6 +269,15 @@
         elem.setAttributeNS(ns, a, this.attrs[ns][a]);
       }
     }
+    update_stack_render_id(this, stack);
+    if (stack.render_id[0] === "class" && elem.classList) {
+      for (var i = 1, n = stack.render_id.length; i < n; ++i) {
+        elem.classList.add(stack.render_id[i]);
+      }
+    } else if (stack.render_id[0] === "id" && stack.render_id.length > 1) {
+      elem.id = stack.render_id[1];
+    }
+    stack.render_id.length = 1;
     add_id_to_scope(this, elem, stack, true);
     render_view_element(this, stack, elem);
     target.insertBefore(elem, ref);
@@ -293,20 +305,13 @@
 
 
   // Add a concrete node to the scope when the element is rendered.
-  // TODO handle render_id for the component’s own id.
   // TODO [mutations] remove id from scope.
   function add_id_to_scope(element, node, stack, output) {
     if (element._id) {
       Object.getPrototypeOf(stack[stack.i])["@" + element._id] = node;
-      if (output) {
-        set_id_or_class(node, stack, element._id);
-      }
     }
     if (output && !stack[stack.i].$first) {
       stack[stack.i].$first = node;
-      if (element._id) {
-        set_id_or_class(node, stack, element._id);
-      }
     }
   }
 
@@ -378,16 +383,26 @@
   // Build and initialize the render stack for an instance
   function render_stack(instance, component) {
     var stack = [];
+    stack.render_id = ["none"];
     flexo.hcaErof(instance.scopes, function (scope) {
       if (scope.$that.scope.$view) {
         var mode = scope.$that.scope.$view._stack;
         if (mode === "replace") {
           stack = [scope];
+          stack.render_id = ["none"];
         } else if (mode === "top") {
           stack.push(scope);
+          if (scope.$that._id) {
+            stack.render_id.push(scope.$that._id);
+          }
         } else {
           stack.unshift(scope);
+          if (scope.$that._id) {
+            stack.render_id.splice(1, 0, scope.$that._id);
+          }
         }
+      } else {
+        stack.render_id.push(scope.$that._id);
       }
     });
     stack.i = 0;
@@ -405,14 +420,11 @@
     });
   };
 
-  // Set id or class for an output node based on the render-id attribute
-  // TODO render-id="inherit"
-  function set_id_or_class(node, stack, id) {
-    var render = stack[stack.i].$that.scope.$view._render_id;
-    if (render === "id") {
-      node.setAttribute("id", id);
-    } else if (render === "class" && node.classList) {
-      node.classList.add(id);
+  // Update the render_id list of the stack with the current element
+  function update_stack_render_id(elem, stack) {
+    stack.render_id[0] = elem.render_id();
+    if (elem._id) {
+      stack.render_id.push(elem._id);
     }
   }
 

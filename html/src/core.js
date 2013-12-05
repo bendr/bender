@@ -630,6 +630,8 @@
     this.init();
   }, bender.Element);
 
+  flexo._accessor(bender.Content, "render_id", normalize_render_id);
+
 
   // Create a new attribute with an optional namespace and a name
   var attribute = _class(bender.Attribute = function (ns, name) {
@@ -662,6 +664,8 @@
     this.name = flexo.safe_string(name);
     this.attrs = {};
   }, bender.Element);
+
+  flexo._accessor(bender.DOMElement, "render_id", normalize_render_id);
 
   dom_element.attr = function (ns, name, value) {
     if (arguments.length > 2) {
@@ -1072,8 +1076,7 @@
   // “none.”
   function normalize_render_id(render_id) {
     render_id = flexo.safe_trim(render_id).toLowerCase();
-    return render_id === "class" || render_id === "id" ||
-      render_id === "none" ? render_id : "inherit";
+    return render_id === "class" || render_id === "id" ? render_id : "none";
   }
 
   function normalize_select(select) {
