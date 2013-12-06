@@ -615,18 +615,13 @@
     this.original = edge;
   }, bender.Edge);
 
-  redirect_edge.enter_scope = function (scope) {
-    return this.original.enter_scope(scope);
-  };
-
-  redirect_edge.follow_value = function (scope, input) {
-    return this.original.follow_value(scope, input);
-  };
-
-  Object.defineProperty(redirect_edge, "push_scope", {
-    get: function () {
-      return this.original.push_scope;
-    }
+  ["element", "enter_scope", "push_scope", "follow_value", "match", "delay"]
+  .forEach(function (f) {
+    Object.defineProperty(redirect_edge, f, {
+      get: function () {
+        return this.original[f];
+      }
+    });
   });
 
 

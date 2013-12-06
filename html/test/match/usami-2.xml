@@ -1,0 +1,42 @@
+<component xmlns="http://bender.igel.co.jp" id="match-test">
+  <property name="run" as="boolean" value="false"/>
+  <property name="flag" as="boolean" value="false"/>
+
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      `run
+    </html:p>
+  </view>
+
+
+<!--
+  <watch>
+    <get property="run"/>
+    <set match="$in">
+      DEBUG("match-test:true");
+    </set>
+  </watch>
+  <watch>
+    <get property="run"/>
+    <set match="!$in">
+      DEBUG("match-test:false");
+    </set>
+  </watch>
+-->
+
+  <watch>
+    <get property="run" match="$in"/>
+    <set>
+      console.log("match-test:true (%0)".fmt($in));
+    </set>
+  </watch>
+  <watch>
+    <get property="run" match="!$in"/>
+    <set>
+      console.log("match-test:false (%0)".fmt($in));
+    </set>
+  </watch>
+
+</component>
+
+

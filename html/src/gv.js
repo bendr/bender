@@ -70,29 +70,38 @@
 
 
   bender.Edge.prototype.to_gv = function (i) {
-    return "%0 -> %1 [label=\"%2\"%3]"
-      .fmt(this.source.graph_name(), this.dest.graph_name(), i,
-          this.delay >= 0 ? ",color=\"#4dbce9\"" : "");
+    var attrs = this.gv_attrs();
+    attrs.label = i;
+    if (this.delay >= 0) {
+      attrs.color = "#4dbce9";
+    }
+    if (this.match !== bender.Edge.prototype.match) {
+      attrs.style = "dashed";
+    }
+    return "%0 -> %1 [%2]".fmt(this.source.graph_name(), this.dest.graph_name(),
+        Object.keys(attrs).map(function (a) {
+          return "%0=\"%1\"".fmt(a, attrs[a]);
+        }).join(","));
   };
 
-  bender.InheritEdge.prototype.to_gv = function (i) {
-    return "%0 -> %1 [label=\"%2\",color=\"#f8ca00\"]"
-      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  bender.Edge.prototype.gv_attrs = function () {
+    return {};
+  }
+
+  bender.InheritEdge.prototype.gv_attrs = function (i) {
+    return { color: "#f8ca00" };
   };
 
-  bender.InstanceEdge.prototype.to_gv = function (i) {
-    return "%0 -> %1 [label=\"%2\",color=\"#ff6a4d\",arrowhead=inv]"
-      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  bender.InstanceEdge.prototype.gv_attrs = function (i) {
+    return { color: "#ff6a4f", arrowhead: "inv" };
   };
 
-  bender.RedirectEdge.prototype.to_gv = function (i) {
-    return "%0 -> %1 [label=\"%2\",color=\"#f94179\"]"
-      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  bender.RedirectEdge.prototype.gv_attrs = function (i) {
+    return { color: "#f94179" };
   };
 
-  bender.DOMEventListenerEdge.prototype.to_gv = function (i) {
-    return "%0 -> %1 [label=\"%2\",color=\"#5eb26b\"]"
-      .fmt(this.source.graph_name(), this.dest.graph_name(), i);
+  bender.DOMEventListenerEdge.prototype.gv_attrs = function (i) {
+    return { color: "#5eb26b" };
   };
 
 
