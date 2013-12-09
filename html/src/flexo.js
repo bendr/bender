@@ -45,7 +45,7 @@
   // value (e.g., cf. normalize_*.)
   flexo._accessor = function (object, name, default_value) {
     var property = "_" + name;
-    object.prototype[name] = typeof default_value === "function" ?
+    (object.prototype || object)[name] = typeof default_value === "function" ?
       function (value) {
         if (arguments.length > 0) {
           this[property] = default_value(value);
