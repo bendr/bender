@@ -1,12 +1,13 @@
-<component xmlns="http://bender.igel.co.jp" id="gradient" href="../lib/svg.xml">
+<component xmlns="http://bender.igel.co.jp" id="gradient-test"
+  href="../../lib/svg.xml">
 
   <property name="from" value="#a61416" as="string"/>
   <property name="to" value="#4dbce9" as="string"/>
 
-  <view xmlns:svg="http://www.w3.org/2000/svg" render-id="id">
+  <view xmlns:svg="http://www.w3.org/2000/svg">
     <attribute name="viewBox">0 0 128 64</attribute>
     <svg:defs>
-      <svg:linearGradient id="gradient">
+      <svg:linearGradient id="gradient" render-id="id">
         <svg:stop offset="0%" stop-color="`from"/>
         <svg:stop offset="100%" stop-color="`to"/>
       </svg:linearGradient>
