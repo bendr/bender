@@ -9,6 +9,42 @@ function _ext(Proto, properties) {
 }
 
 
+var Environment = {
+  init: function (document) {
+    this.scope = { document: document, environment: this };
+    this.components = [];
+    return this;
+  },
+
+  component: function () {
+    var component = Component.create(this.scope);
+    this.components.push(component);
+    return component;
+  },
+
+  update_component: function (update) {
+    if (!this.update_queue) {
+      this.update_queue = [];
+      flexo.asap(this.flush_update_queue.bind(this));
+    }
+    this.update_queue.push(update);
+  },
+
+  flush_update_queue: function () {
+    var queue = this.update_queue.slice();
+    delete this.update_queue;
+    for (var i = 0, n = queue.length; i < n; ++i) {
+      var update = queue[i];
+      var f = update.target.update && update.target.update[update.type];
+      if (typeof f === "function") {
+        f(update);
+      }
+    }
+  }
+
+};
+
+
 var Element = {
   init: function () {
     this.parent = null;
@@ -53,7 +89,7 @@ var Element = {
     }
     this.children.splice(index, 0, child);
     child.parent = this;
-    // update(this.current_component, { type: "add", target: child });
+    update(this.component, { type: "add", target: child });
     return child;
   },
 
@@ -72,7 +108,7 @@ var Component = _ext(Element, {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.scope = _ext(scope, { "@this": this, "#this": this });
+    this.scope = _ext(scope, { "@this": this, "#this": this, derived: [] });
     return Element.init.call(this);
   },
 
@@ -85,37 +121,96 @@ var Component = _ext(Element, {
     }
   },
 
-  render: function (parent, ref) {
-    if (!this.rendered) {
-      if (this.scope.view) {
-        this.scope.view.render(parent, ref);
-        this.rendered = true;
+  prototype: function (component) {
+    this.scope.prototype = component;
+    component.scope.derived.push(this);
+    return this;
+  },
+
+  derive: function () {
+    // TODO
+    return this;
+  },
+
+  derive_prototype: function () {
+    if (this.scope.prototype) {
+      return this.scope.prototype = this.scope.prototype.derive();
+    }
+  },
+
+  render: function (stack, target, ref) {
+    if (!this.scope.stack) {
+      stack = this.scope.stack = [];
+      for (var p = this; p; p = p.derive_prototype()) {
+        if (p.scope.view) {
+          var mode = p.scope.view.stack();
+          if (mode === "top") {
+            stack.unshift(p);
+          } else {
+            stack.push(p);
+            if (mode === "replace") {
+              break;
+            }
+          }
+        }
+      }
+      if (stack.length) {
+        stack.i = 0;
+        stack[stack.i].scope.view.render(stack, target, ref);
+        delete stack.i;
       }
     }
-  }
+  },
 });
 
 flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 
-
 var View = _ext(Element, {
-  render: function (parent, ref) {
-    var fragment = parent.ownerDocument.createDocumentFragment();
+  render: function (stack, target, ref) {
+    stack[stack.i].scope.target = target;
+    var fragment = target.ownerDocument.createDocumentFragment();
     this.children.forEach(function (child) {
-      child.render(fragment);
+      child.render(stack, fragment);
     });
-    parent.insertBefore(fragment, ref);
+    target.insertBefore(fragment, ref);
+  },
+
+  render_update: function (update) {
+    var stack = update.scope["#this"].scope.stack;
+    stack.i = 0;
+    var target = find_dom_parent(update, stack);
+    update.target.render(stack, target, find_dom_ref(update, target));
+    delete stack.i;
   }
 });
 
+flexo._accessor(View, "renderId", normalize_renderId);
+flexo._accessor(View, "stack", normalize_stack);
+
 flexo.make_readonly(View, "tag", "view");
+
+
+var Content = _ext(View, {
+  render: function (stack, target, ref) {
+    if (stack.i < stack.length - 1) {
+      ++stack.i;
+      stack[stack.i].scope.view.render(stack, target, ref);
+      --stack.i;
+    } else {
+      View.render.call(this, stack, target, ref);
+    }
+  }
+});
+
+flexo.make_readonly(Content, "tag", "content");
 
 
 var DOMElement = _ext(Element, {
   init: function (ns, name) {
     this.namespace_uri = ns;
     this.local_name = name;
+    this.attrs = {};
     return Element.init.call(this);
   },
 
@@ -131,13 +226,30 @@ var DOMElement = _ext(Element, {
     return (this.attrs[ns] && this.attrs[ns][name]) || null;
   },
 
-  render: function (parent, ref) {
-    var elem = parent.ownerDocument.createElementNS(this.namespace_uri,
+  render: function (stack, target, ref) {
+    var elem = target.ownerDocument.createElementNS(this.namespace_uri,
       this.local_name);
+    elem.__bender = this;
+    for (var ns in this.attrs) {
+      for (var a in this.attrs[ns]) {
+        elem.setAttributeNS(ns, a, this.attrs[ns][a]);
+      }
+    }
     this.children.forEach(function (child) {
-      child.render(elem);
+      child.render(stack, elem);
     });
-    return parent.insertBefore(elem, ref);
+    return target.insertBefore(elem, ref);
+  },
+
+  update: {
+    add: function (update) {
+      console.log("+++ add", update);
+      update.scope.view.render_update(update);
+    },
+    remove: function (update) {
+      console.log("--- remove", update);
+      // update.scope.$view.unrender(update);
+    }
   }
 });
 
@@ -146,8 +258,8 @@ var TextNode = _ext(Element, {
     this.parent = null;
     return this;
   },
-  render: function (parent, ref) {
-    return parent.insertBefore(parent.ownerDocument.createTextNode(this.text()),
+  render: function (stack, target, ref) {
+    return target.insertBefore(target.ownerDocument.createTextNode(this.text()),
       ref);
   }
 });
@@ -190,8 +302,55 @@ function convert_dom_node(node) {
   }
 }
 
+function find_dom_parent(update, stack) {
+  var p = update.target.parent;
+  var t = stack[stack.i].scope.target;
+  if (p.tag === "view") {
+    return t;
+  }
+  var queue = [t];
+  while (queue.length > 0) {
+    var q = queue.shift();
+    if (q.__bender === p) {
+      return q;
+    }
+    $$push(queue, q.childNodes);
+  }
+}
 
-var scope = { document: window.document, environment: {} };
-var c = Component.create(scope).child(View.create()
-    .child(flexo.$p("Hello, world!")));
-c.render(document.body);
+function find_dom_ref(update, target) {
+  var p = update.target.parent;
+  var ref = p.children[p.children.indexOf(update.target) + 1];
+  return ref && flexo.find_first(target.childNodes, function (n) {
+    return n.__bender === ref;
+  });
+}
+
+function normalize_renderId(renderId) {
+  renderId = flexo.safe_trim(renderId).toLowerCase();
+  return renderId === "class" || renderId === "id" || renderId === "none" ?
+    renderId : "inherit";
+}
+
+function normalize_stack(stack) {
+  stack = flexo.safe_trim(stack).toLowerCase();
+  return stack === "bottom" || stack === "replace" ? stack : "top";
+}
+
+function update(component, args) {
+  if (component && component.scope.stack) {
+    args.scope = component.scope;
+    component.scope.environment.update_component(args);
+  }
+}
+
+
+var environment = Object.create(Environment).init(window.document);
+var frame = environment.component().id("frame").child(View.create()
+  .child(DOMElement.create(flexo.ns.html, "div")
+    .attr("", "style", "border: solid thin #ff4040; padding: 1em")
+    .child(Content.create())));
+var hello = environment.component().id("hello").prototype(frame)
+  .child(View.create().child(flexo.$p("Hello, world!")));
+hello.render(null, document.body);
+hello.scope.view.add_child(flexo.$p("And hello again!"));
