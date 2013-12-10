@@ -21,39 +21,33 @@
     <get event="ready"/>
     <set property="bg" value="@bg.getContext('2d')"/>
     <set property="fg" value="@fg.getContext('2d')"/>
-    <set>
-      if (`fg) {
-        `fg.lineCap = "round";
-        `fg.lineJoin = "round";
-      }
+    <set match="`fg">
+      `fg.lineCap = "round";
+      `fg.lineJoin = "round";
     </set>
   </watch>
 
   <watch>
     <get property="fg"/>
     <get property="stroke"/>
-    <set>
-      if (`fg) {
-        `fg.strokeStyle = `stroke;
-      }
+    <set match="`fg">
+      `fg.strokeStyle = `stroke;
     </set>
   </watch>
 
   <watch>
     <get property="fg"/>
     <get property="stroke-width"/>
-    <set>
-      if (`fg) {
-        `fg.lineWidth = `stroke\-width;
-      }
+    <set match="`fg">
+      `fg.lineWidth = `stroke\-width;
     </set>
   </watch>
 
   <watch>
     <get select="@fg" dom-event="mousedown" prevent-default="true"
-      value="flexo.fail(!`fg || !`enabled || $in.button !== 0) || $in"/>
+      match="`fg &amp;&amp; `enabled &amp;&amp; $in.button === 0"/>
     <get select="@fg" dom-event="touchstart" prevent-default="true"
-      value="flexo.fail(!`fg || !`enabled) || $in"/>
+      match="`fg &amp;&amp; `enabled"/>
     <set property="down">
       `fg.beginPath();
       var p = flexo.event_offset_pos($in, @fg);
@@ -65,8 +59,7 @@
   <watch>
     <get select="$document" dom-event="mousemove"/>
     <get select="@fg" dom-event="touchmove"/>
-    <set>
-      flexo.fail(!`down);
+    <set match="`down">
       var p = flexo.event_offset_pos($in, @fg);
       `fg.lineTo(p.x, p.y);
       `fg.clearRect(0, 0, @fg.width, @fg.height);
@@ -77,8 +70,7 @@
   <watch>
     <get select="$document" dom-event="mouseup"/>
     <get select="@fg" dom-event="touchend"/>
-    <set property="down">
-      flexo.fail(!`down);
+    <set property="down" match="`down">
       `bg.drawImage(@fg, 0, 0);
       `fg.clearRect(0, 0, @fg.width, @fg.height);
       return false;
