@@ -13,7 +13,21 @@ body {
   </head>
   <body>
     <script src="uninstance.js"></script>
+    <script>
+"use strict";
+
+var environment = Object.create(Environment).init(window.document);
+var frame = environment.component().id("frame").child(View.create()
+  .child(DOMElement.create(flexo.ns.html, "div").id("div")
+    .attr("", "style", "border: solid thin #ff4040; padding: 1em")
+    .child(Content.create())));
+var hello = environment.component().id("hello").prototype(frame)
+  .child(View.create().child(flexo.$p("Hello, world!")));
+hello.render(null, document.body);
+setTimeout(function () {
+  hello.scope.view.add_child(flexo.$p("And hello again!"));
+}, 1000);
+
+    </script>
   </body>
 </html>
-
-

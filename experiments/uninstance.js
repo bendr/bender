@@ -16,8 +16,10 @@ var Environment = {
     return this;
   },
 
-  component: function () {
-    var component = Component.create(this.scope);
+  component: function (component) {
+    if (!component) {
+      component = Component.create(this.scope);
+    }
     this.components.push(component);
     return component;
   },
@@ -61,7 +63,6 @@ var Element = {
       id = flexo.safe_string(id);
       if (id !== this._id) {
         this._id = id;
-        // TODO Update scope
       }
       return this;
     }
@@ -76,7 +77,7 @@ var Element = {
       }
       child.remove_self();
     }
-    if (ref) {
+    if (ref && typeof ref === "object") {
       if (ref.parent !== this) {
         throw "hierarchy error: ref element is not a child of the parent";
       }
@@ -89,6 +90,7 @@ var Element = {
     }
     this.children.splice(index, 0, child);
     child.parent = this;
+    add_ids_to_scope(child);
     update(this.component, { type: "add", target: child });
     return child;
   },
@@ -123,25 +125,22 @@ var Component = _ext(Element, {
 
   prototype: function (component) {
     this.scope.prototype = component;
-    component.scope.derived.push(this);
     return this;
   },
 
   derive: function () {
-    // TODO
+    var derived = this.scope.environment.component(Object.create(this));
+    derived.parent = null;
+    derived.scope = _ext(this.scope, { "@this": derived, derived: [] });
+    this.scope.derived.push(this.scope.environment.component(derived));
     return this;
-  },
-
-  derive_prototype: function () {
-    if (this.scope.prototype) {
-      return this.scope.prototype = this.scope.prototype.derive();
-    }
   },
 
   render: function (stack, target, ref) {
     if (!this.scope.stack) {
       stack = this.scope.stack = [];
-      for (var p = this; p; p = p.derive_prototype()) {
+      for (var p = this; p;
+          p = p.scope.prototype && p.scope.prototype.derive()) {
         if (p.scope.view) {
           var mode = p.scope.view.stack();
           if (mode === "top") {
@@ -178,7 +177,8 @@ var View = _ext(Element, {
 
   render_update: function (update) {
     var stack = update.scope["#this"].scope.stack;
-    stack.i = 0;
+    for (stack.i = 0; stack[stack.i].scope["#this"] !== update.scope["#this"];
+      ++stack.i) {}
     var target = find_dom_parent(update, stack);
     update.target.render(stack, target, find_dom_ref(update, target));
     delete stack.i;
@@ -188,6 +188,7 @@ var View = _ext(Element, {
 flexo._accessor(View, "renderId", normalize_renderId);
 flexo._accessor(View, "stack", normalize_stack);
 
+flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
 
 
@@ -203,6 +204,7 @@ var Content = _ext(View, {
   }
 });
 
+flexo.make_readonly(Content, "view", find_view);
 flexo.make_readonly(Content, "tag", "content");
 
 
@@ -243,15 +245,13 @@ var DOMElement = _ext(Element, {
 
   update: {
     add: function (update) {
-      console.log("+++ add", update);
       update.scope.view.render_update(update);
     },
-    remove: function (update) {
-      console.log("--- remove", update);
-      // update.scope.$view.unrender(update);
-    }
   }
 });
+
+flexo.make_readonly(DOMElement, "view", find_view);
+
 
 var TextNode = _ext(Element, {
   init: function () {
@@ -265,7 +265,23 @@ var TextNode = _ext(Element, {
 });
 
 flexo._accessor(TextNode, "text", "");
+flexo.make_readonly(TextNode, "view", find_view);
 
+
+function add_ids_to_scope(root) {
+  var component = root.component;
+  if (component) {
+    var queue = [root];
+    while (queue.length > 0) {
+      var element = queue.shift();
+      if (element._id) {
+        component.scope["@" + element._id] =
+        component.scope["#" + element._id] = element;
+      }
+      $$push(queue, element.children);
+    }
+  }
+}
 
 function convert_node(node) {
   if (node.nodeType) {
@@ -305,7 +321,7 @@ function convert_dom_node(node) {
 function find_dom_parent(update, stack) {
   var p = update.target.parent;
   var t = stack[stack.i].scope.target;
-  if (p.tag === "view") {
+  if (p.view === p) {
     return t;
   }
   var queue = [t];
@@ -326,6 +342,10 @@ function find_dom_ref(update, target) {
   });
 }
 
+function find_view() {
+  return this.parent && this.parent.view;
+}
+
 function normalize_renderId(renderId) {
   renderId = flexo.safe_trim(renderId).toLowerCase();
   return renderId === "class" || renderId === "id" || renderId === "none" ?
@@ -343,14 +363,3 @@ function update(component, args) {
     component.scope.environment.update_component(args);
   }
 }
-
-
-var environment = Object.create(Environment).init(window.document);
-var frame = environment.component().id("frame").child(View.create()
-  .child(DOMElement.create(flexo.ns.html, "div")
-    .attr("", "style", "border: solid thin #ff4040; padding: 1em")
-    .child(Content.create())));
-var hello = environment.component().id("hello").prototype(frame)
-  .child(View.create().child(flexo.$p("Hello, world!")));
-hello.render(null, document.body);
-hello.scope.view.add_child(flexo.$p("And hello again!"));
