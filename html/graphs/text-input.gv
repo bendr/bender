@@ -1,0 +1,36 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+  v8 -> v6 [label="0"];
+  v6 -> v7 [label="1"];
+  v4 -> v3 [label="2"];
+  v3 -> v2 [label="3"];
+  v7 -> v2 [label="4"];
+  v6 -> v5 [label="5"];
+  v2 -> v1 [label="6"];
+  v1 -> w0 [label="7"];
+  v5 -> w1 [label="8"];
+  v2 -> v8 [label="9",color="#4dbce9",style="dashed"];
+  // v0 [label="",shape=doublecircle];
+  v1 [label="1",shape=square,fixedsize=true,width=0.3];
+  v2 [label="@text-input`value/2"];
+  v3 [label="3",shape=square,fixedsize=true,width=0.3];
+  v4 [label="@input\nchange/4",shape=pentagon];
+  v5 [label="5",style=filled,shape=square,fixedsize=true,width=0.3];
+  v6 [label="@K`first/6"];
+  v7 [label="7",shape=square,fixedsize=true,width=0.3];
+  v8 [label="8",shape=square,fixedsize=true,width=0.3];
+  w0 [label="@input",shape=triangle];
+  w1 [label="$0",shape=triangle];
+
+  first -> value [label="1"];
+  change -> value [label="0"];
+  value -> input [label="2"];
+  first -> zero [label="3",color="#888888"];
+  value -> first [label="4",color="#4dbce9",style="dashed"];
+  first [label="K`first"];
+  value [label="text-input`value"];
+  change [label="input\nchange",shape=pentagon];
+  zero [label="$0",shape=triangle];
+  input [label="input",shape=triangle];
+}
