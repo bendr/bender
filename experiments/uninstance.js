@@ -1,7 +1,11 @@
+/* global flexo, window, $$push */
+// jshint -W097
+
 "use strict";
 
-function _ext(Proto, properties) {
-  var object = Object.create(Proto);
+// Create a new object from proto and extend it with the additional properties
+function _ext(proto, properties) {
+  var object = Object.create(proto);
   for (var p in properties) {
     object[p] = properties[p];
   }
@@ -9,6 +13,7 @@ function _ext(Proto, properties) {
 }
 
 
+// An environment in which to render Bender components.
 var Environment = {
   init: function (document) {
     this.scope = { document: document, environment: this };
@@ -54,15 +59,35 @@ var Element = {
     return this;
   },
 
+  // Create a new element from a template and additional arguments which get
+  // passed to init (e.g., Component.create(scope)). Normally no Elements are
+  // created, only derived objects (Component, DOMElement, &c.)
   create: function () {
     return this.init.apply(Object.create(this), arguments);
   },
 
+  instantiate: function () {
+    var instance = Object.create(this);
+    instance.children = this.children.map(function (ch) {
+      var ch_ = ch.instantiate();
+      ch_.parent = instance;
+      return ch_;
+    });
+    return instance;
+  },
+
+  // Get or set the id of the element. Don’t do anything if the ID was not a
+  // valid XML id.
+  // TODO update
   id: function (id) {
     if (arguments.length > 0) {
-      id = flexo.safe_string(id);
-      if (id !== this._id) {
-        this._id = id;
+      var _id = flexo.check_xml_id(id);
+      if (_id == null) {
+        console.warn("“%0” is not a valid XML ID".fmt(id));
+        return;
+      }
+      if (_id !== this._id) {
+        this._id = _id;
       }
       return this;
     }
@@ -110,11 +135,18 @@ var Component = _ext(Element, {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.scope = _ext(scope, { "@this": this, "#this": this, derived: [] });
+    this.scope = _ext(scope, { "@this": this, "#this": this, render: [] });
+    console.log("init", this);
     return Element.init.call(this);
   },
 
+  // Make sure that children are added to the original component, and not the
+  // instantiated component. Then handle known contents (view, property, watch,
+  // &c.) accordingly.
   add_child: function (child, ref) {
+    if (!this.hasOwnProperty("children")) {
+      return Object.getPrototypeOf(this).add_child(child, ref);
+    }
     child = Element.add_child.call(this, child, ref);
     if (child.tag === "view") {
       if (!this.scope.hasOwnProperty("view")) {
@@ -123,51 +155,67 @@ var Component = _ext(Element, {
     }
   },
 
-  prototype: function (component) {
-    this.scope.prototype = component;
-    return this;
-  },
-
+  // Derive a component when instantiating the view that it appears in. The
+  // derived component gets a new scope with @this set to the new component and
+  // an instantiated view.
   derive: function () {
     var derived = this.scope.environment.component(Object.create(this));
-    derived.parent = null;
-    derived.scope = _ext(this.scope, { "@this": derived, derived: [] });
-    this.scope.derived.push(this.scope.environment.component(derived));
-    return this;
+    derived.scope = _ext(this.scope, { "@this": derived });
+    if (this.scope.view) {
+      derived.scope.view = this.scope.view.instantiate();
+    }
+    console.log("derive", derived._id || derived);
+    return derived;
+  },
+
+  render_scope: function () {
+    var scope = Object.create(this.scope);
+    if (this.scope.view) {
+      scope.view = this.scope.view.instantiate();
+    }
+    this.scope.render.push(scope);
+    return scope;
   },
 
   render: function (stack, target, ref) {
-    if (!this.scope.stack) {
-      stack = this.scope.stack = [];
-      for (var p = this; p;
-          p = p.scope.prototype && p.scope.prototype.derive()) {
-        if (p.scope.view) {
-          var mode = p.scope.view.stack();
-          if (mode === "top") {
-            stack.unshift(p);
-          } else {
-            stack.push(p);
-            if (mode === "replace") {
-              break;
-            }
+    console.log("render", this._id || this);
+    var scope = this.render_scope();
+    stack = scope.stack = [];
+    for (; scope; scope = scope["#this"]._prototype &&
+        scope["#this"]._prototype.render_scope()) {
+      if (scope.view) {
+        var mode = scope.view.stack();
+        if (mode === "top") {
+          stack.unshift(scope);
+        } else {
+          stack.push(scope);
+          if (mode === "replace") {
+            break;
           }
         }
       }
-      if (stack.length) {
-        stack.i = 0;
-        stack[stack.i].scope.view.render(stack, target, ref);
-        delete stack.i;
-      }
     }
-  },
+    if (stack.length) {
+      stack.i = 0;
+      stack[stack.i].view.render(stack, target, ref);
+      delete stack.i;
+    }
+  }
 });
 
+flexo._accessor(Component, "prototype");
 flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 
 var View = _ext(Element, {
+  instantiate: function () {
+    var v = Element.instantiate.call(this);
+    console.log("instantiate", v.component._id || v);
+    return v;
+  },
+
   render: function (stack, target, ref) {
-    stack[stack.i].scope.target = target;
+    stack[stack.i].target = target;
     var fragment = target.ownerDocument.createDocumentFragment();
     this.children.forEach(function (child) {
       child.render(stack, fragment);
@@ -176,8 +224,8 @@ var View = _ext(Element, {
   },
 
   render_update: function (update) {
-    var stack = update.scope["#this"].scope.stack;
-    for (stack.i = 0; stack[stack.i].scope["#this"] !== update.scope["#this"];
+    var stack = update.scope.stack;
+    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
       ++stack.i) {}
     var target = find_dom_parent(update, stack);
     update.target.render(stack, target, find_dom_ref(update, target));
@@ -196,7 +244,7 @@ var Content = _ext(View, {
   render: function (stack, target, ref) {
     if (stack.i < stack.length - 1) {
       ++stack.i;
-      stack[stack.i].scope.view.render(stack, target, ref);
+      stack[stack.i].view.render(stack, target, ref);
       --stack.i;
     } else {
       View.render.call(this, stack, target, ref);
@@ -258,7 +306,11 @@ var TextNode = _ext(Element, {
     this.parent = null;
     return this;
   },
-  render: function (stack, target, ref) {
+
+  instantiate: flexo.self,
+
+  render: function (_, target, ref) {
+    // jshint unused: true
     return target.insertBefore(target.ownerDocument.createTextNode(this.text()),
       ref);
   }
@@ -320,7 +372,7 @@ function convert_dom_node(node) {
 
 function find_dom_parent(update, stack) {
   var p = update.target.parent;
-  var t = stack[stack.i].scope.target;
+  var t = stack[stack.i].target;
   if (p.view === p) {
     return t;
   }
@@ -343,6 +395,7 @@ function find_dom_ref(update, target) {
 }
 
 function find_view() {
+  // jshint -W040
   return this.parent && this.parent.view;
 }
 
@@ -358,8 +411,10 @@ function normalize_stack(stack) {
 }
 
 function update(component, args) {
-  if (component && component.scope.stack) {
-    args.scope = component.scope;
-    component.scope.environment.update_component(args);
+  if (component) {
+    component.scope.render.forEach(function (scope) {
+      args.scope = scope;
+      scope.environment.update_component(args);
+    });
   }
 }
