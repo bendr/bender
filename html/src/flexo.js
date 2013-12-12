@@ -150,6 +150,26 @@
 
   // Strings
 
+  // Check the validity of an XML id string after whitespace trimming, and
+  // return the trimmed ID, the empty string if there was no non-space
+  // characters in the original string, or null if the ID was invalid. Cf.
+  // http://www.w3.org/TR/xml11/#sec-common-syn, rules 4 and 4a (also we skip
+  // [#x10000-#xEFFFF] since I am not sure that Javascript can deal with those
+  // anyway?)
+  flexo.check_xml_id = function (id) {
+    var NAME_START = ":A-Z_a-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u02ff\u0370" +
+      "\u037d\u037f-\u1fff\u200c-\u200d\u2070-\u218f\u2c00-\u2fef" +
+      "\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufffd";
+    var NAME_CONT = "\\-.0-9\u00b7\u0300-\u036f\u203f-\u2040";
+    var ID_RX = new RegExp("^[%0][%0%1]*$".fmt(NAME_START, NAME_CONT));
+    id = flexo.safe_trim(id);
+    if (id !== "") {
+      var m = flexo.safe_trim(id).match(ID_RX);
+      return m && m[0];
+    }
+    return "";
+  };
+
   // Chop the last character of a string iff it's a newline
   flexo.chomp = function (string) {
     return string.replace(/\n$/, "");
