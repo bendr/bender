@@ -36,6 +36,18 @@
     return p;
   };
 
+  flexo._ext = function (prototype) {
+    var object = Object.create(prototype);
+    for (var i = 1, n = arguments.length; i < n; ++i) {
+      for (var p in arguments[i]) {
+        if (!object.hasOwnProperty(p)) {
+          object[p] = arguments[i][p];
+        }
+      }
+    }
+    return object;
+  };
+
   // Make an accessor for a property. The accessor can be called with no
   // parameter to get the current value, or the default value if not set. It can
   // be called with a parameter to set a new value (converted to a string if

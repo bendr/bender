@@ -3,17 +3,11 @@
 
 "use strict";
 
-// Create a new object from proto and extend it with the additional properties
-function _ext(proto, properties) {
-  var object = Object.create(proto);
-  for (var p in properties) {
-    object[p] = properties[p];
-  }
-  return object;
-}
 
-
+// Bender elements
 var Element = {
+
+  // Initialize an element with no parent yet and an empty list of children.
   init: function () {
     this.parent = null;
     this.children = [];
@@ -27,16 +21,19 @@ var Element = {
     return this.init.apply(Object.create(this), arguments);
   },
 
-  instantiate: function (scope) {
+  // Instantiate the element, updating the scope as we go along.
+  instantiate: function (scope, shallow) {
     var instance = Object.create(this);
     if (this._id) {
       scope["@" + this._id] = instance;
     }
-    instance.children = this.children.map(function (ch) {
-      var ch_ = ch.instantiate(scope);
-      ch_.parent = instance;
-      return ch_;
-    });
+    if (shallow) {
+      instance.children = this.children.map(function (ch) {
+        var ch_ = ch.instantiate(scope);
+        ch_.parent = instance;
+        return ch_;
+      });
+    }
     return instance;
   },
 
@@ -58,6 +55,7 @@ var Element = {
     return this._id || "";
   },
 
+  // Add a child element.
   add_child: function (child, ref) {
     child = convert_node(child);
     if (child.parent) {
@@ -94,14 +92,19 @@ flexo.make_readonly(Element, "component", function () {
 });
 
 
-var Component = _ext(Element, {
+var Component = flexo._ext(Element, {
   init: function (scope) {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.scope = _ext(scope, { "@this": this, "#this": this, render: [] });
+    this.scope = flexo._ext(scope, { "@this": this, "#this": this,
+      render: [] });
     console.log("init", this);
     return Element.init.call(this);
+  },
+
+  instantiate: function (scope) {
+    return Element.instantiate.call(this, scope, true);
   },
 
   // Make sure that children are added to the original component, and not the
@@ -118,26 +121,13 @@ var Component = _ext(Element, {
       }
     }
   },
-
-  // Derive a component when instantiating the view that it appears in. The
-  // derived component gets a new scope with @this set to the new component and
-  // an instantiated view.
-  derive: function () {
-    var derived = this.scope.environment.component(Object.create(this));
-    derived.scope = _ext(this.scope, { "@this": derived });
-    if (this.scope.view) {
-      derived.scope.view = this.scope.view.instantiate(derived.scope);
-    }
-    console.log("derive", derived._id || derived);
-    return derived;
-  }
 });
 
 flexo._accessor(Component, "prototype");
 flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 
-var View = _ext(Element, {
+var View = flexo._ext(Element, {
   instantiate: function (scope) {
     var v = Element.instantiate.call(this, scope);
     console.log("instantiate", v.component._id || v, scope);
@@ -158,7 +148,7 @@ flexo.make_readonly(Content, "view", find_view);
 flexo.make_readonly(Content, "tag", "content");
 
 
-var DOMElement = _ext(Element, {
+var DOMElement = flexo._ext(Element, {
   init: function (ns, name) {
     this.namespace_uri = ns;
     this.local_name = name;
@@ -188,7 +178,15 @@ var DOMElement = _ext(Element, {
 flexo.make_readonly(DOMElement, "view", find_view);
 
 
-var TextNode = _ext(Element, {
+var TextNode = flexo._ext(Element, {
+  init: function () {
+    return this.parent = null, this;
+  },
+
+  instantiate: function (scope) {
+    return Element.instantiate.call(this, scope, true);
+  },
+
   text: function (text) {
     if (arguments.length === 0) {
       return this._text || "";
