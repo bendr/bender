@@ -18,13 +18,19 @@ body {
 "use strict";
 
 var environment = Object.create(Environment).init(window.document);
+var B = environment.component().id("B")
+  .child(View.create()
+      .child(DOMElement.create(flexo.ns.html, "p")
+        .child(TextNode.id("text").text("This is a B."))));
 var A = environment.component().id("A")
   .child(View.create()
-      .child(flexo.$p("This is A"))
+      .child(flexo.$p("This is A."))
       .child(environment.component().id("B")
         .child(View.create()
-          .child(flexo.$p("And this is B")))));
+          .child(environment.component().id("B1").prototype(B))
+          .child(environment.component().id("B2").prototype(B)))));
 var stack = A.render(null, document.body);
+
 /*setTimeout(function () {
   hello.scope.view.add_child(flexo.$p("And hello again!"));
 }, 1000);*/

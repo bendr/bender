@@ -1,4 +1,4 @@
-/* global flexo, window, $$push */
+/* global console, flexo, window, $$push */
 // jshint -W097
 
 "use strict";
@@ -43,6 +43,7 @@ var Element = {
   id: function (id) {
     if (arguments.length > 0) {
       var _id = flexo.check_xml_id(id);
+      // jshint -W041
       if (_id == null) {
         console.warn("“%0” is not a valid XML ID".fmt(id));
         return;
@@ -254,30 +255,6 @@ function convert_dom_node(node) {
       node.nodeType === window.Node.CDATA_SECTION_NODE) {
     return TextNode.create().text(node.textContent);
   }
-}
-
-function find_dom_parent(update, stack) {
-  var p = update.target.parent;
-  var t = stack[stack.i].target;
-  if (p.view === p) {
-    return t;
-  }
-  var queue = [t];
-  while (queue.length > 0) {
-    var q = queue.shift();
-    if (q.__bender === p) {
-      return q;
-    }
-    $$push(queue, q.childNodes);
-  }
-}
-
-function find_dom_ref(update, target) {
-  var p = update.target.parent;
-  var ref = p.children[p.children.indexOf(update.target) + 1];
-  return ref && flexo.find_first(target.childNodes, function (n) {
-    return n.__bender === ref;
-  });
 }
 
 function find_view() {

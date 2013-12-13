@@ -1,4 +1,4 @@
-/* global flexo, window */
+/* global Component, console, Content, DOMElement, flexo, TextNode, View, $$push */
 // jshint -W097
 
 "use strict";
@@ -54,7 +54,7 @@ Component.render_scope = function () {
 
 Component.render = function (stack, target, ref) {
   console.log("render", this._id || this);
-  var scope = this.render_scope();
+  var scope = this.scope = this.render_scope();
   stack = scope.stack = [];
   for (; scope; scope = scope["#this"]._prototype &&
       scope["#this"]._prototype.render_scope()) {
@@ -125,7 +125,7 @@ DOMElement.render = function (stack, target, ref) {
 
 
 TextNode.render = function (_, target, ref) {
-  // jshint unused: true
+  // jshint unused: true, -W093
   return this.dom = target.insertBefore(target.ownerDocument
       .createTextNode(this.text()), ref);
 };
@@ -133,3 +133,27 @@ TextNode.render = function (_, target, ref) {
 TextNode.render_update = function () {
   this.dom.textContent = this.text();
 };
+
+function find_dom_parent(update, stack) {
+  var p = update.target.parent;
+  var t = stack[stack.i].target;
+  if (p.view === p) {
+    return t;
+  }
+  var queue = [t];
+  while (queue.length > 0) {
+    var q = queue.shift();
+    if (q.__bender === p) {
+      return q;
+    }
+    $$push(queue, q.childNodes);
+  }
+}
+
+function find_dom_ref(update, target) {
+  var p = update.target.parent;
+  var ref = p.children[p.children.indexOf(update.target) + 1];
+  return ref && flexo.find_first(target.childNodes, function (n) {
+    return n.__bender === ref;
+  });
+}
