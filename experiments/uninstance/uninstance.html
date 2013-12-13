@@ -9,10 +9,11 @@ body {
 }
     </style>
     <meta http-equiv="cache-control" content="no-cache">
-    <script src="../html/src/flexo.js"></script>
+    <script src="../../html/src/flexo.js"></script>
   </head>
   <body>
-    <script src="uninstance.js"></script>
+    <script src="core.js"></script>
+    <script src="render.js"></script>
     <script>
 "use strict";
 
@@ -21,12 +22,17 @@ var frame = environment.component().id("frame").child(View.create()
   .child(DOMElement.create(flexo.ns.html, "div").id("div")
     .attr("", "style", "border: solid thin #ff4040; padding: 1em")
     .child(Content.create())));
-var hello = environment.component().id("hello").prototype(frame)
-  .child(View.create().child(flexo.$p("Hello, world!")));
-hello.render(null, document.body);
-setTimeout(function () {
+var hello = environment.component().id("hello")//.prototype(frame)
+  // .child(View.create().child(flexo.$p("Hello, world!")));
+  .child(View.create()
+      .child(DOMElement.create(flexo.ns.html, "p")
+        .child("Hello, ")
+        .child(TextNode.create().id("text").text("world"))
+        .child("!")));
+var stack = hello.render(null, document.body);
+/*setTimeout(function () {
   hello.scope.view.add_child(flexo.$p("And hello again!"));
-}, 1000);
+}, 1000);*/
 
     </script>
   </body>

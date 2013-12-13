@@ -51,13 +51,13 @@
           this[property] = default_value(value);
           return this;
         }
-        return this.hasOwnProperty(property) ? this[property] : default_value();
+        return property in this ? this[property] : default_value();
       } : function (value) {
         if (arguments.length > 0) {
           this[property] = value;
           return this;
         }
-        return this.hasOwnProperty(property) ? this[property] : default_value;
+        return property in this ? this[property] : default_value;
       };
   };
 

@@ -13,45 +13,6 @@ function _ext(proto, properties) {
 }
 
 
-// An environment in which to render Bender components.
-var Environment = {
-  init: function (document) {
-    this.scope = { document: document, environment: this };
-    this.components = [];
-    return this;
-  },
-
-  component: function (component) {
-    if (!component) {
-      component = Component.create(this.scope);
-    }
-    this.components.push(component);
-    return component;
-  },
-
-  update_component: function (update) {
-    if (!this.update_queue) {
-      this.update_queue = [];
-      flexo.asap(this.flush_update_queue.bind(this));
-    }
-    this.update_queue.push(update);
-  },
-
-  flush_update_queue: function () {
-    var queue = this.update_queue.slice();
-    delete this.update_queue;
-    for (var i = 0, n = queue.length; i < n; ++i) {
-      var update = queue[i];
-      var f = update.target.update && update.target.update[update.type];
-      if (typeof f === "function") {
-        f(update);
-      }
-    }
-  }
-
-};
-
-
 var Element = {
   init: function () {
     this.parent = null;
@@ -66,10 +27,13 @@ var Element = {
     return this.init.apply(Object.create(this), arguments);
   },
 
-  instantiate: function () {
+  instantiate: function (scope) {
     var instance = Object.create(this);
+    if (this._id) {
+      scope["@" + this._id] = instance;
+    }
     instance.children = this.children.map(function (ch) {
-      var ch_ = ch.instantiate();
+      var ch_ = ch.instantiate(scope);
       ch_.parent = instance;
       return ch_;
     });
@@ -162,44 +126,10 @@ var Component = _ext(Element, {
     var derived = this.scope.environment.component(Object.create(this));
     derived.scope = _ext(this.scope, { "@this": derived });
     if (this.scope.view) {
-      derived.scope.view = this.scope.view.instantiate();
+      derived.scope.view = this.scope.view.instantiate(derived.scope);
     }
     console.log("derive", derived._id || derived);
     return derived;
-  },
-
-  render_scope: function () {
-    var scope = Object.create(this.scope);
-    if (this.scope.view) {
-      scope.view = this.scope.view.instantiate();
-    }
-    this.scope.render.push(scope);
-    return scope;
-  },
-
-  render: function (stack, target, ref) {
-    console.log("render", this._id || this);
-    var scope = this.render_scope();
-    stack = scope.stack = [];
-    for (; scope; scope = scope["#this"]._prototype &&
-        scope["#this"]._prototype.render_scope()) {
-      if (scope.view) {
-        var mode = scope.view.stack();
-        if (mode === "top") {
-          stack.unshift(scope);
-        } else {
-          stack.push(scope);
-          if (mode === "replace") {
-            break;
-          }
-        }
-      }
-    }
-    if (stack.length) {
-      stack.i = 0;
-      stack[stack.i].view.render(stack, target, ref);
-      delete stack.i;
-    }
   }
 });
 
@@ -208,28 +138,10 @@ flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 
 var View = _ext(Element, {
-  instantiate: function () {
-    var v = Element.instantiate.call(this);
-    console.log("instantiate", v.component._id || v);
+  instantiate: function (scope) {
+    var v = Element.instantiate.call(this, scope);
+    console.log("instantiate", v.component._id || v, scope);
     return v;
-  },
-
-  render: function (stack, target, ref) {
-    stack[stack.i].target = target;
-    var fragment = target.ownerDocument.createDocumentFragment();
-    this.children.forEach(function (child) {
-      child.render(stack, fragment);
-    });
-    target.insertBefore(fragment, ref);
-  },
-
-  render_update: function (update) {
-    var stack = update.scope.stack;
-    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
-      ++stack.i) {}
-    var target = find_dom_parent(update, stack);
-    update.target.render(stack, target, find_dom_ref(update, target));
-    delete stack.i;
   }
 });
 
@@ -240,17 +152,7 @@ flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
 
 
-var Content = _ext(View, {
-  render: function (stack, target, ref) {
-    if (stack.i < stack.length - 1) {
-      ++stack.i;
-      stack[stack.i].view.render(stack, target, ref);
-      --stack.i;
-    } else {
-      View.render.call(this, stack, target, ref);
-    }
-  }
-});
+var Content = Object.create(View);
 
 flexo.make_readonly(Content, "view", find_view);
 flexo.make_readonly(Content, "tag", "content");
@@ -276,21 +178,6 @@ var DOMElement = _ext(Element, {
     return (this.attrs[ns] && this.attrs[ns][name]) || null;
   },
 
-  render: function (stack, target, ref) {
-    var elem = target.ownerDocument.createElementNS(this.namespace_uri,
-      this.local_name);
-    elem.__bender = this;
-    for (var ns in this.attrs) {
-      for (var a in this.attrs[ns]) {
-        elem.setAttributeNS(ns, a, this.attrs[ns][a]);
-      }
-    }
-    this.children.forEach(function (child) {
-      child.render(stack, elem);
-    });
-    return target.insertBefore(elem, ref);
-  },
-
   update: {
     add: function (update) {
       update.scope.view.render_update(update);
@@ -302,21 +189,22 @@ flexo.make_readonly(DOMElement, "view", find_view);
 
 
 var TextNode = _ext(Element, {
-  init: function () {
-    this.parent = null;
+  text: function (text) {
+    if (arguments.length === 0) {
+      return this._text || "";
+    }
+    this._text = flexo.safe_string(text);
+    update(this.component, { type: "text", target: this });
     return this;
   },
 
-  instantiate: flexo.self,
-
-  render: function (_, target, ref) {
-    // jshint unused: true
-    return target.insertBefore(target.ownerDocument.createTextNode(this.text()),
-      ref);
+  update: {
+    text: function (update) {
+      update.target.render_update();
+    }
   }
 });
 
-flexo._accessor(TextNode, "text", "");
 flexo.make_readonly(TextNode, "view", find_view);
 
 
