@@ -125,6 +125,7 @@
   flexo.make_readonly = function (obj, name, get) {
     Object.defineProperty(obj, name, {
       enumerable: true,
+      configurable: true,
       get: flexo.funcify(get)
     });
   };
