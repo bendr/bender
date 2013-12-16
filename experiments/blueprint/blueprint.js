@@ -1,37 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Blueprint</title>
-    <meta charset="UTF-8">
-    <meta http-equiv="cache-control" content="no-cache">
-    <style>
-body {
-  margin: 0;
-  background-color: white;
-}
-svg {
-  display: block;
-}
-    </style>
-  </head>
-  <body>
-    <svg>
-      <defs>
-        <pattern id="grid-pattern" patternUnits="userSpaceOnUse" width="16"
-          height="16">
-          <line x2="100%" stroke="#000"/>
-          <line y2="100%" stroke="#000"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grid-pattern)" stroke="none"
-        fill-opacity="0.25"/>
-      <g>
-        <rect width="512" height="384" fill="none" stroke="black"/>
-        <circle cx="100" cy="100" r="50"/>
-      </g>
-    </svg>
-    <script src="../html/src/flexo.js"></script>
-    <script>
 "use strict";
 
 var drag = {
@@ -138,19 +104,24 @@ var canvas = {
     this.frame = this.g.querySelector("rect");
     this.grid = document.getElementById("grid-pattern");
     this.grid_lines = $slice(this.grid.querySelectorAll("line"));
-    this._zoom = 1;
+    this.settings = {
+      zoom: 1,
+    };
     (window.onresize = function () {
       var bbox = this.frame.getBBox();
       var mw = 4 * parseFloat(this.grid.getAttribute("width"));
       var mh = 4 * parseFloat(this.grid.getAttribute("height"));
-      var Wz = Math.max((bbox.width + mw) * this._zoom, window.innerWidth);
-      var Hz = Math.max((bbox.height + mh) * this._zoom, window.innerHeight);
-      var W = Math.max(bbox.width + mw, window.innerWidth);
-      var H = Math.max(bbox.height + mh, window.innerHeight);
+      var Wz = Math.max((bbox.width + mw) * this.settings.zoom,
+        window.innerWidth);
+      var Hz = Math.max((bbox.height + mh) * this.settings.zoom,
+        window.innerHeight);
+      var W = Math.max(bbox.width + mw, window.innerWidth / this.settings.zoom);
+      var H = Math.max(bbox.height + mh,
+        window.innerHeight / this.settings.zoom);
       this.svg.setAttribute("width", Wz);
       this.svg.setAttribute("height", Hz);
-      var x = (bbox.width - Wz) / 2;
-      var y = (bbox.height - Hz) / 2;
+      var x = (bbox.width - W) / 2;
+      var y = (bbox.height - H) / 2;
       this.svg.setAttribute("viewBox", "%0 %1 %2 %3".fmt(x, y, W, H));
       this.bg.setAttribute("x", x);
       this.bg.setAttribute("y", y);
@@ -173,9 +144,13 @@ Object.defineProperty(canvas, "locked", {
     return window.document.body.classList.contains("locked");
   },
   set: function (p) {
-    if (p) {
+    if (p && !this.locked) {
       window.document.body.classList.add("locked");
+      this.drag.enable(false);
+      this.grid_was_visible = this.grid_is_visible;
       this.grid_is_visible = false;
+      this.scrollx = window.scrollX;
+      this.scrolly = window.scrollY;
       var bbox = this.frame.getBBox();
       this.svg.setAttribute("viewBox", "0 0 %0 %1"
         .fmt(bbox.width, bbox.height));
@@ -186,8 +161,13 @@ Object.defineProperty(canvas, "locked", {
       this.frame.setAttribute("stroke-opacity", 0);
     } else {
       window.document.body.classList.remove("locked");
-      this.grid_is_visible = true;
+      this.drag.enable(true);
+      this.grid_is_visible = this.grid_was_visible;
       window.onresize();
+      window.scroll(this.scrollx, this.scrolly);
+      delete this.grid_was_visible;
+      delete this.scrollx;
+      delete this.scrolly;
       this.frame.removeAttribute("stroke-opacity");
     }
   }
@@ -267,10 +247,15 @@ Object.defineProperty(canvas, "grid_size", {
 Object.defineProperty(canvas, "zoom", {
   enumerable: true,
   get: function () {
-    return this._zoom;
+    return this.settings.zoom;
   },
   set: function (z) {
-    this._zoom = Math.max(0.1, z);
+    this.settings.zoom = Math.max(0.1, z);
+    var stroke = 1 / Math.max(1, z);
+    this.grid_lines.forEach(function (line) {
+      line.setAttribute("stroke-width", stroke);
+    });
+    this.frame.setAttribute("stroke-width", stroke);
     window.onresize();
   }
 });
@@ -281,7 +266,3 @@ document.addEventListener("keyup", function (e) {
     canvas.locked = !canvas.locked;
   }
 });
-
-    </script>
-  </body>
-</html>
