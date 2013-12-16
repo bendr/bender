@@ -53,6 +53,7 @@ Component.render_scope = function () {
   var scope = Object.create(this.scope);
   if (this.scope.view) {
     scope.view = this.scope.view.instantiate(scope);
+    on(this, "instantiate", scope.view);
   }
   return scope;
 };
@@ -94,12 +95,16 @@ View.render = function (stack, target, ref) {
 };
 
 View.render_update = function (update) {
-  var stack = update.scope.stack;
-  for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
-    ++stack.i) {}
-  var target = find_dom_parent(update, stack);
-  update.target.render(stack, target, find_dom_ref(update, target));
-  delete stack.i;
+  (update.scope.stack ? [update.scope.stack] :
+    update.scope["#this"].instances.map(function (instance) {
+      return instance.scope.stack;
+    })).forEach(function (stack) {
+    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
+      ++stack.i) {}
+    var target = find_dom_parent(update, stack);
+    update.target.render(stack, target, find_dom_ref(update, target));
+    delete stack.i;
+  });
 };
 
 
@@ -139,6 +144,7 @@ TextNode.render = function (_, target, ref) {
 TextNode.render_update = function () {
   this.dom.textContent = this.text();
 };
+
 
 function find_dom_parent(update, stack) {
   var p = update.target.parent;

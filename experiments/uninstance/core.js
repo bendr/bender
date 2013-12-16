@@ -122,7 +122,9 @@ var Component = flexo._ext(Element, {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.scope = flexo._ext(scope, { "@this": this, "#this": this });
+    this.instances = [];
+    this.scope = flexo._ext(scope, { "@this": this, "#this": this,
+      children: [] });
     this.on_handlers = Object.create(Component.on_handlers);
     this.__pending_init = true;
     flexo.asap(function () {
@@ -150,6 +152,7 @@ var Component = flexo._ext(Element, {
   // will be created for the instance.
   instantiate: function (scope) {
     var instance = Element.instantiate.call(this, scope, true);
+    this.instances.push(instance);
     on(this, "instantiate", instance);
     return instance;
   },
@@ -165,9 +168,19 @@ var Component = flexo._ext(Element, {
     if (child.tag === "view") {
       if (!this.scope.hasOwnProperty("view")) {
         this.scope.view = child;
+        var queue = [child];
+        while (queue.length > 0) {
+          var ch = queue.shift();
+          if (ch.tag === "component") {
+            this.scope.children.push(ch);
+            ch.scope.parent = this;
+          } else {
+            $$push(queue, ch.children);
+          }
+        }
       }
     }
-  },
+  }
 
 });
 
@@ -176,22 +189,35 @@ flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 
 
-var View = Object.create(Element);
+var ViewElement = flexo._ext(Element, {
+  insert_child: function (child, ref) {
+    if (child.tag === "component") {
+      var component = this.component;
+      if (component) {
+        component.scope.children.push(child);
+        child.scope.parent = component;
+      }
+    }
+    return Element.insert_child.call(this, child, ref);
+  }
+});
+
+
+var View = Object.create(ViewElement);
 
 flexo._accessor(View, "renderId", normalize_renderId);
 flexo._accessor(View, "stack", normalize_stack);
-
 flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
 
 
-var Content = Object.create(View);
+var Content = Object.create(ViewElement);
 
 flexo.make_readonly(Content, "view", find_view);
 flexo.make_readonly(Content, "tag", "content");
 
 
-var DOMElement = flexo._ext(Element, {
+var DOMElement = flexo._ext(ViewElement, {
   init: function (ns, name) {
     this.namespace_uri = ns;
     this.local_name = name;
@@ -222,7 +248,7 @@ flexo.make_readonly(DOMElement, "view", find_view);
 flexo.make_readonly(DOMElement, "tag", "dom");
 
 
-var TextNode = flexo._ext(Element, {
+var TextNode = flexo._ext(ViewElement, {
   init: function () {
     return this.parent = null, this;
   },

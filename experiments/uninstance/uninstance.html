@@ -17,39 +17,39 @@ body {
     <script>
 "use strict";
 
+/*
 Component.on_handlers.init = function () {
   console.log("on:init", this);
 };
 
-Component.on_handlers.instantiate = function () {
-  console.log("on:instantiate", this);
+Component.on_handlers.instantiate = function (view) {
+  console.log("on:instantiate", this, view);
 };
 
 Component.on_handlers.render = function (stack) {
   console.log("on:render", this, stack);
 };
+*/
 
 var environment = Object.create(Environment).init(window.document);
-var B = environment.component().id("B")
+var C = environment.component().id("C")
   .child(View.create()
       .child(DOMElement.create(flexo.ns.html, "p")
-        .child(TextNode.id("text").text("This is a B."))))
+        .child(TextNode.id("text").text("And this is a C."))))
   .on("init");
-var B_ = B.render_instance(document.body);
-
-setTimeout(function () {
-  B_.scope["@text"].text("This is a B with new text.");
-}, 1000);
-
-/*var A = environment.component().id("A")
+var B = environment.component().id("B")
+  .child(View.create()
+      .child(flexo.$p("This is a B."))
+      .child(View.create()
+        .child(environment.component().id("C1").prototype(C))
+        .child(environment.component().id("C2").prototype(C))));
+var A = environment.component().id("A")
   .child(View.create()
       .child(flexo.$p("This is A."))
-      .child(environment.component().id("B")
-        .child(View.create()
-          .child(environment.component().id("B1").prototype(B))
-          .child(environment.component().id("B2").prototype(B)))));
-var stack = A.render(null, document.body);
-*/
+      .child(View.create()
+        .child(environment.component().id("B1").prototype(B))
+        .child(environment.component().id("B2").prototype(B))));
+var A_ = A.render_instance(document.body);
 
 /*setTimeout(function () {
   hello.scope.view.add_child(flexo.$p("And hello again!"));
