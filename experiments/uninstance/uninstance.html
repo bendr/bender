@@ -47,13 +47,16 @@ var A = environment.component().id("A")
   .child(View.create()
       .child(flexo.$p("This is A."))
       .child(View.create()
-        .child(environment.component().id("B1").prototype(B))
-        .child(environment.component().id("B2").prototype(B))));
+        .child(DOMElement.create(flexo.ns.html, "div")
+          .child(environment.component().id("B1").prototype(B))
+          .child(environment.component().id("B2").prototype(B)))));
 var A_ = A.render_instance(document.body);
 
-/*setTimeout(function () {
-  hello.scope.view.add_child(flexo.$p("And hello again!"));
-}, 1000);*/
+setTimeout(function () {
+  A.scope.view.add_child(flexo.$p("And A again!"));
+  // TODO this should work
+  // B.scope.view.add_child(flexo.$p("And B again!"));
+}, 1000);
 
     </script>
   </body>

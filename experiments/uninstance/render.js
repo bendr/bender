@@ -53,6 +53,14 @@ Component.render_scope = function () {
   var scope = Object.create(this.scope);
   if (this.scope.view) {
     scope.view = this.scope.view.instantiate(scope);
+    if (scope.parent) {
+      var index = scope.parent.scope.children.indexOf(Object
+          .getPrototypeOf(this));
+      scope.parent.scope.children[index] = this;
+    }
+    scope.children.forEach(function (ch) {
+      ch.scope.parent = this;
+    }, this);
     on(this, "instantiate", scope.view);
   }
   return scope;
@@ -86,11 +94,13 @@ Component.render = function (stack, target, ref) {
 };
 
 View.render = function (stack, target, ref) {
-  stack[stack.i].target = target;
+  stack[stack.i].target = target.__target || target;
   var fragment = target.ownerDocument.createDocumentFragment();
+  fragment.__target = target.__target || target;
   this.children.forEach(function (child) {
     child.render(stack, fragment);
   });
+  delete target.__target;
   target.insertBefore(fragment, ref);
 };
 
