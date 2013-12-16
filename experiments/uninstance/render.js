@@ -43,17 +43,23 @@ var Environment = {
 };
 
 
+Component.render_instance = function (target, ref) {
+  var instance = this.instantiate();
+  instance.render(null, target, ref);
+  return instance;
+};
+
 Component.render_scope = function () {
   var scope = Object.create(this.scope);
   if (this.scope.view) {
     scope.view = this.scope.view.instantiate(scope);
   }
-  this.scope.render.push(scope);
   return scope;
 };
 
+Component.on_handlers.render = flexo.nop;
+
 Component.render = function (stack, target, ref) {
-  console.log("render", this._id || this);
   var scope = this.scope = this.render_scope();
   stack = scope.stack = [];
   for (; scope; scope = scope["#this"]._prototype &&
@@ -70,12 +76,12 @@ Component.render = function (stack, target, ref) {
       }
     }
   }
+  on(this, "render", stack);
   if (stack.length) {
     stack.i = 0;
     stack[stack.i].view.render(stack, target, ref);
     delete stack.i;
   }
-  return stack;
 };
 
 View.render = function (stack, target, ref) {

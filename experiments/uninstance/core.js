@@ -3,31 +3,32 @@
 
 "use strict";
 
-
-// Bender elements
+// Prototype for Bender elements, similar to DOM elements. There are no
+// different kinds of nodes; everything is an element. See data model.
 var Element = {
 
   // Initialize an element with no parent yet and an empty list of children.
   init: function () {
-    this.parent = null;
     this.children = [];
     return this;
   },
 
-  // Create a new element from a template and additional arguments which get
-  // passed to init (e.g., Component.create(scope)). Normally no Elements are
-  // created, only derived objects (Component, DOMElement, &c.)
+  // Create a new element from a prototype and additional arguments which get
+  // passed to init (e.g., Component.create(scope)). Only derived objects are
+  // created: Component, DOMElement, &c.
   create: function () {
     return this.init.apply(Object.create(this), arguments);
   },
 
-  // Instantiate the element, updating the scope as we go along.
+  // Instantiate the element: create a clone of the object, and update the scope
+  // as we go along. Unless the shallow flag is set, instantiate children as
+  // well.
   instantiate: function (scope, shallow) {
     var instance = Object.create(this);
-    if (this._id) {
+    if (scope && this._id) {
       scope["@" + this._id] = instance;
     }
-    if (shallow) {
+    if (!shallow) {
       instance.children = this.children.map(function (ch) {
         var ch_ = ch.instantiate(scope);
         ch_.parent = instance;
@@ -56,12 +57,19 @@ var Element = {
     return this._id || "";
   },
 
-  // Add a child element.
-  add_child: function (child, ref) {
-    child = convert_node(child);
+  // Insert a child element. If no ref is given, insert at the beginning of list
+  // of children. If ref is a child, add the new child before the ref child.
+  // Finally, if ref is a number, add the new child at the given index, before
+  // the child previously at this index. If ref is a negative number, then the
+  // index is taken from the end of the list of children (-1 being the last.)
+  // The child element may be a Bender element, a DOM element, or a text string.
+  // In the last two cases, the argument is first converted into a DOMElement or
+  // a TextNode before being inserted.
+  insert_child: function (child, ref) {
+    var child = convert_node(child);
     if (child.parent) {
       if (child.parent === this) {
-        throw "hierarchy error: already a child of the parent";
+        throw "hierarchy error: already a child of the parent.";
       }
       child.remove_self();
     }
@@ -69,10 +77,10 @@ var Element = {
       if (ref.parent !== this) {
         throw "hierarchy error: ref element is not a child of the parent";
       }
-      ref = this.children.indexOf(ref) + 1;
+      ref = this.children.indexOf(ref);
     }
     var n = this.children.length;
-    var index = ref >= 0 ? ref : ref < 0 ? n + 1 + ref : n;
+    var index = ref >= 0 ? ref : ref < 0 ? n + ref : 0;
     if (index < 0 || index > n) {
       throw "hierarchy error: index out of bounds";
     }
@@ -81,6 +89,18 @@ var Element = {
     add_ids_to_scope(child);
     update(this.component, { type: "add", target: child });
     return child;
+  },
+
+  add_child: function (child, ref) {
+    if (ref && typeof ref === "object") {
+      if (ref.parent !== this) {
+        throw "hierarchy error: ref element is not a child of the parent";
+      }
+      ref = this.children.indexOf(ref);
+    }
+    var n = this.children.length;
+    return this.insert_child(child,
+        ref >= 0 ? ref + 1 : ref < 0 ? n + ref + 1 : n);
   },
 
   child: function (child) {
@@ -93,48 +113,70 @@ flexo.make_readonly(Element, "component", function () {
 });
 
 
+
 var Component = flexo._ext(Element, {
+
+  // Initialize a component from either an environment scope (if it has no
+  // parent yet) or the parent component’s scope.
   init: function (scope) {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.scope = flexo._ext(scope, { "@this": this, "#this": this,
-      render: [] });
-    console.log("init", this);
+    this.scope = flexo._ext(scope, { "@this": this, "#this": this });
+    this.on_handlers = Object.create(Component.on_handlers);
+    this.__pending_init = true;
+    flexo.asap(function () {
+      if (this.__pending_init) {
+        delete this.__pending_init;
+        this.on_handlers.init.call(this);
+      }
+    }.bind(this));
     return Element.init.call(this);
   },
 
+  on_handlers: {
+    init: flexo.nop,
+    instantiate: flexo.nop
+  },
+
+  on: function (type, handler) {
+    if (type in this.on_handlers && typeof handler === "function") {
+      this.on_handlers[type] = handler;
+    }
+    return this;
+  },
+
+  // Instantiate is shallow for components; when rendering, the view and stack
+  // will be created for the instance.
   instantiate: function (scope) {
-    return Element.instantiate.call(this, scope, true);
+    var instance = Element.instantiate.call(this, scope, true);
+    on(this, "instantiate", instance);
+    return instance;
   },
 
   // Make sure that children are added to the original component, and not the
   // instantiated component. Then handle known contents (view, property, watch,
   // &c.) accordingly.
-  add_child: function (child, ref) {
+  insert_child: function (child, ref) {
     if (!this.hasOwnProperty("children")) {
-      return Object.getPrototypeOf(this).add_child(child, ref);
+      return Object.getPrototypeOf(this).insert_child(child, ref);
     }
-    child = Element.add_child.call(this, child, ref);
+    child = Element.insert_child.call(this, child, ref);
     if (child.tag === "view") {
       if (!this.scope.hasOwnProperty("view")) {
         this.scope.view = child;
       }
     }
   },
+
 });
 
 flexo._accessor(Component, "prototype");
 flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 
-var View = flexo._ext(Element, {
-  instantiate: function (scope) {
-    var v = Element.instantiate.call(this, scope);
-    console.log("instantiate", v.component._id || v, scope);
-    return v;
-  }
-});
+
+var View = Object.create(Element);
 
 flexo._accessor(View, "renderId", normalize_renderId);
 flexo._accessor(View, "stack", normalize_stack);
@@ -177,6 +219,7 @@ var DOMElement = flexo._ext(Element, {
 });
 
 flexo.make_readonly(DOMElement, "view", find_view);
+flexo.make_readonly(DOMElement, "tag", "dom");
 
 
 var TextNode = flexo._ext(Element, {
@@ -205,6 +248,7 @@ var TextNode = flexo._ext(Element, {
 });
 
 flexo.make_readonly(TextNode, "view", find_view);
+flexo.make_readonly(TextNode, "tag", "text");
 
 
 function add_ids_to_scope(root) {
@@ -273,11 +317,17 @@ function normalize_stack(stack) {
   return stack === "bottom" || stack === "replace" ? stack : "top";
 }
 
+function on(component, type, args) {
+  if (component.__pending_init) {
+    delete component.__pending_init;
+    component.on_handlers.init.call(component);
+  }
+  component.on_handlers[type].apply(component, $slice(arguments, 2));
+}
+
 function update(component, args) {
   if (component) {
-    component.scope.render.forEach(function (scope) {
-      args.scope = scope;
-      scope.environment.update_component(args);
-    });
+    args.scope = component.scope;
+    component.scope.environment.update_component(args);
   }
 }
