@@ -1,11 +1,11 @@
-/* global Component, console, Content, DOMElement, flexo, TextNode, View, $$push */
+/* global bender, Component, Content, Element, DOMElement, flexo, on, $$push, Text, View, ViewElement, window */
 // jshint -W097
 
 "use strict";
 
 
 // An environment in which to render Bender components.
-var Environment = {
+var Environment = bender.Environment = {
   init: function (document) {
     this.scope = { document: document, environment: this };
     this.components = [];
@@ -38,10 +38,81 @@ var Environment = {
         f(update);
       }
     }
+  },
+
+  $: function (tag, args) {
+    var index = 2;
+    if (typeof args !== "object" || Array.isArray(args) ||
+        args.is_bender_element ||
+        (window.Node && args instanceof window.Node)) {
+      args = {};
+      index = 1;
+    }
+    var t = tag.split("#");
+    if (t[1]) {
+      args.id = t[1];
+    }
+    if (t[0] === "component") {
+      args.scope = this.scope;
+    }
+    var elem = Object.create(bender[flexo.ucfirst(t[0])]).init_with_args(args);
+    for (var i = index, n = arguments.length; i < n; ++i) {
+      add_children(elem, arguments[i]);
+    }
+    return elem;
   }
 
 };
 
+["component", "content", "text", "view"].forEach(function (tag) {
+  Environment["$" + tag] = function () {
+    var args = [tag];
+    $$push(args, arguments);
+    return this.$.apply(this, args);
+  };
+});
+
+["p", "div"].forEach(function (tag) {
+  Environment["$" + tag] = function (args) {
+    var args_ = ["DOMElement"];
+    if (typeof args !== "object" || Array.isArray(args) ||
+        args.is_bender_element ||
+        (window.Node && args instanceof window.Node)) {
+      args = {};
+      args_.push(args);
+    }
+    args.namespace_uri = flexo.ns.html;
+    args.local_name = tag;
+    $$push(args_, arguments);
+    return this.$.apply(this, args_);
+  };
+});
+
+function add_children(elem, children) {
+  if (Array.isArray(children)) {
+    children.forEach(add_children.bind(null, elem));
+  } else {
+    elem.add_child(children);
+  }
+}
+
+
+// Initialize an element from an arguments object (see create_element)
+Element.init_with_args = function (args) {
+  if (args.id) {
+    this.id(args.id);
+  }
+  return this;
+};
+
+
+Component.init_with_args = function (args) {
+  this.init(args.scope);
+  if (args.prototype) {
+    this.prototype(args.prototype);
+  }
+  return Element.init_with_args.call(this, args);
+};
 
 Component.render_instance = function (target, ref) {
   var instance = this.instantiate();
@@ -93,6 +164,21 @@ Component.render = function (stack, target, ref) {
   }
 };
 
+ViewElement.init_with_args = function (args) {
+  this.init();
+  if (args.renderId || args["render-id"]) {
+    this.renderId(args.renderId || args["render-id"]);
+  }
+  return Element.init_with_args.call(this, args);
+};
+
+View.init_with_args = function (args) {
+  if (args.stack) {
+    this.stack(args.stack);
+  }
+  return ViewElement.init_with_args.call(this, args);
+};
+
 View.render = function (stack, target, ref) {
   stack[stack.i].target = target.__target || target;
   var fragment = target.ownerDocument.createDocumentFragment();
@@ -106,7 +192,7 @@ View.render = function (stack, target, ref) {
 
 View.render_update = function (update) {
   (update.scope.stack ? [update.scope.stack] :
-    update.scope["#this"].instances.map(function (instance) {
+    update.scope["#this"].all_instances.map(function (instance) {
       return instance.scope.stack;
     })).forEach(function (stack) {
     for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
@@ -129,6 +215,22 @@ Content.render = function (stack, target, ref) {
 };
 
 
+DOMElement.init_with_args = function (args) {
+  ViewElement.init_with_args.call(this, args);
+  this.namespace_uri = args.namespace_uri || args.namespaceURI;
+  this.local_name = args.local_name || args.localName;
+  var skip = { id: true, renderId: true, "render-id": true, namespace_uri: true,
+    namespaceURI: true, local_name: true, localName: true };
+  this.attrs = {};
+  // TODO known namespace prefixes from Flexo
+  for (var p in args) {
+    if (!(p in skip)) {
+      this.attr("", p, args[p]);
+    }
+  }
+  return this;
+};
+
 DOMElement.render = function (stack, target, ref) {
   var elem = target.ownerDocument.createElementNS(this.namespace_uri,
     this.local_name);
@@ -145,13 +247,13 @@ DOMElement.render = function (stack, target, ref) {
 };
 
 
-TextNode.render = function (_, target, ref) {
+Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
   return this.dom = target.insertBefore(target.ownerDocument
       .createTextNode(this.text()), ref);
 };
 
-TextNode.render_update = function () {
+Text.render_update = function () {
   this.dom.textContent = this.text();
 };
 
@@ -162,14 +264,9 @@ function find_dom_parent(update, stack) {
   if (p.view === p) {
     return t;
   }
-  var queue = [t];
-  while (queue.length > 0) {
-    var q = queue.shift();
-    if (q.__bender === p) {
-      return q;
-    }
-    $$push(queue, q.childNodes);
-  }
+  return flexo.bfirst(t, function (q) {
+    return q.__bender === p || q.childNodes;
+  });
 }
 
 function find_dom_ref(update, target) {

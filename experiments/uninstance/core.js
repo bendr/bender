@@ -1,11 +1,16 @@
-/* global console, flexo, window, $$push */
+/* global console, exports, flexo, global, $$push, $slice, window */
 // jshint -W097
 
 "use strict";
 
+var global_ = typeof window === "object" ? window :
+  typeof global === "object" ? global : (function () { return this; }());
+var bender = typeof exports === "object" ? exports : global_.bender = {};
+
+
 // Prototype for Bender elements, similar to DOM elements. There are no
 // different kinds of nodes; everything is an element. See data model.
-var Element = {
+var Element = bender.Element = {
 
   // Initialize an element with no parent yet and an empty list of children.
   init: function () {
@@ -64,9 +69,9 @@ var Element = {
   // index is taken from the end of the list of children (-1 being the last.)
   // The child element may be a Bender element, a DOM element, or a text string.
   // In the last two cases, the argument is first converted into a DOMElement or
-  // a TextNode before being inserted.
+  // a Text element before being inserted.
   insert_child: function (child, ref) {
-    var child = convert_node(child);
+    child = convert_node(child);
     if (child.parent) {
       if (child.parent === this) {
         throw "hierarchy error: already a child of the parent.";
@@ -108,13 +113,13 @@ var Element = {
   }
 };
 
+flexo.make_readonly(Element, "is_bender_element", true);
 flexo.make_readonly(Element, "component", function () {
   return this.parent && this.parent.component;
 });
 
 
-
-var Component = flexo._ext(Element, {
+var Component = bender.Component = flexo._ext(Element, {
 
   // Initialize a component from either an environment scope (if it has no
   // parent yet) or the parent component’s scope.
@@ -123,6 +128,7 @@ var Component = flexo._ext(Element, {
       scope = Object.create(scope);
     }
     this.instances = [];
+    this.derived = [];
     this.scope = flexo._ext(scope, { "@this": this, "#this": this,
       children: [] });
     this.on_handlers = Object.create(Component.on_handlers);
@@ -168,28 +174,40 @@ var Component = flexo._ext(Element, {
     if (child.tag === "view") {
       if (!this.scope.hasOwnProperty("view")) {
         this.scope.view = child;
-        var queue = [child];
-        while (queue.length > 0) {
-          var ch = queue.shift();
+        flexo.beach(child, function (ch) {
           if (ch.tag === "component") {
             this.scope.children.push(ch);
             ch.scope.parent = this;
           } else {
-            $$push(queue, ch.children);
+            return ch.children;
           }
-        }
+        }.bind(this));
       }
     }
   }
 
 });
 
-flexo._accessor(Component, "prototype");
+flexo._accessor(Component, "prototype", function (p) {
+  if (p) {
+    // TODO update when prototype changes
+    p.derived.push(this);
+  }
+  return p;
+});
+
 flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
+flexo.make_readonly(Component, "all_instances", function () {
+  return flexo.bfold(this, function (instances, component) {
+    return $$push(instances, component.instances), instances;
+  }, flexo.property("derived"), []);
+});
 
 
-var ViewElement = flexo._ext(Element, {
+// View elements are View, and elements that can occur in View, except for
+// Component: DOMElement, Text, and Content.
+var ViewElement = bender.ViewElement = flexo._ext(Element, {
   insert_child: function (child, ref) {
     if (child.tag === "component") {
       var component = this.component;
@@ -203,7 +221,7 @@ var ViewElement = flexo._ext(Element, {
 });
 
 
-var View = Object.create(ViewElement);
+var View = bender.View = Object.create(ViewElement);
 
 flexo._accessor(View, "renderId", normalize_renderId);
 flexo._accessor(View, "stack", normalize_stack);
@@ -211,13 +229,13 @@ flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
 
 
-var Content = Object.create(ViewElement);
+var Content = bender.Content = Object.create(ViewElement);
 
 flexo.make_readonly(Content, "view", find_view);
 flexo.make_readonly(Content, "tag", "content");
 
 
-var DOMElement = flexo._ext(ViewElement, {
+var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
   init: function (ns, name) {
     this.namespace_uri = ns;
     this.local_name = name;
@@ -248,9 +266,17 @@ flexo.make_readonly(DOMElement, "view", find_view);
 flexo.make_readonly(DOMElement, "tag", "dom");
 
 
-var TextNode = flexo._ext(ViewElement, {
+var Text = bender.Text = flexo._ext(ViewElement, {
   init: function () {
     return this.parent = null, this;
+  },
+
+  add_child: function (child) {
+    this.text(this.text() + child);
+  },
+
+  insert_child: function (child) {
+    this.text(child + this.text());
   },
 
   instantiate: function (scope) {
@@ -273,22 +299,20 @@ var TextNode = flexo._ext(ViewElement, {
   }
 });
 
-flexo.make_readonly(TextNode, "view", find_view);
-flexo.make_readonly(TextNode, "tag", "text");
+flexo.make_readonly(Text, "view", find_view);
+flexo.make_readonly(Text, "tag", "text");
 
 
 function add_ids_to_scope(root) {
   var component = root.component;
   if (component) {
-    var queue = [root];
-    while (queue.length > 0) {
-      var element = queue.shift();
+    flexo.beach(root, function (element) {
       if (element._id) {
         component.scope["@" + element._id] =
         component.scope["#" + element._id] = element;
       }
-      $$push(queue, element.children);
-    }
+      return element.children;
+    });
   }
 }
 
@@ -297,7 +321,7 @@ function convert_node(node) {
     return convert_dom_node(node);
   }
   if (typeof node === "string") {
-    return TextNode.create().text(node);
+    return Text.create().text(node);
   }
   return node;
 }
@@ -323,7 +347,7 @@ function convert_dom_node(node) {
     return elem;
   } else if (node.nodeType === window.Node.TEXT_NODE ||
       node.nodeType === window.Node.CDATA_SECTION_NODE) {
-    return TextNode.create().text(node.textContent);
+    return Text.create().text(node.textContent);
   }
 }
 
@@ -343,7 +367,7 @@ function normalize_stack(stack) {
   return stack === "bottom" || stack === "replace" ? stack : "top";
 }
 
-function on(component, type, args) {
+function on(component, type) {
   if (component.__pending_init) {
     delete component.__pending_init;
     component.on_handlers.init.call(component);

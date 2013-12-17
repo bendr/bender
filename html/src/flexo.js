@@ -60,10 +60,10 @@
     (object.prototype || object)[name] = typeof default_value === "function" ?
       function (value) {
         if (arguments.length > 0) {
-          this[property] = default_value(value);
+          this[property] = default_value.call(this, value);
           return this;
         }
-        return property in this ? this[property] : default_value();
+        return property in this ? this[property] : default_value.call(this);
       } : function (value) {
         if (arguments.length > 0) {
           this[property] = value;
@@ -274,6 +274,11 @@
     }
   };
 
+  // Convert the first character of a string to uppercase (using toUpperCase)
+  flexo.ucfirst = function (s) {
+    return s === "" ? s : s[0].toUpperCase() + s.substr(1);
+  };
+
   // Convert a string with dash to camel case: remove dashes and capitalize the
   // following letter (e.g., convert foo-bar to fooBar)
   flexo.undash = function (s) {
@@ -321,6 +326,40 @@
     var a = array.slice();
     flexo.remove_from_array(a, item);
     return a;
+  };
+
+  // Fold a tree-structure, breadth-first (TODO: depth-first) from the root x.
+  // Update the result z by calling f(z, y), where y is x or a descendant of x.
+  // Then get the children of y by calling g(y).
+  flexo.bfold = function (x, f, g, z) {
+    var queue = [x];
+    for (var i = 0; i < queue.length; ++i) {
+      z = f(z, queue[i]);
+      $$push(queue, g(queue[i]));
+    }
+    return z;
+  };
+
+  // Call f for each node in the tree rooted at x in breadth-first order (TODO:
+  // depth-first); f should then return the children of x.
+  flexo.beach = function (x, f) {
+    var queue = [x];
+    for (var i = 0; i < queue.length; ++i) {
+      $$push(queue, f(queue[i]));
+    }
+  };
+
+  // Breadth-first search the tree rooted at x for the y such that f(y) is true.
+  // f should return true, or the list of children of y.
+  flexo.bfirst = function (x, f) {
+    var queue = [x];
+    for (var i = 0; i < queue.length; ++i) {
+      var q = f(queue[i]);
+      if (q === true) {
+        return queue[i];
+      }
+      $$push(queue, q);
+    }
   };
 
   flexo.extract_from_array = function (array, p, that) {
@@ -916,6 +955,13 @@
   // Identity function (also named `fst` to match `snd`)
   flexo.id = flexo.fst = function (x) {
     return x;
+  };
+
+  // Get a function that returns the property `property` of an object.
+  flexo.property = function (property) {
+    return function (x) {
+      return x && x[property];
+    };
   };
 
   // A function that returns its second argument and discard the first.
