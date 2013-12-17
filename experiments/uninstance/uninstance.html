@@ -26,6 +26,12 @@ div.contents {
     <script>
 "use strict";
 
+var env = Object.create(Environment).init(window.document);
+
+var A = env.component().id("A")
+  .view(env.$div({ "class": "contents" }, env.$p("Hello from A")));
+var A_ = A.render_instance(document.body);
+
 /*
 Component.on_handlers.init = function () {
   console.log("on:init", this);
@@ -40,26 +46,28 @@ Component.on_handlers.render = function (stack) {
 };
 */
 
-var env = Object.create(Environment).init(window.document);
+/*
 var C = env.$("component#C", env.$view(
       env.$div(env.$text({ id: "text" }, "And this is a C."))));
 var B = env.$("component#B", env.$view(
       env.$div(
-        env.$p("This is a B."),
         env.$component({ id: "C1", prototype: C }),
+        env.$p("This is a B."),
         env.$component({ id: "C2", prototype: C }))));
 var A = env.$("component#A", env.$view(
       env.$p("This is A."),
       env.$div({ "class": "contents" },
-        env.$component({ id: "B0", prototype: B }),
         env.$component({ id: "B1", prototype: B }),
         env.$component({ id: "B2", prototype: B }))));
 var A_ = A.render_instance(document.body);
+*/
 
+/*
 setTimeout(function () {
   // A.scope.view.add_child(flexo.$p("And A again!"));
-  A_.scope["@B2"].scope.stack[0].view.children[0].add_child(flexo.$p("And B again!"));
+  A_.scope_of(A)["@B1"].scope_of(B)["@this"].scope.view.children[0].add_child(flexo.$p("One more B"));
 }, 1000);
+*/
 
     </script>
   </body>

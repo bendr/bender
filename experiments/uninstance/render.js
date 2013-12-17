@@ -9,6 +9,7 @@ var Environment = bender.Environment = {
   init: function (document) {
     this.scope = { document: document, environment: this };
     this.components = [];
+    this.urls = {};
     return this;
   },
 
@@ -88,14 +89,6 @@ var Environment = bender.Environment = {
   };
 });
 
-function add_children(elem, children) {
-  if (Array.isArray(children)) {
-    children.forEach(add_children.bind(null, elem));
-  } else {
-    elem.add_child(children);
-  }
-}
-
 
 // Initialize an element from an arguments object (see create_element)
 Element.init_with_args = function (args) {
@@ -112,6 +105,14 @@ Component.init_with_args = function (args) {
     this.prototype(args.prototype);
   }
   return Element.init_with_args.call(this, args);
+};
+
+// Get the scope for the given component (for an rendered instance.)
+Component.scope_of = function (component) {
+  var scope = component.scope;
+  return flexo.find_first(this.scope.stack, function (instance) {
+    return Object.getPrototypeOf(instance) === scope;
+  });
 };
 
 Component.render_instance = function (target, ref) {

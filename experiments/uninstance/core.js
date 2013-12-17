@@ -184,6 +184,18 @@ var Component = bender.Component = flexo._ext(Element, {
         }.bind(this));
       }
     }
+    return child;
+  },
+
+  // Get the view (if no argument is given), or add contents to the view,
+  // creating the view if necessary.
+  view: function () {
+    if (arguments.length === 0) {
+      return this.scope.view;
+    }
+    var view = this.scope.view || this.add_child(View.create().init());
+    $foreach(arguments, add_children.bind(null, view));
+    return this;
   }
 
 });
@@ -298,6 +310,14 @@ var Text = bender.Text = flexo._ext(ViewElement, {
     }
   }
 });
+
+function add_children(elem, children) {
+  if (Array.isArray(children)) {
+    children.forEach(add_children.bind(null, elem));
+  } else {
+    elem.add_child(children);
+  }
+}
 
 flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
