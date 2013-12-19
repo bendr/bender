@@ -27,16 +27,19 @@
 
   // Create a new environment in a document, or window.document by default.
   var environment = (bender.Environment = function (document) {
+    this.init(document);
+  }).prototype;
+
+  environment.init = function (document) {
     this.scope = {
       $document: document || (typeof window === "object" && window.document),
       $environment: this
     };
     this.urls = {};
     this.components = [];
-    this.vertices = [];
-    this.add_vertex(new bender.Vortex());
     this._bindings_count = 0;
-  }).prototype;
+    return this;
+  };
 
   // Create a new Bender component in this environment and return it.
   environment.component = function (scope) {

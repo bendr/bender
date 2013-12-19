@@ -6,6 +6,16 @@
   var flexo = typeof require === "function" ? require("flexo") : window.flexo;
   var _class = flexo._class;
 
+  (function () {
+    var init = bender.Environment.prototype.init;
+    bender.Environment.prototype.init = function (document) {
+      this.vertices = [];
+      this.add_vertex(new bender.Vortex());
+      this.scheduled = { now: false, later: [] };
+      return init.call(this, document);
+    };
+  }());
+
 
   // Add a vertex to the watch graph and return it.
   bender.Environment.prototype.add_vertex = function (vertex) {
@@ -30,15 +40,24 @@
   };
 
   // Request the graph to be flushed (several requests in a row will result in
-  // flushing only once.)
-  // TODO allow delay (uses asap at the moment.)
-  bender.Environment.prototype.flush_graph = function () {
-    if (this.__will_flush) {
-      bender.trace("(flush graph: already scheduled.)");
+  // flushing only once.) If q is passed, this a queue from a delayed call.
+  bender.Environment.prototype.flush_graph = function (q) {
+    if (this.scheduled.now) {
+      if (q) {
+        flexo.asap(this.flush_graph.bind(this, q));
+        bender.trace("(flush graph: will flush again asap.)");
+      } else {
+        bender.trace("(flush graph: already scheduled.)");
+      }
       return;
     }
     bender.trace("(flush graph: will flush ASAP.)");
-    this.__will_flush = true;
+    this.scheduled.now = true;
+    if (q) {
+      q.forEach(function (f) {
+        f();
+      });
+    }
     flexo.asap(function () {
       bender.trace("*** FLUSH GRAPH ***");
       if (this.unsorted) {
@@ -78,30 +97,34 @@
       this.vertices.forEach(function (vertex) {
         vertex.values = [];
       });
-      delete this.__will_flush;
-      if (this.__queue) {
-        this.__queue.forEach(function (f) {
-          f();
-        });
-        delete this.__queue;
-        this.flush_graph();
-      }
+      this.scheduled.now = false;
     }.bind(this));
   };
 
   // Schedule a graph flush *after* the currently scheduled flush has happened
   // (for delayed edges.)
-  // TODO specify delay, which means maintaining a queue of flushes (for
-  // different delays)
-  bender.Environment.prototype.flush_graph_later = function (f) {
-    if (this.__will_flush) {
-      if (!this.__queue) {
-        this.__queue = [];
+  bender.Environment.prototype.flush_graph_later = function (f, delay) {
+    if (delay > 0) {
+      var t = Date.now() + delay;
+      for (var i = 0, n = this.scheduled.later.length; i < n; ++i) {
+        var q = this.scheduled.later[i];
+        if (t < q[0]) {
+          break;
+        }
+        if (t === q[0]) {
+          q.push(f);
+          return;
+        }
       }
-      this.__queue.push(f);
+      q = [t, f];
+      this.scheduled.later.splice(i, 0, q);
+      window.setTimeout(function () {
+        flexo.remove_from_array(this.scheduled.later, q);
+        q.shift();
+        this.flush_graph(q);
+      }.bind(this), delay);
     } else {
-      f();
-      this.flush_graph();
+      this.flush_graph([f]);
     }
   };
 
@@ -305,7 +328,7 @@
       var v = get.render(scope);
       if (v) {
         var edge = v.add_outgoing(new bender.WatchEdge(get, w));
-        if (get.delay() !== "") {
+        if (get.delay() >= 0) {
           edge.delay = get.delay();
         }
       }
@@ -562,14 +585,15 @@
         if (this.push_scope) {
           v.push(inner_scope);
         }
-        this.apply_value.apply(this, v);
-        // TODO change “never” to “Infinity”
-        if (this.delay >= 0 || this.delay === "never") {
+        if (this.delay >= 0) {
           scope.$environment.flush_graph_later(function () {
+            // TODO check that there are no side effects here
+            this.apply_value.apply(this, v);
             this.dest.push_value(v);
-          }.bind(this));
+          }.bind(this), this.delay);
           return;
         }
+        this.apply_value.apply(this, v);
         return v;
       }
     } catch (e) {
@@ -630,7 +654,7 @@
     this.init(dest);
     this.scope = scope;
     this.edge = edge;
-    this.delay = "never";
+    this.delay = Infinity;
   }, bender.Edge);
 
   // TODO remove previous event listener
@@ -805,7 +829,11 @@
   function render_edge(set, scope, dest, Constructor) {
     var target = scope[set.select()];
     if (target) {
-      return new Constructor(set, target, dest);
+      var edge = new Constructor(set, target, dest);
+      if (set.delay() >= 0) {
+        edge.delay = set.delay();
+      }
+      return edge;
     }
   }
 
@@ -830,7 +858,7 @@
     var edges = [];
     var queue = vertices.filter(function (vertex) {
       vertex.__out = vertex.outgoing.filter(function (edge) {
-        if (edge.delay >= 0 || edge.delay === "never") {
+        if (edge.delay >= 0) {
           edges.push(edge);
           return false;
         }
@@ -850,7 +878,7 @@
       return edge;
     };
     var delayed = function (edge) {
-      return !(edge.delay >= 0 || edge.delay === "never");
+      return !(edge.delay >= 0);
     }
     while (queue.length > 0) {
       $$unshift(edges,

@@ -1061,7 +1061,7 @@
   function normalize_delay(delay) {
     delay = flexo.safe_trim(delay).toLowerCase();
     var d = flexo.to_number(delay);
-    return d >= 0 ? d : delay === "never" || delay === "none" ? delay : "";
+    return d >= 0 ? d : delay === "never" ? Infinity : "none";
   }
 
   // Normalize the `select` property of a property element so that it matches a

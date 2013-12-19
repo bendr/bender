@@ -69,7 +69,7 @@
   };
 
 
-  bender.Edge.prototype.to_gv = function (i) {
+  bender.Edge.prototype.to_gv = function (i, dest) {
     var attrs = this.gv_attrs();
     attrs.label = i;
     if (this.delay >= 0) {
@@ -78,7 +78,8 @@
     if (this.match !== bender.Edge.prototype.match) {
       attrs.style = "dashed";
     }
-    return "%0 -> %1 [%2]".fmt(this.source.graph_name(), this.dest.graph_name(),
+    return "%0 -> %1 [%2]"
+      .fmt(this.source.graph_name(), (dest || this.dest).graph_name(),
         Object.keys(attrs).map(function (a) {
           return "%0=\"%1\"".fmt(a, attrs[a]);
         }).join(","));
@@ -130,8 +131,7 @@
           this.element.select());
       dom_vertices.push(dest);
       --this.dest.__incoming;
-      return "%0 -> %1 [label=\"%2\"]"
-        .fmt(this.source.graph_name(), dest.graph_name(), i);
+      return bender.Edge.prototype.to_gv.call(this, i, dest);
     };
 
     var gv = function (xs) {

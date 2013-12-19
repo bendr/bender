@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp">
+  <view>
+    <text id="t">You should not see this.</text>
+  </view>
+  <watch>
+    <get event="ready"/>
+    <set select="@t" dom-property="textContent" value="'Text at t0.'"
+      delay="0"/>
+    <set select="@t" dom-property="textContent" value="'Text at t0 (wrong!).'"
+      delay="none"/>
+    <set select="@t" dom-property="textContent" value="'Then 1s later...'"
+      delay="1000"/>
+    <set select="@t" dom-property="textContent" value="'3s have passed...'"
+      delay="3000"/>
+  </watch>
+</component>
