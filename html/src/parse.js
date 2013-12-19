@@ -64,6 +64,7 @@
   // instance references. For instance, this turns “Status: `status” into
   // ["Status: ", ["$this", "status"]]. This can then be turned into a bindings
   // object.
+  // TODO rx_cont may or may not contain - for unespace dashes in property names
   function chunk_value(value) {
     var state = "";      // Current state of the tokenizer
     var chunk = "";      // Current chunk
@@ -71,7 +72,7 @@
     var escape = false;  // Escape flag (following a \)
 
     var rx_start = new RegExp("^[$A-Z_a-z\x80-\uffff]$");
-    var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff-]$");
+    var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff]$");
 
     // Change to state s and start a new chunk with `c` (or "")
     var start = function (s, c) {
