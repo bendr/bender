@@ -5,8 +5,11 @@
 
 if (typeof window === "object") {
   window.global = window;
+  global.bender = {};
+} else {
+  global.flexo = require("../../html/src/flexo.js");
+  global.bender = exports;
 }
-var bender = typeof exports === "object" ? exports : global.bender = {};
 
 
 // Prototype for Bender elements, similar to DOM elements. There are only
@@ -148,6 +151,7 @@ var Component = bender.Component = flexo._ext(Element, {
     this.scope = flexo._ext(scope, { "@this": this, "#this": this,
       children: [] });
     this.on_handlers = Object.create(this.on_handlers);
+    this.__pending_render = true;
     this.__pending_init = true;
     flexo.asap(function () {
       if (this.__pending_init) {
@@ -404,6 +408,10 @@ var Environment = bender.Environment = {
 
   // Push an update to the update queue, creating the queue if necessary.
   update_component: function (update) {
+    if (update.target.component.__pending_render) {
+      console.log("--- no update");
+      return;
+    }
     if (!this.update_queue) {
       this.update_queue = [];
       flexo.asap(this.flush_update_queue.bind(this));

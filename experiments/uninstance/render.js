@@ -31,6 +31,7 @@ Component.scope_of = function (component) {
 Component.render_instance = function (target, ref) {
   var instance = this.instantiate();
   instance.render(null, target, ref);
+  delete this.__pending_render;
   return instance;
 };
 

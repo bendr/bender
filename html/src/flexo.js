@@ -3,28 +3,28 @@
 
   /* global exports, global, window, π */
   var browserp = typeof window === "object";
-  var global_ = browserp ? window : typeof global === "object" ? global :
-    (function () { return this; }());
-  var flexo = typeof exports === "object" ? exports : global_.flexo = {};
-  flexo.global = global_;
+  if (browserp) {
+    window.global = window;
+  }
+  var flexo = typeof exports === "object" ? exports : global.flexo = {};
 
   flexo.VERSION = "0.3.0";
 
   // Make free-standing versions of array functions to work on array-like
   // objects.
-  global_.$call = Function.prototype.call;
-  global_.$apply = Function.prototype.apply;
-  global_.$bind = $call.bind(Function.prototype.bind);
+  global.$call = Function.prototype.call;
+  global.$apply = Function.prototype.apply;
+  global.$bind = $call.bind(Function.prototype.bind);
   "filter forEach map push slice splice unshift".split(" ")
     .forEach(function (f) {
-      global_["$" + f.toLowerCase()] = $call.bind(Array.prototype[f]);
+      global["$" + f.toLowerCase()] = $call.bind(Array.prototype[f]);
     });
   "push unshift".split(" ").forEach(function (f) {
-    global_["$$" + f.toLowerCase()] = $apply.bind(Array.prototype[f]);
+    global["$$" + f.toLowerCase()] = $apply.bind(Array.prototype[f]);
   });
 
   // Define π as a global
-  global_.π = Math.PI;
+  global.π = Math.PI;
 
 
   // Pseudo-macros
@@ -902,11 +902,11 @@
 
   // Hack using postMessage to provide a setImmediate replacement; inspired by
   // https://github.com/NobleJS/setImmediate
-  flexo.asap = global_.setImmediate ? global_.setImmediate.bind(global_) :
-    global_.postMessage ? (function () {
+  flexo.asap = global.setImmediate ? global.setImmediate.bind(global) :
+    global.postMessage ? (function () {
       var queue = [];
       var key = "asap{0}".fmt(Math.random());
-      global_.addEventListener("message", function (e) {
+      global.addEventListener("message", function (e) {
         if (e.data === key) {
           var q = queue.slice();
           queue = [];
@@ -921,10 +921,10 @@
           throw "Not a function: %0".fmt(f);
         }
         queue.push(f);
-        global_.postMessage(key, "*");
+        global.postMessage(key, "*");
       };
     }()) : function (f) {
-      global_.setTimeout(f, 0);
+      global.setTimeout(f, 0);
     };
 
   // Return a function that discards its arguments. An optional parameter allows
@@ -1149,11 +1149,11 @@
 
   promise.timeout = function (dur_ms) {
     if (this.__timeout) {
-      global_.clearTimeout(this.__timeout);
+      global.clearTimeout(this.__timeout);
       delete this.__timeout;
     }
     if (dur_ms > 0) {
-      this.__timeout = global_.setTimeout(this.reject.bind(this, "Timeout"),
+      this.__timeout = global.setTimeout(this.reject.bind(this, "Timeout"),
           dur_ms);
     }
     return this;
@@ -1188,7 +1188,7 @@
   // negative or not a number.)
   flexo.promise_delay = function (f, delay_ms) {
     var promise = new flexo.Promise();
-    global_.setTimeout(function () {
+    global.setTimeout(function () {
       promise.fulfill(flexo.funcify(f)());
     }, delay_ms > 0 ? delay_ms : 0);
     return promise;
