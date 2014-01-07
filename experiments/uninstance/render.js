@@ -1,111 +1,24 @@
-/* global bender, Component, Content, Element, DOMElement, flexo, on, $$push, Text, View, ViewElement, window */
+/* global bender, Component, Content, DOMElement, flexo, on, Text, View, window */
 // jshint -W097
 
 "use strict";
 
 
-// An environment in which to render Bender components.
-var Environment = bender.Environment = {
+// In a browser, the environment has a host document as well (which defaults to
+// the current document.)
+bender.DocumentEnvironment = flexo._ext(bender.Environment, { 
   init: function (document) {
-    this.scope = { document: document, environment: this };
-    this.components = [];
-    this.urls = {};
-    return this;
-  },
-
-  component: function (component) {
-    if (!component) {
-      component = Component.create(this.scope);
-    }
-    this.components.push(component);
-    return component;
-  },
-
-  update_component: function (update) {
-    if (!this.update_queue) {
-      this.update_queue = [];
-      flexo.asap(this.flush_update_queue.bind(this));
-    }
-    this.update_queue.push(update);
-  },
-
-  flush_update_queue: function () {
-    var queue = this.update_queue.slice();
-    delete this.update_queue;
-    for (var i = 0, n = queue.length; i < n; ++i) {
-      var update = queue[i];
-      var f = update.target.update && update.target.update[update.type];
-      if (typeof f === "function") {
-        f(update);
-      }
-    }
-  },
-
-  $: function (tag, args) {
-    var index = 2;
-    if (typeof args !== "object" || Array.isArray(args) ||
-        args.is_bender_element ||
-        (window.Node && args instanceof window.Node)) {
-      args = {};
-      index = 1;
-    }
-    var t = tag.split("#");
-    if (t[1]) {
-      args.id = t[1];
-    }
-    if (t[0] === "component") {
-      args.scope = this.scope;
-    }
-    var elem = Object.create(bender[flexo.ucfirst(t[0])]).init_with_args(args);
-    for (var i = index, n = arguments.length; i < n; ++i) {
-      add_children(elem, arguments[i]);
-    }
-    return elem;
+    var env = bender.Environment.init.call(this);
+    env.scope.document = document || window.document;
+    return env;
   }
-
-};
-
-["component", "content", "text", "view"].forEach(function (tag) {
-  Environment["$" + tag] = function () {
-    var args = [tag];
-    $$push(args, arguments);
-    return this.$.apply(this, args);
-  };
 });
 
-["p", "div"].forEach(function (tag) {
-  Environment["$" + tag] = function (args) {
-    var args_ = ["DOMElement"];
-    if (typeof args !== "object" || Array.isArray(args) ||
-        args.is_bender_element ||
-        (window.Node && args instanceof window.Node)) {
-      args = {};
-      args_.push(args);
-    }
-    args.namespace_uri = flexo.ns.html;
-    args.local_name = tag;
-    $$push(args_, arguments);
-    return this.$.apply(this, args_);
-  };
-});
-
-
-// Initialize an element from an arguments object (see create_element)
-Element.init_with_args = function (args) {
-  if (args.id) {
-    this.id(args.id);
-  }
-  return this;
+// Create a new environment for the given document
+bender.environment = function (document) {
+  return Object.create(bender.DocumentEnvironment).init(document);
 };
 
-
-Component.init_with_args = function (args) {
-  this.init(args.scope);
-  if (args.prototype) {
-    this.prototype(args.prototype);
-  }
-  return Element.init_with_args.call(this, args);
-};
 
 // Get the scope for the given component (for an rendered instance.)
 Component.scope_of = function (component) {
@@ -165,21 +78,6 @@ Component.render = function (stack, target, ref) {
   }
 };
 
-ViewElement.init_with_args = function (args) {
-  this.init();
-  if (args.renderId || args["render-id"]) {
-    this.renderId(args.renderId || args["render-id"]);
-  }
-  return Element.init_with_args.call(this, args);
-};
-
-View.init_with_args = function (args) {
-  if (args.stack) {
-    this.stack(args.stack);
-  }
-  return ViewElement.init_with_args.call(this, args);
-};
-
 View.render = function (stack, target, ref) {
   stack[stack.i].target = target.__target || target;
   var fragment = target.ownerDocument.createDocumentFragment();
@@ -215,22 +113,6 @@ Content.render = function (stack, target, ref) {
   }
 };
 
-
-DOMElement.init_with_args = function (args) {
-  ViewElement.init_with_args.call(this, args);
-  this.namespace_uri = args.namespace_uri || args.namespaceURI;
-  this.local_name = args.local_name || args.localName;
-  var skip = { id: true, renderId: true, "render-id": true, namespace_uri: true,
-    namespaceURI: true, local_name: true, localName: true };
-  this.attrs = {};
-  // TODO known namespace prefixes from Flexo
-  for (var p in args) {
-    if (!(p in skip)) {
-      this.attr("", p, args[p]);
-    }
-  }
-  return this;
-};
 
 DOMElement.render = function (stack, target, ref) {
   var elem = target.ownerDocument.createElementNS(this.namespace_uri,

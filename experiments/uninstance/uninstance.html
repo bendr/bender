@@ -26,7 +26,7 @@ div.contents {
     <script>
 "use strict";
 
-var env = Object.create(Environment).init(window.document);
+var env = bender.environment();
 
 var A = env.component().id("A")
   .view(env.$div({ "class": "contents" }, env.$p("Hello from A")));

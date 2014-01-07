@@ -1,20 +1,31 @@
-/* global console, exports, flexo, global, $$push, $slice, window */
+/* global console, exports, flexo, global, $foreach, $$push, $slice, window */
 // jshint -W097
 
 "use strict";
 
-var global_ = typeof window === "object" ? window :
-  typeof global === "object" ? global : (function () { return this; }());
-var bender = typeof exports === "object" ? exports : global_.bender = {};
+if (typeof window === "object") {
+  window.global = window;
+}
+var bender = typeof exports === "object" ? exports : global.bender = {};
 
 
-// Prototype for Bender elements, similar to DOM elements. There are no
-// different kinds of nodes; everything is an element. See data model.
+// Prototype for Bender elements, similar to DOM elements. There are only
+// elements and no other kind of node (see the Text element for instance, which
+// does have text content instead of children; there is no equivalent of
+// document or document fragment.)
 var Element = bender.Element = {
 
   // Initialize an element with no parent yet and an empty list of children.
   init: function () {
     this.children = [];
+    return this;
+  },
+
+  // Initialize an element from an arguments object (see create_element)
+  init_with_args: function (args) {
+    if (args.id) {
+      this.id(args.id);
+    }
     return this;
   },
 
@@ -62,14 +73,16 @@ var Element = bender.Element = {
     return this._id || "";
   },
 
-  // Insert a child element. If no ref is given, insert at the beginning of list
-  // of children. If ref is a child, add the new child before the ref child.
-  // Finally, if ref is a number, add the new child at the given index, before
-  // the child previously at this index. If ref is a negative number, then the
-  // index is taken from the end of the list of children (-1 being the last.)
+  // Insert a child element. If no ref is given, insert at the beginning of the
+  // list of children. If ref is a child element, add the new child before the
+  // ref child. Finally, if ref is a number, add the new child at the given
+  // index, before the child previously at this index. If ref is a negative
+  // number, then the index is taken from the end of the list of children (-1
+  // being the last.)
   // The child element may be a Bender element, a DOM element, or a text string.
   // In the last two cases, the argument is first converted into a DOMElement or
   // a Text element before being inserted.
+  // This is the method to override for different types of elements.
   insert_child: function (child, ref) {
     child = convert_node(child);
     if (child.parent) {
@@ -85,10 +98,7 @@ var Element = bender.Element = {
       ref = this.children.indexOf(ref);
     }
     var n = this.children.length;
-    var index = ref >= 0 ? ref : ref < 0 ? n + ref : 0;
-    if (index < 0 || index > n) {
-      throw "hierarchy error: index out of bounds";
-    }
+    var index = flexo.clamp(ref >= 0 ? ref : ref < 0 ? n + ref : 0, 0, n);
     this.children.splice(index, 0, child);
     child.parent = this;
     add_ids_to_scope(child);
@@ -96,6 +106,8 @@ var Element = bender.Element = {
     return child;
   },
 
+  // Add a child element. This is similar to insert_child except that it adds an
+  // element at the end by default, or after the ref element or index.
   add_child: function (child, ref) {
     if (ref && typeof ref === "object") {
       if (ref.parent !== this) {
@@ -108,12 +120,16 @@ var Element = bender.Element = {
         ref >= 0 ? ref + 1 : ref < 0 ? n + ref + 1 : n);
   },
 
+  // Convenience method to chain child additions; this appends a child and
+  // returns the parent rather than the child.
   child: function (child) {
     return this.add_child(child), this;
   }
 };
 
 flexo.make_readonly(Element, "is_bender_element", true);
+
+// The closest component ancestor element.
 flexo.make_readonly(Element, "component", function () {
   return this.parent && this.parent.component;
 });
@@ -131,7 +147,7 @@ var Component = bender.Component = flexo._ext(Element, {
     this.derived = [];
     this.scope = flexo._ext(scope, { "@this": this, "#this": this,
       children: [] });
-    this.on_handlers = Object.create(Component.on_handlers);
+    this.on_handlers = Object.create(this.on_handlers);
     this.__pending_init = true;
     flexo.asap(function () {
       if (this.__pending_init) {
@@ -142,11 +158,22 @@ var Component = bender.Component = flexo._ext(Element, {
     return Element.init.call(this);
   },
 
+  // Initialize a component with arguments
+  init_with_args: function (args) {
+    this.init(args.scope);
+    if (args.prototype) {
+      this.prototype(args.prototype);
+    }
+    return Element.init_with_args.call(this, args);
+  },
+
+  // Default handlers for on-init and on-instantiate
   on_handlers: {
     init: flexo.nop,
     instantiate: flexo.nop
   },
 
+  // Set the handler for on-init/on-instantiate
   on: function (type, handler) {
     if (type in this.on_handlers && typeof handler === "function") {
       this.on_handlers[type] = handler;
@@ -220,6 +247,15 @@ flexo.make_readonly(Component, "all_instances", function () {
 // View elements are View, and elements that can occur in View, except for
 // Component: DOMElement, Text, and Content.
 var ViewElement = bender.ViewElement = flexo._ext(Element, {
+
+  init_with_args: function (args) {
+    this.init();
+    if (args.renderId || args["render-id"]) {
+      this.renderId(args.renderId || args["render-id"]);
+    }
+    return Element.init_with_args.call(this, args);
+  },
+
   insert_child: function (child, ref) {
     if (child.tag === "component") {
       var component = this.component;
@@ -233,7 +269,14 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
 });
 
 
-var View = bender.View = Object.create(ViewElement);
+var View = bender.View = flexo._ext(bender.ViewElement, {
+  init_with_args: function (args) {
+    if (args.stack) {
+      this.stack(args.stack);
+    }
+    return ViewElement.init_with_args.call(this, args);
+  }
+});
 
 flexo._accessor(View, "renderId", normalize_renderId);
 flexo._accessor(View, "stack", normalize_stack);
@@ -253,6 +296,22 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     this.local_name = name;
     this.attrs = {};
     return Element.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    ViewElement.init_with_args.call(this, args);
+    this.namespace_uri = args.namespace_uri || args.namespaceURI;
+    this.local_name = args.local_name || args.localName;
+    var skip = { id: true, renderId: true, "render-id": true, namespace_uri: true,
+      namespaceURI: true, local_name: true, localName: true };
+    this.attrs = {};
+    // TODO known namespace prefixes from Flexo
+    for (var p in args) {
+      if (!(p in skip)) {
+        this.attr("", p, args[p]);
+      }
+    }
+    return this;
   },
 
   attr: function (ns, name, value) {
@@ -321,6 +380,104 @@ function add_children(elem, children) {
 
 flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
+
+
+// An environment in which to render Bender components.
+var Environment = bender.Environment = {
+
+  // Initialize the environment
+  init: function () {
+    this.scope = { environment: this };
+    this.components = [];
+    this.urls = {};
+    return this;
+  },
+
+  // Add a component (creating it if necessary) to this environment.
+  component: function (component) {
+    if (!component) {
+      component = Component.create(this.scope);
+    }
+    this.components.push(component);
+    return component;
+  },
+
+  // Push an update to the update queue, creating the queue if necessary.
+  update_component: function (update) {
+    if (!this.update_queue) {
+      this.update_queue = [];
+      flexo.asap(this.flush_update_queue.bind(this));
+    }
+    this.update_queue.push(update);
+  },
+
+  // Flush the update queue
+  flush_update_queue: function () {
+    var queue = this.update_queue.slice();
+    delete this.update_queue;
+    for (var i = 0, n = queue.length; i < n; ++i) {
+      var update = queue[i];
+      var f = update.target.update && update.target.update[update.type];
+      if (typeof f === "function") {
+        f(update);
+      }
+    }
+  },
+
+  // Convenience method to create Bender elements by their tag name, with
+  // optional arguments and child contents. An id can also be given as part of
+  // the tag name, with a # separator (e.g., "component#foo".)
+  $: function (tag, args) {
+    var index = 2;
+    if (typeof args !== "object" || Array.isArray(args) ||
+        args.is_bender_element ||
+        (window.Node && args instanceof window.Node)) {
+      args = {};
+      index = 1;
+    }
+    var t = tag.split("#");
+    if (t[1]) {
+      args.id = t[1];
+    }
+    if (t[0] === "component") {
+      args.scope = this.scope;
+    }
+    var elem = Object.create(bender[flexo.ucfirst(t[0])]).init_with_args(args);
+    for (var i = index, n = arguments.length; i < n; ++i) {
+      add_children(elem, arguments[i]);
+    }
+    return elem;
+  }
+
+};
+
+// Shortcuts for the $ function: env.$foo === env.$("foo")
+["component", "content", "text", "view"].forEach(function (tag) {
+  Environment["$" + tag] = function () {
+    var args = [tag];
+    $$push(args, arguments);
+    return this.$.apply(this, args);
+  };
+});
+
+// Create DOMElement from known HTML tags.
+["p", "div"].forEach(function (tag) {
+  Environment["$" + tag] = function (args) {
+    var args_ = ["DOMElement"];
+    if (typeof args !== "object" || Array.isArray(args) ||
+        args.is_bender_element ||
+        (window.Node && args instanceof window.Node)) {
+      args = {};
+      args_.push(args);
+    }
+    args.namespace_uri = flexo.ns.html;
+    args.local_name = tag;
+    $$push(args_, arguments);
+    return this.$.apply(this, args_);
+  };
+});
+
+
 
 
 function add_ids_to_scope(root) {
