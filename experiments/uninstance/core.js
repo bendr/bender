@@ -4,12 +4,16 @@
 "use strict";
 
 if (typeof window === "object") {
+  // Looks like a browser
   window.global = window;
   global.bender = {};
 } else {
-  global.flexo = require("../../html/src/flexo.js");
+  // Looks like node
+  global.flexo = require("flexo");
   global.bender = exports;
 }
+
+bender.VERSION = "0.8.2-pre";
 
 
 // Prototype for Bender elements, similar to DOM elements. There are only
@@ -151,6 +155,7 @@ var Component = bender.Component = flexo._ext(Element, {
     this.scope = flexo._ext(scope, { "@this": this, "#this": this,
       children: [] });
     this.on_handlers = Object.create(this.on_handlers);
+    this.___ = flexo.random_id();
     this.__pending_render = true;
     this.__pending_init = true;
     flexo.asap(function () {
@@ -189,6 +194,7 @@ var Component = bender.Component = flexo._ext(Element, {
   // will be created for the instance.
   instantiate: function (scope) {
     var instance = Element.instantiate.call(this, scope, true);
+    instance.___ = this.___ + "/" + flexo.random_id();
     this.instances.push(instance);
     on(this, "instantiate", instance);
     return instance;
@@ -409,7 +415,6 @@ var Environment = bender.Environment = {
   // Push an update to the update queue, creating the queue if necessary.
   update_component: function (update) {
     if (update.target.component.__pending_render) {
-      console.log("--- no update");
       return;
     }
     if (!this.update_queue) {
@@ -439,7 +444,7 @@ var Environment = bender.Environment = {
     var index = 2;
     if (typeof args !== "object" || Array.isArray(args) ||
         args.is_bender_element ||
-        (window.Node && args instanceof window.Node)) {
+        (flexo.browserp && args instanceof window.Node)) {
       args = {};
       index = 1;
     }
@@ -459,6 +464,11 @@ var Environment = bender.Environment = {
 
 };
 
+// Create a new environment
+bender.environment = function () {
+  return Object.create(bender.Environment).init();
+};
+
 // Shortcuts for the $ function: env.$foo === env.$("foo")
 ["component", "content", "text", "view"].forEach(function (tag) {
   Environment["$" + tag] = function () {
@@ -474,7 +484,7 @@ var Environment = bender.Environment = {
     var args_ = ["DOMElement"];
     if (typeof args !== "object" || Array.isArray(args) ||
         args.is_bender_element ||
-        (window.Node && args instanceof window.Node)) {
+        (flexo.browserp && args instanceof window.Node)) {
       args = {};
       args_.push(args);
     }
@@ -484,8 +494,6 @@ var Environment = bender.Environment = {
     return this.$.apply(this, args_);
   };
 });
-
-
 
 
 function add_ids_to_scope(root) {

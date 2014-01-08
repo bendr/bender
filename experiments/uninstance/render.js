@@ -20,41 +20,29 @@ bender.environment = function (document) {
 };
 
 
-// Get the scope for the given component (for an rendered instance.)
-Component.scope_of = function (component) {
-  var scope = component.scope;
-  return flexo.find_first(this.scope.stack, function (instance) {
-    return Object.getPrototypeOf(instance) === scope;
-  });
-};
-
+// Render an instance of the component as a child of the DOM target, before an
+// optional ref node. Return the new, rendered instance. This is the method to
+// call to render a component explicitely.
 Component.render_instance = function (target, ref) {
   var instance = this.instantiate();
   instance.render(null, target, ref);
-  delete this.__pending_render;
   return instance;
 };
 
-Component.render_scope = function () {
-  var scope = Object.create(this.scope);
-  if (this.scope.view) {
-    scope.view = this.scope.view.instantiate(scope);
-    if (scope.parent) {
-      var index = scope.parent.scope.children.indexOf(Object
-          .getPrototypeOf(this));
-      scope.parent.scope.children[index] = this;
-    }
-    scope.children.forEach(function (ch) {
-      ch.scope.parent = this;
-    }, this);
-    on(this, "instantiate", scope.view);
-  }
-  return scope;
-};
-
+// on-render
 Component.on_handlers.render = flexo.nop;
 
+// Render the component. This is the internal method called from
+// render_instance(), which should not be called directly.
+// A new render stack is built, replacing the stack passed as parameter.
 Component.render = function (stack, target, ref) {
+  for (var component = this; component && component.__pending_render;
+      component = component._prototype) {
+    if (Object.getPrototypeOf(component).hasOwnProperty("__pending_render")) {
+      component = Object.getPrototypeOf(component);
+    }
+    delete component.__pending_render;
+  }
   var scope = this.scope = this.render_scope();
   stack = scope.stack = [];
   for (; scope; scope = scope["#this"]._prototype &&
@@ -79,6 +67,34 @@ Component.render = function (stack, target, ref) {
   }
 };
 
+// Create a new scope for rendering, instantiating the view.
+Component.render_scope = function () {
+  var scope = Object.create(this.scope);
+  if (this.scope.view) {
+    scope.view = this.scope.view.instantiate(scope);
+    if (scope.parent) {
+      var index = scope.parent.scope.children.indexOf(Object
+          .getPrototypeOf(this));
+      scope.parent.scope.children[index] = this;
+    }
+    scope.children.forEach(function (ch) {
+      ch.scope.parent = this;
+    }, this);
+    on(this, "instantiate", scope.view);
+  }
+  return scope;
+};
+
+// Get the scope for the given component (for a rendered instance.)
+Component.scope_of = function (component) {
+  var scope = component.scope;
+  return flexo.find_first(this.scope.stack, function (instance) {
+    return Object.getPrototypeOf(instance) === scope;
+  });
+};
+
+
+// Render a view, i.e., render the contents of the view.
 View.render = function (stack, target, ref) {
   stack[stack.i].target = target.__target || target;
   var fragment = target.ownerDocument.createDocumentFragment();
@@ -90,6 +106,9 @@ View.render = function (stack, target, ref) {
   target.insertBefore(fragment, ref);
 };
 
+// Update the view, either for an instance (the scope points to the stack for
+// the instance) or for the component, i.e., all instances (then apply to all
+// stacks.)
 View.render_update = function (update) {
   (update.scope.stack ? [update.scope.stack] :
     update.scope["#this"].all_instances.map(function (instance) {
@@ -118,6 +137,7 @@ Content.render = function (stack, target, ref) {
 DOMElement.render = function (stack, target, ref) {
   var elem = target.ownerDocument.createElementNS(this.namespace_uri,
     this.local_name);
+  this.target = elem;
   elem.__bender = this;
   for (var ns in this.attrs) {
     for (var a in this.attrs[ns]) {
@@ -133,12 +153,12 @@ DOMElement.render = function (stack, target, ref) {
 
 Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
-  return this.dom = target.insertBefore(target.ownerDocument
+  return this.target = target.insertBefore(target.ownerDocument
       .createTextNode(this.text()), ref);
 };
 
 Text.render_update = function () {
-  this.dom.textContent = this.text();
+  this.target.textContent = this.text();
 };
 
 
@@ -149,7 +169,8 @@ function find_dom_parent(update, stack) {
     return t;
   }
   return flexo.bfirst(t, function (q) {
-    return q.__bender === p || q.childNodes;
+    return q.__bender === p || Object.getPrototypeOf(q.__bender) === p ||
+      q.childNodes;
   });
 }
 

@@ -9,6 +9,7 @@
   var flexo = typeof exports === "object" ? exports : global.flexo = {};
 
   flexo.VERSION = "0.3.0";
+  flexo.browserp = browserp;
 
   // Make free-standing versions of array functions to work on array-like
   // objects.
