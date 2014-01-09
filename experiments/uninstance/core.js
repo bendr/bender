@@ -70,7 +70,7 @@ var Element = bender.Element = {
       // jshint -W041
       if (_id == null) {
         console.warn("“%0” is not a valid XML ID".fmt(id));
-        return;
+        return this;
       }
       if (_id !== this._id) {
         this._id = _id;
@@ -80,12 +80,12 @@ var Element = bender.Element = {
     return this._id || "";
   },
 
-  // Insert a child element. If no ref is given, insert at the beginning of the
-  // list of children. If ref is a child element, add the new child before the
+  // Insert a child element. If no ref is given, insert at the end of the list
+  // of children. If ref is a child element, add the new child before the
   // ref child. Finally, if ref is a number, add the new child at the given
   // index, before the child previously at this index. If ref is a negative
   // number, then the index is taken from the end of the list of children (-1
-  // being the last.)
+  // adding at the end, -2 before the last element, &c.)
   // The child element may be a Bender element, a DOM element, or a text string.
   // In the last two cases, the argument is first converted into a DOMElement or
   // a Text element before being inserted.
@@ -105,7 +105,7 @@ var Element = bender.Element = {
       ref = this.children.indexOf(ref);
     }
     var n = this.children.length;
-    var index = flexo.clamp(ref >= 0 ? ref : ref < 0 ? n + ref : 0, 0, n);
+    var index = flexo.clamp(ref >= 0 ? ref : ref < 0 ? n + 1 + ref : n, 0, n);
     this.children.splice(index, 0, child);
     child.parent = this;
     add_ids_to_scope(child);
@@ -113,24 +113,10 @@ var Element = bender.Element = {
     return child;
   },
 
-  // Add a child element. This is similar to insert_child except that it adds an
-  // element at the end by default, or after the ref element or index.
-  add_child: function (child, ref) {
-    if (ref && typeof ref === "object") {
-      if (ref.parent !== this) {
-        throw "hierarchy error: ref element is not a child of the parent";
-      }
-      ref = this.children.indexOf(ref);
-    }
-    var n = this.children.length;
-    return this.insert_child(child,
-        ref >= 0 ? ref + 1 : ref < 0 ? n + ref + 1 : n);
-  },
-
   // Convenience method to chain child additions; this appends a child and
   // returns the parent rather than the child.
   child: function (child) {
-    return this.add_child(child), this;
+    return this.insert_child(child), this;
   }
 };
 
@@ -230,8 +216,8 @@ var Component = bender.Component = flexo._ext(Element, {
     if (arguments.length === 0) {
       return this.scope.view;
     }
-    var view = this.scope.view || this.add_child(View.create().init());
-    $foreach(arguments, add_children.bind(null, view));
+    var view = this.scope.view || this.insert_child(View.create().init());
+    $foreach(arguments, insert_children.bind(null, view));
     return this;
   }
 
@@ -352,12 +338,8 @@ var Text = bender.Text = flexo._ext(ViewElement, {
     return this.parent = null, this;
   },
 
-  add_child: function (child) {
-    this.text(this.text() + child);
-  },
-
   insert_child: function (child) {
-    this.text(child + this.text());
+    this.text(this.text() + child);
   },
 
   instantiate: function (scope) {
@@ -380,11 +362,11 @@ var Text = bender.Text = flexo._ext(ViewElement, {
   }
 });
 
-function add_children(elem, children) {
+function insert_children(elem, children) {
   if (Array.isArray(children)) {
-    children.forEach(add_children.bind(null, elem));
+    children.forEach(insert_children.bind(null, elem));
   } else {
-    elem.add_child(children);
+    elem.insert_child(children);
   }
 }
 
@@ -457,7 +439,7 @@ var Environment = bender.Environment = {
     }
     var elem = Object.create(bender[flexo.ucfirst(t[0])]).init_with_args(args);
     for (var i = index, n = arguments.length; i < n; ++i) {
-      add_children(elem, arguments[i]);
+      insert_children(elem, arguments[i]);
     }
     return elem;
   }
@@ -534,7 +516,7 @@ function convert_dom_node(node) {
     for (i = 0, n = node.childNodes.length; i < n; ++i) {
       var ch = convert_dom_node(node.childNodes[i]);
       if (ch) {
-        elem.add_child(ch);
+        elem.insert_child(ch);
       }
     }
     return elem;
