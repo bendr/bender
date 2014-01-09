@@ -48,6 +48,7 @@ Component.render = function (stack, target, ref) {
   for (; scope; scope = scope["#this"]._prototype &&
       scope["#this"]._prototype.render_scope()) {
     if (scope.view) {
+      scope["@this"] = this;
       var mode = scope.view.stack();
       if (mode === "top") {
         stack.unshift(scope);
