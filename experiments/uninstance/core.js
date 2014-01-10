@@ -94,7 +94,7 @@ var Element = bender.Element = {
     child = convert_node(child);
     if (child.parent) {
       if (child.parent === this) {
-        throw "hierarchy error: already a child of the parent.";
+        throw "hierarchy error: already a child of the parent";
       }
       child.remove_self();
     }
@@ -117,7 +117,22 @@ var Element = bender.Element = {
   // returns the parent rather than the child.
   child: function (child) {
     return this.insert_child(child), this;
-  }
+  },
+
+  remove_self: function () {
+    if (child.parent) {
+      this.parent.remove_child(this);
+    }
+    return this;
+  },
+
+  remove_child: function (child) {
+    if (child.parent !== this) {
+      throw "hierarchy error: not a child of the parent";
+    }
+    flexo.remove_from_array(this.children, child);
+    delete child.parent;
+  },
 };
 
 flexo.make_readonly(Element, "is_bender_element", true);
@@ -244,6 +259,7 @@ flexo.make_readonly(Component, "all_instances", function () {
 // Component: DOMElement, Text, and Content.
 var ViewElement = bender.ViewElement = flexo._ext(Element, {
 
+  // All view elements may have a render-id property
   init_with_args: function (args) {
     this.init();
     if (args.renderId || args["render-id"]) {
@@ -252,6 +268,7 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
     return Element.init_with_args.call(this, args);
   },
 
+  // Set the parent component of an added component
   insert_child: function (child, ref) {
     if (child.tag === "component") {
       var component = this.component;
@@ -264,6 +281,8 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
   }
 });
 
+flexo._accessor(ViewElement, "renderId", normalize_renderId);
+
 
 var View = bender.View = flexo._ext(bender.ViewElement, {
   init_with_args: function (args) {
@@ -274,7 +293,6 @@ var View = bender.View = flexo._ext(bender.ViewElement, {
   }
 });
 
-flexo._accessor(View, "renderId", normalize_renderId);
 flexo._accessor(View, "stack", normalize_stack);
 flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
@@ -377,7 +395,7 @@ flexo.make_readonly(Text, "tag", "text");
 // An environment in which to render Bender components.
 var Environment = bender.Environment = {
 
-  // Initialize the environment
+  // Initialize the environment with a top-level scope.
   init: function () {
     this.scope = { environment: this };
     this.components = [];
@@ -390,13 +408,25 @@ var Environment = bender.Environment = {
     if (!component) {
       component = Component.create(this.scope);
     }
+    if (component.scope.environment !== this) {
+      throw "hierarchy error: component from a different environment";
+    }
     this.components.push(component);
     return component;
+  },
+
+  remove_component: function (component) {
+    if (component.scope.environment !== this) {
+      throw "hierarchy error: component from a different environment";
+    }
+    // TODO unrender
+    return flexo.remove_from_array(component);
   },
 
   // Push an update to the update queue, creating the queue if necessary.
   update_component: function (update) {
     if (update.target.component.__pending_render) {
+      console.log("--- pending render");
       return;
     }
     if (!this.update_queue) {

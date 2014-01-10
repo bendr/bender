@@ -42,12 +42,12 @@ Component.on_handlers.render = function (stack) {
 
 var env = bender.environment();
 
-/*
 var A = env.component().id("A")
-  .view(env.$div({ "class": "contents" }, env.$p("Hello from A")));
+  .view(env.$div({ "class": "contents", id: "div" }, env.$p("Hello from A")));
 var A_ = A.render_instance(document.body);
-*/
+var A__ = A.render_instance(document.body);
 
+/*
 var C = env.$("component#C", env.$view(
       env.$div(env.$text({ id: "text" }, "And this is a C."))));
 var B = env.$("component#B", env.$view(
@@ -62,15 +62,19 @@ var A = env.$("component#A", env.$view(
         env.$component({ id: "B2", prototype: B }))));
 var A_ = A.render_instance(document.body);
 
+*/
 
 setTimeout(function () {
-  // A.scope.view.insert_child(flexo.$p("And A again!"));
-  // return;
+  A.scope["@div"].insert_child(env.$p("Hello again"));
+  return;
+  A.scope.view.insert_child(flexo.$p("And A again!"));
+  return;
   // TODO: The update is applied twice
   A_.scope_of(A)["@B1"].scope_of(B)["@this"].scope.stack[0].view.children[0]
     .insert_child(flexo.$p("One more B"));
   console.log("One more B?");
 }, 1000);
+
 
 
     </script>

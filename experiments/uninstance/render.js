@@ -7,12 +7,21 @@
 // In a browser, the environment has a host document as well (which defaults to
 // the current document.)
 bender.DocumentEnvironment = flexo._ext(bender.Environment, { 
+
+  // Init an environment with the given document
   init: function (document) {
     var env = bender.Environment.init.call(this);
     env.scope.document = document || window.document;
     return env;
-  }
+  },
+
+  // Create a DOM element in the document of the scope (using
+  // flexo.create_element)
+  dom: function () {
+    return flexo.create_element.apply(this.scope.document, arguments);
+  },
 });
+
 
 // Create a new environment for the given document
 bender.environment = function (document) {
@@ -25,6 +34,9 @@ bender.environment = function (document) {
 // call to render a component explicitely.
 Component.render_instance = function (target, ref) {
   var instance = this.instantiate();
+  if (arguments.length === 0) {
+    target = this.scope.document.body || this.scope.document.documentElement;
+  }
   instance.render(null, target, ref);
   return instance;
 };
@@ -34,15 +46,9 @@ Component.on_handlers.render = flexo.nop;
 
 // Render the component. This is the internal method called from
 // render_instance(), which should not be called directly.
-// A new render stack is built, replacing the stack passed as parameter.
+// A new render stack is built, replacing the stack passed as parameter, built
+// of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
-  for (var component = this; component && component.__pending_render;
-      component = component._prototype) {
-    if (Object.getPrototypeOf(component).hasOwnProperty("__pending_render")) {
-      component = Object.getPrototypeOf(component);
-    }
-    delete component.__pending_render;
-  }
   var scope = this.scope = this.render_scope();
   stack = scope.stack = [];
   for (; scope; scope = scope["#this"]._prototype &&
@@ -50,6 +56,7 @@ Component.render = function (stack, target, ref) {
     if (scope.view) {
       scope["@this"] = this;
       var mode = scope.view.stack();
+      delete scope["#this"].__pending_render;
       if (mode === "top") {
         stack.unshift(scope);
       } else {
@@ -73,6 +80,7 @@ Component.render_scope = function () {
   var scope = Object.create(this.scope);
   if (this.scope.view) {
     scope.view = this.scope.view.instantiate(scope);
+    scope.view.parent = this;
     if (scope.parent) {
       var index = scope.parent.scope.children.indexOf(Object
           .getPrototypeOf(this));
@@ -170,8 +178,8 @@ function find_dom_parent(update, stack) {
     return t;
   }
   return flexo.bfirst(t, function (q) {
-    return q.__bender === p || Object.getPrototypeOf(q.__bender) === p ||
-      q.childNodes;
+    return q.__bender && (q.__bender === p ||
+      Object.getPrototypeOf(q.__bender) === p) || q.childNodes;
   });
 }
 

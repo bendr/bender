@@ -6,8 +6,56 @@ describe("Bender core", function () {
 
   describe("Bender environment (bender.Environment)", function () {
 
+    describe("init()", function () {
+      it("initializes an environment with a top-level scope", function () {
+        var e = Object.create(bender.Environment).init();
+        expect(e.scope.environment).toBe(e);
+      });
+    });
+
+    describe("component(component?)", function () {
+      it("adds a component to the environment", function () {
+        var c = bender.Component.create(env.scope);
+        env.component(c);
+        expect(env.components).toContain(c);
+      });
+      it("creates a new component beofre adding it if none is given",
+        function () {
+          expect(env.component().tag).toBe("component");
+        });
+      it("returns the added component", function () {
+        var c = bender.Component.create(env.scope);
+        expect(env.component(c)).toBe(c);
+      });
+      it("throws if the component belongs to a different environment",
+        function () {
+          var fail = function () {
+            var e = bender.environment();
+            env.component(e.component());
+          };
+          expect(fail).toThrow();
+        });
+    });
+
+    describe("$(tag, args?, contents?)", function () {
+      it("is a convenience methods to create elements from a tag name (like " +
+        "component, view, &c.)", function () {
+         //  expect(env.$("view");
+        });
+    });
+
+    describe("$component(args?, contents?)", function () {
+      it("creates a new component (same as $(\"component\", ...))", function () {
+        var a = env.$component();
+        var b = env.$component({ id: "b", prototype: a });
+        expect(a.tag).toBe("component");
+        expect(b.id()).toBe("b");
+        expect(b.prototype()).toBe(a);
+      });
+    });
+
     describe("bender.environment()", function () {
-      it("creates a new environment", function () {
+      it("creates a new environment (same as create(...).init())", function () {
         expect(env.scope.environment).toBe(env);
       });
     });
@@ -109,26 +157,54 @@ describe("Bender core", function () {
           expect(parent.children.length).toBe(4);
           expect(parent.children[0]).toBe(c);
         });
-        it("insert at the end when ref is negative", function () {
+        it("inserts at the end when ref is negative", function () {
           var c = Element.create();
           parent.insert_child(c, -2);
           expect(parent.children.length).toBe(5);
           expect(parent.children[3]).toBe(c);
+        });
+        it("converts a DOM element into a Bender DOMElement", function () {
+          var p = env.scope.document.createElement("p");
+          var p_ = parent.insert_child(p);
+          expect(p.nodeType).toBe(window.Node.ELEMENT_NODE);
+          expect(p.localName).toBe("p");
+          expect(p_.tag).toBe("dom");
+          expect(p_.local_name).toBe("p");
+        });
+        it("converts a text string into a Bender Text element", function () {
+          var text = "O HAI";
+          var t = parent.insert_child(text);
+          expect(t.tag).toBe("text");
+          expect(t.text()).toBe(text);
         });
         it("returns the insterted child", function () {
           var x = Element.create();
           expect(parent.insert_child(x)).toBe(x);
         });
       });
-    });
 
-    describe("child(child)", function () {
-      it("is the same as insert_child(child) but returns the parent rather " +
-        "than the child (for chaining)", function () {
-        var p = Element.create();
-        var ch = Element.create();
-        expect(p.child(ch)).toBe(p);
-        expect(ch.parent).toBe(p);
+      describe("child(child)", function () {
+        it("is the same as insert_child(child) but returns the parent rather " +
+          "than the child (for chaining)", function () {
+          var p = Element.create();
+          var ch = Element.create();
+          expect(p.child(ch)).toBe(p);
+          expect(ch.parent).toBe(p);
+        });
+      });
+
+      describe("component", function () {
+        it("is the closest component element ancestor of the element, if any",
+          function () {
+            var component = env.component();
+            var child = component.insert_child(Element.create());
+            var grand_child = child.insert_child(Element.create());
+            var orphan = Element.create();
+            expect(component.component).toBe(component);
+            expect(child.component).toBe(component);
+            expect(grand_child.component).toBe(component);
+            expect(orphan.component).toBeUndefined();
+          });
       });
     });
 
@@ -154,15 +230,60 @@ describe("Bender core", function () {
       });
 
       describe("init_with_args(args)", function () {
-        it("supports the “scope“ and “prototype” keys", function () {
-          var a = bender.Component.create(env.scope);
-          var b = Object.create(bender.Component);
-          expect(b.init_with_args({ scope: env.scope, prototype: a })).toBe(b);
-          expect(b.prototype()).toBe(a);
+        it("supports the additional “scope” (mandatory) and “prototype” keys",
+          function () {
+            var a = bender.Component.create(env.scope);
+            var b = Object.create(bender.Component);
+            expect(b.init_with_args({ scope: env.scope, prototype: a }))
+              .toBe(b);
+            expect(b.prototype()).toBe(a);
+          });
+      });
+    });
+
+    describe("bender.ViewElement", function () {
+      it("is the basis for elements that appear inside a component view " +
+        "(DOMElement, Text and Content)", flexo.nop);
+      describe("init_with_args(args)", function () {
+        it("supports the additional “renderId”/“render-id” key", function () {
+          var v = Object.create(bender.ViewElement)
+            .init_with_args({ renderId: "id" });
+          expect(v.renderId()).toBe("id");
         });
       });
-
+      describe("renderId(renderId?)", function () {
+        it("sets the value of renderId to renderId; legal values are " + 
+          "“class”, “id”, “none”, and “inherit”", function () {
+            var v = Object.create(bender.ViewElement)
+              .init_with_args({ renderId: "class" });
+            var w = Object.create(bender.ViewElement)
+              .init_with_args({ renderId: "none" });
+            var x = Object.create(bender.ViewElement)
+              .init_with_args({ renderId: "inherit" });
+            expect(v.renderId()).toBe("class");
+            expect(w.renderId()).toBe("none");
+            expect(x.renderId()).toBe("inherit");
+          });
+        it("defaults to “inherit”", function () {
+          var v = bender.ViewElement.create();
+          var w = Object.create(bender.ViewElement)
+            .init_with_args({ renderId: "foo" });
+          expect(v.renderId()).toBe("inherit");
+          expect(w.renderId()).toBe("inherit");
+        });
+      });
+      describe("insert_child(child)", function () {
+        it("sets the parent of a component to the component of the view for " +
+          "child component elements", function () {
+            var c = env.component();
+            var d = env.component();
+            c.view(d);
+            expect(d.scope.parent).toBe(c);
+          });
+      });
     });
+
+
   });
 
 });
