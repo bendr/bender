@@ -196,6 +196,7 @@ var Component = bender.Component = flexo._ext(Element, {
   instantiate: function (scope) {
     var instance = Element.instantiate.call(this, scope, true);
     instance.___ = this.___ + "/" + flexo.random_id();
+    console.log("+++ New instance", instance.___);
     this.instances.push(instance);
     on(this, "instantiate", instance);
     return instance;

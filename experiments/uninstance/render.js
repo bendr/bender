@@ -171,22 +171,30 @@ Text.render_update = function () {
 };
 
 
+// TODO store instances of view nodes?
 function find_dom_parent(update, stack) {
-  var p = update.target.parent;
-  var t = stack[stack.i].target;
-  if (p.view === p) {
-    return t;
+  var parent = update.target.parent;
+  var target = stack[stack.i].target;
+  if (parent.view === parent) {
+    return target;
   }
-  return flexo.bfirst(t, function (q) {
-    return q.__bender && (q.__bender === p ||
-      Object.getPrototypeOf(q.__bender) === p) || q.childNodes;
-  });
+  return flexo.bfirst(target, parent.hasOwnProperty("target") ?
+      function (p) {
+        return p.__bender && p.__bender === parent || p.childNodes;
+      } : function (p) {
+        return p.__bender && Object.getPrototypeOf(p.__bender) === parent &&
+          p.__bender.view === stack[stack.i].view || p.childNodes;
+      });
 }
 
 function find_dom_ref(update, target) {
-  var p = update.target.parent;
-  var ref = p.children[p.children.indexOf(update.target) + 1];
-  return ref && flexo.find_first(target.childNodes, function (n) {
-    return n.__bender === ref;
-  });
+  var parent = update.target.parent;
+  var ref = parent.children[parent.children.indexOf(update.target) + 1];
+  return ref && flexo.find_first(target.childNodes,
+      parent.hasOwnProperty("target") ?  function (p) {
+        return p.__bender && p.__bender === ref;
+      } : function (p) {
+        return p.__bender && Object.prototype(p.__bender) === ref &&
+          p.__bender.view === stack[stack.i].view;
+      });
 }
