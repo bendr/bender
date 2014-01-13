@@ -67,15 +67,23 @@ var A_ = A.render_instance(document.body);
 setTimeout(function () {
   // A.scope["@div"].insert_child(env.$p("Hello again"));
   // return;
-  A.scope.view.insert_child(flexo.$p("And A again!"));
+  A_.scope.view.insert_child(flexo.$p("And A again!"));
   return;
-  // TODO: The update is applied twice
   A_.scope_of(A)["@B1"].scope_of(B)["@this"].scope.stack[0].view.children[0]
     .insert_child(flexo.$p("One more B"));
   console.log("One more B?");
 }, 1000);
 
 
+setTimeout(function () {
+  A.scope["@div"].insert_child(flexo.$p("This one is inside..."));
+  return;
+}, 2000);
+
+setTimeout(function () {
+  A.scope.view.insert_child(flexo.$p("And again and again!"));
+  return;
+}, 3000);
 
     </script>
   </body>

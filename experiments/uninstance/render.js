@@ -19,7 +19,8 @@ bender.DocumentEnvironment = flexo._ext(bender.Environment, {
   // flexo.create_element)
   dom: function () {
     return flexo.create_element.apply(this.scope.document, arguments);
-  },
+  }
+
 });
 
 
@@ -112,6 +113,8 @@ View.render = function (stack, target, ref) {
     child.render(stack, fragment);
   });
   delete target.__target;
+  stack[stack.i].first = fragment.firstChild;
+  stack[stack.i].last = fragment.lastChild;
   target.insertBefore(fragment, ref);
 };
 
@@ -126,7 +129,15 @@ View.render_update = function (update) {
     for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
       ++stack.i) {}
     var target = find_dom_parent(update, stack);
-    update.target.render(stack, target, find_dom_ref(update, target));
+    var ref = find_dom_ref(update, target);
+    var update_last = !ref && target === stack[stack.i].target;
+    if (update_last) {
+      ref = stack[stack.i].last.nextSibling;
+    }
+    update.target.render(stack, target, ref);
+    if (update_last) {
+      stack[stack.i].last = stack[stack.i].last.nextSibling;
+    }
     delete stack.i;
   });
 };

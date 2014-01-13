@@ -119,19 +119,23 @@ var Element = bender.Element = {
     return this.insert_child(child), this;
   },
 
+  // Remove the child element child from the list of child elements.
+  remove_child: function (child) {
+    if (child.parent !== this) {
+      throw "hierarchy error: not a child of the parent";
+    }
+    remove_ids_from_scope(child);
+    flexo.remove_from_array(this.children, child);
+    update(this.component, { type: "remove", target: child, parent: this });
+    delete child.parent;
+  },
+
+  // Remove self from the list of child elements.
   remove_self: function () {
     if (child.parent) {
       this.parent.remove_child(this);
     }
     return this;
-  },
-
-  remove_child: function (child) {
-    if (child.parent !== this) {
-      throw "hierarchy error: not a child of the parent";
-    }
-    flexo.remove_from_array(this.children, child);
-    delete child.parent;
   },
 };
 
@@ -518,6 +522,27 @@ function add_ids_to_scope(root) {
         component.scope["#" + element._id] = element;
       }
       return element.children;
+    });
+  }
+}
+
+// TODO review this;
+function remove_ids_from_scope(root) {
+  var component = root.component;
+  if (component) {
+    var ids = flexo.bfold(root, function (ids, element) {
+      if (element._id) {
+        ids.push(element._id);
+      }
+      return ids;
+    }, flexo.property("children"), []);
+    var instances = component.all_instances;
+    instances.push(component);
+    instances.forEach(function (instance) {
+      ids.forEach(function (id) {
+        delete instance.scope["@" + id];
+        delete instance.scope["#" + id];
+      });
     });
   }
 }
