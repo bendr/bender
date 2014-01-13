@@ -356,6 +356,15 @@ flexo.make_readonly(DOMElement, "view", find_view);
 flexo.make_readonly(DOMElement, "tag", "dom");
 
 
+var Attribute = bender.Attribute = flexo._ext(ViewElement, {
+  init: function (ns, name) {
+    this.namespace_uri = ns;
+    this.local_name = name;
+    return Element.init.call(this);
+  },
+});
+
+
 var Text = bender.Text = flexo._ext(ViewElement, {
   init: function () {
     return this.parent = null, this;
@@ -380,7 +389,7 @@ var Text = bender.Text = flexo._ext(ViewElement, {
 
   update: {
     text: function (update) {
-      update.target.render_update();
+      update.target.render_update(update);
     }
   }
 });

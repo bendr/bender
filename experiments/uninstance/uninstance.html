@@ -43,9 +43,14 @@ Component.on_handlers.render = function (stack) {
 var env = bender.environment();
 
 var A = env.component().id("A")
-  .view(env.$div({ "class": "contents", id: "div" }, env.$p("Hello from A")));
+    .view(env.$div({ "class": "contents", id: "div" },
+      env.$p({ id: "p" }, "Hello from A")));
 var A_ = A.render_instance(document.body);
 var A__ = A.render_instance(document.body);
+
+setTimeout(function () {
+  A_.scope["#p"].children[0].text("Did you see that?!");
+}, 500);
 
 /*
 var C = env.$("component#C", env.$view(
@@ -64,6 +69,7 @@ var A_ = A.render_instance(document.body);
 
 */
 
+/*
 setTimeout(function () {
   // A.scope["@div"].insert_child(env.$p("Hello again"));
   // return;
@@ -84,6 +90,7 @@ setTimeout(function () {
   A.scope.view.insert_child(flexo.$p("And again and again!"));
   return;
 }, 3000);
+*/
 
     </script>
   </body>

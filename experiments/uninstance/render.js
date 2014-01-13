@@ -122,10 +122,7 @@ View.render = function (stack, target, ref) {
 // the instance) or for the component, i.e., all instances (then apply to all
 // stacks.)
 View.render_update = function (update) {
-  (update.scope.stack ? [update.scope.stack] :
-    update.scope["#this"].all_instances.map(function (instance) {
-      return instance.scope.stack;
-    })).forEach(function (stack) {
+  update_stacks(update).forEach(function (stack) {
     for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
       ++stack.i) {}
     var target = find_dom_parent(update, stack);
@@ -141,6 +138,26 @@ View.render_update = function (update) {
     delete stack.i;
   });
 };
+
+Text.render_update = function (update) {
+  update_stacks(update).forEach(function (stack) {
+    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
+      ++stack.i) {}
+    var target = flexo.bfirst(stack[stack.i].target,
+      update.target.hasOwnProperty("target") ? function (p) {
+        return p.__bender && p.__bender === update.target || p.childNodes;
+      } : function (p) {
+        return p.__bender && Object.getPrototypeOf(p.__bender) === update.target
+          && p.__bender.view === stack[stack.i].view || p.childNodes;
+      });
+    target.textContent = update.target.text();
+  });
+};
+
+function update_stacks(update) {
+  return update.scope.stack ? [update.scope.stack] :
+    update.scope["#this"].all_instances.map(flexo.property("scope", "stack"));
+}
 
 
 Content.render = function (stack, target, ref) {
@@ -173,12 +190,9 @@ DOMElement.render = function (stack, target, ref) {
 
 Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
-  return this.target = target.insertBefore(target.ownerDocument
-      .createTextNode(this.text()), ref);
-};
-
-Text.render_update = function () {
-  this.target.textContent = this.text();
+  var node = target.ownerDocument.createTextNode(this.text());
+  node.__bender = this;
+  return this.target = target.insertBefore(node, ref);
 };
 
 

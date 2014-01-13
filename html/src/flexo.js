@@ -959,10 +959,13 @@
   };
 
   // Get a function that returns the property `property` of an object.
-  flexo.property = function (property) {
-    return function (x) {
-      return x && x[property];
-    };
+  flexo.property = function (p1, p2) {
+    return arguments.length === 1 ?
+      function (x) {
+        return x && x[p1];
+      } : function (x) {
+        return x && x[p1] && x[p1][p2];
+      };
   };
 
   // A function that returns its second argument and discard the first.
