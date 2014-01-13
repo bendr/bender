@@ -181,6 +181,11 @@ var Component = bender.Component = flexo._ext(Element, {
     return Element.init_with_args.call(this, args);
   },
 
+  load_links: function () {
+    // TODO
+    return this;
+  },
+
   // Default handlers for on-init and on-instantiate
   on_handlers: {
     init: flexo.nop,
@@ -238,6 +243,28 @@ var Component = bender.Component = flexo._ext(Element, {
     }
     var view = this.scope.view || this.insert_child(View.create().init());
     $foreach(arguments, insert_children.bind(null, view));
+    return this;
+  },
+
+  // Get or set the URL of the component (from the XML file of its description,
+  // or the environment document if created programmatically.) Return the
+  // component for chaining.
+  url: function (url) {
+    if (arguments.length === 0) {
+      if (this._url) {
+        return this._url;
+      }
+      url = flexo.normalize_uri((this.scope.parent &&
+          this.scope.parent.url()) || (this.scope.$document &&
+          this.scope.$document.baseURI));
+      if (this._id) {
+        var u = flexo.split_uri(url);
+        u.fragment = this._id;
+        return flexo.unsplit_uri(u);
+      }
+      return url;
+    }
+    this._url = url;
     return this;
   }
 

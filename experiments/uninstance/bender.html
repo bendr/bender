@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Uninstance 2: Electric Boogaloo</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: "Avenir Next", sans-serif;
+}
+    </style>
+    <meta http-equiv="cache-control" content="no-cache">
+    <script src="../../html/src/flexo.js"></script>
+  </head>
+  <body>
+    <script src="core.js"></script>
+    <script src="render.js"></script>
+    <script src="xml.js"></script>
+    <script>
+"use strict";
+
+var env = bender.environment();
+env.load_component("xml/hello.xml").then(function (component) {
+  var instance = component.render_instance();
+});
+
+    </script>
+  </body>
+</html>
