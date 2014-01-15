@@ -123,9 +123,7 @@ View.render = function (stack, target, ref) {
 // the instance) or for the component, i.e., all instances (then apply to all
 // stacks.)
 View.render_update = function (update) {
-  update_stacks(update).forEach(function (stack) {
-    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
-      ++stack.i) {}
+  update_stacks(update, function (stack) {
     var target = find_dom_parent(update, stack);
     var ref = find_dom_ref(update, stack, target);
     var update_last = !ref && target === stack[stack.i].target;
@@ -136,14 +134,12 @@ View.render_update = function (update) {
     if (update_last) {
       stack[stack.i].last = stack[stack.i].last.nextSibling;
     }
-    delete stack.i;
   });
 };
 
-Text.render_update = function (update) {
-  update_stacks(update).forEach(function (stack) {
-    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
-      ++stack.i) {}
+// Update the text of a view element
+ViewElement.update_text = function (update) {
+  update_stacks(update, function (stack) {
     var target = flexo.bfirst(stack[stack.i].target,
       update.target.hasOwnProperty("target") ? function (p) {
         return p.__bender && p.__bender === update.target || p.childNodes;
@@ -154,12 +150,16 @@ Text.render_update = function (update) {
       });
     target.textContent = update.target.text();
   });
-};
-
-function update_stacks(update) {
-  return update.scope.stack ? [update.scope.stack] :
-    update.scope["#this"].all_instances.map(flexo.property("scope", "stack"));
 }
+
+// Update a text element depending on its parent (either view element or
+// attribute)
+Text.render_update = function (update) {
+  var f = this.parent && this.parent.update_text;
+  if (f) {
+    f.call(this, update);
+  }
+};
 
 
 Content.render = function (stack, target, ref) {
@@ -200,6 +200,13 @@ Attribute.render = function (_, target) {
   }
 };
 
+Attribute.update_text = function (update) {
+  update.target = this.parent;
+  update_stacks(update, function (stack) {
+    update.target.render(stack, find_dom_parent(update, stack));
+  });
+}
+
 
 Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
@@ -235,4 +242,20 @@ function find_dom_ref(update, stack, target) {
         return p.__bender && Object.prototype(p.__bender) === ref &&
           p.__bender.view === stack[stack.i].view;
       });
+}
+
+// Update all stacks for a given update
+function update_stacks(update, f) {
+  var update_stack = function (stack) {
+    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
+      ++stack.i) {}
+    f(stack);
+    delete stack.i;
+  };
+  if (update.scope.stack) {
+    update_stack(update.scope.stack);
+  } else {
+    update.scope["#this"].all_instances.map(flexo.property("scope", "stack"))
+      .forEach(update_stack);
+  }
 }

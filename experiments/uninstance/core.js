@@ -393,12 +393,12 @@ flexo.make_readonly(DOMElement, "view", find_view);
 flexo.make_readonly(DOMElement, "tag", "dom");
 
 
-var Attribute = bender.Attribute = flexo._ext(ViewElement, {
+var Attribute = bender.Attribute = flexo._ext(Element, {
   init: function (ns, name) {
     this.namespace_uri = ns;
     this.local_name = name;
     return Element.init.call(this);
-  }
+  },
 });
 
 
@@ -417,6 +417,9 @@ var Text = bender.Text = flexo._ext(ViewElement, {
   },
 
   update: {
+    add: function (update) {
+      update.target.render_update(update);
+    },
     text: function (update) {
       update.target.render_update(update);
     }
