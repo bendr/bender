@@ -1,4 +1,5 @@
-/* global bender, Component, Content, DOMElement, flexo, on, Text, View, window */
+/* global Attribute, bender, Component, Content, DOMElement, flexo, on, Text */
+/* global View, window */
 // jshint -W097
 
 "use strict";
@@ -126,7 +127,7 @@ View.render_update = function (update) {
     for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
       ++stack.i) {}
     var target = find_dom_parent(update, stack);
-    var ref = find_dom_ref(update, target);
+    var ref = find_dom_ref(update, stack, target);
     var update_last = !ref && target === stack[stack.i].target;
     if (update_last) {
       ref = stack[stack.i].last.nextSibling;
@@ -147,8 +148,9 @@ Text.render_update = function (update) {
       update.target.hasOwnProperty("target") ? function (p) {
         return p.__bender && p.__bender === update.target || p.childNodes;
       } : function (p) {
-        return p.__bender && Object.getPrototypeOf(p.__bender) === update.target
-          && p.__bender.view === stack[stack.i].view || p.childNodes;
+        return p.__bender &&
+          Object.getPrototypeOf(p.__bender) === update.target &&
+          p.__bender.view === stack[stack.i].view || p.childNodes;
       });
     target.textContent = update.target.text();
   });
@@ -188,6 +190,17 @@ DOMElement.render = function (stack, target, ref) {
 };
 
 
+Attribute.render = function (_, target) {
+  // jshint unused: true
+  if (this.namespace_uri) {
+    target.setAttributeNS(this.namespace_uri, this.local_name,
+        this.shallow_text);
+  } else {
+    target.setAttribute(this.local_name, this.shallow_text);
+  }
+};
+
+
 Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
   var node = target.ownerDocument.createTextNode(this.text());
@@ -212,7 +225,7 @@ function find_dom_parent(update, stack) {
       });
 }
 
-function find_dom_ref(update, target) {
+function find_dom_ref(update, stack, target) {
   var parent = update.target.parent;
   var ref = parent.children[parent.children.indexOf(update.target) + 1];
   return ref && flexo.find_first(target.childNodes,

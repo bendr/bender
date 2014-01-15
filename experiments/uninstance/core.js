@@ -1,4 +1,5 @@
-/* global console, exports, flexo, global, $foreach, $$push, $slice, window */
+/* global bender, console, exports, flexo, $foreach, global, $$push, require */
+/* global $slice, window */
 // jshint -W097
 
 "use strict";
@@ -132,7 +133,7 @@ var Element = bender.Element = {
 
   // Remove self from the list of child elements.
   remove_self: function () {
-    if (child.parent) {
+    if (this.parent) {
       this.parent.remove_child(this);
     }
     return this;
@@ -140,6 +141,15 @@ var Element = bender.Element = {
 };
 
 flexo.make_readonly(Element, "is_bender_element", true);
+
+flexo.make_readonly(Element, "shallow_text", function () {
+  return this.children.reduce(function (text, elem) {
+    if (elem.text) {
+      text += elem.text();
+    }
+    return text;
+  }, "");
+});
 
 // The closest component ancestor element.
 flexo.make_readonly(Element, "component", function () {
@@ -388,19 +398,11 @@ var Attribute = bender.Attribute = flexo._ext(ViewElement, {
     this.namespace_uri = ns;
     this.local_name = name;
     return Element.init.call(this);
-  },
+  }
 });
 
 
 var Text = bender.Text = flexo._ext(ViewElement, {
-  init: function () {
-    return this.parent = null, this;
-  },
-
-  insert_child: function (child) {
-    this.text(this.text() + child);
-  },
-
   instantiate: function (scope) {
     return Element.instantiate.call(this, scope, true);
   },

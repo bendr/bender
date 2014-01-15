@@ -1,3 +1,6 @@
+/* global bender, $call, console, flexo, $foreach, $map, window */
+// jshint -W097
+
 "use strict";
 
 bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
@@ -153,6 +156,13 @@ bender.Environment.deserialize.content = function (elem) {
   return this.deserialize_children(bender.Content.create()
       .id(elem.getAttribute("id"))
       .renderId(elem.getAttribute("render-id")), elem);
+};
+
+bender.Environment.deserialize.attribute = function (elem) {
+  return this.deserialize_children(bender.Attribute
+      .create(flexo.safe_string(elem.getAttribute("ns")),
+        flexo.safe_string(elem.getAttribute("name")))
+      .id(elem.getAttribute("id")), elem);
 };
 
 bender.Environment.deserialize.text = function (elem) {

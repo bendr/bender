@@ -18,10 +18,13 @@ body {
     <script>
 "use strict";
 
-var env = bender.environment();
-env.load_component("xml/hello.xml").then(function (component) {
-  var instance = component.render_instance();
-});
+var args = flexo.get_args();
+if (args.href) {
+  var env = bender.environment();
+  env.load_component(args.href).then(function (component) {
+    var instance = global.$ = component.render_instance();
+  });
+}
 
     </script>
   </body>
