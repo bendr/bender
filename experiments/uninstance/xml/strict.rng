@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+  datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
+  xmlns:html="http://www.w3.org/1999/xhtml" ns="http://bender.igel.co.jp">
+
+  <start>
+    <ref name="component"/>
+  </start>
+
+
+  <define name="attribute">
+    <element name="attribute">
+      <ref name="element-attrs"/>
+      <optional>
+        <ref name="ns"/>
+      </optional>
+      <ref name="name"/>
+      <mixed>
+        <zeroOrMore>
+          <ref name="text"/>
+        </zeroOrMore>
+      </mixed>
+    </element>
+  </define>
+
+  <define name="component">
+    <element name="component">
+      <ref name="element-attrs"/>
+      <optional>
+        <ref name="href"/>
+      </optional>
+      <optional>
+        <ref name="on-attrs"/>
+      </optional>
+      <optional>
+        <ref name="view"/>
+      </optional>
+    </element>
+  </define>
+
+  <define name="content">
+    <element name="content">
+      <ref name="view-element-attrs"/>
+      <ref name="view-element-content"/>
+    </element>
+  </define>
+
+  <define name="text">
+    <element name="text">
+      <ref name="element-attrs"/>
+      <text/>
+    </element>
+  </define>
+
+  <define name="view-element-content">
+    <mixed>
+      <zeroOrMore>
+        <ref name="attribute"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="component"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="foreign-element"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="text"/>
+      </zeroOrMore>
+    </mixed>
+  </define>
+
+  <define name="foreign-element">
+    <element>
+      <anyName>
+        <except>
+          <nsName/>
+        </except>
+      </anyName>
+      <zeroOrMore>
+        <attribute>
+          <anyName/>
+        </attribute>
+      </zeroOrMore>
+      <ref name="view-element-content"/>
+    </element>
+  </define>
+
+  <define name="view">
+    <element name="view">
+      <ref name="view-element-attrs"/>
+      <ref name="view-element-content"/>
+    </element>
+  </define>
+
+
+  <define name="element-attrs">
+    <optional>
+      <ref name="id"/>
+    </optional>
+  </define>
+
+  <define name="on-attrs">
+    <optional>
+      <attribute name="on-init"/>
+    </optional>
+    <optional>
+      <attribute name="on-instantiate"/>
+    </optional>
+    <optional>
+      <attribute name="on-render"/>
+    </optional>
+  </define>
+
+  <define name="view-element-attrs">
+    <ref name="element-attrs"/>
+    <optional>
+      <ref name="render-id"/>
+    </optional>
+  </define>
+
+  <define name="href">
+    <attribute name="href">
+      <data type="anyURI"/>
+    </attribute>
+  </define>
+
+  <define name="id">
+    <attribute name="id">
+      <data type="ID"/>
+    </attribute>
+  </define>
+
+  <define name="name">
+    <attribute name="name">
+      <data type="Name"/>
+    </attribute>
+  </define>
+
+  <define name="ns">
+    <attribute name="ns">
+      <data type="anyURI"/>
+    </attribute>
+  </define>
+
+  <define name="render-id">
+    <attribute name="render-id">
+      <choice>
+        <value>class</value>
+        <value>id</value>
+        <value>inherit</value>
+        <value>none</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define name="stack">
+    <attribute name="stack">
+      <choice>
+        <value>bottom</value>
+        <value>replace</value>
+        <value>top</value>
+      </choice>
+    </attribute>
+  </define>
+
+</grammar>
