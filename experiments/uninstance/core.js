@@ -375,8 +375,9 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
       if (!this.attrs.hasOwnProperty(ns)) {
         this.attrs[ns] = {};
       }
-      // TODO bindings
       this.attrs[ns][name] = value;
+      update(this.component,
+          { type: "attr", target: this, ns: ns, name: name });
       return this;
     }
     return (this.attrs[ns] && this.attrs[ns][name]) || null;
@@ -386,6 +387,9 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     add: function (update) {
       update.scope.view.render_update(update);
     },
+    attr: function (update) {
+      update.target.update_attribute(update);
+    }
   }
 });
 
