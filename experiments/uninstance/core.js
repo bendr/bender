@@ -472,7 +472,6 @@ var Environment = bender.Environment = {
   // Push an update to the update queue, creating the queue if necessary.
   update_component: function (update) {
     if (update.target.component.__pending_render) {
-      console.log("--- pending render");
       return;
     }
     if (!this.update_queue) {

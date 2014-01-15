@@ -11,9 +11,9 @@ bender.DocumentEnvironment = flexo._ext(bender.Environment, {
 
   // Init an environment with the given document
   init: function (document) {
-    var env = bender.Environment.init.call(this);
-    env.scope.document = document || window.document;
-    return env;
+    bender.Environment.init.call(this);
+    this.scope.document = document || window.document;
+    return this;
   },
 
   // Create a DOM element in the document of the scope (using
