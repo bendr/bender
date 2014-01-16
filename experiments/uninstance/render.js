@@ -78,6 +78,7 @@ Component.render = function (stack, target, ref) {
 };
 
 // Create a new scope for rendering, instantiating the view.
+// TODO update ids
 Component.render_scope = function () {
   var scope = Object.create(this.scope);
   if (this.scope.view) {
@@ -146,7 +147,7 @@ ViewElement.update_text = function (update) {
 
 // Update a text element depending on its parent (either view element or
 // attribute)
-Text.render_update = function (update) {
+Text.text_update = function (update) {
   var f = this.parent && this.parent.update_text;
   if (f) {
     f.call(this, update);

@@ -286,6 +286,12 @@ var Component = bender.Component = flexo._ext(Element, {
     }
     this._url = url;
     return this;
+  },
+
+  updates: {
+    add: function (update) {
+      update.scope.view.render_update(update);
+    }
   }
 
 });
@@ -455,10 +461,10 @@ var Text = bender.Text = flexo._ext(ViewElement, {
 
   updates: {
     add: function (update) {
-      update.target.render_update(update);
+      update.scope.view.render_update(update);
     },
     text: function (update) {
-      update.target.render_update(update);
+      update.target.text_update(update);
     }
   }
 });
@@ -500,7 +506,7 @@ var Environment = bender.Environment = {
 
   // Push an update to the update queue, creating the queue if necessary.
   update_component: function (update) {
-    if (update.target.component.__pending_render) {
+    if (update.scope["@this"].__pending_render) {
       return;
     }
     if (!this.update_queue) {

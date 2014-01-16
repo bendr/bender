@@ -33,21 +33,17 @@ div.inner {
 var env = bender.environment();
 
 var outer = env.component().id("outer")
-  .view(env.$div({ "class": "outer" },
-          env.$p({ id: "p" },
-            env.$text("Outer frame"),
-            env.$text({ id: "t" }, " (empty)"))));
+  .view(env.$div({ id: "div", "class": "outer" },
+          env.$p({ id: "p" }, "Outer")));
 
 var inner = env.component().id("inner")
-  .view(env.$div({ "class": "inner" }, env.$p("Inner frame")));
+  .view(env.$div({ "class": "inner" }, env.$p("Inner")));
 
 var outer_ = outer.render_instance(document.body);
-// var inner_ = inner.render_instance(document.body);
 
 setTimeout(function () {
-  // TODO: fix this
-  // outer_.scope["@p"].insert_child(" (now with content)");
-  outer_.scope["@t"].text(" (now with content)");
+  outer_.scope["@p"].insert_child(" (now with content)");
+  outer_.scope["@div"].insert_child(inner.instantiate());
 }, 1000);
 
     </script>
