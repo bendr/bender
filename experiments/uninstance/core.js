@@ -290,7 +290,15 @@ var Component = bender.Component = flexo._ext(Element, {
 
   updates: {
     add: function (update) {
-      update.scope.view.render_update(update);
+      var self = update.target;
+      self.scope.view.render_update(update);
+      if (self._id) {
+        self.scope.parent.scope["@" + self._id] = self;
+        // TODO check this
+        if (Object.getPrototypeOf(self) === bender.Component) {
+          self.scope.parent.scope["#" + self._id] = self;
+        }
+      }
     }
   }
 

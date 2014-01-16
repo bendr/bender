@@ -78,7 +78,6 @@ Component.render = function (stack, target, ref) {
 };
 
 // Create a new scope for rendering, instantiating the view.
-// TODO update ids
 Component.render_scope = function () {
   var scope = Object.create(this.scope);
   if (this.scope.view) {

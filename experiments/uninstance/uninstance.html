@@ -42,8 +42,11 @@ var inner = env.component().id("inner")
 var outer_ = outer.render_instance(document.body);
 
 setTimeout(function () {
-  outer_.scope["@p"].insert_child(" (now with content)");
-  outer_.scope["@div"].insert_child(inner.instantiate());
+  // outer_.scope["@p"].insert_child(" (now with content)");
+  // outer_.scope["@div"].insert_child(inner.instantiate());
+  // TODO an instance should be created
+  outer.scope["#p"].insert_child(" (now with content");
+  outer.scope["#div"].insert_child(inner);
 }, 1000);
 
     </script>
