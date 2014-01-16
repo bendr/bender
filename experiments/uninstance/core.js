@@ -110,7 +110,7 @@ var Element = bender.Element = {
     this.children.splice(index, 0, child);
     child.parent = this;
     add_ids_to_scope(child);
-    update(this.component, { type: "add", target: child });
+    this.update({ type: "add", target: child });
     return child;
   },
 
@@ -127,7 +127,7 @@ var Element = bender.Element = {
     }
     remove_ids_from_scope(child);
     flexo.remove_from_array(this.children, child);
-    update(this.component, { type: "remove", target: child, parent: this });
+    this.update({ type: "remove", target: child, parent: this });
     delete child.parent;
   },
 
@@ -138,6 +138,16 @@ var Element = bender.Element = {
     }
     return this;
   },
+
+  // Notify the runtime that an update was made for this element (the runtime
+  // will decide what to with it)
+  update: function (args) {
+    var component = this.component;
+    if (component) {
+      args.scope = component.scope;
+      component.scope.environment.update_component(args);
+    }
+  }
 };
 
 flexo.make_readonly(Element, "is_bender_element", true);
@@ -348,18 +358,18 @@ flexo.make_readonly(Content, "tag", "content");
 
 var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
   init: function (ns, name) {
-    this.namespace_uri = ns;
-    this.local_name = name;
+    this.ns = ns;
+    this.name = name;
     this.attrs = {};
     return Element.init.call(this);
   },
 
   init_with_args: function (args) {
     ViewElement.init_with_args.call(this, args);
-    this.namespace_uri = args.namespace_uri || args.namespaceURI;
-    this.local_name = args.local_name || args.localName;
-    var skip = { id: true, renderId: true, "render-id": true, namespace_uri: true,
-      namespaceURI: true, local_name: true, localName: true };
+    this.ns = args.ns;
+    this.name = args.name;
+    var skip = { id: true, renderId: true, "render-id": true, ns: true,
+      name: true };
     this.attrs = {};
     // TODO known namespace prefixes from Flexo
     for (var p in args) {
@@ -370,20 +380,29 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     return this;
   },
 
+  // Get or set the attribute {ns}:name. Use a null value to remove the
+  // attribute.
   attr: function (ns, name, value) {
     if (arguments.length > 2) {
-      if (!this.attrs.hasOwnProperty(ns)) {
-        this.attrs[ns] = {};
+      var args = value === null ? delete_attribute(this, ns, name) :
+        set_attribute(this, ns, name, value);
+      if (args) {
+        args.target = this;
+        args.type = "attr";
+        args.ns = ns;
+        args.name = name;
+        this.update(args);
       }
-      this.attrs[ns][name] = value;
-      update(this.component,
-          { type: "attr", target: this, ns: ns, name: name });
       return this;
     }
     return (this.attrs[ns] && this.attrs[ns][name]) || null;
   },
 
-  update: {
+  unattr: function (ns, name) {
+    return this.attr(ns, name, null);
+  },
+
+  updates: {
     add: function (update) {
       update.scope.view.render_update(update);
     },
@@ -393,17 +412,31 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
   }
 });
 
-flexo.make_readonly(DOMElement, "view", find_view);
 flexo.make_readonly(DOMElement, "tag", "dom");
+flexo.make_readonly(DOMElement, "view", find_view);
 
 
 var Attribute = bender.Attribute = flexo._ext(Element, {
   init: function (ns, name) {
-    this.namespace_uri = ns;
-    this.local_name = name;
+    this.ns = ns;
+    this.name = name;
     return Element.init.call(this);
   },
+
+  init_with_args: function (args) {
+    return Element.init_with_args.call(this.init(args.ns || "", args.name),
+      args);
+  },
+
+  updates: {
+    add: function (update) {
+      update.scope.view.render_update(update);
+    }
+  }
 });
+
+flexo.make_readonly(Attribute, "tag", "attribute");
+flexo.make_readonly(Attribute, "view", find_view);
 
 
 var Text = bender.Text = flexo._ext(ViewElement, {
@@ -416,11 +449,11 @@ var Text = bender.Text = flexo._ext(ViewElement, {
       return this._text || "";
     }
     this._text = flexo.safe_string(text);
-    update(this.component, { type: "text", target: this });
+    this.update({ type: "text", target: this });
     return this;
   },
 
-  update: {
+  updates: {
     add: function (update) {
       update.target.render_update(update);
     },
@@ -429,14 +462,6 @@ var Text = bender.Text = flexo._ext(ViewElement, {
     }
   }
 });
-
-function insert_children(elem, children) {
-  if (Array.isArray(children)) {
-    children.forEach(insert_children.bind(null, elem));
-  } else {
-    elem.insert_child(children);
-  }
-}
 
 flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
@@ -491,7 +516,7 @@ var Environment = bender.Environment = {
     delete this.update_queue;
     for (var i = 0, n = queue.length; i < n; ++i) {
       var update = queue[i];
-      var f = update.target.update && update.target.update[update.type];
+      var f = update.target.updates && update.target.updates[update.type];
       if (typeof f === "function") {
         f(update);
       }
@@ -531,7 +556,7 @@ bender.environment = function () {
 };
 
 // Shortcuts for the $ function: env.$foo === env.$("foo")
-["component", "content", "text", "view"].forEach(function (tag) {
+["attribute", "component", "content", "text", "view"].forEach(function (tag) {
   Environment["$" + tag] = function () {
     var args = [tag];
     $$push(args, arguments);
@@ -549,8 +574,8 @@ bender.environment = function () {
       args = {};
       args_.push(args);
     }
-    args.namespace_uri = flexo.ns.html;
-    args.local_name = tag;
+    args.ns = flexo.ns.html;
+    args.name = tag;
     $$push(args_, arguments);
     return this.$.apply(this, args_);
   };
@@ -626,17 +651,41 @@ function convert_dom_node(node) {
   }
 }
 
+// Delete the attribute {ns}name from elem; return an empty object (no value)
+// if the attribute was actually deleted
+function delete_attribute(elem, ns, name) {
+  if (elem.attrs.hasOwnProperty(ns) && elem.attrs[ns].hasOwnProperty(name)) {
+    delete elem.attrs[ns][name];
+    if (Object.keys(elem.attrs[ns]).length === 0) {
+      delete elem.attrs[ns];
+    }
+    return {};
+  }
+}
+
 function find_view() {
   // jshint -W040
   return this.parent && this.parent.view;
 }
 
+// Insert children into an element; this can handle a single as well as a list
+// of children
+function insert_children(elem, children) {
+  if (Array.isArray(children)) {
+    children.forEach(insert_children.bind(null, elem));
+  } else {
+    elem.insert_child(children);
+  }
+}
+
+// Normalize the render-id/renderId attribute
 function normalize_renderId(renderId) {
   renderId = flexo.safe_trim(renderId).toLowerCase();
   return renderId === "class" || renderId === "id" || renderId === "none" ?
     renderId : "inherit";
 }
 
+// Normalize the stack attribute
 function normalize_stack(stack) {
   stack = flexo.safe_trim(stack).toLowerCase();
   return stack === "bottom" || stack === "replace" ? stack : "top";
@@ -650,9 +699,13 @@ function on(component, type) {
   component.on_handlers[type].apply(component, $slice(arguments, 2));
 }
 
-function update(component, args) {
-  if (component) {
-    args.scope = component.scope;
-    component.scope.environment.update_component(args);
+// Set the attribute {ns}name to value on the element
+function set_attribute(elem, ns, name, value) {
+  if (!elem.attrs.hasOwnProperty(ns)) {
+    elem.attrs[ns] = {};
+  }
+  if (!elem.attrs[ns].hasOwnProperty(name) || elem.attrs[ns][name] !== value) {
+    elem.attrs[ns][name] = value;
+    return { value: value };
   }
 }

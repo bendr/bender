@@ -1,5 +1,5 @@
 /* global Attribute, bender, Component, Content, DOMElement, flexo, on, Text */
-/* global View, window */
+/* global View, ViewElement, window */
 // jshint -W097
 
 "use strict";
@@ -142,7 +142,7 @@ ViewElement.update_text = function (update) {
   update_stacks(update, function (stack) {
     find_dom(update, stack).textContent = update.target.text();
   });
-}
+};
 
 // Update a text element depending on its parent (either view element or
 // attribute)
@@ -166,8 +166,7 @@ Content.render = function (stack, target, ref) {
 
 
 DOMElement.render = function (stack, target, ref) {
-  var elem = target.ownerDocument.createElementNS(this.namespace_uri,
-    this.local_name);
+  var elem = target.ownerDocument.createElementNS(this.ns, this.name);
   this.target = elem;
   elem.__bender = this;
   for (var ns in this.attrs) {
@@ -184,11 +183,18 @@ DOMElement.render = function (stack, target, ref) {
 DOMElement.update_attribute = function (update) {
   update_stacks(update, function (stack) {
     var dom = find_dom(update, stack);
-    var value = this.attrs[update.ns][update.name];
-    if (update.ns) {
-      dom.setAttributeNS(update.ns, update.name, value);
+    if (update.hasOwnProperty("value")) {
+      if (update.ns) {
+        dom.setAttributeNS(update.ns, update.name, update.value);
+      } else {
+        dom.setAttribute(update.name, update.value);
+      }
     } else {
-      dom.setAttribute(update.name, value);
+      if (update.ns) {
+        dom.removeAttributeNS(update.ns, update.name);
+      } else {
+        dom.removeAttribute(update.name);
+      }
     }
   }.bind(this));
 };
@@ -196,11 +202,10 @@ DOMElement.update_attribute = function (update) {
 
 Attribute.render = function (_, target) {
   // jshint unused: true
-  if (this.namespace_uri) {
-    target.setAttributeNS(this.namespace_uri, this.local_name,
-        this.shallow_text);
+  if (this.ns) {
+    target.setAttributeNS(this.ns, this.name, this.shallow_text);
   } else {
-    target.setAttribute(this.local_name, this.shallow_text);
+    target.setAttribute(this.name, this.shallow_text);
   }
 };
 
@@ -209,7 +214,7 @@ Attribute.update_text = function (update) {
   update_stacks(update, function (stack) {
     update.target.render(stack, find_dom_parent(update, stack));
   });
-}
+};
 
 
 Text.render = function (_, target, ref) {

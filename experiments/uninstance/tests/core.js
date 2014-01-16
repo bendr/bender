@@ -169,7 +169,7 @@ describe("Bender core", function () {
           expect(p.nodeType).toBe(window.Node.ELEMENT_NODE);
           expect(p.localName).toBe("p");
           expect(p_.tag).toBe("dom");
-          expect(p_.local_name).toBe("p");
+          expect(p_.name).toBe("p");
         });
         it("converts a text string into a Bender Text element", function () {
           var text = "O HAI";
@@ -283,6 +283,38 @@ describe("Bender core", function () {
       });
     });
 
+    describe("bender.Attribute", function () {
+      it("represents an attribute of its parent element (note: this is not a " +
+        "ViewElement though!)", function () {
+          expect(bender.Attribute.renderId).toBeUndefined();
+        });
+      describe("init(ns, name)", function () {
+        it("initializes the attribute with a namespace URI and local name",
+          function () {
+            var a = bender.Attribute.create("", "class");
+            expect(a.tag).toBe("attribute");
+            expect(a.ns).toBe("");
+            expect(a.name).toBe("class");
+          });
+      });
+      describe("init_with_args(args)", function () {
+        it("supports the additional ns (optional) and name (mandatory) arguments",
+          function () {
+            var a = Object.create(bender.Attribute)
+              .init_with_args({ name: "class" });
+            expect(a.tag).toBe("attribute");
+            expect(a.ns).toBe("");
+            expect(a.name).toBe("class");
+          });
+        it("is called by env.$attribute(args, children)", function () {
+          var a = env.$attribute({ name: "class", id: "class-attr" }, "test");
+          expect(a.tag).toBe("attribute");
+          expect(a.ns).toBe("");
+          expect(a.name).toBe("class");
+          expect(a.shallow_text).toBe("test");
+        });
+      });
+    });
 
   });
 

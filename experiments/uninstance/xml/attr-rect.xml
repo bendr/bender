@@ -7,11 +7,11 @@
       </svg:text>
 
       <!-- Inline attributes -->
-      <svg:rect x="50" y="100" width="200" height="150"
+      <svg:rect id="r1" x="50" y="100" width="200" height="150"
         fill="rgba(255, 127, 63, 0.5)"/>
 
       <!-- Using the <attribute> element -->
-      <svg:rect>
+      <svg:rect id="r2">
         <attribute name="x" id="x"/>
         <attribute name="y">50</attribute>
         <attribute name="width">200</attribute>

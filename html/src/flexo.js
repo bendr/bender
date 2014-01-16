@@ -178,7 +178,7 @@
     var ID_RX = new RegExp("^[%0][%0%1]*$".fmt(NAME_START, NAME_CONT));
     id = flexo.safe_trim(id);
     if (id !== "") {
-      var m = flexo.safe_trim(id).match(ID_RX);
+      var m = id.match(ID_RX);
       return m && m[0];
     }
     return "";

@@ -41,25 +41,25 @@ function start_element(name, attrs) {
 
 start_element.attribute = function (attrs) {
   return bender.Attribute.create(flexo.safe_string(attrs.ns),
-      flexo.safe_string(attrs.name)).id(flexo.safe_string(attrs.id));
+      flexo.safe_string(attrs.name)).id(attrs.id);
 };
 
 start_element.component = function (attrs) {
   // TODO: href, &c.
-  return this.__environment.component().id(flexo.safe_string(attrs.id));
+  return this.__environment.component().id(attrs.id);
 };
 
 start_element.content = function (attrs) {
-  return bender.Content.create().id(flexo.safe_string(attrs.id))
+  return bender.Content.create().id(attrs.id)
     .renderId(attrs["render-id"] || attrs.renderId);
 };
 
 start_element.text = function (attrs) {
-  return bender.Text.create().id(flexo.safe_string(attrs.id));
+  return bender.Text.create().id(attrs.id);
 };
 
 start_element.view = function (attrs) {
-  return bender.View.create().id(flexo.safe_string(attrs.id));
+  return bender.View.create().id(attrs.id);
 };
 
 
