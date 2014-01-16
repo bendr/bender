@@ -13,8 +13,12 @@ div {
   padding: 1em;
 }
 
-div.contents {
+div.outer {
   border-color: #08f;
+}
+
+div.inner {
+  border-color: #0f8;
 }
     </style>
     <meta http-equiv="cache-control" content="no-cache">
@@ -26,71 +30,25 @@ div.contents {
     <script>
 "use strict";
 
-/*
-Component.on_handlers.init = function () {
-  console.log("on:init", this);
-};
-
-Component.on_handlers.instantiate = function (view) {
-  console.log("on:instantiate", this, view);
-};
-
-Component.on_handlers.render = function (stack) {
-  console.log("on:render", this, stack);
-};
-*/
-
 var env = bender.environment();
 
-var A = env.component().id("A")
-    .view(env.$div({ "class": "contents", id: "div" },
-      env.$p({ id: "p" }, "Hello from A")));
-var A_ = A.render_instance(document.body);
-var A__ = A.render_instance(document.body);
+var outer = env.component().id("outer")
+  .view(env.$div({ "class": "outer" },
+          env.$p({ id: "p" },
+            env.$text("Outer frame"),
+            env.$text({ id: "t" }, " (empty)"))));
+
+var inner = env.component().id("inner")
+  .view(env.$div({ "class": "inner" }, env.$p("Inner frame")));
+
+var outer_ = outer.render_instance(document.body);
+// var inner_ = inner.render_instance(document.body);
 
 setTimeout(function () {
-  A_.scope["#p"].children[0].text("Did you see that?!");
-}, 500);
-
-/*
-var C = env.$("component#C", env.$view(
-      env.$div(env.$text({ id: "text" }, "And this is a C."))));
-var B = env.$("component#B", env.$view(
-      env.$div(
-        env.$component({ id: "C1", prototype: C }),
-        env.$p("This is a B."),
-        env.$component({ id: "C2", prototype: C }))));
-var A = env.$("component#A", env.$view(
-      env.$p("This is A."),
-      env.$div({ "class": "contents" },
-        env.$component({ id: "B1", prototype: B }),
-        env.$component({ id: "B2", prototype: B }))));
-var A_ = A.render_instance(document.body);
-
-*/
-
-/*
-setTimeout(function () {
-  // A.scope["@div"].insert_child(env.$p("Hello again"));
-  // return;
-  A_.scope.view.insert_child(flexo.$p("And A again!"));
-  return;
-  A_.scope_of(A)["@B1"].scope_of(B)["@this"].scope.stack[0].view.children[0]
-    .insert_child(flexo.$p("One more B"));
-  console.log("One more B?");
+  // TODO: fix this
+  // outer_.scope["@p"].insert_child(" (now with content)");
+  outer_.scope["@t"].text(" (now with content)");
 }, 1000);
-
-
-setTimeout(function () {
-  A.scope["@div"].insert_child(flexo.$p("This one is inside..."));
-  return;
-}, 2000);
-
-setTimeout(function () {
-  A.scope.view.insert_child(flexo.$p("And again and again!"));
-  return;
-}, 3000);
-*/
 
     </script>
   </body>

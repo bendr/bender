@@ -546,6 +546,19 @@ var Environment = bender.Environment = {
       insert_children(elem, arguments[i]);
     }
     return elem;
+  },
+
+  $text: function () {
+    var text = "";
+    var args = $filter(arguments, function (arg) {
+      if (typeof arg === "string") {
+        text += arg;
+        return false;
+      }
+      return true;
+    });
+    args.unshift("text");
+    return this.$.apply(this, args).text(text);
   }
 
 };
@@ -556,7 +569,8 @@ bender.environment = function () {
 };
 
 // Shortcuts for the $ function: env.$foo === env.$("foo")
-["attribute", "component", "content", "text", "view"].forEach(function (tag) {
+// (note that $text is handled differently, see above.)
+["attribute", "component", "content", "view"].forEach(function (tag) {
   Environment["$" + tag] = function () {
     var args = [tag];
     $$push(args, arguments);

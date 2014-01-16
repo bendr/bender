@@ -283,6 +283,25 @@ describe("Bender core", function () {
       });
     });
 
+    describe("bender.Text", function () {
+      it("represents an explicit text node that can also have an id attribute" +
+        " (as well as metadata)", flexo.nop);
+      describe("env.$text(attrs?, contents)", function () {
+        it("behaves differently from other $ functions in that text string " +
+          "arguments are used to set the text property of the element",
+          function () {
+            var t = env.$text("foo");
+            var u = env.$text("bar", "baz");
+            var v = env.$text({ id: "v" }, "bar", env.$p("hello"), "baz");
+            expect(t.text()).toBe("foo");
+            expect(u.text()).toBe("barbaz");
+            expect(v.text()).toBe("barbaz");
+            expect(v.id()).toBe("v");
+            expect(v.children.length).toBe(1);
+          });
+      });
+    });
+
     describe("bender.Attribute", function () {
       it("represents an attribute of its parent element (note: this is not a " +
         "ViewElement though!)", function () {
