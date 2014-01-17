@@ -1,5 +1,5 @@
-/* global Attribute, bender, Component, Content, DOMElement, flexo, on, Text */
-/* global View, ViewElement, window */
+/* global Attribute, bender, Component, Content, DOMElement, flexo, on, Text,
+   View, ViewElement, window */
 // jshint -W097
 
 "use strict";
@@ -94,6 +94,21 @@ Component.render_scope = function () {
     on(this, "instantiate", scope.view);
   }
   return scope;
+};
+
+Component.render_update = function (update) {
+  update_stacks(update, function (stack) {
+    var target = find_dom_parent(update, stack);
+    var ref = find_dom_ref(update, stack, target);
+    var update_last = !ref && target === stack[stack.i].target;
+    if (update_last) {
+      ref = stack[stack.i].last.nextSibling;
+    }
+    update.target.render(stack, target, ref);
+    if (update_last) {
+      stack[stack.i].last = stack[stack.i].last.nextSibling;
+    }
+  });
 };
 
 // Get the scope for the given component (for a rendered instance.)

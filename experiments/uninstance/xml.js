@@ -1,4 +1,4 @@
-/* global bender, $call, console, flexo, $foreach, $map, window */
+/* global bender, console, flexo, window */
 // jshint -W097
 
 "use strict";
@@ -65,9 +65,9 @@ bender.Environment.deserialize = function (node, promise) {
 // Deserialize then add every child of a parent node `p` in the list of children
 // to the Bender element `e`, then return `e`.
 bender.Environment.deserialize_children = function (e, p) {
-  return flexo.fold_promises($map(p.childNodes, function (ch) {
+  return flexo.fold_promises(flexo.map(p.childNodes, function (ch) {
       return this.deserialize(ch);
-    }, this), $call.bind(function (child) {
+    }, this), flexo.call.bind(function (child) {
       return child && bender.Component.child.call(this, child) || this;
     }), e);
 };
@@ -103,7 +103,7 @@ bender.Environment.deserialize.component = function (elem, promise) {
   if (promise) {
     promise.component = component;
   }
-  $foreach(elem.attributes, function (attr) {
+  flexo.foreach(elem.attributes, function (attr) {
     if (attr.namespaceURI === null) {
       if (attr.localName.indexOf("on-") === 0) {
         component.on(attr.localName.substr(3), attr.value);
@@ -172,7 +172,7 @@ bender.Environment.deserialize.text = function (elem) {
 
 
 var loaded = bender.Component.loaded = function () {
-  this.scope.children.forEach($call.bind(loaded));
+  this.scope.children.forEach(flexo.call.bind(loaded));
   // this.render_graph();
   return this;
 };

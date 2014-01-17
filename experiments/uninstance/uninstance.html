@@ -22,11 +22,11 @@ div.inner {
 }
     </style>
     <meta http-equiv="cache-control" content="no-cache">
-    <script src="../../html/src/flexo.js"></script>
-  </head>
-  <body>
+    <script src="flexo.js"></script>
     <script src="core.js"></script>
     <script src="render.js"></script>
+  </head>
+  <body>
     <script>
 "use strict";
 
@@ -45,7 +45,7 @@ setTimeout(function () {
   // outer_.scope["@p"].insert_child(" (now with content)");
   // outer_.scope["@div"].insert_child(inner.instantiate());
   // TODO an instance should be created
-  outer.scope["#p"].insert_child(" (now with content");
+  outer.scope["#p"].insert_child(" (now with content)");
   outer.scope["#div"].insert_child(inner);
 }, 1000);
 

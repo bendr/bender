@@ -1,13 +1,11 @@
-/* global bender, console, exports, flexo, $foreach, global, $$push, require */
-/* global $slice, window */
+/* global bender, console, exports, flexo, global, require, window */
 // jshint -W097
 
 "use strict";
 
 if (typeof window === "object") {
   // Looks like a browser
-  window.global = window;
-  global.bender = {};
+  window.bender = {};
 } else {
   // Looks like node
   global.flexo = require("flexo");
@@ -262,7 +260,7 @@ var Component = bender.Component = flexo._ext(Element, {
       return this.scope.view;
     }
     var view = this.scope.view || this.insert_child(View.create().init());
-    $foreach(arguments, insert_children.bind(null, view));
+    flexo.foreach(arguments, insert_children.bind(null, view));
     return this;
   },
 
@@ -316,7 +314,7 @@ flexo.make_readonly(Component, "tag", "component");
 flexo.make_readonly(Component, "component", flexo.self);
 flexo.make_readonly(Component, "all_instances", function () {
   return flexo.bfold(this, function (instances, component) {
-    return $$push(instances, component.instances), instances;
+    return flexo.push_all(instances, component.instances), instances;
   }, flexo.property("derived"), []);
 });
 
@@ -564,7 +562,7 @@ var Environment = bender.Environment = {
 
   $text: function () {
     var text = "";
-    var args = $filter(arguments, function (arg) {
+    var args = flexo.filter(arguments, function (arg) {
       if (typeof arg === "string") {
         text += arg;
         return false;
@@ -587,7 +585,7 @@ bender.environment = function () {
 ["attribute", "component", "content", "view"].forEach(function (tag) {
   Environment["$" + tag] = function () {
     var args = [tag];
-    $$push(args, arguments);
+    flexo.push_all(args, arguments);
     return this.$.apply(this, args);
   };
 });
@@ -604,7 +602,7 @@ bender.environment = function () {
     }
     args.ns = flexo.ns.html;
     args.name = tag;
-    $$push(args_, arguments);
+    flexo.push_all(args_, arguments);
     return this.$.apply(this, args_);
   };
 });
@@ -724,7 +722,7 @@ function on(component, type) {
     delete component.__pending_init;
     component.on_handlers.init.call(component);
   }
-  component.on_handlers[type].apply(component, $slice(arguments, 2));
+  component.on_handlers[type].apply(component, flexo.slice(arguments, 2));
 }
 
 // Set the attribute {ns}name to value on the element
