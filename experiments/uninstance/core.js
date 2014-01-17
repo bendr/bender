@@ -21,9 +21,11 @@ bender.VERSION = "0.8.2-pre";
 // document or document fragment.)
 var Element = bender.Element = {
 
-  // Initialize an element with no parent yet and an empty list of children.
+  // Initialize an element with no parent yet and an empty list of children and
+  // instances.
   init: function () {
     this.children = [];
+    this.instances = [];
     return this;
   },
 
@@ -46,7 +48,11 @@ var Element = bender.Element = {
   // as we go along. Unless the shallow flag is set, instantiate children as
   // well.
   instantiate: function (scope, shallow) {
+    if (!this.hasOwnProperty("instances")) {
+      throw "cannot instantiate an instance";
+    }
     var instance = Object.create(this);
+    this.instances.push(instance);
     if (scope && this._id) {
       scope["@" + this._id] = instance;
     }
@@ -58,6 +64,15 @@ var Element = bender.Element = {
       });
     }
     return instance;
+  },
+
+  // Remove this instance from its prototype element’s list of instances.
+  uninstantiate: function () {
+    var proto = Object.getPrototypeOf(this);
+    if (!proto || !proto.hasOwnProperty("instances")) {
+      throw "cannot uninstantiate non-instance";
+    }
+    return flexo.remove_from_array(proto.instances, this);
   },
 
   // Get or set the id of the element. Don’t do anything if the ID was not a
@@ -138,7 +153,7 @@ var Element = bender.Element = {
   },
 
   // Notify the runtime that an update was made for this element (the runtime
-  // will decide what to with it)
+  // will decide what to with it.) Updates are handled at the component level.
   update: function (args) {
     var component = this.component;
     if (component) {
@@ -149,6 +164,11 @@ var Element = bender.Element = {
 };
 
 flexo.make_readonly(Element, "is_bender_element", true);
+
+flexo.make_readonly(Element, "next_sibling", function () {
+  return this.parent &&
+    this.parent.children[this.parent.children.indexOf(this) + 1];
+});
 
 flexo.make_readonly(Element, "shallow_text", function () {
   return this.children.reduce(function (text, elem) {
@@ -173,12 +193,12 @@ var Component = bender.Component = flexo._ext(Element, {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.instances = [];
     this.derived = [];
     this.scope = flexo._ext(scope, { "@this": this, "#this": this,
       children: [] });
     this.on_handlers = Object.create(this.on_handlers);
-    this.___ = flexo.random_id();
+    this.__id = flexo.random_id();
+    global["$" + this.__id] = this;
     this.__pending_render = true;
     this.__pending_init = true;
     flexo.asap(function () {
@@ -222,9 +242,10 @@ var Component = bender.Component = flexo._ext(Element, {
   // will be created for the instance.
   instantiate: function (scope) {
     var instance = Element.instantiate.call(this, scope, true);
-    instance.___ = this.___ + "/" + flexo.random_id();
-    console.log("+++ New instance", instance.___);
-    this.instances.push(instance);
+    var id = flexo.random_id();
+    global["$" + id] = instance;
+    instance.__id = this.__id + "/" + flexo.random_id();
+    console.log("+++ New instance", instance.__id);
     on(this, "instantiate", instance);
     return instance;
   },
@@ -288,15 +309,10 @@ var Component = bender.Component = flexo._ext(Element, {
 
   updates: {
     add: function (update) {
-      var self = update.target;
-      self.scope.view.render_update(update);
-      if (self._id) {
-        self.scope.parent.scope["@" + self._id] = self;
-        // TODO check this
-        if (Object.getPrototypeOf(self) === bender.Component) {
-          self.scope.parent.scope["#" + self._id] = self;
-        }
+      if (update.target.hasOwnProperty("instances")) {
+        update.instantiate = true;
       }
+      update.scope.view.render_update(update);
     }
   }
 
@@ -416,7 +432,7 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
 
   updates: {
     add: function (update) {
-      update.scope.view.render_update(update);
+      update.target.parent.render_update_add(update);
     },
     attr: function (update) {
       update.target.update_attribute(update);
@@ -613,8 +629,10 @@ function add_ids_to_scope(root) {
   if (component) {
     flexo.beach(root, function (element) {
       if (element._id) {
-        component.scope["@" + element._id] =
-        component.scope["#" + element._id] = element;
+        component.scope["@" + element._id] = element;
+        if (component.hasOwnProperty("instances")) {
+          component.scope["#" + element._id] = element;
+        }
       }
       return element.children;
     });

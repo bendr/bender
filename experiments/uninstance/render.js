@@ -31,6 +31,14 @@ bender.environment = function (document) {
 };
 
 
+Object.defineProperty(ViewElement, "last", {
+  enumerable: true,
+  configurable: true,
+  get: function () {
+    return this.first;
+  }
+});
+
 // Render an instance of the component as a child of the DOM target, before an
 // optional ref node. Return the new, rendered instance. This is the method to
 // call to render a component explicitely.
@@ -96,21 +104,6 @@ Component.render_scope = function () {
   return scope;
 };
 
-Component.render_update = function (update) {
-  update_stacks(update, function (stack) {
-    var target = find_dom_parent(update, stack);
-    var ref = find_dom_ref(update, stack, target);
-    var update_last = !ref && target === stack[stack.i].target;
-    if (update_last) {
-      ref = stack[stack.i].last.nextSibling;
-    }
-    update.target.render(stack, target, ref);
-    if (update_last) {
-      stack[stack.i].last = stack[stack.i].last.nextSibling;
-    }
-  });
-};
-
 // Get the scope for the given component (for a rendered instance.)
 Component.scope_of = function (component) {
   var scope = component.scope;
@@ -133,6 +126,9 @@ View.render = function (stack, target, ref) {
   stack[stack.i].last = fragment.lastChild;
   target.insertBefore(fragment, ref);
 };
+
+
+
 
 // Update the view, either for an instance (the scope points to the stack for
 // the instance) or for the component, i.e., all instances (then apply to all
@@ -182,8 +178,7 @@ Content.render = function (stack, target, ref) {
 
 DOMElement.render = function (stack, target, ref) {
   var elem = target.ownerDocument.createElementNS(this.ns, this.name);
-  this.target = elem;
-  elem.__bender = this;
+  this.first = elem;
   for (var ns in this.attrs) {
     for (var a in this.attrs[ns]) {
       elem.setAttributeNS(ns, a, this.attrs[ns][a]);
@@ -193,6 +188,29 @@ DOMElement.render = function (stack, target, ref) {
     child.render(stack, elem);
   });
   return target.insertBefore(elem, ref);
+};
+
+// Update the rendered DOM element after a child has been added. If the update
+// is made to an instance, then update that instance; when made to a component,
+// apply the update to all instances.
+DOMElement.render_update_add = function (update) {
+  if (update.scope.stack) {
+    var stack = update.scope.stack;
+    for (stack.i = 0; stack[stack.i]["@this"] !== update.scope["@this"];
+        ++stack.i) {}
+    update.target.render(stack, update.target.parent.first,
+        update.target.next_sibling && update.target.next_sibling.first);
+    delete stack.i;
+  } else {
+    var sibling = update.target.next_sibling;
+    this.instances.forEach(function (instance) {
+      var component = instance.component;
+      var ref = sibling && flexo.find_first(instance.children, function (ch) {
+        return Object.getPrototypeOf(ch) === sibling;
+      });
+      var child = instance.insert_child(update.target.instantiate(), ref);
+    });
+  }
 };
 
 DOMElement.update_attribute = function (update) {

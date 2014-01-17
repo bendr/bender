@@ -74,6 +74,7 @@ describe("Bender core", function () {
         var inited = elem.init();
         it("initializes the element", function () {
           expect(elem.children).toBeDefined();
+          expect(elem.instances).toBeDefined();
         });
         it("returns the element", function () {
           expect(inited).toBe(elem);
@@ -96,13 +97,25 @@ describe("Bender core", function () {
       describe("create()", function () {
         it("is a shortcut for Object.create(elem).init(...), taking the same " +
           "arguments as init() for the given element", function () {
-          var elem = Element.create();
+          var elem = bender.Element.create();
           expect(elem.children).toBeDefined();
         });
       });
 
-      describe("instantiate()", function () {
-        it("is pending");
+      describe("instantiate(scope?, shallow?)", function () {
+        var elem = bender.Element.create();
+        var instance = elem.instantiate();
+        it("creates a new instance of the element", function () {
+          expect(Object.getPrototypeOf(instance)).toBe(elem);
+        });
+        it("adds the instance to the list of instances", function () {
+          expect(elem.instances).toContain(instance);
+        });
+        it("throws when trying to instantiate an instance", function() {
+          expect(function () {
+            instance.instantiate();
+          }).toThrow();
+        });
       });
 
       describe("id(id?)", function () {
@@ -206,6 +219,23 @@ describe("Bender core", function () {
             expect(orphan.component).toBeUndefined();
           });
       });
+
+      describe("next_sibling", function () {
+        var p = Element.create();
+        var a = p.insert_child(Element.create());
+        var b = p.insert_child(Element.create());
+        it("is a read-only property pointing to the next sibling of the " +
+          "element", function () {
+            expect(a.next_sibling).toBe(b);
+          });
+        it("is undefined for the last child element", function () {
+          expect(b.next_sibling).toBeUndefined();
+        });
+        it("is also undefined for elements that have no parent", function () {
+          expect(p.next_sibling).toBeUndefined();
+        });
+      });
+
     });
 
     describe("bender.Component", function () {

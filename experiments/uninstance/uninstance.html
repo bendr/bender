@@ -40,13 +40,18 @@ var inner = env.component().id("inner")
   .view(env.$div({ "class": "inner" }, env.$p("Inner")));
 
 var outer_ = outer.render_instance(document.body);
+var outer__ = outer.render_instance(document.body);
 
 setTimeout(function () {
   // outer_.scope["@p"].insert_child(" (now with content)");
   // outer_.scope["@div"].insert_child(inner.instantiate());
   // TODO an instance should be created
-  outer.scope["#p"].insert_child(" (now with content)");
-  outer.scope["#div"].insert_child(inner);
+  // outer.scope["#p"].insert_child(" (now with content)");
+  // outer.scope["#div"].insert_child(inner);
+
+  outer__.scope["@div"].insert_child(env.$p({ id: "q" }, "Another paragraph"), 0);
+  // outer_.scope["#div"].insert_child(env.$p({ id: "q" }, "Another paragraph"));
+
 }, 1000);
 
     </script>
