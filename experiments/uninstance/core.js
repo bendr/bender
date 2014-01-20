@@ -199,6 +199,10 @@ var Component = bender.Component = flexo._ext(Element, {
       scope = Object.create(scope);
     }
     this.derived = [];
+    this.own_properties = {};  // property child elements
+    this.properties = {};      // property values, including inherited
+    Object.defineProperty(this.properties, "", { value: this,
+      configurable: true });
     this.scope = flexo._ext(scope, { "@this": this, "#this": this,
       children: [] });
     this.on_handlers = Object.create(this.on_handlers);
@@ -250,6 +254,8 @@ var Component = bender.Component = flexo._ext(Element, {
     var instance = Element.instantiate.call(this, scope, true);
     var id = flexo.random_id();
     global["$" + id] = instance;
+    instance.properties = Object.create(this.properties);
+    Object.defineProperty(instance.properties, "", { value: this });
     instance.__id = this.__id + "/" + flexo.random_id();
     console.log("+++ New instance", instance.__id);
     on(this, "instantiate", instance);
@@ -276,8 +282,17 @@ var Component = bender.Component = flexo._ext(Element, {
           }
         }.bind(this));
       }
+    } else if (child.tag === "property") {
+      this.own_properties[child.name] = child;
+      define_js_property(this, child.name);
     }
     return child;
+  },
+
+  // Add a property element with that name
+  property: function (name) {
+    this.insert_child(Property.create(name));
+    return this;
   },
 
   // Get the view (if no argument is given), or add contents to the view,
@@ -323,8 +338,8 @@ var Component = bender.Component = flexo._ext(Element, {
 
 flexo._accessor(Component, "prototype", function (p) {
   if (p) {
-    // TODO update when prototype changes
     p.derived.push(this);
+    flexo.replace_prototype(this.properties, p.properties);
   }
   return p;
 });
@@ -505,6 +520,20 @@ var Text = bender.Text = flexo._ext(ViewElement, {
 
 flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
+
+
+var Property = bender.Property = flexo._ext(Element, {
+  init: function (name) {
+    this.name = name;
+    return Element.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Element.init_with_args.call(this.init(args.name), args);
+  },
+});
+
+flexo.make_readonly(Property, "tag", "property");
 
 
 // An environment in which to render Bender components.
@@ -706,6 +735,36 @@ function convert_dom_node(node) {
       node.nodeType === window.Node.CDATA_SECTION_NODE) {
     return Text.create().text(node.textContent);
   }
+}
+
+// Define a Javascript property to store the value of a property in a Bender
+// component’s properties object. Setting a property triggers a visit of the
+// corresponding vertex in the graph; however, a silent flag can be set to
+// prevent this (used during graph traversal.)
+function define_js_property(component, name, value) {
+  Object.defineProperty(component.properties, name, {
+    enumerable: true,
+    configurable: true,
+    get: function () {
+      return value;
+    },
+    set: function (v, silent) {
+      if (this.hasOwnProperty(name)) {
+        // this[""].own_properties[name].check_value(v);
+        value = v;
+      } else {
+        define_js_property(this[""], name, v);
+      }
+      if (!silent) {
+        did_set_property(this[""], name, v);
+      }
+    }
+  });
+}
+
+function did_set_property(component, name, value) {
+  console.log("=== Did set property %0`%1 to %2"
+      .fmt(component.__id, name, value));
 }
 
 // Delete the attribute {ns}name from elem; return an empty object (no value)
