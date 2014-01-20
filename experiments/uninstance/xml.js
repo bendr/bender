@@ -170,6 +170,12 @@ bender.Environment.deserialize.text = function (elem) {
       .id(elem.getAttribute("id")), elem);
 };
 
+bender.Environment.deserialize.property = function (elem) {
+  return this.deserialize_children(bender.Property
+      .create(elem.getAttribute("name"))
+      .id(elem.getAttribute("id")), elem);
+};
+
 
 var loaded = bender.Component.loaded = function () {
   this.scope.children.forEach(flexo.call.bind(loaded));

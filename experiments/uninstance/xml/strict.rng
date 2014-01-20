@@ -32,9 +32,14 @@
       <optional>
         <ref name="on-attrs"/>
       </optional>
-      <optional>
-        <ref name="view"/>
-      </optional>
+      <interleave>
+        <optional>
+          <ref name="view"/>
+        </optional>
+        <zeroOrMore>
+          <ref name="property"/>
+        </zeroOrMore>
+      </interleave>
     </element>
   </define>
 
@@ -42,6 +47,13 @@
     <element name="content">
       <ref name="view-element-attrs"/>
       <ref name="view-element-content"/>
+    </element>
+  </define>
+
+  <define name="property">
+    <element name="property">
+      <ref name="element-attrs"/>
+      <ref name="name"/>
     </element>
   </define>
 
