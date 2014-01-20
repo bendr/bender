@@ -31,12 +31,16 @@ bender.environment = function (document) {
 };
 
 
-Object.defineProperty(ViewElement, "last", {
-  enumerable: true,
-  configurable: true,
-  get: function () {
-    return this.first;
-  }
+// Most elements will be rendered to a single DOM element or text node, so last
+// returns first by default.
+[ViewElement, Text].forEach(function (elem) {
+  Object.defineProperty(elem, "last", {
+    enumerable: true,
+    configurable: true,
+    get: function () {
+      return this.first;
+    }
+  });
 });
 
 // Render an instance of the component as a child of the DOM target, before an
@@ -50,9 +54,6 @@ Component.render_instance = function (target, ref) {
   instance.render(null, target, ref);
   return instance;
 };
-
-// on-render
-Component.on_handlers.render = flexo.nop;
 
 // Render the component. This is the internal method called from
 // render_instance(), which should not be called directly.
@@ -131,42 +132,6 @@ View.render = function (stack, target, ref) {
 
 
 
-// Update the rendered DOM element after a child has been added. If the update
-// is made to an instance, then update that instance; when made to a component,
-// apply the update to all instances.
-ViewElement.render_update_add = Attribute.render_update_add =
-function (update) {
-  if (update.scope.stack) {
-    if (!this.parent.first) {
-      return;
-    }
-    var stack = update.scope.stack;
-    for (stack.i = 0; stack[stack.i]["@this"] !== update.scope["@this"];
-        ++stack.i) {}
-    update.target.render(stack, update.target.parent.first,
-        update.target.next_sibling && update.target.next_sibling.first);
-    delete stack.i;
-  } else {
-    var sibling = update.target.next_sibling;
-    this.instances.forEach(function (instance) {
-      var component = instance.component;
-      var ref = sibling && flexo.find_first(instance.children, function (ch) {
-        return Object.getPrototypeOf(ch) === sibling;
-      });
-      var child = instance.insert_child(update.target.instantiate(), ref);
-    });
-  }
-};
-
-// Update a text element depending on its parent (either view element or
-// attribute)
-Text.render_update_text = function (update) {
-  var f = this.parent && this.parent.render_update_text;
-  if (f) {
-    f.call(this, update);
-  }
-};
-
 
 Content.render = function (stack, target, ref) {
   if (stack.i < stack.length - 1) {
@@ -193,6 +158,62 @@ DOMElement.render = function (stack, target, ref) {
   return target.insertBefore(elem, ref);
 };
 
+
+// Render as an attribute of the target element, the value of which is the
+// shallow text content (concatenation of the text of all text child elements.)
+// Remember the target so that further re-renders do not need to pass it as an
+// argument. No need to use the stack since attributes are shallow.
+Attribute.render = function (_, target) {
+  // jshint unused: true
+  if (target) {
+    this.target = target;
+  }
+  this.target.setAttributeNS(this.ns, this.name, this.shallow_text);
+};
+
+
+// Render the text element into a DOM text node. This is only done for children
+// of ViewElement, not for children of Attribute, where the text goes into the
+// attribute value and this function is not called.
+Text.render = function (_, target, ref) {
+  // jshint unused: true, -W093
+  return this.first = target.insertBefore(target.ownerDocument
+      .createTextNode(this.text()), ref);
+};
+
+
+// Render updates after adding a child element
+
+// Update the rendered DOM element after a child has been added. If the update
+// is made to an instance, then update that instance; when made to a component,
+// apply the update to all instances.
+ViewElement.render_update_add = Attribute.render_update_add =
+function (update) {
+  if (update.scope.stack) {
+    if (!this.parent.first) {
+      return;
+    }
+    var stack = update.scope.stack;
+    for (stack.i = 0; stack[stack.i]["@this"] !== update.scope["@this"];
+        ++stack.i) {}
+    update.target.render(stack, update.target.parent.first,
+        update.target.next_sibling && update.target.next_sibling.first);
+    delete stack.i;
+  } else {
+    var sibling = update.target.next_sibling;
+    this.instances.forEach(function (instance) {
+      var ref = sibling && flexo.find_first(instance.children, function (ch) {
+        return Object.getPrototypeOf(ch) === sibling;
+      });
+      instance.insert_child(update.target.instantiate(), ref);
+    });
+  }
+};
+
+
+// Render updates after removing a child element
+
+// Remove all elements from first to last.
 DOMElement.render_update_remove_self = function () {
   if (this.hasOwnProperty("instances")) {
     this.instances.forEach(function (instance) {
@@ -200,9 +221,9 @@ DOMElement.render_update_remove_self = function () {
     });
   } else {
     var n = this.first;
-    var m = this.last.nextSibling;
+    var m = this.last && this.last.nextSibling;
     var p = n.parentNode;
-    while (n !== m) {
+    while (p && n !== m) {
       var n_ = n.nextSibling;
       p.removeChild(n);
       n = n_;
@@ -213,6 +234,41 @@ DOMElement.render_update_remove_self = function () {
   }
 };
 
+// Update the attribute after a text child was removed
+Attribute.render_update_remove_child = function (child) {
+  if (this.hasOwnProperty("instances")) {
+    child.instances.forEach(function (instance) {
+      this.remove_child(flexo.find_first(instance.children, function (ch) {
+        return Object.getPrototypeOf(ch) === child;
+      }));
+    });
+  } else {
+    this.render();
+  }
+};
+
+// Remove the text node from its parent if it was actually rendered, otherwise
+// tell the parent about the removal.
+Text.render_update_remove_self = function () {
+  var f = this.parent && this.parent.render_update_remove_child;
+  if (f) {
+    f.call(this.parent, this);
+  } else if (this.hasOwnProperty("instances")) {
+    this.instances.forEach(function (instance) {
+      instance.remove_self();
+    });
+  } else {
+    flexo.safe_remove(this.first);
+    delete this.first;
+    this.uninstantiate();
+  }
+};
+
+
+// Render updates after changing an attribute
+
+// Only DOM elements have DOM attributes. Update has a value field if a value is
+// set or modified, and no value field if the attribute is removed.
 DOMElement.render_update_attribute = function (update) {
   if (this.hasOwnProperty("instances")) {
     this.instances.forEach(function (instance) {
@@ -226,27 +282,35 @@ DOMElement.render_update_attribute = function (update) {
 };
 
 
-Attribute.render = function (_, target) {
-  // jshint unused: true
-  if (this.ns) {
-    target.setAttributeNS(this.ns, this.name, this.shallow_text);
+// Render updates after changing the text property of a text element
+
+// Re-render the attribute when one of its text child node changes.
+Attribute.render_update_text = function () {
+  if (this.hasOwnProperty("instances")) {
+    this.instances.forEach(function (instance) {
+      instance.render();
+    });
   } else {
-    target.setAttribute(this.name, this.shallow_text);
+    this.render();
   }
 };
 
-Attribute.update_text = function (update) {
-  update.target = this.parent;
-  update_stacks(update, function (stack) {
-    update.target.render(stack, find_dom_parent(update, stack));
-  });
+// Udpate text when the text was actually rendered, otherwise tell the parent
+// about the update.
+Text.render_update_text = function () {
+  var f = this.parent && this.parent.render_update_text;
+  if (f) {
+    f.call(this.parent);
+  } else if (this.hasOwnProperty("instances")) {
+    this.instances.forEach(function (instance) {
+      // Instances use the text property from their prototype; do not set the
+      // text property for instances and avoid updating instances that have
+      // their own text.
+      if (!instance.hasOwnProperty("_text")) {
+        instance.render_update_text();
+      }
+    });
+  } else if (this.first) {
+    this.first.textContent = this.text();
+  }
 };
-
-
-Text.render = function (_, target, ref) {
-  // jshint unused: true, -W093
-  var node = target.ownerDocument.createTextNode(this.text());
-  node.__bender = this;
-  return this.target = target.insertBefore(node, ref);
-};
-

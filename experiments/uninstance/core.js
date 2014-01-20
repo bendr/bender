@@ -153,6 +153,10 @@ var Element = bender.Element = {
     return this;
   },
 
+  // Stub for rendering
+  render: function (/* stack, target, ref */) {
+  },
+
   // Notify the runtime that an update was made for this element (the runtime
   // will decide what to with it.) Updates are handled at the component level.
   update: function (args) {
@@ -225,13 +229,14 @@ var Component = bender.Component = flexo._ext(Element, {
     return this;
   },
 
-  // Default handlers for on-init and on-instantiate
+  // Default handlers for on-init, on-instantiate, and on-render
   on_handlers: {
     init: flexo.nop,
-    instantiate: flexo.nop
+    instantiate: flexo.nop,
+    render: flexo.nop
   },
 
-  // Set the handler for on-init/on-instantiate
+  // Set the handler for on-init/on-instantiate/on-render
   on: function (type, handler) {
     if (type in this.on_handlers && typeof handler === "function") {
       this.on_handlers[type] = handler;
@@ -310,9 +315,6 @@ var Component = bender.Component = flexo._ext(Element, {
 
   updates: {
     add: function (update) {
-      if (update.target.hasOwnProperty("instances")) {
-        update.instantiate = true;
-      }
       update.scope.view.render_update(update);
     }
   }
@@ -464,7 +466,7 @@ var Attribute = bender.Attribute = flexo._ext(Element, {
     add: function (update) {
       update.target.parent.render_update_add(update);
     },
-    remove: function () {
+    remove: function (update) {
       update.target.render_update_remove_self();
     }
   }
@@ -496,7 +498,7 @@ var Text = bender.Text = flexo._ext(ViewElement, {
       update.target.render_update_remove_self();
     },
     text: function (update) {
-      update.target.render_update_text(update);
+      update.target.render_update_text();
     }
   }
 });

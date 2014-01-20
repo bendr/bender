@@ -58,7 +58,8 @@ setTimeout(function () {
 }, 1000);
 
 setTimeout(function () {
-  outer.scope["#p"].children[1].text(" bla bla bla");
+  // outer.scope["#p"].children[1].text(" bla bla bla");
+  outer.scope["#p"].children[1].remove_self();
   // outer__.scope["@in"].remove_self();
   // outer.scope["#div"].attr("", "class");
 }, 1500);
