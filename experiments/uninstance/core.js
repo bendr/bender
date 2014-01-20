@@ -52,6 +52,7 @@ var Element = bender.Element = {
       throw "cannot instantiate an instance";
     }
     var instance = Object.create(this);
+    instance.parent = null;
     this.instances.push(instance);
     if (scope && this._id) {
       scope["@" + this._id] = instance;
@@ -434,8 +435,11 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     add: function (update) {
       update.target.parent.render_update_add(update);
     },
+    remove: function (update) {
+      update.target.render_update_remove_self();
+    },
     attr: function (update) {
-      update.target.update_attribute(update);
+      update.target.render_update_attribute(update);
     }
   }
 });
@@ -458,7 +462,10 @@ var Attribute = bender.Attribute = flexo._ext(Element, {
 
   updates: {
     add: function (update) {
-      update.scope.view.render_update(update);
+      update.target.parent.render_update_add(update);
+    },
+    remove: function () {
+      update.target.render_update_remove_self();
     }
   }
 });
@@ -483,10 +490,13 @@ var Text = bender.Text = flexo._ext(ViewElement, {
 
   updates: {
     add: function (update) {
-      update.scope.view.render_update(update);
+      update.target.parent.render_update_add(update);
+    },
+    remove: function (update) {
+      update.target.render_update_remove_self();
     },
     text: function (update) {
-      update.target.text_update(update);
+      update.target.render_update_text(update);
     }
   }
 });
@@ -639,7 +649,8 @@ function add_ids_to_scope(root) {
   }
 }
 
-// TODO review this;
+// TODO review this and make sure that IDs are removed from the right scope
+// (i.e. top-component scope)
 function remove_ids_from_scope(root) {
   var component = root.component;
   if (component) {

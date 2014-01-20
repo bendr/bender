@@ -34,7 +34,8 @@ var env = bender.environment();
 
 var outer = env.component().id("outer")
   .view(env.$div({ id: "div", "class": "outer" },
-          env.$p({ id: "p" }, "Outer")));
+          env.$p({ id: "p" }, "Outer"),
+          env.$div({ id: "in" })));
 
 var inner = env.component().id("inner")
   .view(env.$div({ "class": "inner" }, env.$p("Inner")));
@@ -49,10 +50,18 @@ setTimeout(function () {
   // outer.scope["#p"].insert_child(" (now with content)");
   // outer.scope["#div"].insert_child(inner);
 
-  outer__.scope["@div"].insert_child(env.$p({ id: "q" }, "Another paragraph"), 0);
-  // outer_.scope["#div"].insert_child(env.$p({ id: "q" }, "Another paragraph"));
+  // outer__.scope["@div"].insert_child(env.$p({ id: "q" }, "Another paragraph"), 0);
+  outer.scope["#p"].insert_child(env.$text(" outer outer outer"));
+  // outer.scope["#in"].insert_child(env.$p({ id: "q" }, "Inside"));
+  // outer.scope.view.insert_child(env.$p("Outer still"));
 
 }, 1000);
+
+setTimeout(function () {
+  outer.scope["#p"].children[1].text(" bla bla bla");
+  // outer__.scope["@in"].remove_self();
+  // outer.scope["#div"].attr("", "class");
+}, 1500);
 
     </script>
   </body>

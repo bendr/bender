@@ -19,13 +19,6 @@
 
   // Pseudo-macros
 
-  // Pseudo-macro for prototype inheritance
-  flexo._class = function (constructor, Proto) {
-    var p = constructor.prototype = new Proto();
-    Object.defineProperty(p, "constructor", { value: constructor });
-    return p;
-  };
-
   // Create a new object from a prototype and extend it with zero or more
   // objects (not overwriting properties that have just been added.)
   flexo._ext = function (prototype) {
@@ -77,16 +70,6 @@
       return p === "%" ? "%" : args[p_] == null ? "" : args[p_];
     });
   };
-
-  if (typeof Function.prototype.bind !== "function") {
-    Function.prototype.bind = function (x) {
-      var f = this;
-      var args = flexo.slice(arguments, 1);
-      return function () {
-        return f.apply(x, args.concat(flexo.slice(arguments)));
-      };
-    };
-  }
 
   // requestAnimationFrame
   if (browserp && !window.requestAnimationFrame) {
@@ -150,6 +133,344 @@
       return "";
     }
     return obj.toString.apply(obj, flexo.slice(arguments, 1));
+  };
+
+
+  // Functions and Asynchronicity
+
+  // Hack using postMessage to provide a setImmediate replacement; inspired by
+  // https://github.com/NobleJS/setImmediate
+  flexo.asap = global.setImmediate ? global.setImmediate.bind(global) :
+    global.postMessage ? (function () {
+      var queue = [];
+      var key = "asap{0}".fmt(Math.random());
+      global.addEventListener("message", function (e) {
+        if (e.data === key) {
+          var q = queue.slice();
+          queue = [];
+          for (var i = 0, n = q.length; i < n; ++i) {
+            var f = q[i];
+            f();
+          }
+        }
+      }, false);
+      return function (f) {
+        if (typeof f !== "function") {
+          throw "Not a function: %0".fmt(f);
+        }
+        queue.push(f);
+        global.postMessage(key, "*");
+      };
+    }()) : function (f) {
+      global.setTimeout(f, 0);
+    };
+
+  // Return a function that discards its arguments. An optional parameter allows
+  // to keep at most n arguments (defaults to 0 of course.)
+  flexo.discard = function (f, n) {
+    return function () {
+      return f.apply(this, flexo.slice(arguments, 0, n || 0));
+    };
+  };
+
+  // This function can be called to fail early. If called with no parameter or a
+  // single parameter evaluating to a truthy value, throw a "fail" exception;
+  // otherwise, return false.
+  flexo.fail = function (p) {
+    if (!arguments.length || p) {
+      throw "fail";
+    }
+    return false;
+  };
+
+  // Turn a value into a 0-ary function returning that value
+  flexo.funcify = function (x) {
+    return typeof x === "function" ? x : function () {
+      return x;
+    };
+  };
+
+  // Identity function (also named `fst` to match `snd`)
+  flexo.id = flexo.fst = function (x) {
+    return x;
+  };
+
+  // Get a function that returns the property `property` of an object.
+  flexo.property = function (p1, p2) {
+    return arguments.length === 1 ?
+      function (x) {
+        return x && x[p1];
+      } : function (x) {
+        return x && x[p1] && x[p1][p2];
+      };
+  };
+
+  // A function that returns its second argument and discard the first.
+  flexo.snd = function (_, y) {
+    // jshint unused: true
+    return y;
+  };
+
+  // Sort of like id, but for `this`.
+  flexo.self = function () {
+    return this;
+  };
+
+  // No-op function, returns nothing
+  flexo.nop = function () {
+  };
+
+  // Trampoline calls, adapted from
+  // http://github.com/spencertipping/js-in-ten-minutes
+
+  // Use a trampoline to call a function; we expect a thunk to be returned
+  // through the get_thunk() function below. Return nothing to step off the
+  // trampoline (e.g. to wait for an event before continuing.)
+  function apply_thunk(thunk) {
+    var escape = thunk[1][thunk[1].length - 1];
+    var self = thunk[0];
+    while (thunk && thunk[0] !== escape) {
+      thunk = thunk[0].apply(self, thunk[1]);
+    }
+    if (thunk) {
+      return escape.apply(self, thunk[1]);
+    }
+  }
+
+  Function.prototype.trampoline = function () {
+    return apply_thunk([this, arguments]);
+  };
+
+  // Return a thunk suitable for the trampoline function above.
+  Function.prototype.get_thunk = function() {
+    return [this, arguments];
+  };
+
+
+  // Promises (see http://promisesaplus.com/)
+  var promise = (flexo.Promise = function () {
+    this.pending = true;
+    Object.defineProperty(this, "queue", { value: [], writable: true });
+  }).prototype;
+
+  promise.fulfill = function (value) {
+    if (!this.pending && arguments.length === 1) {
+      return this;
+    }
+    if (arguments.length === 1) {
+      delete this.pending;
+      Object.defineProperty(this, "value", { value: value, enumerable: true });
+    }
+    var queue = this.queue;
+    this.queue = [];
+    var promise1 = this;
+    flexo.asap(function () {
+      queue.forEach(function (q) {
+        promise.fulfill_.apply(promise1, q);
+      });
+    });
+    return this;
+  };
+
+  promise.fulfill_ = function (promise2, onFulfilled) {
+    if (typeof onFulfilled === "function") {
+      try {
+        resolve_promise(promise2, onFulfilled(this.value));
+      } catch (e) {
+        promise2.reject(e);
+      }
+    } else {
+      promise2.fulfill(this.value);
+    }
+  };
+
+  promise.reject = function (reason) {
+    if (!this.pending && arguments.length === 1) {
+      return this;
+    }
+    if (arguments.length === 1) {
+      delete this.pending;
+      Object.defineProperty(this, "reason",
+          { value: reason, enumerable: true });
+    }
+    var queue = this.queue;
+    this.queue = [];
+    var promise1 = this;
+    flexo.asap(function () {
+      queue.forEach(function (q) {
+        promise.reject_.apply(promise1, q);
+      });
+    });
+    return this;
+  };
+
+  promise.reject_ = function (promise2, _, onRejected) {
+    // jshint unused: true
+    if (typeof onRejected === "function") {
+      try {
+        resolve_promise(promise2, onRejected(this.reason));
+      } catch (e) {
+        promise2.reject(e);
+      }
+    } else {
+      promise2.reject(this.reason);
+    }
+  };
+
+  promise.then = function (onFulfilled, onRejected) {
+    var promise2 = new flexo.Promise();
+    if (this.pending) {
+      this.queue.push([promise2, onFulfilled, onRejected]);
+    } else {
+      var promise1 = this;
+      if (this.hasOwnProperty("value")) {
+        flexo.asap(function () {
+          promise1.fulfill_(promise2, onFulfilled, onRejected);
+        });
+      } else {
+        flexo.asap(function () {
+          promise1.reject_(promise2, onFulfilled, onRejected);
+        });
+      }
+    }
+    return promise2;
+  };
+
+  function resolve_promise(promise, x) {
+    if (promise === x) {
+      // throw new TypeError();
+      promise.reject(new TypeError());
+    }
+    if (x instanceof flexo.Promise) {
+      if (x.pending) {
+        x.queue.push([promise, function (value) {
+          return promise.fulfill(value);
+        }, function (reason) {
+          return promise.reject(reason);
+        }]);
+      } else if (x.hasOwnProperty("value")) {
+        promise.fulfill(x.value);
+      } else {
+        promise.reject(x.reason);
+      }
+    } else if (x !== null && typeof x === "object" || typeof x === "function") {
+      try {
+        var then = x.then;
+        if (typeof then === "function") {
+          (function () {
+            var handled = false;
+            try {
+              then.call(x, function (y) {
+                if (!handled) {
+                  handled = true;
+                  resolve_promise(promise, y);
+                }
+              }, function (r) {
+                if (!handled) {
+                  handled = true;
+                  promise.reject(r);
+                }
+              });
+            } catch (e) {
+              if (!handled) {
+                handled = true;
+                promise.reject(e);
+              }
+            }
+          }());
+        } else {
+          promise.fulfill(x);
+        }
+      } catch (e) {
+        promise.reject(e);
+      }
+    } else {
+      promise.fulfill(x);
+    }
+  }
+
+  promise.timeout = function (dur_ms) {
+    if (this.__timeout) {
+      global.clearTimeout(this.__timeout);
+      delete this.__timeout;
+    }
+    if (dur_ms > 0) {
+      this.__timeout = global.setTimeout(this.reject.bind(this, "Timeout"),
+          dur_ms);
+    }
+    return this;
+  };
+
+  // Fold for a list of promises.
+  flexo.fold_promises = function (promises, f, z) {
+    return (function fold (i, n) {
+      if (i === n) {
+        return new flexo.Promise().fulfill(z);
+      }
+      if (promises[i] instanceof flexo.Promise) {
+        return promises[i].then(function (value) {
+          z = f(z, value);
+          return fold(i + 1, n);
+        });
+      }
+      z = f(z, promises[i]);
+      return fold(i + 1, n);
+    }(0, promises.length));
+  };
+
+  // Collect a list of promises into a promise of a list.
+  flexo.collect_promises = function (promises) {
+    return flexo.fold_promises(promises, function (values, value) {
+      values.push(value);
+      return values;
+    }, []);
+  };
+
+  // Delay the execution of `f` by `delay_ms` millisecond (or 0 if the delay is
+  // negative or not a number.)
+  flexo.promise_delay = function (f, delay_ms) {
+    var promise = new flexo.Promise();
+    global.setTimeout(function () {
+      promise.fulfill(flexo.funcify(f)());
+    }, delay_ms > 0 ? delay_ms : 0);
+    return promise;
+  };
+
+  // Create a promise that loads an image. `attrs` is a dictionary of attribute
+  // for the image and should contain a `src` property, or can simply be the
+  // source attribute value itself. The promise has a pointer to the `img`
+  // element.
+  flexo.promise_img = function (attrs) {
+    var promise = new flexo.Promise();
+    var img = promise.img = new window.Image();
+    if (typeof attrs === "object") {
+      for (var attr in attrs) {
+        img.setAttribute(attr, attrs[attr]);
+      }
+    } else {
+      img.src = attrs;
+    }
+    if (img.complete) {
+      promise.fulfill(img);
+    } else {
+      img.onload = function () {
+        promise.fulfill(img);
+      };
+      img.onerror = promise.reject.bind(promise);
+    }
+    return promise;
+  };
+
+  // Create a promise that loads a script at `src` by adding it to `target`.
+  flexo.promise_script = function (src, target) {
+    var promise = new flexo.Promise();
+    var script = target.ownerDocument.createElement("script");
+    script.src = src;
+    script.async = false;
+    script.onload = promise.fulfill.bind(promise, script);
+    script.onerror = promise.reject.bind(promise);
+    target.appendChild(script);
+    return promise;
   };
 
 
@@ -413,7 +734,7 @@
     }
   };
 
-  // Interspers the separator `sep` in the array a
+  // Intersperse the separator `sep` in the array a. Return a new array.
   flexo.intersperse = function (a, sep) {
     var n = a.length;
     if (n === 0) {
@@ -428,7 +749,7 @@
     return j;
   };
 
-  // Partition `a` according to predicate `p` and return and array of two arrays
+  // Partition `a` according to predicate `p` and return an array of two arrays
   // (first one is the array of elements for which p is true.)
   flexo.partition = function (a, p, that) {
     var ins = [];
@@ -502,19 +823,15 @@
 
   // Create a new urn to pick from. The argument is the array of items in the
   // urn; items can be added or removed later.
-  flexo.Urn = function (items) {
-    flexo.make_property(this, "items", function (items_) {
-      this._remaining = [];
-      delete this._last_pick;
-      return items_;
-    });
-    flexo.make_readonly(this, "remaining", function () {
-      return this._remaining.length;
-    });
-    this.items = Array.isArray(items) && items || [];
+  flexo.urn = function (items) {
+    return Object.create(Urn).init(items);
   };
 
-  flexo.Urn.prototype = {
+  var Urn = {
+    init: function (items) {
+      this.items = Array.isArray(items) && items || [];
+      return this;
+    },
 
     // Pick an item from the urn, refilling it as necessary.
     pick: function () {
@@ -563,8 +880,16 @@
       }
       return removed;
     }
-
   };
+
+  flexo.make_property(Urn, "items", function (items_) {
+    this._remaining = [];
+    delete this._last_pick;
+    return items_;
+  });
+  flexo.make_readonly(Urn, "remaining", function () {
+    return this._remaining.length;
+  });
 
   // Extend the proto object with properties of the ext object. Note that this
   // creates a new object that proto should be replaced with.
@@ -918,344 +1243,6 @@
         }
       }
     }
-  };
-
-
-  // Functions and Asynchronicity
-
-  // Hack using postMessage to provide a setImmediate replacement; inspired by
-  // https://github.com/NobleJS/setImmediate
-  flexo.asap = global.setImmediate ? global.setImmediate.bind(global) :
-    global.postMessage ? (function () {
-      var queue = [];
-      var key = "asap{0}".fmt(Math.random());
-      global.addEventListener("message", function (e) {
-        if (e.data === key) {
-          var q = queue.slice();
-          queue = [];
-          for (var i = 0, n = q.length; i < n; ++i) {
-            var f = q[i];
-            f();
-          }
-        }
-      }, false);
-      return function (f) {
-        if (typeof f !== "function") {
-          throw "Not a function: %0".fmt(f);
-        }
-        queue.push(f);
-        global.postMessage(key, "*");
-      };
-    }()) : function (f) {
-      global.setTimeout(f, 0);
-    };
-
-  // Return a function that discards its arguments. An optional parameter allows
-  // to keep at most n arguments (defaults to 0 of course.)
-  flexo.discard = function (f, n) {
-    return function () {
-      return f.apply(this, flexo.slice(arguments, 0, n || 0));
-    };
-  };
-
-  // This function can be called to fail early. If called with no parameter or a
-  // single parameter evaluating to a truthy value, throw a "fail" exception;
-  // otherwise, return false.
-  flexo.fail = function (p) {
-    if (!arguments.length || p) {
-      throw "fail";
-    }
-    return false;
-  };
-
-  // Turn a value into a 0-ary function returning that value
-  flexo.funcify = function (x) {
-    return typeof x === "function" ? x : function () {
-      return x;
-    };
-  };
-
-  // Identity function (also named `fst` to match `snd`)
-  flexo.id = flexo.fst = function (x) {
-    return x;
-  };
-
-  // Get a function that returns the property `property` of an object.
-  flexo.property = function (p1, p2) {
-    return arguments.length === 1 ?
-      function (x) {
-        return x && x[p1];
-      } : function (x) {
-        return x && x[p1] && x[p1][p2];
-      };
-  };
-
-  // A function that returns its second argument and discard the first.
-  flexo.snd = function (_, y) {
-    // jshint unused: true
-    return y;
-  };
-
-  // Sort of like id, but for `this`.
-  flexo.self = function () {
-    return this;
-  };
-
-  // No-op function, returns nothing
-  flexo.nop = function () {
-  };
-
-  // Trampoline calls, adapted from
-  // http://github.com/spencertipping/js-in-ten-minutes
-
-  // Use a trampoline to call a function; we expect a thunk to be returned
-  // through the get_thunk() function below. Return nothing to step off the
-  // trampoline (e.g. to wait for an event before continuing.)
-  function apply_thunk(thunk) {
-    var escape = thunk[1][thunk[1].length - 1];
-    var self = thunk[0];
-    while (thunk && thunk[0] !== escape) {
-      thunk = thunk[0].apply(self, thunk[1]);
-    }
-    if (thunk) {
-      return escape.apply(self, thunk[1]);
-    }
-  }
-
-  Function.prototype.trampoline = function () {
-    return apply_thunk([this, arguments]);
-  };
-
-  // Return a thunk suitable for the trampoline function above.
-  Function.prototype.get_thunk = function() {
-    return [this, arguments];
-  };
-
-
-  // Promises (see http://promisesaplus.com/)
-  var promise = (flexo.Promise = function () {
-    this.pending = true;
-    Object.defineProperty(this, "queue", { value: [], writable: true });
-  }).prototype;
-
-  promise.fulfill = function (value) {
-    if (!this.pending && arguments.length === 1) {
-      return this;
-    }
-    if (arguments.length === 1) {
-      delete this.pending;
-      Object.defineProperty(this, "value", { value: value, enumerable: true });
-    }
-    var queue = this.queue;
-    this.queue = [];
-    var promise1 = this;
-    flexo.asap(function () {
-      queue.forEach(function (q) {
-        promise.fulfill_.apply(promise1, q);
-      });
-    });
-    return this;
-  };
-
-  promise.fulfill_ = function (promise2, onFulfilled) {
-    if (typeof onFulfilled === "function") {
-      try {
-        resolve_promise(promise2, onFulfilled(this.value));
-      } catch (e) {
-        promise2.reject(e);
-      }
-    } else {
-      promise2.fulfill(this.value);
-    }
-  };
-
-  promise.reject = function (reason) {
-    if (!this.pending && arguments.length === 1) {
-      return this;
-    }
-    if (arguments.length === 1) {
-      delete this.pending;
-      Object.defineProperty(this, "reason",
-          { value: reason, enumerable: true });
-    }
-    var queue = this.queue;
-    this.queue = [];
-    var promise1 = this;
-    flexo.asap(function () {
-      queue.forEach(function (q) {
-        promise.reject_.apply(promise1, q);
-      });
-    });
-    return this;
-  };
-
-  promise.reject_ = function (promise2, _, onRejected) {
-    // jshint unused: true
-    if (typeof onRejected === "function") {
-      try {
-        resolve_promise(promise2, onRejected(this.reason));
-      } catch (e) {
-        promise2.reject(e);
-      }
-    } else {
-      promise2.reject(this.reason);
-    }
-  };
-
-  promise.then = function (onFulfilled, onRejected) {
-    var promise2 = new flexo.Promise();
-    if (this.pending) {
-      this.queue.push([promise2, onFulfilled, onRejected]);
-    } else {
-      var promise1 = this;
-      if (this.hasOwnProperty("value")) {
-        flexo.asap(function () {
-          promise1.fulfill_(promise2, onFulfilled, onRejected);
-        });
-      } else {
-        flexo.asap(function () {
-          promise1.reject_(promise2, onFulfilled, onRejected);
-        });
-      }
-    }
-    return promise2;
-  };
-
-  function resolve_promise(promise, x) {
-    if (promise === x) {
-      // throw new TypeError();
-      promise.reject(new TypeError());
-    }
-    if (x instanceof flexo.Promise) {
-      if (x.pending) {
-        x.queue.push([promise, function (value) {
-          return promise.fulfill(value);
-        }, function (reason) {
-          return promise.reject(reason);
-        }]);
-      } else if (x.hasOwnProperty("value")) {
-        promise.fulfill(x.value);
-      } else {
-        promise.reject(x.reason);
-      }
-    } else if (x !== null && typeof x === "object" || typeof x === "function") {
-      try {
-        var then = x.then;
-        if (typeof then === "function") {
-          (function () {
-            var handled = false;
-            try {
-              then.call(x, function (y) {
-                if (!handled) {
-                  handled = true;
-                  resolve_promise(promise, y);
-                }
-              }, function (r) {
-                if (!handled) {
-                  handled = true;
-                  promise.reject(r);
-                }
-              });
-            } catch (e) {
-              if (!handled) {
-                handled = true;
-                promise.reject(e);
-              }
-            }
-          }());
-        } else {
-          promise.fulfill(x);
-        }
-      } catch (e) {
-        promise.reject(e);
-      }
-    } else {
-      promise.fulfill(x);
-    }
-  }
-
-  promise.timeout = function (dur_ms) {
-    if (this.__timeout) {
-      global.clearTimeout(this.__timeout);
-      delete this.__timeout;
-    }
-    if (dur_ms > 0) {
-      this.__timeout = global.setTimeout(this.reject.bind(this, "Timeout"),
-          dur_ms);
-    }
-    return this;
-  };
-
-  // Fold for a list of promises.
-  flexo.fold_promises = function (promises, f, z) {
-    return (function fold (i, n) {
-      if (i === n) {
-        return new flexo.Promise().fulfill(z);
-      }
-      if (promises[i] instanceof flexo.Promise) {
-        return promises[i].then(function (value) {
-          z = f(z, value);
-          return fold(i + 1, n);
-        });
-      }
-      z = f(z, promises[i]);
-      return fold(i + 1, n);
-    }(0, promises.length));
-  };
-
-  // Collect a list of promises into a promise of a list.
-  flexo.collect_promises = function (promises) {
-    return flexo.fold_promises(promises, function (values, value) {
-      values.push(value);
-      return values;
-    }, []);
-  };
-
-  // Delay the execution of `f` by `delay_ms` millisecond (or 0 if the delay is
-  // negative or not a number.)
-  flexo.promise_delay = function (f, delay_ms) {
-    var promise = new flexo.Promise();
-    global.setTimeout(function () {
-      promise.fulfill(flexo.funcify(f)());
-    }, delay_ms > 0 ? delay_ms : 0);
-    return promise;
-  };
-
-  // Create a promise that loads an image. `attrs` is a dictionary of attribute
-  // for the image and should contain a `src` property, or can simply be the
-  // source attribute value itself. The promise has a pointer to the `img`
-  // element.
-  flexo.promise_img = function (attrs) {
-    var promise = new flexo.Promise();
-    var img = promise.img = new window.Image();
-    if (typeof attrs === "object") {
-      for (var attr in attrs) {
-        img.setAttribute(attr, attrs[attr]);
-      }
-    } else {
-      img.src = attrs;
-    }
-    if (img.complete) {
-      promise.fulfill(img);
-    } else {
-      img.onload = function () {
-        promise.fulfill(img);
-      };
-      img.onerror = promise.reject.bind(promise);
-    }
-    return promise;
-  };
-
-  // Create a promise that loads a script at `src` by adding it to `target`.
-  flexo.promise_script = function (src, target) {
-    var promise = new flexo.Promise();
-    var script = target.ownerDocument.createElement("script");
-    script.src = src;
-    script.async = false;
-    script.onload = promise.fulfill.bind(promise, script);
-    script.onerror = promise.reject.bind(promise);
-    target.appendChild(script);
-    return promise;
   };
 
 

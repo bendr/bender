@@ -122,43 +122,46 @@ View.render = function (stack, target, ref) {
     child.render(stack, fragment);
   });
   delete target.__target;
-  stack[stack.i].first = fragment.firstChild;
-  stack[stack.i].last = fragment.lastChild;
+  this.first = fragment.firstChild;
+  Object.defineProperty(this, "last", { enumerable: true, configurable: true,
+    writable: true, value: fragment.lastChild });
   target.insertBefore(fragment, ref);
 };
 
 
 
 
-// Update the view, either for an instance (the scope points to the stack for
-// the instance) or for the component, i.e., all instances (then apply to all
-// stacks.)
-View.render_update = function (update) {
-  update_stacks(update, function (stack) {
-    var target = find_dom_parent(update, stack);
-    var ref = find_dom_ref(update, stack, target);
-    var update_last = !ref && target === stack[stack.i].target;
-    if (update_last) {
-      ref = stack[stack.i].last.nextSibling;
+// Update the rendered DOM element after a child has been added. If the update
+// is made to an instance, then update that instance; when made to a component,
+// apply the update to all instances.
+ViewElement.render_update_add = Attribute.render_update_add =
+function (update) {
+  if (update.scope.stack) {
+    if (!this.parent.first) {
+      return;
     }
-    update.target.render(stack, target, ref);
-    if (update_last) {
-      stack[stack.i].last = stack[stack.i].last.nextSibling;
-    }
-  });
-};
-
-// Update the text of a view element
-ViewElement.update_text = function (update) {
-  update_stacks(update, function (stack) {
-    find_dom(update, stack).textContent = update.target.text();
-  });
+    var stack = update.scope.stack;
+    for (stack.i = 0; stack[stack.i]["@this"] !== update.scope["@this"];
+        ++stack.i) {}
+    update.target.render(stack, update.target.parent.first,
+        update.target.next_sibling && update.target.next_sibling.first);
+    delete stack.i;
+  } else {
+    var sibling = update.target.next_sibling;
+    this.instances.forEach(function (instance) {
+      var component = instance.component;
+      var ref = sibling && flexo.find_first(instance.children, function (ch) {
+        return Object.getPrototypeOf(ch) === sibling;
+      });
+      var child = instance.insert_child(update.target.instantiate(), ref);
+    });
+  }
 };
 
 // Update a text element depending on its parent (either view element or
 // attribute)
-Text.text_update = function (update) {
-  var f = this.parent && this.parent.update_text;
+Text.render_update_text = function (update) {
+  var f = this.parent && this.parent.render_update_text;
   if (f) {
     f.call(this, update);
   }
@@ -190,46 +193,36 @@ DOMElement.render = function (stack, target, ref) {
   return target.insertBefore(elem, ref);
 };
 
-// Update the rendered DOM element after a child has been added. If the update
-// is made to an instance, then update that instance; when made to a component,
-// apply the update to all instances.
-DOMElement.render_update_add = function (update) {
-  if (update.scope.stack) {
-    var stack = update.scope.stack;
-    for (stack.i = 0; stack[stack.i]["@this"] !== update.scope["@this"];
-        ++stack.i) {}
-    update.target.render(stack, update.target.parent.first,
-        update.target.next_sibling && update.target.next_sibling.first);
-    delete stack.i;
-  } else {
-    var sibling = update.target.next_sibling;
+DOMElement.render_update_remove_self = function () {
+  if (this.hasOwnProperty("instances")) {
     this.instances.forEach(function (instance) {
-      var component = instance.component;
-      var ref = sibling && flexo.find_first(instance.children, function (ch) {
-        return Object.getPrototypeOf(ch) === sibling;
-      });
-      var child = instance.insert_child(update.target.instantiate(), ref);
+      instance.remove_self();
     });
+  } else {
+    var n = this.first;
+    var m = this.last.nextSibling;
+    var p = n.parentNode;
+    while (n !== m) {
+      var n_ = n.nextSibling;
+      p.removeChild(n);
+      n = n_;
+    }
+    delete this.first;
+    delete this.last;
+    this.uninstantiate();
   }
 };
 
-DOMElement.update_attribute = function (update) {
-  update_stacks(update, function (stack) {
-    var dom = find_dom(update, stack);
-    if (update.hasOwnProperty("value")) {
-      if (update.ns) {
-        dom.setAttributeNS(update.ns, update.name, update.value);
-      } else {
-        dom.setAttribute(update.name, update.value);
-      }
-    } else {
-      if (update.ns) {
-        dom.removeAttributeNS(update.ns, update.name);
-      } else {
-        dom.removeAttribute(update.name);
-      }
-    }
-  }.bind(this));
+DOMElement.render_update_attribute = function (update) {
+  if (this.hasOwnProperty("instances")) {
+    this.instances.forEach(function (instance) {
+      instance.render_update_attribute(update);
+    });
+  } else if (update.hasOwnProperty("value")) {
+    this.first.setAttributeNS(update.ns, update.name, update.value);
+  } else {
+    this.first.removeAttributeNS(update.ns, update.name);
+  }
 };
 
 
@@ -257,58 +250,3 @@ Text.render = function (_, target, ref) {
   return this.target = target.insertBefore(node, ref);
 };
 
-
-function find_dom(update, stack) {
-  return flexo.bfirst(stack[stack.i].target,
-    update.target.hasOwnProperty("target") ? function (p) {
-      return p.__bender && p.__bender === update.target || p.childNodes;
-    } : function (p) {
-      return p.__bender &&
-        Object.getPrototypeOf(p.__bender) === update.target &&
-        p.__bender.view === stack[stack.i].view || p.childNodes;
-    });
-}
-
-// TODO store instances of view nodes?
-function find_dom_parent(update, stack) {
-  var parent = update.target.parent;
-  var target = stack[stack.i].target;
-  if (parent.view === parent) {
-    return target;
-  }
-  return flexo.bfirst(target, parent.hasOwnProperty("target") ?
-      function (p) {
-        return p.__bender && p.__bender === parent || p.childNodes;
-      } : function (p) {
-        return p.__bender && Object.getPrototypeOf(p.__bender) === parent &&
-          p.__bender.view === stack[stack.i].view || p.childNodes;
-      });
-}
-
-function find_dom_ref(update, stack, target) {
-  var parent = update.target.parent;
-  var ref = parent.children[parent.children.indexOf(update.target) + 1];
-  return ref && flexo.find_first(target.childNodes,
-      parent.hasOwnProperty("target") ?  function (p) {
-        return p.__bender && p.__bender === ref;
-      } : function (p) {
-        return p.__bender && Object.prototype(p.__bender) === ref &&
-          p.__bender.view === stack[stack.i].view;
-      });
-}
-
-// Update all stacks for a given update
-function update_stacks(update, f) {
-  var update_stack = function (stack) {
-    for (stack.i = 0; stack[stack.i]["#this"] !== update.scope["#this"];
-      ++stack.i) {}
-    f(stack);
-    delete stack.i;
-  };
-  if (update.scope.stack) {
-    update_stack(update.scope.stack);
-  } else {
-    update.scope["#this"].all_instances.map(flexo.property("scope", "stack"))
-      .forEach(update_stack);
-  }
-}
