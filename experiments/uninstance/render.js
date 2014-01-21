@@ -60,6 +60,12 @@ Component.render_instance = function (target, ref) {
 // A new render stack is built, replacing the stack passed as parameter, built
 // of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
+  var head = target.ownerDocument.head || target.ownerDocument.documentElement;
+  this.children.forEach(function (ch) {
+    if (ch.tag === "style") {
+      ch.apply(head);
+    }
+  });
   Object.defineProperty(this, "scope", {
     enumerable: true,
     value: this.render_scope()
@@ -183,6 +189,18 @@ Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
   return this.first = target.insertBefore(target.ownerDocument
       .createTextNode(this.text()), ref);
+};
+
+
+// Applying a style element is adding a style element to the head of the target
+// document when rendering the component
+Style.apply = function (head) {
+  if (!this.__pending) {
+    return;
+  }
+  delete this.__pending;
+  head.appendChild(flexo.$style(this.text()));
+  return this;
 };
 
 

@@ -173,6 +173,12 @@ bender.Environment.deserialize.script = function (elem) {
       .id(elem.getAttribute("id")), elem);
 };
 
+bender.Environment.deserialize.style = function (elem) {
+  return this.deserialize_children(bender.Style.create()
+      .text(shallow_text(elem))
+      .id(elem.getAttribute("id")), elem);
+};
+
 bender.Environment.deserialize.text = function (elem) {
   return this.deserialize_children(bender.Text.create().text(shallow_text(elem))
       .id(elem.getAttribute("id")), elem);

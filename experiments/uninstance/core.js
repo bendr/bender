@@ -311,7 +311,7 @@ var Component = bender.Component = flexo._ext(Element, {
       this.own_properties[child.name] = child;
       define_js_property(this, child.name);
     } else if (child.tag === "script") {
-      child.run();
+      child.apply();
     }
     return child;
   },
@@ -560,8 +560,8 @@ flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
 
 
-// Inline scripting. A script element has text content and is executed once.
-var Script = bender.Script = flexo._ext(Element, {
+// Inline elements (script, style) similar to links. Can be applied only once.
+var InlineElement = bender.InlineElement = flexo._ext(Element, {
   init: function () {
     this.__pending = true;
     return Element.init.call(this);
@@ -574,22 +574,28 @@ var Script = bender.Script = flexo._ext(Element, {
       return this._text || "";
     }
     if (!this.__pending) {
-      console.warn("updating executed script.");
+      console.warn("updating applied %0.".fmt(this.tag));
     }
     this._text = flexo.safe_string(text);
     // No update notification
     return this;
   },
 
+  // Stub for applying (for documentation purposes)
+  apply: flexo.nop
+});
+
+// Inline scripting. A script element has text content and is executed once.
+var Script = bender.Script = flexo._ext(InlineElement, {
   // Run the script with the given arguments and the component as `this`,
   // clearing the pending flag. Exceptions are caught.
-  run: function () {
+  apply: function () {
     if (!this.__pending) {
       return;
     }
     delete this.__pending;
     try {
-      new Function(this._text || "").apply(this.component, arguments);
+      new Function(this.text()).apply(this.component, arguments);
     } catch (e) {
       console.error("could not run script:", e);
     }
@@ -598,6 +604,11 @@ var Script = bender.Script = flexo._ext(Element, {
 });
 
 flexo.make_readonly(Script, "tag", "script");
+
+
+// Inline style element—apply depends on the rendering so it is left out.
+var Style = bender.Style = Object.create(InlineElement);
+flexo.make_readonly(Style, "tag", "style");
 
 
 var Watch = bender.Watch = flexo._ext(Element, {
