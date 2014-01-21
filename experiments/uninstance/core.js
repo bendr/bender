@@ -595,6 +595,7 @@ var Script = bender.Script = flexo._ext(InlineElement, {
     }
     delete this.__pending;
     try {
+      // jshint -W054
       new Function(this.text()).apply(this.component, arguments);
     } catch (e) {
       console.error("could not run script:", e);
@@ -616,12 +617,44 @@ var Watch = bender.Watch = flexo._ext(Element, {
     Object.defineProperty(this, "gets", { enumerable: true, value: [] });
     Object.defineProperty(this, "sets", { enumerable: true, value: [] });
   },
+
+  insert_child: function (child, ref) {
+    child = Element.insert_child.call(this, child, ref);
+    if (child.tag === "get") {
+      this.gets.push(child);
+    } else if (child.tag === "set") {
+      this.sets.push(child);
+    }
+  }
 });
 
 flexo.make_readonly(Watch, "tag", "watch");
 
 
 var ValueElement = bender.ValueElement = flexo._ext(Element, {});
+
+
+var Get = bender.Get = flexo._ext(ValueElement, {
+});
+
+flexo.make_readonly(Get, "tag", "get");
+
+var GetDOMEvent = bender.GetDOMEvent = flexo._ext(Get, {
+  init: function (type, property) {
+    this.type = type;
+    if (property) {
+      this.property = property;
+    }
+    return Get.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.type, args.property), args);
+  }
+});
+
+flexo._accessor(bender.GetDOMEvent, "stop_propagation");
+flexo._accessor(bender.GetDOMEvent, "prevent_default");
 
 
 var Property = bender.Property = flexo._ext(ValueElement, {

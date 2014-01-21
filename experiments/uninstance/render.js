@@ -1,5 +1,5 @@
-/* global Attribute, bender, Component, Content, DOMElement, flexo, on, Text,
-   View, ViewElement, window */
+/* global Attribute, bender, Component, Content, DOMElement, flexo, on, Style,
+   Text, View, ViewElement, window */
 // jshint -W097
 
 "use strict";
