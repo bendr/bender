@@ -100,6 +100,7 @@ bender.Environment.deserialize_foreign = function (elem) {
 // component is fully deserialized.
 bender.Environment.deserialize.component = function (elem, promise) {
   var component = this.component();
+  delete component.__pending_init;
   if (promise) {
     promise.component = component;
   }
@@ -141,6 +142,7 @@ bender.Environment.deserialize.component = function (elem, promise) {
     }
     return children;
   }.call(this)).then(function () {
+    component.on_handlers.init.call(component);
     return component.load_links();
   });
 };
@@ -162,6 +164,12 @@ bender.Environment.deserialize.attribute = function (elem) {
   return this.deserialize_children(bender.Attribute
       .create(flexo.safe_string(elem.getAttribute("ns")),
         flexo.safe_string(elem.getAttribute("name")))
+      .id(elem.getAttribute("id")), elem);
+};
+
+bender.Environment.deserialize.script = function (elem) {
+  return this.deserialize_children(bender.Script.create()
+      .text(shallow_text(elem))
       .id(elem.getAttribute("id")), elem);
 };
 

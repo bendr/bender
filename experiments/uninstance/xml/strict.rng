@@ -39,6 +39,9 @@
         <zeroOrMore>
           <ref name="property"/>
         </zeroOrMore>
+        <zeroOrMore>
+          <ref name="script"/>
+        </zeroOrMore>
       </interleave>
     </element>
   </define>
@@ -54,6 +57,13 @@
     <element name="property">
       <ref name="element-attrs"/>
       <ref name="name"/>
+    </element>
+  </define>
+
+  <define name="script">
+    <element name="script">
+      <ref name="element-attrs"/>
+      <text/>
     </element>
   </define>
 

@@ -60,7 +60,11 @@ Component.render_instance = function (target, ref) {
 // A new render stack is built, replacing the stack passed as parameter, built
 // of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
-  var scope = this.scope = this.render_scope();
+  Object.defineProperty(this, "scope", {
+    enumerable: true,
+    value: this.render_scope()
+  });
+  var scope = this.scope;
   stack = scope.stack = [];
   for (; scope; scope = scope["#this"]._prototype &&
       scope["#this"]._prototype.render_scope()) {

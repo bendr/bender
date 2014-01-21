@@ -82,7 +82,7 @@ describe("Bender core", function () {
       });
 
       describe("init_with_args(args)", function () {
-        var elem = Object.create(bender.Element);
+        var elem = Object.create(bender.Element).init();
         var inited = elem.init_with_args({ id: "foo" });
         it("allows to pass arguments for initialization as an object",
           flexo.nop);

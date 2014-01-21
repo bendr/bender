@@ -18,6 +18,19 @@ body {
     <script>
 "use strict";
 
+bender.Component.on_handlers.init = function () {
+  console.log("Init: %0 (%1)".fmt(this.__id, this.id()));
+};
+
+bender.Component.on_handlers.instantiate = function (instance, scope) {
+  if (instance.__id) {
+    console.log("Instantiate: %0 (%1)".fmt(instance.__id, instance.id()));
+  } else {
+    var c = instance.component;
+    console.log("Instantiate: view of %0 (%1)".fmt(c.__id, c.id()));
+  }
+};
+
 var args = flexo.get_args();
 if (args.href) {
   var env = bender.environment();

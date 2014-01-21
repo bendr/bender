@@ -24,12 +24,17 @@ var Element = bender.Element = {
   // Initialize an element with no parent yet and an empty list of children and
   // instances.
   init: function () {
-    this.children = [];
-    this.instances = [];
+    Object.defineProperty(this, "children", {
+      enumerable: true,
+      configurable: true,  // this can be redefined by instances
+      value: []
+    });
+    Object.defineProperty(this, "instances", { enumerable: true, value: [] });
     return this;
   },
 
-  // Initialize an element from an arguments object (see create_element)
+  // Initialize an element from an arguments object (see create_element.) All
+  // elements may have an id.
   init_with_args: function (args) {
     if (args.id) {
       this.id(args.id);
@@ -46,22 +51,25 @@ var Element = bender.Element = {
 
   // Instantiate the element: create a clone of the object, and update the scope
   // as we go along. Unless the shallow flag is set, instantiate children as
-  // well.
+  // well. Note that the instance is detached: it has no parent.
   instantiate: function (scope, shallow) {
     if (!this.hasOwnProperty("instances")) {
       throw "cannot instantiate an instance";
     }
     var instance = Object.create(this);
-    instance.parent = null;
     this.instances.push(instance);
+    delete instance.parent;
     if (scope && this._id) {
       scope["@" + this._id] = instance;
     }
     if (!shallow) {
-      instance.children = this.children.map(function (ch) {
-        var ch_ = ch.instantiate(scope);
-        ch_.parent = instance;
-        return ch_;
+      Object.defineProperty(instance, "children", {
+        enumerable: true,
+        value: this.children.map(function (ch) {
+          var ch_ = ch.instantiate(scope);
+          ch_.parent = instance;
+          return ch_;
+        })
       });
     }
     return instance;
@@ -78,21 +86,25 @@ var Element = bender.Element = {
 
   // Get or set the id of the element. Don’t do anything if the ID was not a
   // valid XML id.
-  // TODO update
   id: function (id) {
-    if (arguments.length > 0) {
-      var _id = flexo.check_xml_id(id);
-      // jshint -W041
-      if (_id == null) {
-        console.warn("“%0” is not a valid XML ID".fmt(id));
-        return this;
-      }
-      if (_id !== this._id) {
-        this._id = _id;
-      }
+    if (arguments.length === 0) {
+      return this._id || "";
+    }
+    if (!this.hasOwnProperty("instances")) {
+      throw "cannot change the id of an instance";
+    }
+    var _id = flexo.check_xml_id(id);
+    // jshint -W041
+    if (_id == null) {
+      console.warn("“%0” is not a valid XML ID".fmt(id));
       return this;
     }
-    return this._id || "";
+    if (_id !== this._id) {
+      var update = { type: "id", target: this, before: this._id };
+      this._id = _id;
+      this.update(update);
+    }
+    return this;
   },
 
   // Insert a child element. If no ref is given, insert at the end of the list
@@ -153,7 +165,7 @@ var Element = bender.Element = {
     return this;
   },
 
-  // Stub for rendering
+  // Stub for rendering (for reference purposes)
   render: function (/* stack, target, ref */) {
   },
 
@@ -165,26 +177,27 @@ var Element = bender.Element = {
       args.scope = component.scope;
       component.scope.environment.update_component(args);
     }
+  },
+
+  // Updates handler; id is only a stub so far.
+  updates: {
+    id: function (update) {
+      console.log("Updated id of %0 from %1 to %2"
+          .fmt(update.target.__id, update.before, update.target._id));
+    }
   }
 };
 
 flexo.make_readonly(Element, "is_bender_element", true);
-
 flexo.make_readonly(Element, "next_sibling", function () {
   return this.parent &&
     this.parent.children[this.parent.children.indexOf(this) + 1];
 });
-
 flexo.make_readonly(Element, "shallow_text", function () {
   return this.children.reduce(function (text, elem) {
-    if (elem.text) {
-      text += elem.text();
-    }
-    return text;
+    return text + (typeof elem.text === "function" ? elem.text() : "");
   }, "");
 });
-
-// The closest component ancestor element.
 flexo.make_readonly(Element, "component", function () {
   return this.parent && this.parent.component;
 });
@@ -198,13 +211,22 @@ var Component = bender.Component = flexo._ext(Element, {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    this.derived = [];
-    this.own_properties = {};  // property child elements
-    this.properties = {};      // property values, including inherited
-    Object.defineProperty(this.properties, "", { value: this,
-      configurable: true });
-    this.scope = flexo._ext(scope, { "@this": this, "#this": this,
-      children: [] });
+    Object.defineProperty(this, "derived", { enumerable: true, value: [] });
+    Object.defineProperty(this, "own_properties", {
+      enumerable: true,
+      value: {}
+    });
+    Object.defineProperty(this, "properties", {
+      enumerable: true,
+      configurable: true,
+      value: {}
+    });
+    Object.defineProperty(this.properties, "", { value: this });
+    Object.defineProperty(this, "scope", {
+      enumerable: true,
+      configurable: true,
+      value: flexo._ext(scope, { "@this": this, "#this": this, children: [] })
+    });
     this.on_handlers = Object.create(this.on_handlers);
     this.__id = flexo.random_id();
     global["$" + this.__id] = this;
@@ -221,11 +243,11 @@ var Component = bender.Component = flexo._ext(Element, {
 
   // Initialize a component with arguments
   init_with_args: function (args) {
-    this.init(args.scope);
+    Element.init_with_args.call(this.init(), args);
     if (args.prototype) {
       this.prototype(args.prototype);
     }
-    return Element.init_with_args.call(this, args);
+    return this;
   },
 
   load_links: function () {
@@ -253,11 +275,14 @@ var Component = bender.Component = flexo._ext(Element, {
   instantiate: function (scope) {
     var instance = Element.instantiate.call(this, scope, true);
     var id = flexo.random_id();
+    instance.__id = this.__id + "/" + id;
     global["$" + id] = instance;
-    instance.properties = Object.create(this.properties);
-    Object.defineProperty(instance.properties, "", { value: this });
-    instance.__id = this.__id + "/" + flexo.random_id();
-    console.log("+++ New instance", instance.__id);
+    Object.defineProperty(instance, "properties", {
+      enumerable: true,
+      value: Object.create(this.properties, {
+        "": { value: instance }
+      })
+    });
     on(this, "instantiate", instance);
     return instance;
   },
@@ -285,6 +310,8 @@ var Component = bender.Component = flexo._ext(Element, {
     } else if (child.tag === "property") {
       this.own_properties[child.name] = child;
       define_js_property(this, child.name);
+    } else if (child.tag === "script") {
+      child.run();
     }
     return child;
   },
@@ -301,7 +328,7 @@ var Component = bender.Component = flexo._ext(Element, {
     if (arguments.length === 0) {
       return this.scope.view;
     }
-    var view = this.scope.view || this.insert_child(View.create().init());
+    var view = this.scope.view || this.insert_child(View.create());
     flexo.foreach(arguments, insert_children.bind(null, view));
     return this;
   },
@@ -328,18 +355,29 @@ var Component = bender.Component = flexo._ext(Element, {
     return this;
   },
 
-  updates: {
+  updates: flexo._ext(Element.updates, {
     add: function (update) {
       update.scope.view.render_update(update);
     }
-  }
+  })
 
 });
 
 flexo._accessor(Component, "prototype", function (p) {
   if (p) {
+    if (!p.hasOwnProperty("instances")) {
+      throw "cannot set prototype of instance";
+    }
+    if (p.instances.length > 0 || p.derived.length > 0) {
+      console.warn("changing the prototype of a component that was " +
+        "instantiated or derived");
+    }
     p.derived.push(this);
-    flexo.replace_prototype(this.properties, p.properties);
+    Object.defineProperty(this, "properties", {
+      enumerable: true,
+      configurable: true,
+      value: flexo.replace_prototype(p.properties, this.properties)
+    });
   }
   return p;
 });
@@ -359,7 +397,6 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
 
   // All view elements may have a render-id property
   init_with_args: function (args) {
-    this.init();
     if (args.renderId || args["render-id"]) {
       this.renderId(args.renderId || args["render-id"]);
     }
@@ -384,10 +421,11 @@ flexo._accessor(ViewElement, "renderId", normalize_renderId);
 
 var View = bender.View = flexo._ext(bender.ViewElement, {
   init_with_args: function (args) {
+    ViewElement.init_with_args.call(this.init(), args);
     if (args.stack) {
       this.stack(args.stack);
     }
-    return ViewElement.init_with_args.call(this, args);
+    return this;
   }
 });
 
@@ -411,7 +449,7 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
   },
 
   init_with_args: function (args) {
-    ViewElement.init_with_args.call(this, args);
+    ViewElement.init_with_args.call(this.init(), args);
     this.ns = args.ns;
     this.name = args.name;
     var skip = { id: true, renderId: true, "render-id": true, ns: true,
@@ -448,7 +486,7 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     return this.attr(ns, name, null);
   },
 
-  updates: {
+  updates: flexo._ext(ViewElement.updates, {
     add: function (update) {
       update.target.parent.render_update_add(update);
     },
@@ -458,7 +496,7 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     attr: function (update) {
       update.target.render_update_attribute(update);
     }
-  }
+  })
 });
 
 flexo.make_readonly(DOMElement, "tag", "dom");
@@ -477,14 +515,14 @@ var Attribute = bender.Attribute = flexo._ext(Element, {
       args);
   },
 
-  updates: {
+  updates: flexo._ext(Element.updates, {
     add: function (update) {
       update.target.parent.render_update_add(update);
     },
     remove: function (update) {
       update.target.render_update_remove_self();
     }
-  }
+  })
 });
 
 flexo.make_readonly(Attribute, "tag", "attribute");
@@ -505,7 +543,7 @@ var Text = bender.Text = flexo._ext(ViewElement, {
     return this;
   },
 
-  updates: {
+  updates: flexo._ext(ViewElement.updates, {
     add: function (update) {
       update.target.parent.render_update_add(update);
     },
@@ -515,21 +553,74 @@ var Text = bender.Text = flexo._ext(ViewElement, {
     text: function (update) {
       update.target.render_update_text();
     }
-  }
+  })
 });
 
 flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
 
 
-var Property = bender.Property = flexo._ext(Element, {
-  init: function (name) {
-    this.name = name;
+// Inline scripting. A script element has text content and is executed once.
+var Script = bender.Script = flexo._ext(Element, {
+  init: function () {
+    this.__pending = true;
     return Element.init.call(this);
   },
 
+  // Set the text content of the element, but warn if the script is no longer
+  // pending. No update is generated of course.
+  text: function (text) {
+    if (arguments.length === 0) {
+      return this._text || "";
+    }
+    if (!this.__pending) {
+      console.warn("updating executed script.");
+    }
+    this._text = flexo.safe_string(text);
+    // No update notification
+    return this;
+  },
+
+  // Run the script with the given arguments and the component as `this`,
+  // clearing the pending flag. Exceptions are caught.
+  run: function () {
+    if (!this.__pending) {
+      return;
+    }
+    delete this.__pending;
+    try {
+      new Function(this._text || "").apply(this.component, arguments);
+    } catch (e) {
+      console.error("could not run script:", e);
+    }
+    return this;
+  }
+});
+
+flexo.make_readonly(Script, "tag", "script");
+
+
+var Watch = bender.Watch = flexo._ext(Element, {
+  init: function () {
+    Object.defineProperty(this, "gets", { enumerable: true, value: [] });
+    Object.defineProperty(this, "sets", { enumerable: true, value: [] });
+  },
+});
+
+flexo.make_readonly(Watch, "tag", "watch");
+
+
+var ValueElement = bender.ValueElement = flexo._ext(Element, {});
+
+
+var Property = bender.Property = flexo._ext(ValueElement, {
+  init: function (name) {
+    this.name = name;
+    return ValueElement.init.call(this);
+  },
+
   init_with_args: function (args) {
-    return Element.init_with_args.call(this.init(args.name), args);
+    return ValueElement.init_with_args.call(this.init(args.name), args);
   },
 });
 
