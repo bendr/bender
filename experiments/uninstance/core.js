@@ -227,6 +227,8 @@ var Component = bender.Component = flexo._ext(Element, {
       configurable: true,
       value: flexo._ext(scope, { "@this": this, "#this": this, children: [] })
     });
+    Object.defineProperty(this, "events", { enumerable: true, value: {} });
+    Object.defineProperty(this, "watches", { enumerable: true, value: [] });
     this.on_handlers = Object.create(this.on_handlers);
     this.__id = flexo.random_id();
     global["$" + this.__id] = this;
@@ -434,7 +436,11 @@ flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
 
 
-var Content = bender.Content = Object.create(ViewElement);
+var Content = bender.Content = Object.create(ViewElement, {
+  init_with_args: function (args) {
+    return ViewElement.init_with_args.call(this.init(), args);
+  }
+});
 
 flexo.make_readonly(Content, "view", find_view);
 flexo.make_readonly(Content, "tag", "content");
@@ -529,7 +535,11 @@ flexo.make_readonly(Attribute, "tag", "attribute");
 flexo.make_readonly(Attribute, "view", find_view);
 
 
-var Text = bender.Text = flexo._ext(ViewElement, {
+var Text = bender.Text = flexo._ext(Element, {
+  init_with_args: function (args) {
+    return Element.init_with_args.call(this.init(), args);
+  },
+
   instantiate: function (scope) {
     return Element.instantiate.call(this, scope, true);
   },
@@ -898,8 +908,7 @@ function define_js_property(component, name, value) {
 }
 
 function did_set_property(component, name, value) {
-  console.log("=== Did set property %0`%1 to %2"
-      .fmt(component.__id, name, value));
+  // schedule graph visit
 }
 
 // Delete the attribute {ns}name from elem; return an empty object (no value)
