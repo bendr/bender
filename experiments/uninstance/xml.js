@@ -1,4 +1,4 @@
-/* global bender, console, flexo, window */
+/* global bender, console, Environment, flexo, Link, window */
 // jshint -W097
 
 "use strict";
@@ -51,7 +51,7 @@ bender.Environment.deserialize = function (node, promise) {
         return f.call(this, node, promise);
       } else {
         console.warn("Unknow element in Bender namespace: “%0” in %1"
-            .fmt(node.localName, node.baseURI));
+            .fmt(node.localName, node.ownerDocument.location.href));
       }
     } else {
       return this.deserialize_foreign(node);

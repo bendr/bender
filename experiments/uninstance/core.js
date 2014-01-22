@@ -326,7 +326,6 @@ var Component = bender.Component = flexo._ext(Element, {
     return flexo.collect_promises(links.map(function (link) {
       return link.load();
     }, this)).then(flexo.self.bind(this));
-    return this;
   },
 
   // Add a new link and return the component.
@@ -360,8 +359,8 @@ var Component = bender.Component = flexo._ext(Element, {
         return this._url;
       }
       url = flexo.normalize_uri((this.scope.parent &&
-          this.scope.parent.url()) || (this.scope.$document &&
-          this.scope.$document.baseURI));
+          this.scope.parent.url()) || (this.scope.document &&
+          this.scope.document.location.href));
       if (this._id) {
         var u = flexo.split_uri(url);
         u.fragment = this._id;
@@ -711,7 +710,7 @@ flexo.make_readonly(Get, "tag", "get");
 
 var GetDOMEvent = bender.GetDOMEvent = flexo._ext(Get, {
   init: function (type, property) {
-    this.type = type;
+    this.type = flexo.safe_trim(type);
     if (property) {
       this.property = property;
     }
@@ -725,6 +724,14 @@ var GetDOMEvent = bender.GetDOMEvent = flexo._ext(Get, {
 
 flexo._accessor(bender.GetDOMEvent, "stop_propagation");
 flexo._accessor(bender.GetDOMEvent, "prevent_default");
+
+
+var GetEvent = bender.GetEvent = flexo._ext(Get, {
+  init: function (type) {
+  },
+
+
+});
 
 
 var Property = bender.Property = flexo._ext(ValueElement, {

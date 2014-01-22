@@ -59,6 +59,39 @@
     </element>
   </define>
 
+  <define name="get">
+    <element name="get">
+      <ref name="element-attrs"/>
+      <ref name="value-content"/>
+      <choice>
+        <ref name="get-dom-event"/>
+        <!--
+        <ref name="get-event"/>
+        <ref name="get-property"/>
+        <ref name="get-attribute"/>
+        -->
+      </choice>
+    </element>
+  </define>
+
+  <define name="value-content">
+    <optional>
+      <ref name="match"/>
+    </optional>
+    <choice>
+      <ref name="view-element-content"/>
+      <ref name="value"/>
+      <text/>
+    </choice>
+  </define>
+
+  <define name="get-dom-event">
+    <ref name="type"/>
+    <optional>
+      <ref name="property-attr"/>
+    </optional>
+  </define>
+
   <define name="link">
     <element name="link">
       <ref name="element-attrs"/>
@@ -173,6 +206,10 @@
     </attribute>
   </define>
 
+  <define name="match">
+    <attribute name="match"/>
+  </define>
+
   <define name="name">
     <attribute name="name">
       <data type="Name"/>
@@ -182,6 +219,12 @@
   <define name="ns">
     <attribute name="ns">
       <data type="anyURI"/>
+    </attribute>
+  </define>
+
+  <define name="property-attr">
+    <attribute name="property">
+      <data type="Name"/>
     </attribute>
   </define>
 
@@ -213,6 +256,16 @@
         <value>top</value>
       </choice>
     </attribute>
+  </define>
+
+  <define name="type">
+    <attribute name="type">
+      <data type="Name"/>
+    </attribute>
+  </define>
+
+  <define name="value">
+    <attribute name="value"/>
   </define>
 
 </grammar>
