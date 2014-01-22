@@ -40,6 +40,9 @@
           <ref name="property"/>
         </zeroOrMore>
         <zeroOrMore>
+          <ref name="link"/>
+        </zeroOrMore>
+        <zeroOrMore>
           <ref name="script"/>
         </zeroOrMore>
         <zeroOrMore>
@@ -53,6 +56,14 @@
     <element name="content">
       <ref name="view-element-attrs"/>
       <ref name="view-element-content"/>
+    </element>
+  </define>
+
+  <define name="link">
+    <element name="link">
+      <ref name="element-attrs"/>
+      <ref name="rel"/>
+      <ref name="href"/>
     </element>
   </define>
 
@@ -171,6 +182,15 @@
   <define name="ns">
     <attribute name="ns">
       <data type="anyURI"/>
+    </attribute>
+  </define>
+
+  <define name="rel">
+    <attribute name="rel">
+      <choice>
+        <value>script</value>
+        <value>stylesheet</value>
+      </choice>
     </attribute>
   </define>
 

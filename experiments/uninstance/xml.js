@@ -99,7 +99,7 @@ bender.Environment.deserialize_foreign = function (elem) {
 // newly created component, so that further references can be made before the
 // component is fully deserialized.
 bender.Environment.deserialize.component = function (elem, promise) {
-  var component = this.component();
+  var component = this.component().url(elem.baseURI);
   delete component.__pending_init;
   if (promise) {
     promise.component = component;
@@ -164,6 +164,12 @@ bender.Environment.deserialize.attribute = function (elem) {
   return this.deserialize_children(bender.Attribute
       .create(flexo.safe_string(elem.getAttribute("ns")),
         flexo.safe_string(elem.getAttribute("name")))
+      .id(elem.getAttribute("id")), elem);
+};
+
+Environment.deserialize.link = function (elem) {
+  return this.deserialize_children(Link.create(elem.getAttribute("rel"),
+        elem.getAttribute("href"))
       .id(elem.getAttribute("id")), elem);
 };
 

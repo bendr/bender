@@ -1,0 +1,8 @@
+<component xmlns="http://bender.igel.co.jp">
+  <link rel="script" href="script-1.js"/>
+  <link rel="script" href="script-2.js"/>
+  <link rel="script" href="script-1.js"/>
+  <view>
+    Scripts...
+  </view>
+</component>

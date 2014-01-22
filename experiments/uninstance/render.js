@@ -1,5 +1,5 @@
-/* global Attribute, bender, Component, Content, DOMElement, flexo, on, Style,
-   Text, View, ViewElement, window */
+/* global Attribute, bender, Component, Content, DOMElement, flexo, Link, on,
+   Style, Text, View, ViewElement, window */
 // jshint -W097
 
 "use strict";
@@ -189,6 +189,43 @@ Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
   return this.first = target.insertBefore(target.ownerDocument
       .createTextNode(this.text()), ref);
+};
+
+
+// Link rendering, i.e., loading
+
+// Scripts are handled for HTML only by default. Override this method to handle
+// other types of documents.
+Link.load.script = function (url, component) {
+  var document = component.scope.document;
+  if (document.documentElement.namespaceURI === flexo.ns.html) {
+    return flexo.promise_script(url, document.head)
+      .then(function (script) {
+        Object.defineProperty(this, "loaded", {
+          enumerable: true,
+          value: script
+        });
+        return this;
+      }.bind(this));
+  }
+  console.warn("Cannot render script link for namespace %0"
+      .fmt(document.documentElement.namespaceURI));
+};
+
+// Stylesheets are handled for HTML only by default. Override this method to
+// handle other types of documents.
+Link.load.stylesheet = function (url, component) {
+  var document = component.environment.document;
+  if (document.documentElement.namespaceURI === flexo.ns.html) {
+    var link = document.createElement("link");
+    link.setAttribute("rel", "stylesheet");
+    link.setAttribute("href", url);
+    document.head.appendChild(link);
+    Object.defineProperty(this, "loaded", { enumerable: true, value: link });
+    return this;
+  } 
+  console.warn("Cannot render stylesheet link for namespace %0"
+      .fmt(document.documentElement.namespaceURI));
 };
 
 

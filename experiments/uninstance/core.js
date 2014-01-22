@@ -229,6 +229,7 @@ var Component = bender.Component = flexo._ext(Element, {
     });
     Object.defineProperty(this, "events", { enumerable: true, value: {} });
     Object.defineProperty(this, "watches", { enumerable: true, value: [] });
+    Object.defineProperty(this, "links", { enumerable: true, value: [] });
     this.on_handlers = Object.create(this.on_handlers);
     this.__id = flexo.random_id();
     global["$" + this.__id] = this;
@@ -249,11 +250,6 @@ var Component = bender.Component = flexo._ext(Element, {
     if (args.prototype) {
       this.prototype(args.prototype);
     }
-    return this;
-  },
-
-  load_links: function () {
-    // TODO
     return this;
   },
 
@@ -312,13 +308,33 @@ var Component = bender.Component = flexo._ext(Element, {
     } else if (child.tag === "property") {
       this.own_properties[child.name] = child;
       define_js_property(this, child.name);
+    } else if (child.tag === "link") {
+      this.links.push(child);
     } else if (child.tag === "script") {
+      // TODO not so fast! prototype scripts should be executed first!
       child.apply();
     }
     return child;
   },
 
-  // Add a property element with that name
+  // Load all links of a component
+  load_links: function () {
+    var links = [];
+    for (var p = this; p; p = p.prototype()) {
+      flexo.unshift_all(links, p.links);
+    }
+    return flexo.collect_promises(links.map(function (link) {
+      return link.load();
+    }, this)).then(flexo.self.bind(this));
+    return this;
+  },
+
+  // Add a new link and return the component.
+  link: function (rel, href) {
+    return this.child(Link.create(rel, href));
+  },
+
+  // Add a property element with that name and return the component.
   property: function (name) {
     this.insert_child(Property.create(name));
     return this;
@@ -568,6 +584,50 @@ var Text = bender.Text = flexo._ext(Element, {
 
 flexo.make_readonly(Text, "view", find_view);
 flexo.make_readonly(Text, "tag", "text");
+
+
+// Links to scripts and stylesheets
+var Link = bender.Link = flexo._ext(Element, {
+  init: function (rel, href) {
+    Object.defineProperty(this, "rel", {
+      enumerable: true,
+      value: flexo.safe_trim(rel).toLowerCase()
+    });
+    Object.defineProperty(this, "href", {
+      enumerable: true,
+      value: flexo.safe_string(href)
+    });
+    return Element.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Element.init_with_args.call(this.init(args.rel, args.href), args);
+  },
+
+  // Load links according to their rel attribute. If a link requires delaying
+  // the rest of the loading, return a promise then fulfill it with a value to
+  // resume loading (see script rendering in render.js)
+  load: function () {
+    var component = this.component;
+    if (!component) {
+      console.warn("cannot load link: no environment.");
+    }
+    var env = component.scope.environment;
+    var url = flexo.normalize_uri(component.url(), this.href);
+    if (env.urls[url]) {
+      return env.urls[url];
+    }
+    env.urls[url] = this;
+    var load = this.load[this.rel];
+    if (typeof load === "function") {
+      return load.call(this, url, component);
+    }
+    console.warn("cannot load “%0” link (unsupported value for rel)"
+        .fmt(this.rel));
+  }
+});
+
+flexo.make_readonly(Link, "tag", "link");
 
 
 // Inline elements (script, style) similar to links. Can be applied only once.
