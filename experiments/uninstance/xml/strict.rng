@@ -48,6 +48,9 @@
         <zeroOrMore>
           <ref name="style"/>
         </zeroOrMore>
+        <zeroOrMore>
+          <ref name="watch"/>
+        </zeroOrMore>
       </interleave>
     </element>
   </define>
@@ -65,24 +68,11 @@
       <ref name="value-content"/>
       <choice>
         <ref name="get-dom-event"/>
-        <!--
         <ref name="get-event"/>
         <ref name="get-property"/>
         <ref name="get-attribute"/>
-        -->
       </choice>
     </element>
-  </define>
-
-  <define name="value-content">
-    <optional>
-      <ref name="match"/>
-    </optional>
-    <choice>
-      <ref name="view-element-content"/>
-      <ref name="value"/>
-      <text/>
-    </choice>
   </define>
 
   <define name="get-dom-event">
@@ -90,6 +80,24 @@
     <optional>
       <ref name="property-attr"/>
     </optional>
+    <optional>
+      <ref name="prevent-default"/>
+    </optional>
+    <optional>
+      <ref name="stop-propagation"/>
+    </optional>
+  </define>
+
+  <define name="get-event">
+    <ref name="type"/>
+  </define>
+
+  <define name="get-property">
+    <ref name="name"/>
+  </define>
+
+  <define name="get-attribute">
+    <ref name="name"/>
   </define>
 
   <define name="link">
@@ -111,6 +119,28 @@
     <element name="script">
       <ref name="element-attrs"/>
       <text/>
+    </element>
+  </define>
+
+  <define name="set">
+    <element name="set">
+      <ref name="element-attrs"/>
+      <!--
+      <choice>
+        <ref name="set-xml"/>
+        <group>
+          <ref name="value-content"/>
+          <choice>
+            <ref name="set-dom-event"/>
+            <ref name="set-event"/>
+            <ref name="set-dom-property"/>
+            <ref name="set-property"/>
+            <ref name="set-dom-attribute"/>
+            <ref name="set-attribute"/>
+          </choice>
+        </group>
+      </choice>
+      -->
     </element>
   </define>
 
@@ -161,6 +191,17 @@
     </element>
   </define>
 
+  <define name="value-content">
+    <optional>
+      <ref name="match"/>
+    </optional>
+    <choice>
+      <ref name="view-element-content"/>
+      <ref name="value"/>
+      <text/>
+    </choice>
+  </define>
+
   <define name="view">
     <element name="view">
       <ref name="view-element-attrs"/>
@@ -168,6 +209,27 @@
     </element>
   </define>
 
+  <define name="watch">
+    <element name="watch">
+      <ref name="element-attrs"/>
+      <interleave>
+        <zeroOrMore>
+          <ref name="get"/>
+        </zeroOrMore>
+        <zeroOrMore>
+          <ref name="set"/>
+        </zeroOrMore>
+      </interleave>
+    </element>
+  </define>
+
+
+  <define name="boolean-value">
+    <choice>
+      <value>true</value>
+      <value>false</value>
+    </choice>
+  </define>
 
   <define name="element-attrs">
     <optional>
@@ -222,6 +284,12 @@
     </attribute>
   </define>
 
+  <define name="prevent-default">
+    <attribute name="prevent-default">
+      <ref name="boolean-value"/>
+    </attribute>
+  </define>
+
   <define name="property-attr">
     <attribute name="property">
       <data type="Name"/>
@@ -255,6 +323,12 @@
         <value>replace</value>
         <value>top</value>
       </choice>
+    </attribute>
+  </define>
+
+  <define name="stop-propagation">
+    <attribute name="stop-propagation">
+      <ref name="boolean-value"/>
     </attribute>
   </define>
 

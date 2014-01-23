@@ -246,7 +246,7 @@ var Component = bender.Component = flexo._ext(Element, {
 
   // Initialize a component with arguments
   init_with_args: function (args) {
-    Element.init_with_args.call(this.init(), args);
+    Element.init_with_args.call(this.init(args.scope), args);
     if (args.prototype) {
       this.prototype(args.prototype);
     }
@@ -414,9 +414,7 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
 
   // All view elements may have a render-id property
   init_with_args: function (args) {
-    if (args.renderId || args["render-id"]) {
-      this.renderId(args.renderId || args["render-id"]);
-    }
+    this.renderId(args.renderId || args["render-id"]);
     return Element.init_with_args.call(this, args);
   },
 
@@ -718,19 +716,46 @@ var GetDOMEvent = bender.GetDOMEvent = flexo._ext(Get, {
   },
 
   init_with_args: function (args) {
+    this.stopPropagation(args["stop-propagation"] || args.stopPropagation);
+    this.preventDefault(args["prevent-default"] || args.preventDefault);
     return Get.init_with_args.call(this.init(args.type, args.property), args);
   }
 });
 
-flexo._accessor(bender.GetDOMEvent, "stop_propagation");
-flexo._accessor(bender.GetDOMEvent, "prevent_default");
+flexo._accessor(bender.GetDOMEvent, "stopPropagation", normalize_boolean);
+flexo._accessor(bender.GetDOMEvent, "preventDefault", normalize_boolean);
 
 
 var GetEvent = bender.GetEvent = flexo._ext(Get, {
   init: function (type) {
+    return this.type = flexo.safe_trim(type), this;
   },
 
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.type), args);
+  }
+});
 
+
+var GetProperty = bender.GetProperty = flexo._ext(Get, {
+  init: function (name) {
+    return this.name = flexo.safe_trim(name), this;
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.name), args);
+  }
+});
+
+
+var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
+  init: function (name) {
+    return this.name = flexo.safe_trim(name), this;
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.name), args);
+  }
 });
 
 
@@ -1003,6 +1028,11 @@ function insert_children(elem, children) {
   } else {
     elem.insert_child(children);
   }
+}
+
+// Normalize a boolean attribute
+function normalize_boolean(attr) {
+  return flexo.is_true(flexo.safe_string(attr));
 }
 
 // Normalize the render-id/renderId attribute

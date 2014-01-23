@@ -1460,6 +1460,14 @@
     }
   }());
 
+  flexo.css = function (selectors, rules) {
+    return "%0{%1}"
+      .fmt(typeof selectors === "string" ? selectors : selectors.join(", "),
+          Object.keys(rules).map(function (key) {
+            return "%0: %1".fmt(key, rules[key]);
+          }).join("; "));
+  };
+
   // Add node after ref, which of course must be defined.
   flexo.add_after = function (node, ref) {
     if (!ref || !ref.parentNode) {
