@@ -17,24 +17,23 @@ bender.VERSION = "0.8.2-pre";
 
 // Prototype for Bender elements, similar to DOM elements. There are only
 // elements and no other kind of node (see the Text element for instance, which
-// does have text content instead of children; there is no equivalent of
-// document or document fragment.)
+// does have text content in addition to children; there is no equivalent of
+// document or document fragment, but there is the environment defined below.)
 var Element = bender.Element = {
 
   // Initialize an element with no parent yet and an empty list of children and
   // instances.
   init: function () {
-    Object.defineProperty(this, "children", {
-      enumerable: true,
-      configurable: true,  // this can be redefined by instances
-      value: []
-    });
-    Object.defineProperty(this, "instances", { enumerable: true, value: [] });
+    this.children = [];
+    this.instances = [];
     return this;
   },
 
   // Initialize an element from an arguments object (see create_element.) All
-  // elements may have an id.
+  // elements may have an id. Important: only additional initializations are
+  // performed for abstract elements; concrete elements calling this method
+  // should perform their basic initialization first, using some of the
+  // arguments when appropriate.
   init_with_args: function (args) {
     if (args.id) {
       this.id(args.id);
@@ -63,23 +62,26 @@ var Element = bender.Element = {
       scope["@" + this._id] = instance;
     }
     if (!shallow) {
-      Object.defineProperty(instance, "children", {
-        enumerable: true,
-        value: this.children.map(function (ch) {
-          var ch_ = ch.instantiate(scope);
-          ch_.parent = instance;
-          return ch_;
-        })
+      instance.children = this.children.map(function (ch) {
+        var ch_ = ch.instantiate(scope);
+        ch_.parent = instance;
+        return ch_;
       });
     }
     return instance;
   },
 
   // Remove this instance from its prototype element’s list of instances.
-  uninstantiate: function () {
+  uninstantiate: function (scope) {
     var proto = Object.getPrototypeOf(this);
     if (!proto || !proto.hasOwnProperty("instances")) {
       throw "cannot uninstantiate non-instance";
+    }
+    if (scope && this._id) {
+      var id = "@" + this._id;
+      if (scope[id] === this) {
+        delete_from_scope(scope, id);
+      }
     }
     return flexo.remove_from_array(proto.instances, this);
   },
@@ -380,6 +382,7 @@ var Component = bender.Component = flexo._ext(Element, {
 
 });
 
+// TODO should really create a new object from the prototype object
 flexo._accessor(Component, "prototype", function (p) {
   if (p) {
     if (!p.hasOwnProperty("instances")) {
@@ -759,6 +762,12 @@ var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
 });
 
 
+var Set = bender.Set = flexo._ext(ValueElement, {
+});
+
+flexo.make_readonly(Set, "tag", "set");
+
+
 var Property = bender.Property = flexo._ext(ValueElement, {
   init: function (name) {
     this.name = name;
@@ -936,6 +945,15 @@ function remove_ids_from_scope(root) {
         delete instance.scope["#" + id];
       });
     });
+  }
+}
+
+function delete_from_scope(scope, id) {
+  if (id in scope) {
+    while (!scope.hasOwnProperty(id)) {
+      scope = Object.getPrototypeOf(scope);
+    }
+    delete scope[id];
   }
 }
 

@@ -103,8 +103,11 @@ describe("Bender core", function () {
       });
 
       describe("instantiate(scope?, shallow?)", function () {
-        var elem = bender.Element.create();
-        var instance = elem.instantiate();
+        var scope = {};
+        var elem = bender.Element.create()
+          .id("foo")
+          .child(bender.Element.create().id("bar"));
+        var instance = elem.instantiate(scope);
         it("creates a new instance of the element", function () {
           expect(Object.getPrototypeOf(instance)).toBe(elem);
         });
@@ -115,6 +118,54 @@ describe("Bender core", function () {
           expect(function () {
             instance.instantiate();
           }).toThrow();
+        });
+        it("updates the scope with @ ids", function () {
+          expect(scope["@foo"]).toBe(instance);
+          expect(Object.getPrototypeOf(scope["@foo"])).toBe(elem);
+          expect(scope["@bar"]).toBe(instance.children[0]);
+        });
+        it("instantiates child elements as well...", function () {
+          var instance = elem.instantiate();
+          expect(instance.children.length).toBe(elem.children.length);
+          expect(Object.getPrototypeOf(instance.children[0]))
+            .toBe(elem.children[0]);
+          expect(instance.children[0].parent).toBe(instance);
+        });
+        it("... unless the shallow flag is set; in which case the children " + 
+            "of the instances are the same as the original element.",
+            function () {
+              var scope = {};
+              var instance = elem.instantiate(scope, true);
+              expect(instance.children.length).toBe(elem.children.length);
+              expect(instance.children[0]).toBe(elem.children[0]);
+              expect(instance.children[0].parent).toBe(elem);
+              expect(scope["@foo"]).toBe(instance);
+              expect(Object.getPrototypeOf(scope["@foo"])).toBe(elem);
+              expect(scope["@bar"]).toBeUndefined();
+            });
+      });
+
+      describe("uninstantiate(scope?)", function () {
+        var scope = {};
+        var elem = bender.Element.create().id("foo");
+        var instance = elem.instantiate(scope);
+        var unscope = Object.create(scope);
+        var uninstance;
+        it("removes the instance from its prototype’s list of instances",
+          function () {
+            expect(Object.getPrototypeOf(instance)).toBe(elem);
+            expect(elem.instances).toContain(instance);
+            expect(scope["@foo"]).toBe(instance);
+            expect(unscope["@foo"]).toBe(instance);
+            uninstance = instance.uninstantiate(unscope);
+            expect(elem.instances).not.toContain(instance);
+          });
+        it("removes the @ attribute from the scope", function () {
+          expect(scope["@foo"]).toBeUndefined();
+          expect(unscope["@foo"]).toBeUndefined();
+        });
+        it("returns the instance", function () {
+          expect(uninstance).toBe(instance);
         });
       });
 
@@ -204,6 +255,9 @@ describe("Bender core", function () {
           expect(p.child(ch)).toBe(p);
           expect(ch.parent).toBe(p);
         });
+      });
+
+      describe("remove_child(child)", function () {
       });
 
       describe("component", function () {
