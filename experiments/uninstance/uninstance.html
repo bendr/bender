@@ -37,9 +37,10 @@ var A = env.component().id("A")
   .property("x")
   .view(env.$p("x = ", env.$text({ id: "text" }, "???")));
 
-var A_ = A.render_instance(document.body);
-A.properties.x = 23;
+var B = env.component(A);
 
+var B_ = B.render_instance(document.body);
+B.properties.x = 23;
 
     </script>
   </body>

@@ -158,6 +158,8 @@ Component.inherit_edges = function () {
 
 // Flush the graph after setting a property on a component.
 Component.did_set_property = function (name, value) {
+  console.warn("TODO: did_set_property");
+  return;
   var queue = [this];
   while (queue.length > 0) {
     var q = queue.shift();
@@ -273,7 +275,7 @@ var Edge = bender.Edge = {
     var edge = Object.create(this);
     edge.dest = dest;
     dest.add_incoming(edge);
-  }
+  },
 
   // Remove self from the list of outgoing edges of the source and the list of
   // incoming edges from the destination.

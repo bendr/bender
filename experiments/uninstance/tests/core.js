@@ -14,14 +14,18 @@ describe("Bender core", function () {
     });
 
     describe("component(component?)", function () {
+      var c = bender.Component.create(env.scope);
       it("adds a component to the environment", function () {
-        var c = bender.Component.create(env.scope);
         env.component(c);
         expect(env.components).toContain(c);
       });
-      it("creates a new component beofre adding it if none is given",
+      it("creates a new component before adding it if none is given",
         function () {
           expect(env.component().tag).toBe("component");
+        });
+      it("creates a derived component from `component` in the environment " +
+        "scope if it was already in the environment", function () {
+          expect(Object.getPrototypeOf(env.component(c))).toBe(c);
         });
       it("returns the added component", function () {
         var c = bender.Component.create(env.scope);
@@ -50,7 +54,7 @@ describe("Bender core", function () {
         var b = env.$component({ id: "b", prototype: a });
         expect(a.tag).toBe("component");
         expect(b.id()).toBe("b");
-        expect(b.prototype()).toBe(a);
+        expect(Object.getPrototypeOf(b)).toBe(a);
       });
     });
 
@@ -317,10 +321,10 @@ describe("Bender core", function () {
         it("supports the additional “scope” (mandatory) and “prototype” keys",
           function () {
             var a = bender.Component.create(env.scope);
-            var b = Object.create(bender.Component);
+            var b = Object.create(a);
             expect(b.init_with_args({ scope: env.scope, prototype: a }))
               .toBe(b);
-            expect(b.prototype()).toBe(a);
+            expect(Object.getPrototypeOf(b)).toBe(a);
           });
       });
     });

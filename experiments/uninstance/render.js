@@ -72,8 +72,8 @@ Component.render = function (stack, target, ref) {
   });
   var scope = this.scope;
   stack = scope.stack = [];
-  for (; scope; scope = scope["#this"]._prototype &&
-      scope["#this"]._prototype.render_scope()) {
+  for (var p; scope; p = Object.getPrototypeOf(scope["#this"]),
+      scope = p.scope && p.render_scope()) {
     if (scope.view) {
       scope["@this"] = this;
       var mode = scope.view.stack();

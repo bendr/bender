@@ -209,32 +209,28 @@ var Component = bender.Component = flexo._ext(Element, {
 
   // Initialize a component from either an environment scope (if it has no
   // parent yet) or the parent component’s scope.
+  // Derived components extend the property object of their prototype.
+  // TODO events (same as properties)
   init: function (scope) {
     if (scope.hasOwnProperty("environment")) {
       scope = Object.create(scope);
     }
-    Object.defineProperty(this, "derived", { enumerable: true, value: [] });
-    Object.defineProperty(this, "own_properties", {
-      enumerable: true,
-      value: {}
-    });
-    Object.defineProperty(this, "properties", {
-      enumerable: true,
-      configurable: true,
-      value: {}
-    });
+    this.derived = [];
+    this.own_properties = {};
+    this.properties = this.properties ? Object.create(this.properties) : {};
     Object.defineProperty(this.properties, "", { value: this });
-    Object.defineProperty(this, "scope", {
-      enumerable: true,
-      configurable: true,
-      value: flexo._ext(scope, { "@this": this, "#this": this, children: [] })
+    this.init_values = {};
+    this.scope = flexo._ext(scope, {
+      "@this": this,
+      "#this": this,
+      children: []    // child components; scope.parent is the parent component
     });
-    Object.defineProperty(this, "events", { enumerable: true, value: {} });
-    Object.defineProperty(this, "watches", { enumerable: true, value: [] });
-    Object.defineProperty(this, "links", { enumerable: true, value: [] });
+    this.watches = [];
+    this.links = [];
     this.on_handlers = Object.create(this.on_handlers);
-    this.__id = flexo.random_id();
-    global["$" + this.__id] = this;
+    var id = flexo.random_id();
+    this.__id = this.__id ? "%0>%1".fmt(this.__id, id) : id;
+    global["$" + id] = this;
     this.__pending_render = true;
     this.__pending_init = true;
     flexo.asap(function () {
@@ -248,11 +244,24 @@ var Component = bender.Component = flexo._ext(Element, {
 
   // Initialize a component with arguments
   init_with_args: function (args) {
-    Element.init_with_args.call(this.init(args.scope), args);
+    var self;
     if (args.prototype) {
-      this.prototype(args.prototype);
+      if (Object.getPrototypeOf(this) === args.prototype) {
+        self = this;
+      } else {
+        self = args.prototype.derive(args.scope);
+      }
+    } else {
+      self = this.init(args.scope);
     }
-    return this;
+    return Element.init_with_args.call(self, args);
+  },
+
+  // Create a new component with this component as a prototype
+  derive: function (scope) {
+    var derived = Object.create(this).init(scope);
+    this.derived.push(derived);
+    return derived;
   },
 
   // Default handlers for on-init, on-instantiate, and on-render
@@ -313,7 +322,6 @@ var Component = bender.Component = flexo._ext(Element, {
     } else if (child.tag === "link") {
       this.links.push(child);
     } else if (child.tag === "script") {
-      // TODO not so fast! prototype scripts should be executed first!
       child.apply();
     }
     return child;
@@ -322,7 +330,7 @@ var Component = bender.Component = flexo._ext(Element, {
   // Load all links of a component
   load_links: function () {
     var links = [];
-    for (var p = this; p; p = p.prototype()) {
+    for (var p = this; p.links; p = Object.getPrototypeOf(p)) {
       flexo.unshift_all(links, p.links);
     }
     return flexo.collect_promises(links.map(function (link) {
@@ -380,26 +388,6 @@ var Component = bender.Component = flexo._ext(Element, {
     }
   })
 
-});
-
-// TODO should really create a new object from the prototype object
-flexo._accessor(Component, "prototype", function (p) {
-  if (p) {
-    if (!p.hasOwnProperty("instances")) {
-      throw "cannot set prototype of instance";
-    }
-    if (p.instances.length > 0 || p.derived.length > 0) {
-      console.warn("changing the prototype of a component that was " +
-        "instantiated or derived");
-    }
-    p.derived.push(this);
-    Object.defineProperty(this, "properties", {
-      enumerable: true,
-      configurable: true,
-      value: flexo.replace_prototype(p.properties, this.properties)
-    });
-  }
-  return p;
 });
 
 flexo.make_readonly(Component, "tag", "component");
@@ -822,16 +810,18 @@ var Environment = bender.Environment = {
     return this;
   },
 
-  // Add a component (creating it if necessary) to this environment.
+  // Add a component (creating it if necessary) to this environment. If the
+  // component was already in the environment, create a derived component with
+  // the environment scope.
   component: function (component) {
     if (!component) {
       component = Component.create(this.scope);
-    }
-    if (component.scope.environment !== this) {
+    } else if (component.scope.environment !== this) {
       throw "hierarchy error: component from a different environment";
+    } else if (this.components.indexOf(component) >= 0) {
+      component = component.derive(this.scope);
     }
-    this.components.push(component);
-    return component;
+    return this.components.push(component), component;
   },
 
   remove_component: function (component) {
