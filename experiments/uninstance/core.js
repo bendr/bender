@@ -762,10 +762,39 @@ var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
 });
 
 
-var Set = bender.Set = flexo._ext(ValueElement, {
+bender.Set = flexo._ext(ValueElement, {
 });
 
-flexo.make_readonly(Set, "tag", "set");
+flexo.make_readonly(bender.Set, "tag", "set");
+
+
+var SetDOMEvent = bender.SetDOMEvent = flexo._ext(bender.Set, {
+  init: function (type, property) {
+    this.type = flexo.safe_trim(type);
+    if (property) {
+      this.property = property;
+    }
+    return bender.Set.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.type, args.property), args);
+  }
+});
+
+
+var SetEvent = bender.SetEvent = flexo._ext(bender.Set, {
+  init: function (type) {
+    return this.type = flexo.safe_trim(type), this;
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.type), args);
+  }
+});
+
+
+
 
 
 var Property = bender.Property = flexo._ext(ValueElement, {
@@ -1011,14 +1040,10 @@ function define_js_property(component, name, value) {
         define_js_property(this[""], name, v);
       }
       if (!silent) {
-        did_set_property(this[""], name, v);
+        this[""].did_set_property(name, v);
       }
     }
   });
-}
-
-function did_set_property(component, name, value) {
-  // schedule graph visit
 }
 
 // Delete the attribute {ns}name from elem; return an empty object (no value)
@@ -1033,6 +1058,8 @@ function delete_attribute(elem, ns, name) {
   }
 }
 
+// Implementation of the view property for view elements and elements in views
+// (Text and Attribute.)
 function find_view() {
   // jshint -W040
   return this.parent && this.parent.view;

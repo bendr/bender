@@ -1,4 +1,5 @@
-/* global bender, Component, console, Element, Environment, flexo, window */
+/* global bender, Component, console, Element, Environment, flexo, Watch,
+   window */
 // jshint -W097
 
 "use strict";
@@ -127,24 +128,27 @@ Component.render_graph = function () {
 // Setup inheritance edges
 Component.inherit_edges = function () {
   ["event", "property"].forEach(function (kind) {
+    // Review this
+    /*
     Object.keys(this.vertices[kind].component).forEach(function (name) {
       if (this.vertices[kind].instance.hasOwnProperty(name)) {
         this.vertices[kind].component[name].add_outgoing(new
           InstanceEdge(this.vertices[kind].instance[name]));
       }
     }, this);
+    */
     var p = this.prototype();
     if (p) {
       Object.keys(this.vertices[kind].instance).forEach(function (name) {
         if (name in p.vertices[kind].instance) {
           var source = p.vertices[kind].instance[name];
           var dest = this.vertices[kind].instance[name];
-          source.add_outgoing(new bender.InheritEdge(dest));
+          source.add_outgoing(InheritEdge.create(dest));
           source.outgoing.forEach(function (edge) {
             if (Object.getPrototypeOf(edge) === InheritEdge) {
               return;
             }
-            dest.add_outgoing(new RedirectEdge(edge));
+            dest.add_outgoing(edge.redirect());
           });
         }
       }, this);
@@ -173,11 +177,33 @@ Component.did_set_property = function (name, value) {
 };
 
 
+// Render the watch and the corresponding get and set edges in the parent
+// component scope
+Watch.render = function (scope) {
+  var w = scope.environment
+    .add_vertex(WatchVertex.create(this, scope["#this"]));
+  this.gets.forEach(function (get) {
+    var v = get.render(scope);
+    if (v) {
+      var edge = v.add_outgoing(WatchEdge.create(get, w));
+      var delay = get.delay();
+      if (delay >= 0) {
+        edge.delay = delay;
+      }
+    }
+  }, this);
+  this.sets.forEach(function (set) {
+    w.add_outgoing(set.render(scope));
+  });
+};
+
+
+
 var Vertex = bender.Vertex = {
   init: function () {
-    Object.defineProperty(this, "incoming", { enumerable: true, value: [] });
-    Object.defineProperty(this, "outgoing", { enumerable: true, value: [] });
-    Object.defineProperty(this, "values", { enumerable: true, value: [] });
+    this.incoming = [];
+    this.outgoing = [];
+    this.values = [];
     return this;
   },
 
@@ -216,12 +242,127 @@ var Vertex = bender.Vertex = {
   }
 };
 
+
 var Vortex = bender.Vortex = flexo._ext(Vertex, {
   add_outgoing: flexo.nop,
   add_incoming: flexo.nop
 });
 
-// var remove_edge = Function.prototype.call.bind(Edge.remove);
+
+var WatchVertex = bender.WatchVertex = flexo._ext(Vertex, {
+  init: function (watch, component) {
+    this.watch = watch;
+    this.component = component;
+    return this.init();
+  }
+});
+
+
+
+var Edge = bender.Edge = {
+  init: function (dest) {
+    if (dest) {
+      dest.add_incoming(this);
+    }
+    return this;
+  },
+
+  create: Element.create,
+
+  redirect: function (dest) {
+    var edge = Object.create(this);
+    edge.dest = dest;
+    dest.add_incoming(edge);
+  }
+
+  // Remove self from the list of outgoing edges of the source and the list of
+  // incoming edges from the destination.
+  remove: function () {
+    flexo.remove_from_array(this.source.outgoing);
+    flexo.remove_from_array(this.dest.incoming);
+    delete this.source;
+    delete this.dest;
+  },
+
+  // Follow an edge: return the scope for the destination vertex and the value
+  // for that scope; or nothing at all.
+  follow: function (scope, input, prev_scope) {
+    try {
+      var inner_scope = this.enter_scope(scope);
+      if (inner_scope) {
+        var outer_scope = inner_scope;
+        if (this.pop_scope) {
+          outer_scope = prev_scope;
+        }
+        outer_scope = this.exit_scope(inner_scope, outer_scope);
+        if (!outer_scope || !this.match(inner_scope, input)) {
+          return;
+        }
+        var v = [outer_scope, this.follow_value(inner_scope, input)];
+        if (this.push_scope) {
+          v.push(inner_scope);
+        }
+        if (this.delay >= 0) {
+          scope.environment.flush_graph_later(function () {
+            // TODO check that there are no side effects here
+            this.apply_value.apply(this, v);
+            this.dest.push_value(v);
+          }.bind(this), this.delay);
+          return;
+        }
+        this.apply_value.apply(this, v);
+        return v;
+      }
+    } catch (e) {
+      if (e !== "fail") {
+        console.warn("Exception while following edge:", e.message || e);
+      }
+    }
+  },
+
+  enter_scope: flexo.fst,
+  exit_scope: flexo.snd,
+  match: flexo.funcify(true),
+  follow_value: flexo.snd,
+  apply_value: flexo.nop,
+
+};
+
+var remove_edge = Function.prototype.call.bind(Edge.remove);
+
+
+// Inherit edges are simple edges bridging vertices from prototypes and vertices
+// from derived components. They simplify the traversal of the graph by making
+// the relationship explicit.
+var InheritEdge = bender.InheritEdge = flexo._ext(Edge);
+
+
+// Edges that are tied to an element (e.g., watch, get, set)
+var ElementEdge = bender.ElementEdge = flexo._ext(Edge, {
+  init: function (element, dest) {
+    this.element = element;
+    return Edge.init.call(this, dest);
+  },
+
+  follow_value: function (scope, input) {
+    var f = this.element.value();
+    return typeof f === "function" ?
+      f.call(scope["#this"], scope, input) : input;
+  }
+});
+
+flexo.make_readonly(ElementEdge, "match", function () {
+  return this.element.match_function() || Edge.match;
+});
+
+
+// Edges to a watch vertex
+var WatchEdge = bender.WatchEdge = flexo._ext(Edge, {
+  push_scope: true,
+});
+
+
+
 
 // Sort all edges in a graph from its set of vertices. Simply go through the
 // list of vertices, starting with the sink vertices (which have no outgoing
