@@ -228,7 +228,7 @@ var Component = bender.Component = flexo._ext(Element, {
     this.watches = [];
     this.links = [];
     this.on_handlers = Object.create(this.on_handlers);
-    var id = flexo.random_id();
+    var id = flexo.random_id(3);
     this.__id = this.__id ? "%0>%1".fmt(this.__id, id) : id;
     global["$" + id] = this;
     this.__pending_render = true;
@@ -283,7 +283,7 @@ var Component = bender.Component = flexo._ext(Element, {
   // will be created for the instance.
   instantiate: function (scope) {
     var instance = Element.instantiate.call(this, scope, true);
-    var id = flexo.random_id();
+    var id = flexo.random_id(3);
     instance.__id = this.__id + "/" + id;
     global["$" + id] = instance;
     Object.defineProperty(instance, "properties", {

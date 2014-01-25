@@ -1249,6 +1249,11 @@
 
   // DOM
 
+  // IE does not support baseURI :(
+  flexo.base_uri = function (node) {
+    return node && (node.baseURI || node.ownerDocument.location.href);
+  };
+
   // Make a (text) HTML tag; the first argument is the tag name. Following
   // arguments are the contents (as text; must be properly escaped.) If the last
   // argument is a boolean, it is treated as a flag to *not* close the element

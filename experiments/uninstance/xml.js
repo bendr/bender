@@ -8,12 +8,18 @@ bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 // Load a component from an URL in the environment and return a promise which is
 // fulfilled once the component has been loaded and deserialized (which may lead
-// to loading additional components for its prototype and its children.) Once
-// the component is loaded and deserialization starts, store the incomplete
-// component in the promise so that it can already be referred to (e.g., to
-// check for cycles in the prototype chain.)
-bender.Environment.load_component = function (url) {
-  url = flexo.normalize_uri(url);
+// to loading additional components for its prototype and its children.)
+// TODO detect href cycles by storing the URLs.
+bender.Environment.load_component = function (url, origin) {
+  url = flexo.normalize_uri(flexo.base_uri(this.scope.document), url);
+  if (origin && this.urls[origin]) {
+    this.urls[origin].__prototype = url;
+    for (var u = url; this.urls[u]; u = this.urls[u].__prototype) {
+      if (u === origin) {
+        throw "cycle in prototype chain for %0".fmt(url);
+      }
+    }
+  }
   if (this.urls[url]) {
     return this.urls[url];
   }
@@ -22,11 +28,9 @@ bender.Environment.load_component = function (url) {
     responseType: "document", mimeType: "text/xml"
   }).then(function (response) {
     response_ = response;
-    promise.url = url;
-    return this.deserialize(response.documentElement, promise);
+    return this.deserialize(response.documentElement);
   }.bind(this)).then(function (component) {
     if (component && component.tag === "component") {
-      delete promise.component;
       return component.url(url).loaded();
     } else {
       throw { message: "not a Bender component", response: response_ };
@@ -43,12 +47,12 @@ bender.Environment.load_component = function (url) {
 // load this component so it passed as an extra parameter to deserialize.
 // TODO keep original attributes for deserialized elements so that they can be
 // serialized back.
-bender.Environment.deserialize = function (node, promise) {
+bender.Environment.deserialize = function (node) {
   if (node.nodeType === window.Node.ELEMENT_NODE) {
     if (node.namespaceURI === bender.ns) {
       var f = this.deserialize[node.localName];
       if (typeof f === "function") {
-        return f.call(this, node, promise);
+        return f.call(this, node);
       } else {
         console.warn("Unknow element in Bender namespace: “%0” in %1"
             .fmt(node.localName, node.ownerDocument.location.href));
@@ -94,53 +98,41 @@ bender.Environment.deserialize_foreign = function (elem) {
   return this.deserialize_children(e, elem);
 };
 
-// Deserialize a component from an element. A component is created and, if the
-// second parameter promise is passed, its component property is set to the
-// newly created component, so that further references can be made before the
-// component is fully deserialized.
-bender.Environment.deserialize.component = function (elem, promise) {
-  var component = this.component().url(elem.baseURI);
-  delete component.__pending_init;
-  if (promise) {
-    promise.component = component;
-  }
-  flexo.foreach(elem.attributes, function (attr) {
-    if (attr.namespaceURI === null) {
-      if (attr.localName.indexOf("on-") === 0) {
-        component.on(attr.localName.substr(3), attr.value);
-      } else if (attr.localName === "id") {
-        component.id(attr.value);
-      } else if (attr.localName !== "href") {
+// Deserialize a component from an element.
+// TODO handle cycle detection since we don’t have a temporary component
+// anymore?
+bender.Environment.deserialize.component = function (elem) {
+  var base_uri = flexo.base_uri(elem);
+  var component;
+  var fill_component = function () {
+    component.url(base_uri);
+    delete component.__pending_init;
+    flexo.foreach(elem.attributes, function (attr) {
+      if (attr.namespaceURI === null) {
+        if (attr.localName.indexOf("on-") === 0) {
+          component.on(attr.localName.substr(3), attr.value);
+        } else if (attr.localName === "id") {
+          component.id(attr.value);
+        } else if (attr.localName !== "href") {
+          component.init_values[attr.localName] = attr.value;
+        }
+      } else if (attr.namespaceURI === bender.ns) {
         component.init_values[attr.localName] = attr.value;
       }
-    } else if (attr.namespaceURI === bender.ns) {
-      component.init_values[attr.localName] = attr.value;
-    }
-  });
+    });
+    return this.deserialize_children(component, elem);
+  }.bind(this);
   return (function () {
-    var children = this.deserialize_children(component, elem);
     if (elem.hasAttribute("href")) {
-      var url = flexo.normalize_uri(elem.baseURI, elem.getAttribute("href"));
-      var promise = this.urls[url];
-      if (promise) {
-        if (promise.value) {
-          component.prototype(promise.value);
-        } else if (promise.component) {
-          component.prototype(promise.component);
-          return flexo.collect_promises([promise, children]);
-        } else {
-          return flexo.collect_promises([promise.then(function (prototype) {
-            component.prototype(prototype);
-          }), children]);
-        }
-      } else {
-        return flexo.collect_promises([this.load_component(url)
-          .then(function (prototype) {
-            component.prototype(prototype);
-          }), children]);
-      }
+      var url = flexo.normalize_uri(base_uri, elem.getAttribute("href"));
+      return this.load_component(url, base_uri).then(function (prototype) {
+        component = this.component(prototype);
+        return fill_component.call();
+      }.bind(this));
+    } else {
+      component = this.component();
+      return fill_component();
     }
-    return children;
   }.call(this)).then(function () {
     component.on_handlers.init.call(component);
     return component.load_links();

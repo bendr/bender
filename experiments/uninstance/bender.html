@@ -37,6 +37,8 @@ if (args.href) {
   var env = bender.environment();
   env.load_component(args.href).then(function (component) {
     var instance = global.$ = component.render_instance();
+  }, function (error) {
+    alert(error);
   });
 }
 
