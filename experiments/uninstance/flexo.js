@@ -1288,6 +1288,36 @@
     return out;
   };
 
+  // Same as html_tag but output well-formed XML instead
+  flexo.xml_tag = function (tag) {
+    var out = "<" + tag;
+    var contents = flexo.slice(arguments, 1);
+    if (typeof contents[0] === "object" && !Array.isArray(contents[0])) {
+      var attrs = contents.shift();
+      for (var a in attrs) {
+        var v = attrs[a];
+        // jshint -W041
+        if (v != null) {
+          out += " %0=%1".fmt(a, flexo.quote(v));
+        }
+      }
+    }
+    var keep_open = typeof contents[contents.length - 1] === "boolean" ?
+        contents.pop() : false;
+    contents = contents.join("");
+    if (contents) {
+      out += ">" + contents;
+    }
+    if (keep_open) {
+      if (!contents) {
+        out += ">";
+      }
+    } else {
+      out += contents ? "</%0>".fmt(tag) : "/>";
+    }
+    return out;
+  };
+
   // Known XML namespaces and their prefixes for use with create_element below.
   // For convenience both "html" and "xhtml" are defined as prefixes for XHTML.
   flexo.ns = {
