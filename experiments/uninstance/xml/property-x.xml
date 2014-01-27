@@ -3,4 +3,7 @@
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     x = <text id="text">???</text>
   </view>
+  <watch>
+    <get property="x"/>
+  </watch>
 </component>

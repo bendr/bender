@@ -5,8 +5,8 @@
 "use strict";
 
 (function () {
-  var init = bender.Environment.init;
-  bender.Environment.init = function () {
+  var init = Environment.init;
+  Environment.init = function () {
     Object.defineProperty(this, "vertices", { enumerable: true, value: [] });
     Object.defineProperty(this, "scheduled", {
       enumerable: true,
@@ -199,6 +199,15 @@ Watch.render = function (scope) {
   });
 };
 
+// Render a GetDOMEvent element into the corresponding DOMEventVertex.
+GetDOMEvent.render = function (scope) {
+  return vertex_dom_event(this, scope);
+};
+
+GetProperty.render = function (scope) {
+  return vertex_property(this, scope);
+};
+
 
 
 var Vertex = bender.Vertex = {
@@ -255,9 +264,69 @@ var WatchVertex = bender.WatchVertex = flexo._ext(Vertex, {
   init: function (watch, component) {
     this.watch = watch;
     this.component = component;
-    return this.init();
+    return Vertex.init.call(this);
   }
 });
+
+
+var DOMEventVertex = bender.DOMEventVertex = flexo._ext(Vertex, {
+  init: function (component, select, type) {
+    this.element = component;
+    this.select = select;
+    this.type = type;
+    return Vertex.init.call(this);
+  },
+
+  add_event_listener: function (scope, edge) {
+    var target = scope[edge.element.select()];
+    if (edge.element.property) {
+      var vertex = vertex_property(edge.element, scope["#this"].scope);
+      if (vertex) {
+        vertex.add_outgoing(DOMEventListenerEdge.create(this, scope, edge));
+      }
+    } else {
+      this.add_event_listener_to_target(scope, edge, target);
+    }
+  },
+
+  add_event_listener_to_target: function (scope, edge, target) {
+    if (!target || typeof target.addEventListener !== "function") {
+      console.warn("No target %0 for event listener %1"
+          .fmt(edge.element.select(), edge.element.type));
+      return;
+    }
+    var id = flexo.random_id(3);
+    var listener = function (e) {
+      if (edge.element.preventDefault()) {
+        e.preventDefault();
+      }
+      if (edge.element.stopPropagation()) {
+        e.stopPropagation();
+      }
+      this.push_value([scope, e]);
+      scope.environment.flush_graph();
+    }.bind(this);
+    target.addEventListener(edge.element.type, listener, false);
+    return function () {
+      target.removeEventListener(edge.element.type, listener, false);
+    }
+  }
+});
+
+// Simple super-class for “outlet” style vertex, i.e., component and event
+// vertex. An outlet vertex points back to the target component and has a name
+// property for the desired outlet.
+var OutletVertex = bender.OutletVertex = flexo._ext(Vertex, {
+  init: function (target, name) {
+    this.target = target;
+    this.name = name;
+    return Vertex.init.call(this);
+  }
+});
+
+
+var EventVertex = bender.EventVertex = Object.create(OutletVertex);
+var PropertyVertex = bender.PropertyVertex = Object.create(OutletVertex);
 
 
 
@@ -359,7 +428,7 @@ flexo.make_readonly(ElementEdge, "match", function () {
 
 
 // Edges to a watch vertex
-var WatchEdge = bender.WatchEdge = flexo._ext(Edge, {
+var WatchEdge = bender.WatchEdge = flexo._ext(ElementEdge, {
   push_scope: true,
 });
 
@@ -408,4 +477,44 @@ function sort_edges(vertices) {
     delete vertex.__out;
   });
   return edges;
+}
+
+// Get a DOM event vertex, either returning an already existing vertex or
+// creating a new one.
+function vertex_dom_event(element, scope) {
+  var target = scope[element.select()];
+  if (!target) {
+    // TODO pending vertices should be rendered and then be updated when the
+    // target appears (and conversely, when the target disappears, it should go
+    // into a pending state.)
+    console.warn("No target for DOM event vertex; select=\"%0\" in scope"
+        .fmt(element.select()), scope);
+  }
+  var vertices = element.component.vertices.dom;
+  var id = target === scope.document ? "" : target.id();
+  if (!vertices.hasOwnProperty(id)) {
+    vertices[id] = {};
+  }
+  if (!vertices[id].hasOwnProperty(element.type)) {
+    vertices[id][element.type] = scope.environment.add_vertex(DOMEventVertex
+        .create(element.component, element.select(), element.type));
+  }
+  return vertices[id][element.type];
+}
+
+// Get a vertex for a property from an element and its scope, creating it
+// first if necessary. Note that this can be called for a property vertex,
+// but also from an event vertex (when introducing event listener edges.)
+function vertex_property(element, scope) {
+  var target = scope[element.select()];
+  if (!target) {
+    return;
+  }
+  var vertices = target.vertices.property;
+  var name = element.name || element.property;
+  if (!vertices.hasOwnProperty(name)) {
+    vertices[name] = scope.environment.add_vertex(PropertyVertex
+        .create(target, name));
+  }
+  return vertices[name];
 }

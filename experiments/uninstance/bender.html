@@ -34,11 +34,14 @@ bender.Component.on_handlers.instantiate = function (instance, scope) {
 
 var args = flexo.get_args();
 if (args.href) {
+  bender.TRACE = flexo.is_true(args.trace);
   var env = bender.environment();
+  bender.trace("*** Will load component at %0".fmt(args.href));
   env.load_component(args.href).then(function (component) {
     var instance = global.$ = component.render_instance();
+    bender.trace("*** Rendered (%0)".fmt(instance.__id));
   }, function (error) {
-    alert(error);
+    alert("Error: " + error.message || error);
   });
 }
 

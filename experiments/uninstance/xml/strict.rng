@@ -76,7 +76,7 @@
   </define>
 
   <define name="get-dom-event">
-    <ref name="type"/>
+    <ref name="dom-event"/>
     <optional>
       <ref name="property-attr"/>
     </optional>
@@ -89,7 +89,7 @@
   </define>
 
   <define name="get-event">
-    <ref name="type"/>
+    <ref name="event"/>
   </define>
 
   <define name="get-property">
@@ -193,6 +193,9 @@
 
   <define name="value-content">
     <optional>
+      <ref name="select"/>
+    </optional>
+    <optional>
       <ref name="match"/>
     </optional>
     <choice>
@@ -231,10 +234,22 @@
     </choice>
   </define>
 
+  <define name="dom-event">
+    <attribute name="dom-event">
+      <data type="Name"/>
+    </attribute>
+  </define>
+
   <define name="element-attrs">
     <optional>
       <ref name="id"/>
     </optional>
+  </define>
+
+  <define name="event">
+    <attribute name="event">
+      <data type="Name"/>
+    </attribute>
   </define>
 
   <define name="on-attrs">
@@ -316,6 +331,10 @@
     </attribute>
   </define>
 
+  <define name="select">
+    <attribute name="select"/>
+  </define>
+
   <define name="stack">
     <attribute name="stack">
       <choice>
@@ -329,12 +348,6 @@
   <define name="stop-propagation">
     <attribute name="stop-propagation">
       <ref name="boolean-value"/>
-    </attribute>
-  </define>
-
-  <define name="type">
-    <attribute name="type">
-      <data type="Name"/>
     </attribute>
   </define>
 

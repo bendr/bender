@@ -13,6 +13,25 @@ if (typeof window === "object") {
 }
 
 bender.VERSION = "0.8.2-pre";
+bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
+
+
+var _trace = false;
+Object.defineProperty(bender, "TRACE", {
+  enumerable: true,
+  get: function () {
+    return _trace && _trace !== flexo.nop;
+  },
+  set: function (p) {
+    _trace = p ? console.log.bind(console) : flexo.nop;
+  }
+});
+Object.defineProperty(bender, "trace", {
+  enumerable: true,
+  get: function () {
+    return _trace;
+  }
+});
 
 
 // Prototype for Bender elements, similar to DOM elements. There are only
@@ -219,6 +238,11 @@ var Component = bender.Component = flexo._ext(Element, {
     this.own_properties = {};
     this.properties = this.properties ? Object.create(this.properties) : {};
     Object.defineProperty(this.properties, "", { value: this });
+    this.vertices = this.vertices ?
+      { dom: Object.create(this.vertices.dom),
+        event: Object.create(this.vertices.event),
+        property: Object.create(this.vertices.property) } :
+      { dom: {}, event: {}, property: {} };
     this.init_values = {};
     this.scope = flexo._ext(scope, {
       "@this": this,
@@ -323,6 +347,8 @@ var Component = bender.Component = flexo._ext(Element, {
       this.links.push(child);
     } else if (child.tag === "script") {
       child.apply();
+    } else if (child.tag === "watch") {
+      this.watches.push(child);
     }
     return child;
   },
@@ -672,8 +698,9 @@ flexo.make_readonly(Style, "tag", "style");
 
 var Watch = bender.Watch = flexo._ext(Element, {
   init: function () {
-    Object.defineProperty(this, "gets", { enumerable: true, value: [] });
-    Object.defineProperty(this, "sets", { enumerable: true, value: [] });
+    this.gets = [];
+    this.sets = [];
+    return Element.init.call(this);
   },
 
   insert_child: function (child, ref) {
@@ -689,14 +716,23 @@ var Watch = bender.Watch = flexo._ext(Element, {
 flexo.make_readonly(Watch, "tag", "watch");
 
 
-var ValueElement = bender.ValueElement = flexo._ext(Element, {});
+// Elements that have a value, as text content or as a value attribute. This
+// means property, gets and sets.
+var ValueElement = bender.ValueElement = flexo._ext(Element);
+
+flexo._accessor(ValueElement, "select", normalize_select);
+flexo._accessor(ValueElement, "as", normalize_as);
+flexo._accessor(ValueElement, "delay", normalize_delay);
 
 
-var Get = bender.Get = flexo._ext(ValueElement, {
-});
+// Base for all get elements
+var Get = bender.Get = flexo._ext(ValueElement);
 
 flexo.make_readonly(Get, "tag", "get");
 
+
+// Get a DOM event according to its type, on behalf of a property of the target
+// or the target itself.
 var GetDOMEvent = bender.GetDOMEvent = flexo._ext(Get, {
   init: function (type, property) {
     this.type = flexo.safe_trim(type);
@@ -719,7 +755,8 @@ flexo._accessor(bender.GetDOMEvent, "preventDefault", normalize_boolean);
 
 var GetEvent = bender.GetEvent = flexo._ext(Get, {
   init: function (type) {
-    return this.type = flexo.safe_trim(type), this;
+    this.type = flexo.safe_trim(type);
+    return Get.init.call(this);
   },
 
   init_with_args: function (args) {
@@ -730,7 +767,8 @@ var GetEvent = bender.GetEvent = flexo._ext(Get, {
 
 var GetProperty = bender.GetProperty = flexo._ext(Get, {
   init: function (name) {
-    return this.name = flexo.safe_trim(name), this;
+    this.name = flexo.safe_trim(name);
+    return Get.init.call(this);
   },
 
   init_with_args: function (args) {
@@ -1065,9 +1103,26 @@ function insert_children(elem, children) {
   }
 }
 
+// Normalize the `as` property of an element so that it matches a known value.
+// Set to “dynamic” by default.
+function normalize_as(as) {
+  as = flexo.safe_trim(as).toLowerCase();
+  return as === "string" || as === "number" || as === "boolean" ||
+    as === "json" || as === "dynamic" ? as : "inherit";
+}
+
 // Normalize a boolean attribute
 function normalize_boolean(attr) {
   return flexo.is_true(flexo.safe_string(attr));
+}
+
+// Normalize the `delay` property of an element so that it matches a legal value
+// (a number of milliseconds >= 0, “never”, “none”, or the empty string by
+// default.)
+function normalize_delay(delay) {
+  delay = flexo.safe_trim(delay).toLowerCase();
+  var d = flexo.to_number(delay);
+  return d >= 0 ? d : delay === "never" ? Infinity : "none";
 }
 
 // Normalize the render-id/renderId attribute
@@ -1076,6 +1131,11 @@ function normalize_renderId(renderId) {
   return renderId === "class" || renderId === "id" || renderId === "none" ?
     renderId : "inherit";
 }
+
+// Normalize the select attribute, defaulting to "@this"
+function normalize_select(select) {
+  return typeof select === "string" && select || "@this";
+};
 
 // Normalize the stack attribute
 function normalize_stack(stack) {
