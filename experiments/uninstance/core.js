@@ -229,26 +229,24 @@ var Component = bender.Component = flexo._ext(Element, {
   // Initialize a component from either an environment scope (if it has no
   // parent yet) or the parent component’s scope.
   // Derived components extend the property object of their prototype.
-  // TODO events (same as properties)
   init: function (scope) {
-    if (scope.hasOwnProperty("environment")) {
-      scope = Object.create(scope);
-    }
+    this.scope = flexo._ext(get_abstract_scope(scope), {
+      "@this": this,
+      "#this": this,
+      children: []    // child components; scope.parent is the parent component
+    });
+    this.scope[""].push(this.scope);
     this.derived = [];
     this.own_properties = {};
     this.properties = this.properties ? Object.create(this.properties) : {};
     Object.defineProperty(this.properties, "", { value: this });
+    this.events = Object.create(this.events);
     this.vertices = this.vertices ?
       { dom: Object.create(this.vertices.dom),
         event: Object.create(this.vertices.event),
         property: Object.create(this.vertices.property) } :
       { dom: {}, event: {}, property: {} };
     this.init_values = {};
-    this.scope = flexo._ext(scope, {
-      "@this": this,
-      "#this": this,
-      children: []    // child components; scope.parent is the parent component
-    });
     this.watches = [];
     this.links = [];
     this.on_handlers = Object.create(this.on_handlers);
@@ -257,6 +255,7 @@ var Component = bender.Component = flexo._ext(Element, {
     global["$" + id] = this;
     this.__pending_render = true;
     this.__pending_init = true;
+    this.__pending_ready = true;
     flexo.asap(function () {
       if (this.__pending_init) {
         delete this.__pending_init;
@@ -329,20 +328,11 @@ var Component = bender.Component = flexo._ext(Element, {
     }
     child = Element.insert_child.call(this, child, ref);
     if (child.tag === "view") {
-      if (!this.scope.hasOwnProperty("view")) {
-        this.scope.view = child;
-        flexo.beach(child, function (ch) {
-          if (ch.tag === "component") {
-            this.scope.children.push(ch);
-            ch.scope.parent = this;
-          } else {
-            return ch.children;
-          }
-        }.bind(this));
-      }
+      this.add_view(child);
+    } else if (child.tag === "event") {
+      this.add_event(child);
     } else if (child.tag === "property") {
-      this.own_properties[child.name] = child;
-      define_js_property(this, child.name);
+      this.add_property(child);
     } else if (child.tag === "link") {
       this.links.push(child);
     } else if (child.tag === "script") {
@@ -351,6 +341,44 @@ var Component = bender.Component = flexo._ext(Element, {
       this.watches.push(child);
     }
     return child;
+  },
+
+  // Add a new event child
+  add_event: function (child) {
+    if (this.events.hasOwnProperty(child.name)) {
+      console.error("Redefinition of event %0 in %1"
+          .fmt(child.name, this.id() || this.__id));
+      return;
+    }
+    this.events[child.name] = child;
+  },
+
+  // Add a new property child
+  add_property: function (child) {
+    if (this.own_properties.hasOwnProperty(child.name)) {
+      console.error("Redefinition of property %0 in %1"
+          .fmt(child.name, this.id() || this.__id));
+      return;
+    }
+    this.own_properties[child.name] = child;
+    define_js_property(this, child.name);
+    // TODO bindings
+  },
+
+  add_view: function (child) {
+    if (this.scope.hasOwnProperty("view")) {
+      console.error("Component %0 already has a view"
+          .fmt(this.id() || this.__id));
+    }
+    this.scope.view = child;
+    flexo.beach(child, function (ch) {
+      if (ch.tag === "component") {
+        this.scope.children.push(ch);
+        ch.scope.parent = this;
+      } else {
+        return ch.children;
+      }
+    }.bind(this));
   },
 
   // Load all links of a component
@@ -367,6 +395,12 @@ var Component = bender.Component = flexo._ext(Element, {
   // Add a new link and return the component.
   link: function (rel, href) {
     return this.child(Link.create(rel, href));
+  },
+
+  // Add an event element with that name and return the component.
+  "event": function (name) {
+    this.insert_child(Event.create(name));
+    return this;
   },
 
   // Add a property element with that name and return the component.
@@ -412,7 +446,10 @@ var Component = bender.Component = flexo._ext(Element, {
     add: function (update) {
       update.scope.view.render_update(update);
     }
-  })
+  }),
+
+  // Pseudo-element for the ready event
+  events: { "ready": { name: "ready" } }
 
 });
 
@@ -820,7 +857,18 @@ var SetEvent = bender.SetEvent = flexo._ext(bender.Set, {
 });
 
 
+var Event = bender.Event = flexo._ext(Element, {
+  init: function (name) {
+    this.name = name;
+    return Element.init.call(this);
+  },
 
+  init_with_args: function (args) {
+    return Element.init_with_args.call(this.init(args.name), args);
+  },
+});
+
+flexo.make_readonly(Event, "tag", "event");
 
 
 var Property = bender.Property = flexo._ext(ValueElement, {
@@ -1091,6 +1139,17 @@ function delete_attribute(elem, ns, name) {
 function find_view() {
   // jshint -W040
   return this.parent && this.parent.view;
+}
+
+// Get or create the abstract scope for a component scope
+function get_abstract_scope(scope) {
+  var abstract_scope = scope.hasOwnProperty("environment") ?
+    Object.create(scope) : scope;
+  if (!abstract_scope.hasOwnProperty("")) {
+    Object.defineProperty(abstract_scope, "",
+        { value: [], configurable: true });
+  }
+  return abstract_scope;
 }
 
 // Insert children into an element; this can handle a single as well as a list

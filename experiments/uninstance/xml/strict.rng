@@ -40,6 +40,9 @@
           <ref name="property"/>
         </zeroOrMore>
         <zeroOrMore>
+          <ref name="event"/>
+        </zeroOrMore>
+        <zeroOrMore>
           <ref name="link"/>
         </zeroOrMore>
         <zeroOrMore>
@@ -59,6 +62,13 @@
     <element name="content">
       <ref name="view-element-attrs"/>
       <ref name="view-element-content"/>
+    </element>
+  </define>
+
+  <define name="event">
+    <element name="event">
+      <ref name="element-attrs"/>
+      <ref name="name"/>
     </element>
   </define>
 

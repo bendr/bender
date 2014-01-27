@@ -199,6 +199,11 @@ Environment.deserialize.text = function (elem) {
       .id(elem.getAttribute("id")), elem);
 };
 
+Environment.deserialize["event"] = function (elem) {
+  return this.deserialize_children(Event.create(elem.getAttribute("name"))
+      .id(elem.getAttribute("id")), elem);
+};
+
 Environment.deserialize.property = function (elem) {
   return this.deserialize_children(Property
       .create(elem.getAttribute("name"))

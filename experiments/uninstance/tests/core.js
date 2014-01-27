@@ -262,6 +262,7 @@ describe("Bender core", function () {
       });
 
       describe("remove_child(child)", function () {
+        // TODO
       });
 
       describe("component", function () {
@@ -315,6 +316,12 @@ describe("Bender core", function () {
         it("returns the component element", function () {
           expect(inited).toBe(elem);
         });
+        it("creates an abstract scope if created from the environment scope",
+          function () {
+            expect(Object.getPrototypeOf(elem.scope).hasOwnProperty(""))
+              .toBe(true);
+            expect(elem.scope[""]).toContain(elem.scope);
+          });
       });
 
       describe("init_with_args(args)", function () {
@@ -326,6 +333,18 @@ describe("Bender core", function () {
               .toBe(b);
             expect(Object.getPrototypeOf(b)).toBe(a);
           });
+      });
+
+      describe("events", function () {
+        var c = env.component();
+        it("is the dictionary of events of the component", function () {
+          expect("ready" in c.events).toBe(true);
+        });
+        it("is updated when event children are added", function () {
+          var nm = "hi";
+          c.event(nm);
+          expect(c.events.hasOwnProperty(nm)).toBe(true);
+        });
       });
     });
 
