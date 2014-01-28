@@ -117,6 +117,12 @@ Environment.flush_graph_later = function (f, delay) {
 
 // Render the graph for the component by rendering all watches.
 Component.render_graph = function () {
+  flexo.values(this.own_properties).forEach(function (property) {
+    if (Object.keys(property.bindings).length > 0) {
+      // TODO the bindings should be there but the function should not be parsed
+      // yet as we don’t know what to do with it
+    }
+  });
   this.watches.forEach(function (watch) {
     watch.render(this.scope);
   }, this);

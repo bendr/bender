@@ -1,7 +1,10 @@
 <component xmlns="http://bender.igel.co.jp" id="A">
-  <property name="x"/>
+  <property name="x" value="17"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
-    x = <text id="text">???</text>
+    <html:p>
+      x = <text id="text">???</text>
+    </html:p>
+    <content/>
   </view>
   <watch>
     <get property="x"/>

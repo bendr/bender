@@ -101,17 +101,18 @@ Environment.deserialize_foreign = function (elem) {
 // or text content.)
 Environment.deserialize_element_with_value = function (e, elem) {
   e.id(elem.getAttribute("id"))
-    // .as(elem.getAttribute("as"))
-    // .match_string(elem.getAttribute("match"))
-    .delay(elem.getAttribute("delay"));
-  /*if (elem.hasAttribute("value")) {
-    e.set_value_from_string(elem.getAttribute("value"), true, elem.baseURI);
+    .as(elem.getAttribute("as"))
+    .match_string(elem.getAttribute("match"), flexo.base_uri(elem))
+    .delay(elem.getAttribute("delay"))
+    .select(elem.getAttribute("select"));
+  if (elem.hasAttribute("value")) {
+    e.value_string(elem.getAttribute("value"), true, flexo.base_uri(elem));
   } else {
     var t = shallow_text(elem);
     if (/\S/.test(t)) {
-      e.set_value_from_string(t, false, elem.baseURI);
+      e.value_string(t, false);
     }
-  }*/
+  }
   return this.deserialize_children(e, elem);
 };
 
@@ -205,7 +206,7 @@ Environment.deserialize["event"] = function (elem) {
 };
 
 Environment.deserialize.property = function (elem) {
-  return this.deserialize_children(Property
+  return this.deserialize_element_with_value(Property
       .create(elem.getAttribute("name"))
       .id(elem.getAttribute("id")), elem);
 };

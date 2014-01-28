@@ -610,7 +610,10 @@ var Text = bender.Text = flexo._ext(Element, {
     if (arguments.length === 0) {
       return this._text || "";
     }
-    this._text = flexo.safe_string(text);
+    text = flexo.safe_string(text);
+    this.bindings = {};
+    var f = parse_string(text, this.bindings);
+    this._text = Object.keys(this.bindings).length === 0 ? text : f;
     this.update({ type: "text", target: this });
     return this;
   },
@@ -751,6 +754,20 @@ flexo.make_readonly(Watch, "tag", "watch");
 // Elements that have a value, as text content or as a value attribute. This
 // means property, gets and sets.
 var ValueElement = bender.ValueElement = flexo._ext(Element, {
+  resolve_as: function () {
+    var as = this.as();
+    if (as !== "inherit") {
+      return as;
+    }
+    for (var p = this.component; p.hasOwnProperty("own_properties");
+      p = Object.getPrototypeOf(p)) {
+      as = p.own_properties[this.name].as();
+      if (as !== "inherit") {
+        return as;
+      }
+    }
+    return "dynamic";
+  }
 });
 
 flexo._accessor(ValueElement, "select", normalize_select);
@@ -882,6 +899,9 @@ var Property = bender.Property = flexo._ext(ValueElement, {
 });
 
 flexo.make_readonly(Property, "tag", "property");
+flexo._accessor(Property, "select", function (select) {
+  return flexo.safe_trim(select).toLowerCase === "#this" ? "#this" : "@this";
+});
 
 
 // An environment in which to render Bender components.

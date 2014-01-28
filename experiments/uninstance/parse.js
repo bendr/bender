@@ -8,6 +8,7 @@ ValueElement.match_string = function (string) {
   if (arguments.length === 0) {
     return this._match_string || "";
   }
+  string = flexo.safe_string(string);
   var f = parse_dynamic(string, true, this.bindings);
   if (f) {
     this._match = f;
@@ -21,6 +22,7 @@ ValueElement.value_string = function (string, needs_return) {
   if (arguments.length === 0) {
     return this._value_string || "";
   }
+  string = flexo.safe_string(string);
   var f = parse_dynamic(string, needs_return, this.bindings);
   if (f) {
     this._value = f;
