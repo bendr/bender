@@ -364,7 +364,6 @@ var Component = bender.Component = flexo._ext(Element, {
     }
     this.own_properties[child.name] = child;
     define_js_property(this, child.name);
-    // TODO bindings
   },
 
   add_view: function (child) {
@@ -751,11 +750,14 @@ flexo.make_readonly(Watch, "tag", "watch");
 
 // Elements that have a value, as text content or as a value attribute. This
 // means property, gets and sets.
-var ValueElement = bender.ValueElement = flexo._ext(Element);
+var ValueElement = bender.ValueElement = flexo._ext(Element, {
+});
 
 flexo._accessor(ValueElement, "select", normalize_select);
 flexo._accessor(ValueElement, "as", normalize_as);
 flexo._accessor(ValueElement, "delay", normalize_delay);
+flexo._accessor(ValueElement, "match", flexo.funcify(true));
+flexo._accessor(ValueElement, "value", flexo.snd);
 
 
 // Base for all get elements
@@ -870,6 +872,7 @@ flexo.make_readonly(Event, "tag", "event");
 var Property = bender.Property = flexo._ext(ValueElement, {
   init: function (name) {
     this.name = name;
+    this.bindings = {};
     return ValueElement.init.call(this);
   },
 
@@ -1241,7 +1244,7 @@ function normalize_renderId(renderId) {
 // Normalize the select attribute, defaulting to "@this"
 function normalize_select(select) {
   return typeof select === "string" && select || "@this";
-};
+}
 
 // Normalize the stack attribute
 function normalize_stack(stack) {

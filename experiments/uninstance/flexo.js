@@ -220,32 +220,6 @@
   flexo.nop = function () {
   };
 
-  // Trampoline calls, adapted from
-  // http://github.com/spencertipping/js-in-ten-minutes
-
-  // Use a trampoline to call a function; we expect a thunk to be returned
-  // through the get_thunk() function below. Return nothing to step off the
-  // trampoline (e.g. to wait for an event before continuing.)
-  function apply_thunk(thunk) {
-    var escape = thunk[1][thunk[1].length - 1];
-    var self = thunk[0];
-    while (thunk && thunk[0] !== escape) {
-      thunk = thunk[0].apply(self, thunk[1]);
-    }
-    if (thunk) {
-      return escape.apply(self, thunk[1]);
-    }
-  }
-
-  Function.prototype.trampoline = function () {
-    return apply_thunk([this, arguments]);
-  };
-
-  // Return a thunk suitable for the trampoline function above.
-  Function.prototype.get_thunk = function() {
-    return [this, arguments];
-  };
-
 
   // Promises (see http://promisesaplus.com/)
   var promise = (flexo.Promise = function () {

@@ -1,5 +1,5 @@
-/* global bender, Component, console, Element, Environment, flexo, Watch,
-   window */
+/* global bender, Component, console, DOMEventListenerEdge, Element,
+   Environment, flexo, GetDOMEvent, GetProperty, Watch, window */
 // jshint -W097
 
 "use strict";
@@ -7,11 +7,8 @@
 (function () {
   var init = Environment.init;
   Environment.init = function () {
-    Object.defineProperty(this, "vertices", { enumerable: true, value: [] });
-    Object.defineProperty(this, "scheduled", {
-      enumerable: true,
-      value: { now: false, later: [] }
-    });
+    this.vertices = [];
+    this.scheduled = { now: false, later: [] };
     this.add_vertex(Vortex.create());
     return init.call(this);
   };
@@ -34,7 +31,7 @@ Environment.add_vertex = function (vertex) {
     value: this
   });
   this.vertices.push(vertex);
-  this.sorted = false;
+  this.unsorted = true;
   return vertex;
 };
 
@@ -44,7 +41,7 @@ Environment.remove_vertex = function (vertex) {
   flexo.remove_from_array(this.vertices, vertex);
   vertex.incoming.forEach(remove_edge);
   vertex.outgoing.forEach(remove_edge);
-  this.sorted = false;
+  this.unsorted = true;
   return vertex;
 };
 
@@ -282,7 +279,6 @@ var DOMEventVertex = bender.DOMEventVertex = flexo._ext(Vertex, {
           .fmt(edge.element.select(), edge.element.type));
       return;
     }
-    var id = flexo.random_id(3);
     var listener = function (e) {
       if (edge.element.preventDefault()) {
         e.preventDefault();
@@ -296,7 +292,7 @@ var DOMEventVertex = bender.DOMEventVertex = flexo._ext(Vertex, {
     target.addEventListener(edge.element.type, listener, false);
     return function () {
       target.removeEventListener(edge.element.type, listener, false);
-    }
+    };
   }
 });
 
@@ -410,7 +406,7 @@ var ElementEdge = bender.ElementEdge = flexo._ext(Edge, {
 });
 
 flexo.make_readonly(ElementEdge, "match", function () {
-  return this.element.match_function() || Edge.match;
+  return this.element.match_function;
 });
 
 
