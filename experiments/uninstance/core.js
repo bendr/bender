@@ -121,6 +121,8 @@ var Element = bender.Element = {
       return this;
     }
     if (_id !== this._id) {
+      remove_id_from_scope(this, this._id);
+      add_id_to_scope(this, _id);
       var update = { type: "id", target: this, before: this._id };
       this._id = _id;
       this.update(update);
@@ -235,7 +237,7 @@ var Component = bender.Component = flexo._ext(Element, {
       "#this": this,
       children: []    // child components; scope.parent is the parent component
     });
-    this.scope[""].push(this.scope);
+    this.scope.derived.push(this.scope);
     this.derived = [];
     this.own_properties = {};
     this.properties = this.properties ? Object.create(this.properties) : {};
@@ -373,11 +375,9 @@ var Component = bender.Component = flexo._ext(Element, {
     this.scope.view = child;
     flexo.beach(child, function (ch) {
       if (ch.tag === "component") {
-        this.scope.children.push(ch);
-        ch.scope.parent = this;
-      } else {
-        return ch.children;
+        add_descendant_component(this, ch);
       }
+      return ch.children;
     }.bind(this));
   },
 
@@ -475,11 +475,7 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
   // Set the parent component of an added component
   insert_child: function (child, ref) {
     if (child.tag === "component") {
-      var component = this.component;
-      if (component) {
-        component.scope.children.push(child);
-        child.scope.parent = component;
-      }
+      add_descendant_component(this.component, child);
     }
     return Element.insert_child.call(this, child, ref);
   }
@@ -1016,6 +1012,48 @@ bender.environment = function () {
 });
 
 
+// Add a descendant component to a component. This is called when adding a child
+// to a view, or adding a view to a component (where all component descendants
+// of the view are added.) When adding a child component, the scope of the child
+// is updated to extend the abstract scope of the component (so that both have
+// the same abstract scope.) Note that when adding to a view the view may not be
+// in a component yet, so `component` may be undefined. In this case, there is
+// no effect.
+// TODO adding components to instance (mutation)
+function add_descendant_component(component, descendant) {
+  if (!component) {
+    return;
+  }
+  // Merge the abstract scopes
+  var parent_scope = Object.getPrototypeOf(component.scope);
+  var descendant_scope = Object.getPrototypeOf(descendant.scope);
+  Object.keys(descendant_scope).forEach(function (key) {
+    if (key in parent_scope && parent_scope[key] !== descendant_scope[key]) {
+      console.error("Redefinition of %0 in scope".fmt(flexo.quote(key)));
+    } else {
+      parent_scope[key] = descendant_scope[key];
+    }
+  });
+  // Replace the prototype of all the descendant scopes
+  descendant_scope.derived.forEach(function (scope) {
+    scope["#this"].scope = flexo.replace_prototype(parent_scope, scope);
+    parent_scope.derived.push(scope["#this"].scope);
+  });
+  // Set the parent/child link if necessary
+  if (!descendant.scope.parent) {
+    descendant.scope.parent = component;
+    component.scope.children.push(descendant);
+  }
+}
+
+function add_id_to_scope(element, id) {
+  var component = element.component;
+  if (component) {
+    Object.getPrototypeOf(component.scope)["#" + id] = element;
+  }
+}
+
+
 function add_ids_to_scope(root) {
   var component = root.component;
   if (component) {
@@ -1145,9 +1183,8 @@ function find_view() {
 function get_abstract_scope(scope) {
   var abstract_scope = scope.hasOwnProperty("environment") ?
     Object.create(scope) : scope;
-  if (!abstract_scope.hasOwnProperty("")) {
-    Object.defineProperty(abstract_scope, "",
-        { value: [], configurable: true });
+  if (!abstract_scope.hasOwnProperty("derived")) {
+    abstract_scope.derived = [];
   }
   return abstract_scope;
 }
@@ -1159,6 +1196,16 @@ function insert_children(elem, children) {
     children.forEach(insert_children.bind(null, elem));
   } else {
     elem.insert_child(children);
+  }
+}
+
+// Remove the id (if any) from the element’s component’s abstract scope.
+function remove_id_from_scope(element, id) {
+  if (id) {
+    var component = element.component;
+    if (component) {
+      delete Object.getPrototypeOf(component.scope)["#" + id];
+    }
   }
 }
 

@@ -194,6 +194,13 @@ describe("Bender core", function () {
             expect(a.id()).toBe("a");
             expect(b.id()).toBe("");
           });
+        it("adds the ID to the scope of the containing component, if any",
+            function () {
+              var id = "rnd-" + flexo.random_id();
+              var component = env.component().id(id);
+              expect(component.id()).toBe(id);
+              expect(component.scope["#" + id]).toBe(component);
+            });
       });
 
       describe("insert_child(child, ref?)", function () {
@@ -318,9 +325,9 @@ describe("Bender core", function () {
         });
         it("creates an abstract scope if created from the environment scope",
           function () {
-            expect(Object.getPrototypeOf(elem.scope).hasOwnProperty(""))
+            expect(Object.getPrototypeOf(elem.scope).hasOwnProperty("derived"))
               .toBe(true);
-            expect(elem.scope[""]).toContain(elem.scope);
+            expect(elem.scope.derived).toContain(elem.scope);
           });
       });
 
@@ -438,6 +445,58 @@ describe("Bender core", function () {
           expect(a.ns).toBe("");
           expect(a.name).toBe("class");
           expect(a.shallow_text).toBe("test");
+        });
+      });
+    });
+
+    describe("Scopes", function () {
+      var C = env.component().id("C");
+      var C1 = env.component(C).id("C1");
+      var C2 = env.component(C).id("C2");
+      var B = env.component().id("B").view(C1, C2);
+      var b_scope = Object.getPrototypeOf(B.scope);
+      var B1 = env.component(B).id("B1");
+      var B2 = env.component(B).id("B2");
+      var A = env.component().id("A").view(B1, B2);
+      var Z = env.component();
+      var Y = env.component().view(Z);
+      var v = bender.View.create().child(Y);
+      var X = env.component().child(v);
+      var x_scope = Object.getPrototypeOf(X.scope);
+      describe("scope.parent", function () {
+        it("points to the parent component of a component", function () {
+          expect(C1.scope.parent).toBe(B);
+          expect(C2.scope.parent).toBe(B);
+          expect(Y.scope.parent).toBe(X);
+          expect(Z.scope.parent).toBe(Y);
+        });
+      });
+      describe("scope.children", function () {
+        it("contains the list of child components of a component", function () {
+          expect(B.scope.children).toContain(C1);
+          expect(B.scope.children).toContain(C2);
+          expect(X.scope.children).toContain(Y);
+          expect(Y.scope.children).toContain(Z);
+        });
+        it("child components are added to the abstract scope of their parent",
+          function () {
+            expect(Object.getPrototypeOf(C1.scope)).toBe(b_scope);
+            expect(Object.getPrototypeOf(C2.scope)).toBe(b_scope);
+            expect(b_scope["#B"]).toBe(B);
+            expect(b_scope["#C1"]).toBe(C1);
+            expect(b_scope["#C2"]).toBe(C2);
+            expect(Object.getPrototypeOf(Y.scope)).toBe(x_scope);
+            expect(Object.getPrototypeOf(Z.scope)).toBe(x_scope);
+        });
+      });
+      describe("scope.derived", function () {
+        it("contains all scopes of an abstract scope", function () {
+          expect(b_scope.derived).toContain(B.scope);
+          expect(b_scope.derived).toContain(C1.scope);
+          expect(b_scope.derived).toContain(C2.scope);
+          expect(x_scope.derived).toContain(X.scope);
+          expect(x_scope.derived).toContain(Y.scope);
+          expect(x_scope.derived).toContain(Z.scope);
         });
       });
     });

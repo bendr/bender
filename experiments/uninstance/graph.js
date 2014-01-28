@@ -158,24 +158,11 @@ Component.inherit_edges = function () {
 
 // Flush the graph after setting a property on a component.
 Component.did_set_property = function (name, value) {
-  console.warn("TODO: did_set_property");
-  return;
-  var queue = [this];
-  while (queue.length > 0) {
-    var q = queue.shift();
-    if (name in q.vertices.property.component) {
-      q.vertices.property.component[name].push_value([q.scope, value]);
-    } else if (name in q.vertices.property.instance) {
-      // jshint -W083
-      flexo.push_all(q.vertices.property.instance[name].values,
-          q.all_instances.map(function (instance) {
-            return [instance.scope, value];
-          }));
-    } else {
-      flexo.push_all(queue, q.derived);
-    }
+  var vertex = this.vertices.property[name];
+  if (vertex) {
+    vertex.push_value([this.scope, value]);
+    this.scope.environment.flush_graph();
   }
-  this.scope.environment.flush_graph();
 };
 
 
