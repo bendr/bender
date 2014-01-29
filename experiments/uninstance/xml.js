@@ -110,7 +110,7 @@ Environment.deserialize_element_with_value = function (e, elem) {
   } else {
     var t = shallow_text(elem);
     if (/\S/.test(t)) {
-      e.value_string(t, false);
+      e.value_string(t, false, flexo.base_uri(elem));
     }
   }
   return this.deserialize_children(e, elem);
@@ -221,22 +221,40 @@ Environment.deserialize.get = function (elem) {
   if (elem.hasAttribute("dom-event")) {
     get = GetDOMEvent.create(elem.getAttribute("dom-event"),
         elem.getAttribute("property"))
-      .select(elem.getAttribute("select"))
       .preventDefault(elem.getAttribute("prevent-default") ||
           elem.getAttribute("preventDefault"))
       .stopPropagation(elem.getAttribute("stop-propagation") ||
           elem.getAttribute("stopPropagation"));
-  /*} else if (elem.hasAttribute("event")) {
-    get = new bender.GetEvent(elem.getAttribute("event"))
-        .select(elem.getAttribute("select"));*/
+  } else if (elem.hasAttribute("event")) {
+    get = GetEvent.create(elem.getAttribute("event"));
   } else if (elem.hasAttribute("property")) {
-    get = GetProperty.create(elem.getAttribute("property"))
-        .select(elem.getAttribute("select"));
-  /*} else if (elem.hasAttribute("attr")) {
-    get = new bender.GetAttribute(elem.getAttribute("attr"))
-        .select(elem.getAttribute("select"));*/
+    get = GetProperty.create(elem.getAttribute("property"));
+  } else if (elem.hasAttribute("attr")) {
+    get = GetAttribute.create(elem.getAttribute("attr"));
   }
   return this.deserialize_element_with_value(get, elem);
+};
+
+Environment.deserialize.set = function (elem) {
+  var set;
+  if (elem.hasAttribute("dom-event")) {
+    set = SetDOMEvent.create(elem.getAttribute("dom-event"),
+        elem.getAttribute("property"));
+  } else if (elem.hasAttribute("event")) {
+    set = SetEvent.create(elem.getAttribute("event"));
+  } else if (elem.hasAttribute("dom-property")) {
+    set = SetDOMProperty.create(elem.getAttribute("dom-property"));
+  } else if (elem.hasAttribute("property")) {
+    set = SetProperty.create(elem.getAttribute("property"));
+  } else if (elem.hasAttribute("dom-attr")) {
+    set = SetDOMAttribute.create(elem.getAttribute("ns"),
+        elem.getAttribute("dom-attr"));
+  } else if (elem.hasAttribute("attr")) {
+    set = SetAttribute.create(elem.getAttribute("attr"));
+  } else {
+    set = Set.create();
+  }
+  return this.deserialize_element_with_value(set, elem);
 };
 
 

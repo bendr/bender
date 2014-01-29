@@ -1,4 +1,5 @@
-/* global bender, console, exports, flexo, global, require, window */
+/* global bender, console, exports, flexo, global, parse_string, parse_dynamic,
+   require, window */
 // jshint -W097
 
 "use strict";
@@ -805,8 +806,7 @@ flexo._accessor(ValueElement, "value", flexo.snd);
 
 
 // Base for all get elements
-var Get = bender.Get = flexo._ext(ValueElement);
-
+var Get = bender.Get = Object.create(ValueElement);
 flexo.make_readonly(Get, "tag", "get");
 
 
@@ -814,16 +814,14 @@ flexo.make_readonly(Get, "tag", "get");
 // or the target itself.
 var GetDOMEvent = bender.GetDOMEvent = flexo._ext(Get, {
   init: function (type, property) {
-    this.type = flexo.safe_trim(type);
+    this.type = flexo.safe_trim(type);  // dom-event attribute in XML
     if (property) {
-      this.property = property;
+      this.property = flexo.safe_trim(property);
     }
     return Get.init.call(this);
   },
 
   init_with_args: function (args) {
-    this.stopPropagation(args["stop-propagation"] || args.stopPropagation);
-    this.preventDefault(args["prevent-default"] || args.preventDefault);
     return Get.init_with_args.call(this.init(args.type, args.property), args);
   }
 });
@@ -832,9 +830,10 @@ flexo._accessor(bender.GetDOMEvent, "stopPropagation", normalize_boolean);
 flexo._accessor(bender.GetDOMEvent, "preventDefault", normalize_boolean);
 
 
+// Get a Bender event
 var GetEvent = bender.GetEvent = flexo._ext(Get, {
   init: function (type) {
-    this.type = flexo.safe_trim(type);
+    this.type = flexo.safe_trim(type);  // event attribute in XML
     return Get.init.call(this);
   },
 
@@ -844,9 +843,10 @@ var GetEvent = bender.GetEvent = flexo._ext(Get, {
 });
 
 
+// Get a Bender property
 var GetProperty = bender.GetProperty = flexo._ext(Get, {
   init: function (name) {
-    this.name = flexo.safe_trim(name);
+    this.name = flexo.safe_trim(name);  // property attribute in XML
     return Get.init.call(this);
   },
 
@@ -856,9 +856,11 @@ var GetProperty = bender.GetProperty = flexo._ext(Get, {
 });
 
 
+// Get a Bender Attribute
 var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
   init: function (name) {
-    return this.name = flexo.safe_trim(name), this;
+    this.name = flexo.safe_trim(name);  // attr attribute in XML
+    return Get.init.call(this);
   },
 
   init_with_args: function (args) {
@@ -867,15 +869,14 @@ var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
 });
 
 
-bender.Set = flexo._ext(ValueElement, {
-});
-
+bender.Set = Object.create(ValueElement);
 flexo.make_readonly(bender.Set, "tag", "set");
 
 
+// Set a DOM event
 var SetDOMEvent = bender.SetDOMEvent = flexo._ext(bender.Set, {
   init: function (type, property) {
-    this.type = flexo.safe_trim(type);
+    this.type = flexo.safe_trim(type);  // dom-event attribute in XML
     if (property) {
       this.property = property;
     }
@@ -888,13 +889,67 @@ var SetDOMEvent = bender.SetDOMEvent = flexo._ext(bender.Set, {
 });
 
 
+// Set a Bender event
 var SetEvent = bender.SetEvent = flexo._ext(bender.Set, {
   init: function (type) {
-    return this.type = flexo.safe_trim(type), this;
+    this.type = flexo.safe_trim(type);  // event attribute in XML
+    return bender.Set.init.call(this);
   },
 
   init_with_args: function (args) {
     return Get.init_with_args.call(this.init(args.type), args);
+  }
+});
+
+
+// Set a DOM property
+var SetDOMProperty = bender.SetDOMProperty = flexo._ext(bender.Set, {
+  init: function (name) {
+    this.name = flexo.safe_trim(name);  // dom-property attribute in XML
+    return bender.Set.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.name), args);
+  }
+});
+
+
+// Set a Bender property
+var SetProperty = bender.SetProperty = flexo._ext(bender.Set, {
+  init: function (name) {
+    this.name = flexo.safe_trim(name);  // property attribute in XML
+    return bender.Set.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.name), args);
+  }
+});
+
+
+// Set a DOM attribute
+var SetDOMAttribute = bender.SetDOMAttribute = flexo._ext(bender.Set, {
+  init: function (ns, name) {
+    this.ns = flexo.safe_trim(ns);
+    this.name = flexo.safe_trim(name);  // dom-attr attribute in XML
+    return bender.Set.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.ns, args.name), args);
+  }
+});
+
+
+var SetAttribute = bender.SetAttribute = flexo._ext(bender.Set, {
+  init: function (name) {
+    this.name = flexo.safe_trim(name);  // attr attribute in XML
+    return bender.Set.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Get.init_with_args.call(this.init(args.name), args);
   }
 });
 

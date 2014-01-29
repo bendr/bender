@@ -77,8 +77,8 @@
       <ref name="element-attrs"/>
       <ref name="value-content"/>
       <choice>
-        <ref name="get-dom-event"/>
         <ref name="get-event"/>
+        <ref name="get-dom-event"/>
         <ref name="get-property"/>
         <ref name="get-attribute"/>
       </choice>
@@ -99,15 +99,15 @@
   </define>
 
   <define name="get-event">
-    <ref name="event"/>
+    <ref name="event-attr"/>
   </define>
 
   <define name="get-property">
-    <ref name="name"/>
+    <ref name="property-attr"/>
   </define>
 
   <define name="get-attribute">
-    <ref name="name"/>
+    <ref name="attr"/>
   </define>
 
   <define name="link">
@@ -121,6 +121,7 @@
   <define name="property">
     <element name="property">
       <ref name="element-attrs"/>
+      <ref name="value-content"/>
       <ref name="name"/>
     </element>
   </define>
@@ -135,23 +136,48 @@
   <define name="set">
     <element name="set">
       <ref name="element-attrs"/>
-      <!--
-      <choice>
-        <ref name="set-xml"/>
-        <group>
-          <ref name="value-content"/>
-          <choice>
-            <ref name="set-dom-event"/>
-            <ref name="set-event"/>
-            <ref name="set-dom-property"/>
-            <ref name="set-property"/>
-            <ref name="set-dom-attribute"/>
-            <ref name="set-attribute"/>
-          </choice>
-        </group>
-      </choice>
-      -->
+      <ref name="value-content"/>
+      <optional>
+        <choice>
+          <ref name="set-dom-event"/>
+          <ref name="set-event"/>
+          <ref name="set-dom-property"/>
+          <ref name="set-property"/>
+          <ref name="set-dom-attribute"/>
+          <ref name="set-attribute"/>
+        </choice>
+      </optional>
     </element>
+  </define>
+
+  <define name="set-dom-event">
+    <ref name="dom-event"/>
+    <optional>
+      <ref name="property"/>
+    </optional>
+  </define>
+
+  <define name="set-event">
+    <ref name="event-attr"/>
+  </define>
+
+  <define name="set-dom-property">
+    <ref name="dom-property"/>
+  </define>
+
+  <define name="set-property">
+    <ref name="property"/>
+  </define>
+
+  <define name="set-dom-attribute">
+    <optional>
+      <ref name="ns"/>
+    </optional>
+    <ref name="dom-attr"/>
+  </define>
+
+  <define name="set-attribute">
+    <ref name="attr"/>
   </define>
 
   <define name="style">
@@ -182,6 +208,9 @@
       <zeroOrMore>
         <ref name="text"/>
       </zeroOrMore>
+      <optional>
+        <ref name="content"/>
+      </optional>
     </mixed>
   </define>
 
@@ -209,7 +238,6 @@
       <ref name="match"/>
     </optional>
     <choice>
-      <ref name="view-element-content"/>
       <ref name="value"/>
       <text/>
     </choice>
@@ -237,6 +265,12 @@
   </define>
 
 
+  <define name="attr">
+    <attribute name="attr">
+      <data type="Name"/>
+    </attribute>
+  </define>
+
   <define name="boolean-value">
     <choice>
       <value>true</value>
@@ -244,8 +278,20 @@
     </choice>
   </define>
 
+  <define name="dom-attr">
+    <attribute name="dom-attr">
+      <data type="Name"/>
+    </attribute>
+  </define>
+
   <define name="dom-event">
     <attribute name="dom-event">
+      <data type="Name"/>
+    </attribute>
+  </define>
+
+  <define name="dom-property">
+    <attribute name="dom-property">
       <data type="Name"/>
     </attribute>
   </define>
@@ -256,7 +302,7 @@
     </optional>
   </define>
 
-  <define name="event">
+  <define name="event-attr">
     <attribute name="event">
       <data type="Name"/>
     </attribute>
@@ -356,7 +402,7 @@
   </define>
 
   <define name="stop-propagation">
-    <attribute name="stop-propagation">
+    <attribute name="strop-propagation">
       <ref name="boolean-value"/>
     </attribute>
   </define>
