@@ -118,11 +118,22 @@ Environment.flush_graph_later = function (f, delay) {
 // Render the graph for the component by rendering all watches.
 Component.render_graph = function () {
   flexo.values(this.own_properties).forEach(function (property) {
-    if (Object.keys(property.bindings).length > 0) {
-      // TODO the bindings should be there but the function should not be parsed
-      // yet as we don’t know what to do with it
+    if (property.hasOwnProperty("_value_string")) {
+      property.value(property.value_from_string(property._value_string,
+          property._value_string_needs_return, this.url()));
     }
-  });
+    if (Object.keys(property.bindings).length > 0) {
+      var watch = Watch.create().child(SetProperty.create(property.name,
+          property.select()).value(property.value()));
+      watch.bindings = true;
+      Object.keys(property.bindings).forEach(function (id) {
+        Object.keys(property.bindings[id]).forEach(function (prop) {
+          watch.insert_child(GetProperty.create(prop).select(id));
+        });
+      });
+      this.insert_child(watch);
+    }
+  }, this);
   this.watches.forEach(function (watch) {
     watch.render(this.scope);
   }, this);

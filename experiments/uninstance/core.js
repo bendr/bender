@@ -761,13 +761,40 @@ var ValueElement = bender.ValueElement = flexo._ext(Element, {
     }
     for (var p = this.component; p.hasOwnProperty("own_properties");
       p = Object.getPrototypeOf(p)) {
-      as = p.own_properties[this.name].as();
-      if (as !== "inherit") {
-        return as;
+      if (p.own_properties.hasOwnProperty(this.name)) {
+        as = p.own_properties[this.name].as();
+        if (as !== "inherit") {
+          return as;
+        }
       }
     }
     return "dynamic";
+  },
+
+  // Set the value of an object that has a value/as pair of attributes.
+  value_from_string: function (value, needs_return, loc) {
+    var as = this.resolve_as();
+    if (as === "boolean") {
+      value = flexo.is_true(value);
+    } else if (as === "number") {
+      value = flexo.to_number(value);
+    } else {
+      if (as === "json") {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          console.error("%0: Could not parse “%2” as JSON".fmt(loc, value));
+          value = undefined;
+        }
+      } else if (as === "dynamic") {
+        value = parse_dynamic(value, needs_return, this.bindings, loc);
+      } else { // if (as === "string") {
+        value = parse_string(value, this.bindings, loc);
+      }
+    }
+    return flexo.funcify(value);
   }
+
 });
 
 flexo._accessor(ValueElement, "select", normalize_select);
@@ -896,6 +923,7 @@ var Property = bender.Property = flexo._ext(ValueElement, {
   init_with_args: function (args) {
     return ValueElement.init_with_args.call(this.init(args.name), args);
   },
+
 });
 
 flexo.make_readonly(Property, "tag", "property");

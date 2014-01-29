@@ -32,10 +32,21 @@ ValueElement.value_string = function (string, needs_return) {
 };
 
 
+// Don’t parse property values yet, as we will need `as` to solve the value.
+Property.value_string = function (string, needs_return) {
+  if (arguments.length === 0) {
+    return this._value_string || "";
+  }
+  this._value_string = flexo.safe_string(string);
+  this._value_string_needs_return = !!needs_return;
+  return this;
+};
+
+
 // Parse a value or match string as dynamic (i.e. compile a Javascript function
 // from the text.) Replace bound values and update the bindings object, if any.
 // Prepend “return ” if the needs_return flag is set (for attribute values.)
-function parse_dynamic(string, needs_return, bindings) {
+function parse_dynamic(string, needs_return, bindings, loc) {
   try {
     // jshint -W054
     return new Function("$scope", "$in",
@@ -43,7 +54,7 @@ function parse_dynamic(string, needs_return, bindings) {
           return v + (typeof ch === "string" ? ch : chunk_to_js(ch, bindings));
         }, needs_return ? "return " : ""));
   } catch (e) {
-    console.error("Cannot compile %0".fmt(flexo.quote(string)));
+    console.error("Cannot compile %0 at %1".fmt(flexo.quote(string), loc));
   }
 }
 
@@ -56,7 +67,7 @@ function parse_string(string, bindings) {
     // jshint -W054
     return new Function("$scope", "$in", src);
   } catch (e) {
-    console.error("Cannot compile %0".fmt(flexo.quote(string)));
+    console.error("Cannot compile %0 at %1".fmt(flexo.quote(string), loc));
   }
 }
 
