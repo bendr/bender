@@ -1,5 +1,7 @@
 /* global bender, Component, console, DOMEventListenerEdge, Element,
-   Environment, flexo, GetDOMEvent, GetProperty, Watch, window */
+   Environment, flexo, GetDOMEvent, GetEvent, GetProperty, Set, SetAttribute,
+   SetDOMAttribute, SetDOMEvent, SetDOMProperty, SetEvent, SetProperty, Watch,
+   window */
 // jshint -W097
 
 "use strict";
@@ -19,24 +21,20 @@ flexo.make_readonly(Environment, "vortex", function () {
 });
 
 
-// Add a vertex to the watch graph and return it.
+// Add a vertex to the watch graph and return it. Vertices get an index (useful
+// for debugging) and point back to the environment that they’re in. Adding a
+// vertex marks the graph as being unsorted.
 Environment.add_vertex = function (vertex) {
-  Object.defineProperty(vertex, "index", {
-    enumberable: true,
-    value: this.vertices.length === 0 ?
-      0 : (this.vertices[this.vertices.length - 1].index + 1)
-  });
-  Object.defineProperty(vertex, "environment", {
-    enumerable: true,
-    value: this
-  });
+  vertex.index = this.vertices.length === 0 ?
+    0 : (this.vertices[this.vertices.length - 1].index + 1);
+  vertex.environment = this;
   this.vertices.push(vertex);
   this.unsorted = true;
   return vertex;
 };
 
 // Remove a vertex from the graph as well as all of its incoming and outgoing
-// edges.
+// edges. Removing a vertex marks the graph as being unsorted.
 Environment.remove_vertex = function (vertex) {
   flexo.remove_from_array(this.vertices, vertex);
   vertex.incoming.forEach(remove_edge);
@@ -115,7 +113,8 @@ Environment.flush_graph_later = function (f, delay) {
 };
 
 
-// Render the graph for the component by rendering all watches.
+// Render the graph for the component by adding new watches for the property
+// bindings, and then rendering all watches.
 Component.render_graph = function () {
   flexo.values(this.own_properties).forEach(function (property) {
     if (property.hasOwnProperty("_value_string")) {
@@ -139,30 +138,23 @@ Component.render_graph = function () {
   }, this);
 };
 
-// Setup inheritance edges
+// Setup inheritance edges: if B inherits from A and both have vertex for e.g.
+// a property x, make an inheritance edge from A`x to B`x. Then for all outgoing
+// edges of A that are not inheritance edges, add a cloned edge from B.
+// TODO this could be avoided by looking up inheritance edge during traversal
 Component.inherit_edges = function () {
   ["event", "property"].forEach(function (kind) {
-    // Review this
-    /*
-    Object.keys(this.vertices[kind].component).forEach(function (name) {
-      if (this.vertices[kind].instance.hasOwnProperty(name)) {
-        this.vertices[kind].component[name].add_outgoing(new
-          InstanceEdge(this.vertices[kind].instance[name]));
-      }
-    }, this);
-    */
-    var p = this.prototype();
-    if (p) {
-      Object.keys(this.vertices[kind].instance).forEach(function (name) {
-        if (name in p.vertices[kind].instance) {
-          var source = p.vertices[kind].instance[name];
-          var dest = this.vertices[kind].instance[name];
+    var p = Object.getPrototypeOf(this);
+    if (p.hasOwnProperty("vertices")) {
+      Object.keys(this.vertices[kind]).forEach(function (name) {
+        if (name in p.vertices[kind]) {
+          var source = p.vertices[kind][name];
+          var dest = this.vertices[kind][name];
           source.add_outgoing(InheritEdge.create(dest));
           source.outgoing.forEach(function (edge) {
-            if (Object.getPrototypeOf(edge) === InheritEdge) {
-              return;
+            if (Object.getPrototypeOf(edge) !== InheritEdge) {
+              dest.add_outgoing(edge.redirect());
             }
-            dest.add_outgoing(edge.redirect());
           });
         }
       }, this);
@@ -205,12 +197,46 @@ GetDOMEvent.render = function (scope) {
   return vertex_dom_event(this, scope);
 };
 
+// Render a GetEvent element into the corresponding EventVertex.
+GetEvent.render = function (scope) {
+  return vertex_event(this, scope);
+};
+
+// Render a GetProperty element into the corresponding GetProperty vertex.
 GetProperty.render = function (scope) {
   return vertex_property(this, scope);
 };
 
+// TODO GetAttribute.render
 
 
+Set.render = function (scope) {
+  return ElementEdge.create(this, scope.environment.vortex);
+};
+
+SetDOMEvent.render = function (scope) {
+};
+
+SetEvent.render = function (scope) {
+};
+
+SetDOMProperty.render = function (scope) {
+};
+
+SetProperty.render = function (scope) {
+};
+
+SetDOMAttribute.render = function (scope) {
+};
+
+SetAttribute.render = function (scope) {
+};
+
+
+// Vertices
+
+// The basic vertex keeps track of incoming and outgoing edges. During traversal
+// it stores associated values.
 var Vertex = bender.Vertex = {
   init: function () {
     this.incoming = [];
@@ -221,12 +247,16 @@ var Vertex = bender.Vertex = {
 
   create: Element.create,
 
+  // Add an incoming edge to the vertex, setting the destination of the edge at
+  // the same time.
   add_incoming: function (edge) {
     edge.dest = this;
     this.incoming.push(edge);
     return edge;
   },
 
+  // Add an outgoing edge to the vertex, setting the source of the edge at the
+  // same time.
   add_outgoing: function (edge) {
     if (!edge) {
       return;
@@ -241,7 +271,8 @@ var Vertex = bender.Vertex = {
   },
 
   // Push a value (really, a scope/value pair) to the values of a vertex in the
-  // graph.
+  // graph. If a value for the same component is already in the list of values,
+  // the value is updated (TODO check this with priorities.)
   push_value: function (v) {
     if (!flexo.find_first(this.values, function (w) {
       if (v[0]["@this"] === w[0]["@this"]) {
@@ -255,12 +286,17 @@ var Vertex = bender.Vertex = {
 };
 
 
+// The vortex is a sink and cannot have outgoing edges. Normally, there is only
+// one vortex in the graph. Because it is a sink, it does not store values
+// either.
 var Vortex = bender.Vortex = flexo._ext(Vertex, {
   add_outgoing: flexo.nop,
-  add_incoming: flexo.nop
+  push_value: flexo.nop
 });
 
 
+// A watch vertex corresponds to a watch element and is the interface between
+// get and set elements of the watch.
 var WatchVertex = bender.WatchVertex = flexo._ext(Vertex, {
   init: function (watch, component) {
     this.watch = watch;
@@ -278,6 +314,7 @@ var DOMEventVertex = bender.DOMEventVertex = flexo._ext(Vertex, {
     return Vertex.init.call(this);
   },
 
+  /* TODO
   add_event_listener: function (scope, edge) {
     var target = scope[edge.element.select()];
     if (edge.element.property) {
@@ -311,7 +348,9 @@ var DOMEventVertex = bender.DOMEventVertex = flexo._ext(Vertex, {
       target.removeEventListener(edge.element.type, listener, false);
     };
   }
+  */
 });
+
 
 // Simple super-class for “outlet” style vertex, i.e., component and event
 // vertex. An outlet vertex points back to the target component and has a name
@@ -329,6 +368,7 @@ var EventVertex = bender.EventVertex = Object.create(OutletVertex);
 var PropertyVertex = bender.PropertyVertex = Object.create(OutletVertex);
 
 
+// Edges
 
 var Edge = bender.Edge = {
   init: function (dest) {
@@ -340,6 +380,8 @@ var Edge = bender.Edge = {
 
   create: Element.create,
 
+  // Make a copy of this edge to be added to a new source vertex (the source
+  // will be rewritten once the cloned edge is added to its new source.)
   redirect: function (dest) {
     var edge = Object.create(this);
     edge.dest = dest;
@@ -347,7 +389,7 @@ var Edge = bender.Edge = {
   },
 
   // Remove self from the list of outgoing edges of the source and the list of
-  // incoming edges from the destination.
+  // incoming edges of the destination.
   remove: function () {
     flexo.remove_from_array(this.source.outgoing);
     flexo.remove_from_array(this.dest.incoming);
@@ -402,9 +444,7 @@ var Edge = bender.Edge = {
 var remove_edge = Function.prototype.call.bind(Edge.remove);
 
 
-// Inherit edges are simple edges bridging vertices from prototypes and vertices
-// from derived components. They simplify the traversal of the graph by making
-// the relationship explicit.
+// Inherit edges (cf. Component.inherit_edges)
 var InheritEdge = bender.InheritEdge = flexo._ext(Edge);
 
 
@@ -431,8 +471,6 @@ flexo.make_readonly(ElementEdge, "match", function () {
 var WatchEdge = bender.WatchEdge = flexo._ext(ElementEdge, {
   push_scope: true,
 });
-
-
 
 
 // Sort all edges in a graph from its set of vertices. Simply go through the
@@ -502,12 +540,33 @@ function vertex_dom_event(element, scope) {
   return vertices[id][element.type];
 }
 
+// Get an event vertex, either returning an already existing vertex or creating
+// a new one.
+function vertex_event(element, scope) {
+  var target = scope[element.select()];
+  if (!target) {
+    // TODO pending vertices
+    console.warn("No target for event vertex; select=\"%0\" in scope"
+        .fmt(element.select()), scope);
+    return;
+  }
+  var vertices = target.vertices.event;
+  if (!vertices.hasOwnProperty(element.type)) {
+    vertices[element.type] = scope.environment.add_vertex(EventVertex
+        .create(target, element.type));
+  }
+  return vertices[element.type];
+}
+
 // Get a vertex for a property from an element and its scope, creating it
 // first if necessary. Note that this can be called for a property vertex,
 // but also from an event vertex (when introducing event listener edges.)
 function vertex_property(element, scope) {
   var target = scope[element.select()];
   if (!target) {
+    // TODO pending vertices
+    console.warn("No target for property vertex; select=\"%0\" in scope"
+        .fmt(element.select()), scope);
     return;
   }
   var vertices = target.vertices.property;

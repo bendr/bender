@@ -47,12 +47,43 @@ bender.environment = function (document) {
 // optional ref node. Return the new, rendered instance. This is the method to
 // call to render a component explicitely.
 Component.render_instance = function (target, ref) {
-  var instance = this.instantiate();
+  var instance = this.instantiate(this.create_concrete_scope());
   if (arguments.length === 0) {
     target = this.scope.document.body || this.scope.document.documentElement;
   }
   instance.render(null, target, ref);
   return instance;
+};
+
+// Create the render stack for a component instance by going through the
+// prototype chain and adding a new scope for each prototype component. When a
+// prototype has a view, the view is also instantiated and pushed 
+Component.create_render_stack = function () {
+  var stack = [];
+  stack.instance = this;
+  for (var prototype = Object.getPrototypeOf(this), scope = this.scope; scope;
+      prototype = Object.getPrototypeOf(prototype), scope = prototype.scope &&
+      Object.create(this.create_concrete_scope())) {
+    scope["#this"] = prototype;
+    scope["@this"] = this;
+    var mode = "top";
+    if (prototype.scope.view && !stack.__locked) {
+      scope.view = prototype.scope.view.instantiate(scope);
+      delete prototype.__pending_render;
+      mode = scope.view.stack();
+      // TODO children
+    }
+    if (mode === "top") {
+      stack.unshift(scope);
+    } else {
+      stack.push(scope);
+      if (mode === "replace") {
+        stack.__locked = true;
+      }
+    }
+  }
+  delete stack.__locked;
+  return stack;
 };
 
 // Render the component. This is the internal method called from
@@ -61,58 +92,23 @@ Component.render_instance = function (target, ref) {
 // of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
   var head = target.ownerDocument.head || target.ownerDocument.documentElement;
-  this.children.forEach(function (ch) {
-    if (ch.tag === "style") {
-      ch.apply(head);
-    }
-  });
-  Object.defineProperty(this, "scope", {
-    enumerable: true,
-    value: this.render_scope()
-  });
   var scope = this.scope;
-  stack = scope.stack = [];
-  for (var p; scope; p = Object.getPrototypeOf(scope["#this"]),
-      scope = p.scope && p.render_scope()) {
-    if (scope.view) {
-      scope["@this"] = this;
-      var mode = scope.view.stack();
-      delete scope["#this"].__pending_render;
-      if (mode === "top") {
-        stack.unshift(scope);
-      } else {
-        stack.push(scope);
-        if (mode === "replace") {
-          break;
-        }
+  var stack = this.scope.stack = this.create_render_stack();
+  on(this, "render");
+  for (var i = 0, n = stack.length; i < n; ++i) {
+    stack[i]["#this"].children.forEach(function (ch) {
+      if (ch.tag === "style") {
+        ch.apply(head);
       }
+    });
+    if (stack[i].view && !stack.hasOwnProperty("i")) {
+      stack.i = i;
     }
   }
-  on(this, "render", stack);
-  if (stack.length) {
-    stack.i = 0;
+  if (stack[stack.i]) {
     stack[stack.i].view.render(stack, target, ref);
     delete stack.i;
   }
-};
-
-// Create a new scope for rendering, instantiating the view.
-Component.render_scope = function () {
-  var scope = Object.create(this.scope);
-  if (this.scope.view) {
-    scope.view = this.scope.view.instantiate(scope);
-    scope.view.parent = this;
-    if (scope.parent) {
-      var index = scope.parent.scope.children.indexOf(Object
-          .getPrototypeOf(this));
-      scope.parent.scope.children[index] = this;
-    }
-    scope.children.forEach(function (ch) {
-      ch.scope.parent = this;
-    }, this);
-    on(this, "instantiate", scope.view);
-  }
-  return scope;
 };
 
 // Get the scope for the given component (for a rendered instance.)
@@ -140,15 +136,14 @@ View.render = function (stack, target, ref) {
 };
 
 
-
-
-
 Content.render = function (stack, target, ref) {
-  if (stack.i < stack.length - 1) {
-    ++stack.i;
+  var j = stack.i++;
+  for (var n = stack.length; stack.i < n && !stack[stack.i].view; ++stack.i) {}
+  if (stack[stack.i]) {
     stack[stack.i].view.render(stack, target, ref);
-    --stack.i;
+    stack.i = j;
   } else {
+    stack.i = j;
     View.render.call(this, stack, target, ref);
   }
 };

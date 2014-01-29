@@ -9,6 +9,7 @@ describe("Rendering to HTML", function () {
       });
   });
 
+  /*
   describe("Component.render_instance(target?, ref?)", function () {
     it("returns the rendered instance", function () {
       var c = env.component();
@@ -21,16 +22,14 @@ describe("Rendering to HTML", function () {
     });
   });
 
-  /*
-  var A = env.$component({ id: "A" }).view(env.$content());
-  var B = env.$component({ id: "B", prototype: A }, env.$view(env.$p("Hello")));
-  var B_ = B.render_instance(flexo.$div());
-
-  it("has the right id", function () {
-    expect(A.id()).toBe("A");
-  });
-  it("has the right @this", function () {
-    expect(B_.scope_of(A)["@this"]).toBe(B_);
+  describe("Render scope", function () {
+    var A = env.component();
+    var B = env.component(A);
+    var B_ = B.render_instance();
+    it("...", function () {
+      expect(Object.getPrototypeOf(B)).toBe(A);
+      expect(Object.getPrototypeOf(B_)).toBe(B);
+    });
   });
   */
 

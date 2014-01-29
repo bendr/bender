@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<component xmlns="http://bender.igel.co.jp" id="button">
+  <style>
+    div.button {
+      padding: 0.5rem 1rem;
+      background-color: #ff4040;
+      color: #f8f9f0;
+      font-family: sans-serif;
+      display: inline-block;
+      cursor: pointer;
+    }
+  </style>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div class="button" render-id="class">
+      <content>
+        OK
+      </content>
+    </html:div>
+  </view>
+</component>

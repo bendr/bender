@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<component xmlns="http://bender.igel.co.jp" href="stack-outer.xml" id="inner">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div>
+      <html:p>
+        I am the inner component.
+      </html:p>
+    </html:div>
+  </view>
+</component>

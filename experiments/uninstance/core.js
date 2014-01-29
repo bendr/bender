@@ -305,21 +305,33 @@ var Component = bender.Component = flexo._ext(Element, {
     return this;
   },
 
-  // Instantiate is shallow for components; when rendering, the view and stack
-  // will be created for the instance.
-  instantiate: function (scope) {
-    var instance = Element.instantiate.call(this, scope, true);
+  // Instantiate is shallow for components. On rendering, a stack of views will
+  // be created.
+  instantiate: function (concrete_scope) {
+    var instance = Element.instantiate.call(this, concrete_scope, true);
     var id = flexo.random_id(3);
     instance.__id = this.__id + "/" + id;
     global["$" + id] = instance;
-    Object.defineProperty(instance, "properties", {
-      enumerable: true,
-      value: Object.create(this.properties, {
-        "": { value: instance }
-      })
-    });
+    instance.scope = Object.create(concrete_scope);
+    instance.scope["#this"] = this;
+    instance.scope["@this"] = instance;
+    instance.properties = Object.create(this.properties,
+        { "": { value: instance } });
     on(this, "instantiate", instance);
     return instance;
+  },
+
+  // Create a new concrete scope from the current abstract scope. Do this only
+  // for components that do not have a parent.
+  create_concrete_scope: function () {
+    if (this.scope.parent) {
+      throw "Concrete scopes should be created from top-level components";
+    }
+    var abstract_scope = Object.getPrototypeOf(this.scope);
+    var concrete_scope = Object.create(abstract_scope);
+    abstract_scope.derived.push(this);  // TODO separate component/concrete?
+    Object.defineProperty(concrete_scope, "derived", { value: [] });
+    return concrete_scope;
   },
 
   // Make sure that children are added to the original component, and not the
@@ -459,6 +471,16 @@ flexo.make_readonly(Component, "all_instances", function () {
   return flexo.bfold(this, function (instances, component) {
     return flexo.push_all(instances, component.instances), instances;
   }, flexo.property("derived"), []);
+});
+
+// Return the list of all prototypes of this component
+flexo.make_readonly(Component, "prototypes", function () {
+  var prototypes = [];
+  for (var p = this; this.hasOwnProperty("scope");
+    p = Object.getPrototypeOf(p)) {
+    prototypes.push(p);
+  }
+  return prototypes;
 });
 
 
@@ -869,7 +891,7 @@ var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
 });
 
 
-bender.Set = Object.create(ValueElement);
+var Set = bender.Set = Object.create(ValueElement);
 flexo.make_readonly(bender.Set, "tag", "set");
 
 
@@ -1290,7 +1312,8 @@ function get_abstract_scope(scope) {
   var abstract_scope = scope.hasOwnProperty("environment") ?
     Object.create(scope) : scope;
   if (!abstract_scope.hasOwnProperty("derived")) {
-    abstract_scope.derived = [];
+    Object.defineProperty(abstract_scope, "derived",
+        { value: [], configurable: true });
   }
   return abstract_scope;
 }
