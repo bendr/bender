@@ -324,10 +324,10 @@ var Component = bender.Component = flexo._ext(Element, {
       // Recreate the parent/child relationship between instances by finding the
       // instance for the parent component, and adding the new instance as its
       // child.
-      var parent_instance = flexo.find_first(concrete_scope.instances,
-          function (i) {
-            return Object.getPrototypeOf(i) === this.scope.parent;
-          }, this);
+      var parent_instance = flexo.find_first(concrete_scope.derived,
+          function (scope) {
+            return scope["#this"] === this.scope.parent;
+          }, this)["@this"];
       instance.scope.parent = parent_instance;
       if (!parent_instance.scope.hasOwnProperty("children")) {
         parent_instance.scope.children = [];
