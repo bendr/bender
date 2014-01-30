@@ -238,7 +238,7 @@ var Component = bender.Component = flexo._ext(Element, {
       "#this": this,
       children: []    // child components; scope.parent is the parent component
     });
-    this.scope.derived.push(this.scope);
+    this.scope.components.push(this);
     this.derived = [];
     this.own_properties = {};
     this.properties = this.properties ? Object.create(this.properties) : {};
@@ -315,6 +315,7 @@ var Component = bender.Component = flexo._ext(Element, {
     instance.scope = Object.create(concrete_scope);
     instance.scope["#this"] = this;
     instance.scope["@this"] = instance;
+    concrete_scope.instances.push(instance);
     instance.properties = Object.create(this.properties,
         { "": { value: instance } });
     on(this, "instantiate", instance);
@@ -322,14 +323,17 @@ var Component = bender.Component = flexo._ext(Element, {
   },
 
   // Create a new concrete scope from the current abstract scope. Do this only
-  // for components that do not have a parent.
+  // for components that do not have a parent. The concrete scope gets added to
+  // the list of abstract scopes, and has two additional “hidden” fields for
+  // instances and derived scopes in this scope.
   create_concrete_scope: function () {
     if (this.scope.parent) {
       throw "Concrete scopes should be created from top-level components";
     }
     var abstract_scope = Object.getPrototypeOf(this.scope);
     var concrete_scope = Object.create(abstract_scope);
-    abstract_scope.derived.push(this);  // TODO separate component/concrete?
+    abstract_scope.concrete.push(this);  // TODO separate component/concrete?
+    Object.defineProperty(concrete_scope, "instances", { value: [] });
     Object.defineProperty(concrete_scope, "derived", { value: [] });
     return concrete_scope;
   },
@@ -473,16 +477,6 @@ flexo.make_readonly(Component, "all_instances", function () {
   }, flexo.property("derived"), []);
 });
 
-// Return the list of all prototypes of this component
-flexo.make_readonly(Component, "prototypes", function () {
-  var prototypes = [];
-  for (var p = this; this.hasOwnProperty("scope");
-    p = Object.getPrototypeOf(p)) {
-    prototypes.push(p);
-  }
-  return prototypes;
-});
-
 
 // View elements are View, and elements that can occur in View, except for
 // Component: DOMElement, Text, and Content.
@@ -521,7 +515,7 @@ flexo.make_readonly(View, "view", flexo.self);
 flexo.make_readonly(View, "tag", "view");
 
 
-var Content = bender.Content = Object.create(ViewElement, {
+var Content = bender.Content = flexo._ext(ViewElement, {
   init_with_args: function (args) {
     return ViewElement.init_with_args.call(this.init(), args);
   }
@@ -1114,7 +1108,8 @@ bender.environment = function () {
 
 // Shortcuts for the $ function: env.$foo === env.$("foo")
 // (note that $text is handled differently, see above.)
-["attribute", "component", "content", "view"].forEach(function (tag) {
+["attribute", "component", "content", "get", "link", "script", "set", "style",
+  "view", "watch"].forEach(function (tag) {
   Environment["$" + tag] = function () {
     var args = [tag];
     flexo.push_all(args, arguments);
@@ -1123,6 +1118,7 @@ bender.environment = function () {
 });
 
 // Create DOMElement from known HTML tags.
+// TODO get all elements from flexo; skip the ones that are defined above.
 ["p", "div"].forEach(function (tag) {
   Environment["$" + tag] = function (args) {
     var args_ = ["DOMElement"];
@@ -1162,10 +1158,13 @@ function add_descendant_component(component, descendant) {
       parent_scope[key] = descendant_scope[key];
     }
   });
-  // Replace the prototype of all the descendant scopes
-  descendant_scope.derived.forEach(function (scope) {
-    scope["#this"].scope = flexo.replace_prototype(parent_scope, scope);
-    parent_scope.derived.push(scope["#this"].scope);
+  // Replace the component and concrete prototypes of all the descendant scopes
+  descendant_scope.components.forEach(function (component) {
+    component.scope = flexo.replace_prototype(parent_scope, component.scope);
+    parent_scope.components.push(component);
+  });
+  descendant_scope.concrete.forEach(function (scope) {
+    parent_scope.concrete.push(flexo.replace_prototype(parent_scope, scope));
   });
   // Set the parent/child link if necessary
   if (!descendant.scope.parent) {
@@ -1177,7 +1176,9 @@ function add_descendant_component(component, descendant) {
 function add_id_to_scope(element, id) {
   var component = element.component;
   if (component) {
-    Object.getPrototypeOf(component.scope)["#" + id] = element;
+    var scope = Object.getPrototypeOf(component.scope);
+    scope["#" + id] = element;
+    scope["@" + id] = element;
   }
 }
 
@@ -1187,9 +1188,10 @@ function add_ids_to_scope(root) {
   if (component) {
     flexo.beach(root, function (element) {
       if (element._id) {
-        component.scope["@" + element._id] = element;
+        var scope = Object.getPrototypeOf(component.scope);
+        scope["@" + element._id] = element;
         if (component.hasOwnProperty("instances")) {
-          component.scope["#" + element._id] = element;
+          scope["#" + element._id] = element;
         }
       }
       return element.children;
@@ -1307,13 +1309,17 @@ function find_view() {
   return this.parent && this.parent.view;
 }
 
-// Get or create the abstract scope for a component scope
+// Get or create the abstract scope for a component scope. An abstract scope has
+// two “hidden” fields for components within the scope (the scope of which all
+// derive from this abstract scope) and concrete scopes deriving from this
+// scope.
 function get_abstract_scope(scope) {
   var abstract_scope = scope.hasOwnProperty("environment") ?
     Object.create(scope) : scope;
-  if (!abstract_scope.hasOwnProperty("derived")) {
-    Object.defineProperty(abstract_scope, "derived",
+  if (!abstract_scope.hasOwnProperty("components")) {
+    Object.defineProperty(abstract_scope, "components",
         { value: [], configurable: true });
+    Object.defineProperty(abstract_scope, "concrete", { value: [] });
   }
   return abstract_scope;
 }

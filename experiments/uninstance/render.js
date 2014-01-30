@@ -63,15 +63,16 @@ Component.create_render_stack = function () {
   stack.instance = this;
   for (var prototype = Object.getPrototypeOf(this), scope = this.scope; scope;
       prototype = Object.getPrototypeOf(prototype), scope = prototype.scope &&
-      Object.create(this.create_concrete_scope())) {
+      Object.create(prototype.create_concrete_scope())) {
+    var concrete_scope = Object.getPrototypeOf(scope);
+    concrete_scope.derived.push(scope);
     scope["#this"] = prototype;
     scope["@this"] = this;
     var mode = "top";
     if (prototype.scope.view && !stack.__locked) {
-      scope.view = prototype.scope.view.instantiate(scope);
+      scope.view = prototype.scope.view.instantiate(concrete_scope);
       delete prototype.__pending_render;
       mode = scope.view.stack();
-      // TODO children
     }
     if (mode === "top") {
       stack.unshift(scope);
@@ -92,7 +93,6 @@ Component.create_render_stack = function () {
 // of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
   var head = target.ownerDocument.head || target.ownerDocument.documentElement;
-  var scope = this.scope;
   var stack = this.scope.stack = this.create_render_stack();
   on(this, "render");
   for (var i = 0, n = stack.length; i < n; ++i) {
