@@ -3,13 +3,11 @@
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Panel:
       <component href="button.xml" id="ok"/>
-      <!--
       <component href="button.xml" id="cancel">
         <view>
           Cancel
         </view>
       </component>
-      -->
     </html:p>
   </view>
 </component>

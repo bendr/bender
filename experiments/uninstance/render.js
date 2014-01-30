@@ -64,6 +64,9 @@ Component.create_render_stack = function () {
   for (var prototype = Object.getPrototypeOf(this), scope = this.scope; scope;
       prototype = Object.getPrototypeOf(prototype), scope = prototype.scope &&
       Object.create(prototype.create_concrete_scope())) {
+    if (!scope.hasOwnProperty("type")) {
+      Object.defineProperty(scope, "type", { value: "phantom" });
+    }
     var concrete_scope = Object.getPrototypeOf(scope);
     concrete_scope.derived.push(scope);
     scope["#this"] = prototype;
@@ -93,7 +96,7 @@ Component.create_render_stack = function () {
 // of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
   var head = target.ownerDocument.head || target.ownerDocument.documentElement;
-  var stack = this.scope.stack = this.create_render_stack();
+  var stack = this.scope.stack;
   on(this, "render");
   for (var i = 0, n = stack.length; i < n; ++i) {
     stack[i]["#this"].children.forEach(function (ch) {

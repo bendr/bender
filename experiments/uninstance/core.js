@@ -238,6 +238,7 @@ var Component = bender.Component = flexo._ext(Element, {
       "#this": this,
       children: []    // child components; scope.parent is the parent component
     });
+    Object.defineProperty(this.scope, "type", { value: "component" });
     this.scope.components.push(this);
     this.derived = [];
     this.own_properties = {};
@@ -313,11 +314,27 @@ var Component = bender.Component = flexo._ext(Element, {
     instance.__id = this.__id + "/" + id;
     global["$" + id] = instance;
     instance.scope = Object.create(concrete_scope);
+    Object.defineProperty(instance.scope, "type", { value: "instance" });
     instance.scope["#this"] = this;
     instance.scope["@this"] = instance;
     concrete_scope.instances.push(instance);
     instance.properties = Object.create(this.properties,
         { "": { value: instance } });
+    if (this.scope.parent) {
+      // Recreate the parent/child relationship between instances by finding the
+      // instance for the parent component, and adding the new instance as its
+      // child.
+      var parent_instance = flexo.find_first(concrete_scope.instances,
+          function (i) {
+            return Object.getPrototypeOf(i) === this.scope.parent;
+          }, this);
+      instance.scope.parent = parent_instance;
+      if (!parent_instance.scope.hasOwnProperty("children")) {
+        parent_instance.scope.children = [];
+      }
+      parent_instance.scope.children.push(instance);
+    }
+    instance.scope.stack = instance.create_render_stack();
     on(this, "instantiate", instance);
     return instance;
   },
@@ -332,7 +349,9 @@ var Component = bender.Component = flexo._ext(Element, {
     }
     var abstract_scope = Object.getPrototypeOf(this.scope);
     var concrete_scope = Object.create(abstract_scope);
-    abstract_scope.concrete.push(this);  // TODO separate component/concrete?
+    Object.defineProperty(concrete_scope, "type",
+        { value: "concrete", configurable: true });
+    abstract_scope.concrete.push(concrete_scope);
     Object.defineProperty(concrete_scope, "instances", { value: [] });
     Object.defineProperty(concrete_scope, "derived", { value: [] });
     return concrete_scope;
@@ -1009,6 +1028,8 @@ var Environment = bender.Environment = {
   // Initialize the environment with a top-level scope.
   init: function () {
     this.scope = { environment: this };
+    Object.defineProperty(this.scope, "type", { value: "environment",
+      configurable: true });
     this.components = [];
     this.urls = {};
     return this;
@@ -1317,6 +1338,8 @@ function get_abstract_scope(scope) {
   var abstract_scope = scope.hasOwnProperty("environment") ?
     Object.create(scope) : scope;
   if (!abstract_scope.hasOwnProperty("components")) {
+    Object.defineProperty(abstract_scope, "type",
+        { value: "abstract", configurable: true });
     Object.defineProperty(abstract_scope, "components",
         { value: [], configurable: true });
     Object.defineProperty(abstract_scope, "concrete", { value: [] });
