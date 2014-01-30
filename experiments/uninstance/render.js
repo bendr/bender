@@ -95,15 +95,16 @@ Component.create_render_stack = function () {
 // A new render stack is built, replacing the stack passed as parameter, built
 // of render scopes (see render_scope below.)
 Component.render = function (stack, target, ref) {
-  var head = target.ownerDocument.head || target.ownerDocument.documentElement;
-  var stack = this.scope.stack;
+  stack = this.scope.stack;
   on(this, "render");
+  var head = target.ownerDocument.head || target.ownerDocument.documentElement;
+  var apply_style = function (ch) {
+    if (ch.tag === "style") {
+      ch.apply(head);
+    }
+  };
   for (var i = 0, n = stack.length; i < n; ++i) {
-    stack[i]["#this"].children.forEach(function (ch) {
-      if (ch.tag === "style") {
-        ch.apply(head);
-      }
-    });
+    stack[i]["#this"].children.forEach(apply_style);
     if (stack[i].view && !stack.hasOwnProperty("i")) {
       stack.i = i;
     }

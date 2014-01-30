@@ -904,7 +904,7 @@ var GetAttribute = bender.GetAttribute = flexo._ext(Get, {
 });
 
 
-var Set = bender.Set = Object.create(ValueElement);
+var Set_ = bender.Set = Object.create(ValueElement);
 flexo.make_readonly(bender.Set, "tag", "set");
 
 

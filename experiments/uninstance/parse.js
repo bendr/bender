@@ -1,4 +1,4 @@
-/* global console, flexo, ValueElement */
+/* global console, flexo, Property, ValueElement */
 // jshint -W097
 
 "use strict";
@@ -59,7 +59,7 @@ function parse_dynamic(string, needs_return, bindings, loc) {
 }
 
 // Parse a value string as a string
-function parse_string(string, bindings) {
+function parse_string(string, bindings, loc) {
   var src = "return " + chunk_string(string).map(function (ch) {
     return typeof ch === "string" ? flexo.quote(ch) : chunk_to_js(ch, bindings);
   }).join("+");

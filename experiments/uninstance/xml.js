@@ -1,5 +1,7 @@
-/* global Attribute, bender, Component, console, Content, DOMElement,
-   Environment, flexo, Link, Property, Script, Style, Text, View, window */
+/* global Attribute, bender, Component, console, Content, DOMElement, Event,
+   Environment, flexo, GetAttribute, GetDOMEvent, GetEvent, GetProperty, Link,
+   Property, Script, SetAttribute, SetDOMAttribute, SetDOMEvent, SetDOMProperty,
+   SetEvent, SetProperty, Style, Text, View, Watch, window */
 // jshint -W097
 
 "use strict";
@@ -200,7 +202,7 @@ Environment.deserialize.text = function (elem) {
       .id(elem.getAttribute("id")), elem);
 };
 
-Environment.deserialize["event"] = function (elem) {
+Environment.deserialize.event = function (elem) {
   return this.deserialize_children(Event.create(elem.getAttribute("name"))
       .id(elem.getAttribute("id")), elem);
 };

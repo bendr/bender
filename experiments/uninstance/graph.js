@@ -1,5 +1,5 @@
 /* global bender, Component, console, DOMEventListenerEdge, Element,
-   Environment, flexo, GetDOMEvent, GetEvent, GetProperty, Set, SetAttribute,
+   Environment, flexo, GetDOMEvent, GetEvent, GetProperty, Set_, SetAttribute,
    SetDOMAttribute, SetDOMEvent, SetDOMProperty, SetEvent, SetProperty, Watch,
    window */
 // jshint -W097
@@ -210,7 +210,7 @@ GetProperty.render = function (scope) {
 // TODO GetAttribute.render
 
 
-Set.render = function (scope) {
+Set_.render = function (scope) {
   return ElementEdge.create(this, scope.environment.vortex);
 };
 
