@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" id="A">
-  <property name="x" value="17"/>
+  <property name="x"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       x = <text id="text">???</text>
@@ -8,5 +8,6 @@
   </view>
   <watch>
     <get property="x"/>
+    <set select="@text" dom-property="textContent"/>
   </watch>
 </component>

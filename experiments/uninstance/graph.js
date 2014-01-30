@@ -221,6 +221,8 @@ SetEvent.render = function (scope) {
 };
 
 SetDOMProperty.render = function (scope) {
+  return DOMPropertyEdge.create(this, scope.environment.vortex);
+  // return render_edge(this, scope, scope.environment.vortex, DOMPropertyEdge);
 };
 
 SetProperty.render = function (scope) {
@@ -462,9 +464,11 @@ var ElementEdge = bender.ElementEdge = flexo._ext(Edge, {
   }
 });
 
+/*
 flexo.make_readonly(ElementEdge, "match", function () {
   return this.element.match_function;
 });
+*/
 
 
 // Edges to a watch vertex
@@ -472,6 +476,30 @@ var WatchEdge = bender.WatchEdge = flexo._ext(ElementEdge, {
   push_scope: true,
 });
 
+
+var DOMPropertyEdge = bender.DOMPropertyEdge = flexo._ext(ElementEdge, {
+  pop_scope: true,
+
+  apply_value: function (scope, value) {
+    var target = scope[this.element.select()];
+    if (target) {
+      target[this.element.name] = value;
+    }
+  }
+});
+
+
+// Render an edge from a set element.
+function render_edge(set, scope, dest, prototype) {
+  var target = scope[set.select()];
+  if (target) {
+    var edge = prototype.create(set, target, dest);
+    if (set.delay() >= 0) {
+      edge.delay = set.delay();
+    }
+    return edge;
+  }
+}
 
 // Sort all edges in a graph from its set of vertices. Simply go through the
 // list of vertices, starting with the sink vertices (which have no outgoing
