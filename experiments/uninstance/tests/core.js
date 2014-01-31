@@ -399,6 +399,14 @@ describe("Bender core", function () {
       });
     });
 
+    describe("bender.Content", function () {
+      it("represents an extension point for a view, as well as provide " +
+        "default content", function () {
+          var c = env.$content();
+          expect(c.tag).toBe("content");
+        });
+    });
+
     describe("bender.Text", function () {
       it("represents an explicit text node that can also have an id attribute" +
         " (as well as metadata)", flexo.nop);

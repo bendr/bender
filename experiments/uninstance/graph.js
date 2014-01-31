@@ -474,6 +474,27 @@ flexo.make_readonly(ElementEdge, "match", function () {
 // Edges to a watch vertex
 var WatchEdge = bender.WatchEdge = flexo._ext(ElementEdge, {
   push_scope: true,
+
+  enter_scope: function (scope) {
+    if (scope["@this"] === scope["#this"]) {
+      return scope;
+    }
+    var component = this.element.component;
+    var select = this.element.select();
+    for (var i = 0, n = scope.stack.length; i < n; ++i) {
+      var s = scope.stack[i];
+      if (s["#this"] === component) {
+        return s;
+      }
+      for (var j = 0, m = s.derived.length; j < m; ++j) {
+        var s_ = s.derived[j];
+        if (s["#this"] === component && s[select] === scope["@this"]) {
+          return s;
+        }
+      }
+    }
+  }
+
 });
 
 
@@ -482,8 +503,8 @@ var DOMPropertyEdge = bender.DOMPropertyEdge = flexo._ext(ElementEdge, {
 
   apply_value: function (scope, value) {
     var target = scope[this.element.select()];
-    if (target) {
-      target[this.element.name] = value;
+    if (target && target.first) {
+      target.first[this.element.name] = value;
     }
   }
 });
@@ -599,7 +620,7 @@ function vertex_property(element, scope) {
   }
   var vertices = target.vertices.property;
   var name = element.name || element.property;
-  if (!vertices.hasOwnProperty(name)) {
+  if (!(name in vertices)) {
     vertices[name] = scope.environment.add_vertex(PropertyVertex
         .create(target, name));
   }

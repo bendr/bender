@@ -455,6 +455,13 @@ var Component = bender.Component = flexo._ext(Element, {
     return this;
   },
 
+  // Add a watch to the component and return the component. The arguments are
+  // the content of the watch.
+  watch: function () {
+    return this.child(this.scope.environment.$watch
+        .apply(this.scope.environment, arguments));
+  },
+
   // Get or set the URL of the component (from the XML file of its description,
   // or the environment document if created programmatically.) Return the
   // component for chaining.
@@ -772,6 +779,10 @@ var Watch = bender.Watch = flexo._ext(Element, {
     this.gets = [];
     this.sets = [];
     return Element.init.call(this);
+  },
+
+  init_with_args: function (args) {
+    return Element.init_with_args.call(this.init(), args);
   },
 
   insert_child: function (child, ref) {

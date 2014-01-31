@@ -1,8 +1,11 @@
 <component xmlns="http://bender.igel.co.jp" id="B" href="property-x.xml">
-  <property name="y" value="`x + 1"/>
   <view xmlns:html="http://www.w3.org/1999/html">
     <html:p>
-      y = `y
+      to roman = <text id="text"/>
     </html:p>
   </view>
+  <watch>
+    <get property="x"/>
+    <set select="@text" dom-property="textContent" value="flexo.to_roman($in)"/>
+  </watch>
 </component>
