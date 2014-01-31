@@ -1,0 +1,19 @@
+<component xmlns="http://bender.igel.co.jp" id="A">
+  <property name="x"/>
+  <property name="y"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      x = <text id="x"/>, y = x + 1 = <text id="y"/>
+    </html:p>
+    <content/>
+  </view>
+  <watch>
+    <get property="x"/>
+    <set select="@x" dom-property="textContent"/>
+    <set property="y" value="$in + 1"/>
+  </watch>
+  <watch>
+    <get property="y"/>
+    <set select="@y" dom-property="textContent"/>
+  </watch>
+</component>

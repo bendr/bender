@@ -440,8 +440,7 @@ var Component = bender.Component = flexo._ext(Element, {
 
   // Add a property element with that name and return the component.
   property: function (name) {
-    this.insert_child(Property.create(name));
-    return this;
+    return this.insert_child(Property.create(name)), this;
   },
 
   // Get the view (if no argument is given), or add contents to the view,
@@ -1118,6 +1117,7 @@ var Environment = bender.Environment = {
     return elem;
   },
 
+  // Text has text content, not text children
   $text: function () {
     var text = "";
     var args = flexo.filter(arguments, function (arg) {
@@ -1129,7 +1129,9 @@ var Environment = bender.Environment = {
     });
     args.unshift("text");
     return this.$.apply(this, args).text(text);
-  }
+  },
+
+  // TODO $get and $set (see xml.js), also $property/value_string
 
 };
 

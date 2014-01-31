@@ -61,7 +61,7 @@ describe("Watch graph", function () {
   describe("Inheriting a property reuses the property vertex", function () {
     var env = bender.environment();
     var A = env.component()
-      .property({ name: "x" })
+      .property("x")
       .watch(bender.GetProperty.create("x"))
     A.render_graph();
     var B = env.component(A)
@@ -69,6 +69,18 @@ describe("Watch graph", function () {
     B.render_graph();
     it("reuses the same property vertex", function () {
       expect(env.vertices.length).toBe(4);
+    });
+  });
+
+  describe("Bindings", function () {
+    var env = bender.environment();
+    var A = env.component()
+      .property("x")
+    //.property({ name: "y", value: "`x + 1" })
+      .child(Property.create("y").value_string("`x + 1", true));
+    A.render_graph();
+    it("create new watches for bound properties", function () {
+      expect(A.watches.length).toBe(1);
     });
   });
 

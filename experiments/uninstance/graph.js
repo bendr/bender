@@ -226,6 +226,11 @@ SetDOMProperty.render = function (scope) {
 };
 
 SetProperty.render = function (scope) {
+  var dest = vertex_property(this, scope);
+  if (dest) {
+    return PropertyEdge.create(this, dest);
+  }
+  console.warn("No property %0".fmt(this.name));
 };
 
 SetDOMAttribute.render = function (scope) {
@@ -509,8 +514,40 @@ var DOMPropertyEdge = bender.DOMPropertyEdge = flexo._ext(ElementEdge, {
   }
 });
 
+var PropertyEdge = bender.PropertyEdge = flexo._ext(ElementEdge, {
+  pop_scope: true,
+
+  apply_value: function (scope, value) {
+    set_property_silent(scope[this.element.select()], this.element.name, value);
+  },
+
+  exit_scope: function (inner_scope, outer_scope) {
+    var target = inner_scope[this.element.select()];
+    outer_scope = exit_scope(this, outer_scope);
+    var s = function (v) {
+      return v[0]["@this"] === outer_scope["@this"];
+    };
+    // TODO overriding property?
+    return outer_scope;
+  }
+});
+
+
+// TODO multiple scopes (from component to instances)
+function exit_scope(edge, scope) {
+  if (scope["@this"] === scope["#this"]) {
+    return scope;
+  }
+  var component = edge.dest.target;
+  var select = edge.element.select();
+  return flexo.find_first(scope.derived, function (s) {
+    return s["#this"] === component && s[select] === s["@this"];
+  }) || scope;
+}
+
 
 // Render an edge from a set element.
+// TODO review
 function render_edge(set, scope, dest, prototype) {
   var target = scope[set.select()];
   if (target) {
@@ -519,6 +556,17 @@ function render_edge(set, scope, dest, prototype) {
       edge.delay = set.delay();
     }
     return edge;
+  }
+}
+
+// Silently set a property value for a component.
+function set_property_silent(component, name, value) {
+  for (var p = component.properties, descriptor; p && !descriptor;
+      descriptor = Object.getOwnPropertyDescriptor(p, name),
+      p = Object.getPrototypeOf(p)) {}
+  if (descriptor) {
+    descriptor.set.call(component.properties, value, true);
+    return value;
   }
 }
 
