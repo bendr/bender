@@ -143,7 +143,6 @@
           <ref name="set-event"/>
           <ref name="set-dom-property"/>
           <ref name="set-property"/>
-          <ref name="set-dom-attribute"/>
           <ref name="set-attribute"/>
         </choice>
       </optional>
@@ -167,13 +166,6 @@
 
   <define name="set-property">
     <ref name="property"/>
-  </define>
-
-  <define name="set-dom-attribute">
-    <optional>
-      <ref name="ns"/>
-    </optional>
-    <ref name="dom-attr"/>
   </define>
 
   <define name="set-attribute">
@@ -276,12 +268,6 @@
       <value>true</value>
       <value>false</value>
     </choice>
-  </define>
-
-  <define name="dom-attr">
-    <attribute name="dom-attr">
-      <data type="Name"/>
-    </attribute>
   </define>
 
   <define name="dom-event">

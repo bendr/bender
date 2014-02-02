@@ -5,18 +5,20 @@
 "use strict";
 
 if (typeof window === "object") {
-  // Looks like a browser
+  // Looks like a browser, define the bender object acting as namespace
   window.bender = {};
 } else {
-  // Looks like node
+  // Looks like node so require flexo and alias `exports`
   global.flexo = require("flexo");
   global.bender = exports;
 }
 
-bender.VERSION = "0.8.2-pre";
+bender.VERSION = "0.9-pre";
 bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 
+// Use bender.trace() for conditional trace messages; set bender.TRACE to true
+// to enable tracing (set to false by default.)
 var _trace = false;
 Object.defineProperty(bender, "TRACE", {
   enumerable: true,
@@ -35,6 +37,36 @@ Object.defineProperty(bender, "trace", {
 });
 
 
+// Bender element hierarchy:
+// + Element (all Bender elements)
+//   + Component <component>
+//   + ViewElement (view and view contents)
+//     + View <view>
+//     + Content <content>
+//     + DOMElement (foreign element)
+//   + Attribute <attribute>
+//   + Text <text>
+//   + Link <link>
+//   + InlineElement (inline script and style)
+//     + Script <script>
+//     + Style <style>
+//   + Watch <watch>
+//   + ValueElement (elements with value and match)
+//     + Get (get elements)
+//       + GetDOMEvent <get dom-event="...">
+//       + GetEvent <get event="...">
+//       + GetProperty <get property="...">
+//       + GetAttribute <get attr="...">
+//     + Set <set>
+//       + SetDOMEvent <set dom-event="...">
+//       + SetEvent <set event="...">
+//       + SetProperty <set property="...">
+//       + SetDOMProperty <set dom-property="...">
+//       + SetAttribute <set attr="...">
+//     + Property <property>
+//   + Event <event>
+
+
 // Prototype for Bender elements, similar to DOM elements. There are only
 // elements and no other kind of node (see the Text element for instance, which
 // does have text content in addition to children; there is no equivalent of
@@ -42,7 +74,7 @@ Object.defineProperty(bender, "trace", {
 var Element = bender.Element = {
 
   // Initialize an element with no parent yet and an empty list of children and
-  // instances.
+  // instances. Return the initialized element.
   init: function () {
     this.children = [];
     this.instances = [];
@@ -55,18 +87,13 @@ var Element = bender.Element = {
   // should perform their basic initialization first, using some of the
   // arguments when appropriate.
   init_with_args: function (args) {
-    if (args.id) {
-      this.id(args.id);
-    }
-    return this;
+    return this.id(args.id);
   },
 
   // Create a new element from a prototype and additional arguments which get
   // passed to init (e.g., Component.create(scope)). Only derived objects are
   // created: Component, DOMElement, &c.
-  create: function () {
-    return this.init.apply(Object.create(this), arguments);
-  },
+  create: create,
 
   // Instantiate the element: create a clone of the object, and update the scope
   // as we go along. Unless the shallow flag is set, instantiate children as
@@ -510,7 +537,7 @@ var ViewElement = bender.ViewElement = flexo._ext(Element, {
   // All view elements may have a render-id property
   init_with_args: function (args) {
     this.renderId(args.renderId || args["render-id"]);
-    return Element.init_with_args.call(this, args);
+    return Element.init_with_args.call(Element.init.call(this), args);
   },
 
   // Set the parent component of an added component
@@ -929,7 +956,7 @@ var SetDOMEvent = bender.SetDOMEvent = flexo._ext(bender.Set, {
   },
 
   init_with_args: function (args) {
-    return Get.init_with_args.call(this.init(args.type, args.property), args);
+    return Set.init_with_args.call(this.init(args.type, args.property), args);
   }
 });
 
@@ -973,20 +1000,7 @@ var SetProperty = bender.SetProperty = flexo._ext(bender.Set, {
 });
 
 
-// Set a DOM attribute
-var SetDOMAttribute = bender.SetDOMAttribute = flexo._ext(bender.Set, {
-  init: function (ns, name) {
-    this.ns = flexo.safe_trim(ns);
-    this.name = flexo.safe_trim(name);  // dom-attr attribute in XML
-    return bender.Set.init.call(this);
-  },
-
-  init_with_args: function (args) {
-    return Get.init_with_args.call(this.init(args.ns, args.name), args);
-  }
-});
-
-
+// Set a Bender attribute.
 var SetAttribute = bender.SetAttribute = flexo._ext(bender.Set, {
   init: function (name) {
     this.name = flexo.safe_trim(name);  // attr attribute in XML
@@ -1297,6 +1311,13 @@ function convert_dom_node(node) {
       node.nodeType === window.Node.CDATA_SECTION_NODE) {
     return Text.create().text(node.textContent);
   }
+}
+
+// Helper function to create objects, so that one can write X.create(...)
+// instead of Object.create(X).init(...)
+function create() {
+  // jshint -W040
+  return this.init.apply(Object.create(this), arguments);
 }
 
 // Define a Javascript property to store the value of a property in a Bender

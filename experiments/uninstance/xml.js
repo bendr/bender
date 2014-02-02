@@ -1,7 +1,7 @@
 /* global Attribute, bender, Component, console, Content, DOMElement, Event,
    Environment, flexo, GetAttribute, GetDOMEvent, GetEvent, GetProperty, Link,
-   Property, Script, SetAttribute, SetDOMAttribute, SetDOMEvent, SetDOMProperty,
-   SetEvent, SetProperty, Style, Text, View, Watch, window */
+   Property, Script, SetAttribute, SetDOMEvent, SetDOMProperty, SetEvent,
+   SetProperty, Style, Text, View, Watch, window */
 // jshint -W097
 
 "use strict";
@@ -248,9 +248,6 @@ Environment.deserialize.set = function (elem) {
     set = SetDOMProperty.create(elem.getAttribute("dom-property"));
   } else if (elem.hasAttribute("property")) {
     set = SetProperty.create(elem.getAttribute("property"));
-  } else if (elem.hasAttribute("dom-attr")) {
-    set = SetDOMAttribute.create(elem.getAttribute("ns"),
-        elem.getAttribute("dom-attr"));
   } else if (elem.hasAttribute("attr")) {
     set = SetAttribute.create(elem.getAttribute("attr"));
   } else {

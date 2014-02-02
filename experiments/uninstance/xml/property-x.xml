@@ -8,6 +8,6 @@
   </view>
   <watch>
     <get property="x"/>
-    <set select="@text" dom-property="textContent"/>
+    <set select="@text" property="text"/>
   </watch>
 </component>

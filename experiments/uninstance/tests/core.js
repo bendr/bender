@@ -337,9 +337,8 @@ describe("Bender core", function () {
         it("supports the additional “scope” (mandatory) and “prototype” keys",
           function () {
             var a = bender.Component.create(env.scope);
-            var b = Object.create(a);
-            expect(b.init_with_args({ scope: env.scope, prototype: a }))
-              .toBe(b);
+            var b = Object.create(bender.Component)
+              .init_with_args({ scope: env.scope, prototype: a });
             expect(Object.getPrototypeOf(b)).toBe(a);
           });
       });

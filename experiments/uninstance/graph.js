@@ -1,7 +1,6 @@
 /* global bender, Component, console, DOMEventListenerEdge, Element,
    Environment, flexo, GetDOMEvent, GetEvent, GetProperty, Set_, SetAttribute,
-   SetDOMAttribute, SetDOMEvent, SetDOMProperty, SetEvent, SetProperty, Watch,
-   window */
+   SetDOMEvent, SetDOMProperty, SetEvent, SetProperty, Watch, window */
 // jshint -W097
 
 "use strict";
@@ -231,9 +230,6 @@ SetProperty.render = function (scope) {
     return PropertyEdge.create(this, dest);
   }
   console.warn("No property %0".fmt(this.name));
-};
-
-SetDOMAttribute.render = function (scope) {
 };
 
 SetAttribute.render = function (scope) {
