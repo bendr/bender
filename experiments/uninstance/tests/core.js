@@ -106,7 +106,7 @@ describe("Bender core", function () {
         });
       });
 
-      describe("instantiate(scope?, shallow?)", function () {
+      describe("instantiate(scope, shallow?)", function () {
         var scope = {};
         var elem = bender.Element.create()
           .id("foo")
@@ -120,7 +120,7 @@ describe("Bender core", function () {
         });
         it("throws when trying to instantiate an instance", function() {
           expect(function () {
-            instance.instantiate();
+            instance.instantiate(scope);
           }).toThrow();
         });
         it("updates the scope with @ ids", function () {
@@ -129,7 +129,7 @@ describe("Bender core", function () {
           expect(scope["@bar"]).toBe(instance.children[0]);
         });
         it("instantiates child elements as well...", function () {
-          var instance = elem.instantiate();
+          var instance = elem.instantiate(scope);
           expect(instance.children.length).toBe(elem.children.length);
           expect(Object.getPrototypeOf(instance.children[0]))
             .toBe(elem.children[0]);
@@ -153,20 +153,17 @@ describe("Bender core", function () {
         var scope = {};
         var elem = bender.Element.create().id("foo");
         var instance = elem.instantiate(scope);
-        var unscope = Object.create(scope);
         var uninstance;
         it("removes the instance from its prototype’s list of instances",
           function () {
             expect(Object.getPrototypeOf(instance)).toBe(elem);
             expect(elem.instances).toContain(instance);
             expect(scope["@foo"]).toBe(instance);
-            expect(unscope["@foo"]).toBe(instance);
-            uninstance = instance.uninstantiate(unscope);
+            uninstance = instance.uninstantiate(scope);
             expect(elem.instances).not.toContain(instance);
           });
         it("removes the @ attribute from the scope", function () {
           expect(scope["@foo"]).toBeUndefined();
-          expect(unscope["@foo"]).toBeUndefined();
         });
         it("returns the instance", function () {
           expect(uninstance).toBe(instance);
@@ -185,6 +182,13 @@ describe("Bender core", function () {
           function () {
             var d = Element.create().id("123");
             expect(d.id()).toBe("");
+          });
+        it("does not set the id if it is the reserved keyword “this”",
+          function () {
+            var e = Element.create().id("this");
+            expect(e.id()).toBe("");
+            var f = Element.create().id("  THIS  ");
+            expect(f.id()).toBe("THIS");
           });
         it("returns the element when called with a parameter", function () {
           expect(c_).toBe(c);

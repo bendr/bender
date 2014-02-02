@@ -95,9 +95,11 @@ var Element = bender.Element = {
   // created: Component, DOMElement, &c.
   create: create,
 
-  // Instantiate the element: create a clone of the object, and update the scope
-  // as we go along. Unless the shallow flag is set, instantiate children as
-  // well. Note that the instance is detached: it has no parent.
+  // Instantiate the element: create a clone of the object using Object.create.
+  // A scope is necessary for deep instantiation of elements that may contain a
+  // component descendant, and the scope is also updated when the element has an
+  // id. Unless the shallow flag is set, instantiate children as well. Note that
+  // the instance is detached: it has no parent.
   instantiate: function (scope, shallow) {
     if (!this.hasOwnProperty("instances")) {
       throw "cannot instantiate an instance";
@@ -105,8 +107,10 @@ var Element = bender.Element = {
     var instance = Object.create(this);
     this.instances.push(instance);
     delete instance.parent;
-    if (scope && this._id) {
-      scope["@" + this._id] = instance;
+    // TODO update graph: some undefined targets may become defined
+    var id = this.id();
+    if (id) {
+      scope["@" + id] = instance;
     }
     if (!shallow) {
       instance.children = this.children.map(function (ch) {
@@ -118,18 +122,24 @@ var Element = bender.Element = {
     return instance;
   },
 
-  // Remove this instance from its prototype element’s list of instances.
+  // Remove this instance from its prototype element’s list of instances, as
+  // well as its children.
   uninstantiate: function (scope) {
     var proto = Object.getPrototypeOf(this);
     if (!proto || !proto.hasOwnProperty("instances")) {
       throw "cannot uninstantiate non-instance";
     }
-    if (scope && this._id) {
-      var id = "@" + this._id;
+    // TODO update graph: some targets may become undefined
+    var id = this.id();
+    if (id) {
+      id = "@" + id;
       if (scope[id] === this) {
-        delete_from_scope(scope, id);
+        delete scope[id];
       }
     }
+    this.children.forEach(function (ch) {
+      ch.uninstantiate(scope);
+    });
     return flexo.remove_from_array(proto.instances, this);
   },
 
@@ -146,6 +156,9 @@ var Element = bender.Element = {
     // jshint -W041
     if (_id == null) {
       console.warn("“%0” is not a valid XML ID".fmt(id));
+      return this;
+    } else if (_id === "this") {
+      console.warn("“this” is a reserved ID");
       return this;
     }
     if (_id !== this._id) {
@@ -333,8 +346,9 @@ var Component = bender.Component = flexo._ext(Element, {
     return this;
   },
 
-  // Instantiate is shallow for components. On rendering, a stack of views will
-  // be created.
+  // Instantiate is shallow for components and require a concrete scope as the
+  // scope in which to create the instances. On rendering, a stack of views will
+  // be created. Other contents of the component are not instantiated.
   instantiate: function (concrete_scope) {
     var instance = Element.instantiate.call(this, concrete_scope, true);
     var id = flexo.random_id(3);
@@ -628,7 +642,7 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
       update.target.parent.render_update_add(update);
     },
     remove: function (update) {
-      update.target.render_update_remove_self();
+      update.target.render_update_remove_self(update);
     },
     attr: function (update) {
       update.target.render_update_attribute(update);

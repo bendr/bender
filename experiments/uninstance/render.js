@@ -272,7 +272,7 @@ function (update) {
 // Render updates after removing a child element
 
 // Remove all elements from first to last.
-DOMElement.render_update_remove_self = function () {
+DOMElement.render_update_remove_self = function (update) {
   if (this.hasOwnProperty("instances")) {
     this.instances.forEach(function (instance) {
       instance.remove_self();
@@ -288,7 +288,8 @@ DOMElement.render_update_remove_self = function () {
     }
     delete this.first;
     delete this.last;
-    this.uninstantiate();
+    // TODO check scope
+    this.uninstantiate(update.scope);
   }
 };
 
@@ -307,7 +308,7 @@ Attribute.render_update_remove_child = function (child) {
 
 // Remove the text node from its parent if it was actually rendered, otherwise
 // tell the parent about the removal.
-Text.render_update_remove_self = function () {
+Text.render_update_remove_self = function (update) {
   var f = this.parent && this.parent.render_update_remove_child;
   if (f) {
     f.call(this.parent, this);
@@ -318,7 +319,7 @@ Text.render_update_remove_self = function () {
   } else {
     flexo.safe_remove(this.first);
     delete this.first;
-    this.uninstantiate();
+    this.uninstantiate(update.scope);
   }
 };
 
