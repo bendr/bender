@@ -38,8 +38,16 @@ Property.value_string = function (string, needs_return) {
     return this._value_string || "";
   }
   this._value_string = flexo.safe_string(string);
-  this._value_string_needs_return = !!needs_return;
+  this.__needs_return = !!needs_return;
   return this;
+};
+
+Property.init_value = function () {
+  if (this.hasOwnProperty("__needs_return")) {
+    this.value(this.value_from_string(this._value_string, this.__needs_return));
+    delete this.__needs_return;
+  }
+  return this.value();
 };
 
 

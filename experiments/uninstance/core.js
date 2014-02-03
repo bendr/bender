@@ -300,6 +300,7 @@ var Component = bender.Component = flexo._ext(Element, {
     this.__pending_render = true;
     this.__pending_init = true;
     this.__pending_ready = true;
+    this.__pending_init_properties = true;
     flexo.asap(function () {
       if (this.__pending_init) {
         delete this.__pending_init;
@@ -888,8 +889,10 @@ var ValueElement = bender.ValueElement = flexo._ext(Element, {
 flexo._accessor(ValueElement, "select", normalize_select);
 flexo._accessor(ValueElement, "as", normalize_as);
 flexo._accessor(ValueElement, "delay", normalize_delay);
-flexo._accessor(ValueElement, "match", flexo.funcify(true));
-flexo._accessor(ValueElement, "value", flexo.snd);
+flexo._accessor(ValueElement, "match", flexo.funcify(true), true);
+flexo._accessor(ValueElement, "value", flexo.snd, true);
+
+
 
 
 // Base for all get elements
@@ -1057,7 +1060,7 @@ var Property = bender.Property = flexo._ext(ValueElement, {
 
 flexo.make_readonly(Property, "tag", "property");
 flexo._accessor(Property, "select", function (select) {
-  return flexo.safe_trim(select).toLowerCase === "#this" ? "#this" : "@this";
+  return flexo.safe_trim(select).toLowerCase() === "#this" ? "#this" : "@this";
 });
 
 

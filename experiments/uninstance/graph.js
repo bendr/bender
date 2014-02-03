@@ -139,21 +139,26 @@ Component.render_graph = function () {
 
 // Initialize component properties
 Component.init_properties = function () {
-  if (!this.__pending_init) {
+  if (!this.__pending_init_properties) {
     return;
   }
-  delete this.__pending_init;
+  delete this.__pending_init_properties;
   if (this.hasOwnProperty("instances")) {
-    var prototype = Object.getPrototypeOf(this);
-    if (prototype) {
-      prototype.init_properties();
-    }
+    Object.getPrototypeOf(this).init_properties();
     this.inherit_edges();
     flexo.values(this.own_properties).forEach(function (property) {
       if (property.select() === "#this") {
-        this.init_property(property);
+        property.init_value();
+        try {
+          if (property.match().call(this, this.scope)) {
+            this.properties[property.name] =
+              property.value().call(this, this.scope);
+          }
+        } catch (e) {
+          console.error("Could not initialize property");
+        }
       }
-    });
+    }, this);
   }
 };
 

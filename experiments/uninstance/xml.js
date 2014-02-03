@@ -104,9 +104,11 @@ Environment.deserialize_foreign = function (elem) {
 Environment.deserialize_element_with_value = function (e, elem) {
   e.id(elem.getAttribute("id"))
     .as(elem.getAttribute("as"))
-    .match_string(elem.getAttribute("match"), flexo.base_uri(elem))
     .delay(elem.getAttribute("delay"))
     .select(elem.getAttribute("select"));
+  if (elem.hasAttribute("match")) {
+    e.match_string(elem.getAttribute("match"), flexo.base_uri(elem));
+  }
   if (elem.hasAttribute("value")) {
     e.value_string(elem.getAttribute("value"), true, flexo.base_uri(elem));
   } else {

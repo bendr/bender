@@ -40,9 +40,11 @@
   // The default_value parameter may be a function, in which case it used to
   // normalize the input value and generate the default value from an undefined
   // value (e.g., cf. normalize_*.)
-  flexo._accessor = function (object, name, default_value) {
+  // Set the default_function flag if the default value is a function itself.
+  flexo._accessor = function (object, name, default_value, default_function) {
     var property = "_" + name;
-    (object.prototype || object)[name] = typeof default_value === "function" ?
+    (object.prototype || object)[name] =
+      typeof default_value === "function" && !default_function ?
       function (value) {
         if (arguments.length > 0) {
           this[property] = default_value.call(this, value);
