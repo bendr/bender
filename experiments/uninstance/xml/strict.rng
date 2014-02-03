@@ -61,7 +61,9 @@
   <define name="content">
     <element name="content">
       <ref name="view-element-attrs"/>
-      <ref name="view-element-content"/>
+      <mixed>
+        <ref name="view-element-content"/>
+      </mixed>
     </element>
   </define>
 
@@ -198,7 +200,9 @@
           <anyName/>
         </attribute>
       </zeroOrMore>
-      <ref name="view-element-content"/>
+      <mixed>
+        <ref name="view-element-content"/>
+      </mixed>
     </element>
   </define>
 
@@ -218,12 +222,14 @@
   <define name="view">
     <element name="view">
       <ref name="view-element-attrs"/>
-      <ref name="view-element-content"/>
+      <mixed>
+        <ref name="view-element-content"/>
+      </mixed>
     </element>
   </define>
 
   <define name="view-element-content">
-    <mixed>
+    <interleave>
       <zeroOrMore>
         <ref name="foreign-element"/>
       </zeroOrMore>
@@ -239,7 +245,7 @@
       <zeroOrMore>
         <ref name="component"/>
       </zeroOrMore>
-    </mixed>
+    </interleave>
   </define>
 
   <define name="watch">
