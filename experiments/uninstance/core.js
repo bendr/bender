@@ -346,7 +346,7 @@ var Component = bender.Component = flexo._ext(Element, {
     return this;
   },
 
-  // Instantiate is shallow for components and require a concrete scope as the
+  // Instantiate is shallow for components and requires a concrete scope as the
   // scope in which to create the instances. On rendering, a stack of views will
   // be created. Other contents of the component are not instantiated.
   instantiate: function (concrete_scope) {
@@ -376,6 +376,7 @@ var Component = bender.Component = flexo._ext(Element, {
       parent_instance.scope.children.push(instance);
     }
     instance.scope.stack = instance.create_render_stack();
+    instance.__pending_init = true;
     on(this, "instantiate", instance);
     return instance;
   },
@@ -422,7 +423,7 @@ var Component = bender.Component = flexo._ext(Element, {
     return child;
   },
 
-  // Add a new event child
+  // Add a new event child so that it becomes a known event.
   add_event: function (child) {
     if (this.events.hasOwnProperty(child.name)) {
       console.error("Redefinition of event %0 in %1"
@@ -432,7 +433,7 @@ var Component = bender.Component = flexo._ext(Element, {
     this.events[child.name] = child;
   },
 
-  // Add a new property child
+  // Add a new property child and define the corresponding javascript property.
   add_property: function (child) {
     if (this.own_properties.hasOwnProperty(child.name)) {
       console.error("Redefinition of property %0 in %1"

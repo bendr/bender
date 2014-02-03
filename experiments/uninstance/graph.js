@@ -137,6 +137,26 @@ Component.render_graph = function () {
   }, this);
 };
 
+// Initialize component properties
+Component.init_properties = function () {
+  if (!this.__pending_init) {
+    return;
+  }
+  delete this.__pending_init;
+  if (this.hasOwnProperty("instances")) {
+    var prototype = Object.getPrototypeOf(this);
+    if (prototype) {
+      prototype.init_properties();
+    }
+    this.inherit_edges();
+    flexo.values(this.own_properties).forEach(function (property) {
+      if (property.select() === "#this") {
+        this.init_property(property);
+      }
+    });
+  }
+};
+
 // Setup inheritance edges: if B inherits from A and both have vertex for e.g.
 // a property x, make an inheritance edge from A`x to B`x. Then for all outgoing
 // edges of A that are not inheritance edges, add a cloned edge from B.
