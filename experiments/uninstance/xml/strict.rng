@@ -165,7 +165,7 @@
   </define>
 
   <define name="set-property">
-    <ref name="property"/>
+    <ref name="property-attr"/>
   </define>
 
   <define name="set-attribute">
@@ -184,26 +184,6 @@
       <ref name="element-attrs"/>
       <text/>
     </element>
-  </define>
-
-  <define name="view-element-content">
-    <mixed>
-      <zeroOrMore>
-        <ref name="attribute"/>
-      </zeroOrMore>
-      <zeroOrMore>
-        <ref name="component"/>
-      </zeroOrMore>
-      <zeroOrMore>
-        <ref name="foreign-element"/>
-      </zeroOrMore>
-      <zeroOrMore>
-        <ref name="text"/>
-      </zeroOrMore>
-      <optional>
-        <ref name="content"/>
-      </optional>
-    </mixed>
   </define>
 
   <define name="foreign-element">
@@ -240,6 +220,26 @@
       <ref name="view-element-attrs"/>
       <ref name="view-element-content"/>
     </element>
+  </define>
+
+  <define name="view-element-content">
+    <mixed>
+      <zeroOrMore>
+        <ref name="foreign-element"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="attribute"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="text"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="content"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="component"/>
+      </zeroOrMore>
+    </mixed>
   </define>
 
   <define name="watch">

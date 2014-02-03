@@ -3,17 +3,17 @@
   <property name="y"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
-      x = <text id="x"/>, y = x + 1 = <text id="y"/>
+      x = <text id="x"/>, y = 2<html:sup>x</html:sup> - 1 = <text id="y"/>
     </html:p>
     <content/>
   </view>
   <watch>
     <get property="x"/>
-    <set select="@x" dom-property="textContent"/>
-    <set property="y" value="$in + 1"/>
+    <set select="@x" property="text"/>
+    <set property="y" value="Math.pow(2, $in) - 1"/>
   </watch>
   <watch>
     <get property="y"/>
-    <set select="@y" dom-property="textContent"/>
+    <set select="@y" property="text"/>
   </watch>
 </component>

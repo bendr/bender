@@ -182,7 +182,7 @@ Component.vertex_property = function (scope, name) {
 
 // Set the property named `name` to `value` from an edge traversal
 Component.edge_set_property = function (name, value) {
-  set_property_silent(this, this.element.name, value);
+  set_property_silent(this, name, value);
 };
 
 

@@ -6,6 +6,6 @@
   </view>
   <watch>
     <get property="x"/>
-    <set select="@text" dom-property="textContent" value="flexo.to_roman($in)"/>
+    <set select="@text" property="text" value="flexo.to_roman($in)"/>
   </watch>
 </component>
