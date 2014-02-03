@@ -170,6 +170,43 @@ Component.did_set_property = function (name, value) {
   }
 };
 
+// Create a property vertex for the property with the given name.
+Component.vertex_property = function (scope, name) {
+  var vertices = this.vertices.property;
+  if (!(name in vertices)) {
+    vertices[name] = scope.environment.add_vertex(PropertyVertex
+        .create(this, name));
+  }
+  return vertices[name];
+};
+
+// Set the property named `name` to `value` from an edge traversal
+Component.edge_set_property = function (name, value) {
+  set_property_silent(this, this.element.name, value);
+};
+
+
+// Create a property vertex for the text property
+Text.vertex_property = function (scope, name) {
+  if (name !== "text") {
+    console.warn("No property “%0” for text element".fmt(name));
+  }
+  if (!this.vertex) {
+    for (var self = this; !self.hasOwnProperty("instances");
+        self = Object.getPrototypeOf(self)) {}
+    self.vertex = scope.environment.add_vertex(PropertyVertex
+        .create(self, name));
+  }
+  return this.vertex;
+};
+
+// Set the text property to `value` from an edge traversal
+Text.edge_set_property = function (name, value) {
+  if (name === "text") {
+    this.text(value);
+  }
+};
+
 
 // Render the watch and the corresponding get and set edges in the parent
 // component scope
@@ -510,11 +547,15 @@ var DOMPropertyEdge = bender.DOMPropertyEdge = flexo._ext(ElementEdge, {
   }
 });
 
+
 var PropertyEdge = bender.PropertyEdge = flexo._ext(ElementEdge, {
   pop_scope: true,
 
   apply_value: function (scope, value) {
-    set_property_silent(scope[this.element.select()], this.element.name, value);
+    var target = scope[this.element.select()];
+    if (target && typeof target.edge_set_property === "function") {
+      target.edge_set_property(this.element.name, value);
+    }
   },
 
   exit_scope: function (inner_scope, outer_scope) {
@@ -662,11 +703,8 @@ function vertex_property(element, scope) {
         .fmt(element.select()), scope);
     return;
   }
-  var vertices = target.vertices.property;
-  var name = element.name || element.property;
-  if (!(name in vertices)) {
-    vertices[name] = scope.environment.add_vertex(PropertyVertex
-        .create(target, name));
+  if (typeof target.vertex_property === "function") {
+    return target.vertex_property.call(target, scope,
+        element.name || element.property);
   }
-  return vertices[name];
 }

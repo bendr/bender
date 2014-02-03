@@ -65,7 +65,7 @@ Component.create_render_stack = function () {
       prototype = Object.getPrototypeOf(prototype), scope = prototype.scope &&
       Object.create(prototype.create_concrete_scope())) {
     if (!scope.hasOwnProperty("type")) {
-      Object.defineProperty(scope, "type", { value: "phantom" });
+      Object.defineProperty(scope, "type", { value: "view" });
     }
     var concrete_scope = Object.getPrototypeOf(scope);
     concrete_scope.derived.push(scope);
