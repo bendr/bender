@@ -12,7 +12,7 @@ exports.init = function (morbo) {
       if (m) {
         dirname = path.relative(transaction.root, dirname);
         return flexo.$li(flexo.$a({ href: filename }, filename), " ",
-          flexo.$a({ href: "/bender.html?href=%0/%1"
+          flexo.$a({ href: "/bender.html?href=%0/%1&trace=true"
             .fmt(dirname, filename), "class": "bender" }, "⚑ run"));
       }
     }

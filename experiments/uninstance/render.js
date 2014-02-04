@@ -113,6 +113,7 @@ Component.render = function (stack, target, ref) {
     stack[stack.i].view.render(stack, target, ref);
     delete stack.i;
   }
+  this.init_properties();
 };
 
 // Get the scope for the given component (for a rendered instance.)

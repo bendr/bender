@@ -377,7 +377,6 @@ var Component = bender.Component = flexo._ext(Element, {
       parent_instance.scope.children.push(instance);
     }
     instance.scope.stack = instance.create_render_stack();
-    instance.__pending_init = true;
     on(this, "instantiate", instance);
     return instance;
   },
@@ -543,6 +542,19 @@ flexo.make_readonly(Component, "all_instances", function () {
   return flexo.bfold(this, function (instances, component) {
     return flexo.push_all(instances, component.instances), instances;
   }, flexo.property("derived"), []);
+});
+
+flexo.make_readonly(Component, "all_properties", function () {
+  var properties = {};
+  for (var p = Object.getPrototypeOf(this); p.hasOwnProperty("own_properties");
+    p = Object.getPrototypeOf(p)) {
+    Object.keys(p.own_properties).forEach(function (name) {
+      if (!properties.hasOwnProperty(name)) {
+        properties[name] = p.own_properties[name];
+      }
+    });
+  }
+  return flexo.values(properties);
 });
 
 
@@ -1353,6 +1365,8 @@ function define_js_property(component, name, value) {
       if (this.hasOwnProperty(name)) {
         // this[""].own_properties[name].check_value(v);
         value = v;
+        bender.trace("Set: %0 (%1) `%2 <- “%3”"
+          .fmt(this[""].__id, this[""].id(), name, v));
       } else {
         define_js_property(this[""], name, v);
       }

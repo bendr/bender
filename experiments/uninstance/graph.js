@@ -115,6 +115,9 @@ Environment.flush_graph_later = function (f, delay) {
 // Render the graph for the component by adding new watches for the property
 // bindings, and then rendering all watches.
 Component.render_graph = function () {
+  this.scope.children.forEach(function (ch) {
+    ch.render_graph();
+  });
   flexo.values(this.own_properties).forEach(function (property) {
     if (property.hasOwnProperty("_value_string")) {
       property.value(property.value_from_string(property._value_string,
@@ -135,30 +138,59 @@ Component.render_graph = function () {
   this.watches.forEach(function (watch) {
     watch.render(this.scope);
   }, this);
+  return this;
 };
 
-// Initialize component properties
+// Initialize component properties. For the component itself, it means
+// initializing the properties of its prototype, then its children’s, then its
+// own, then its instances’s. For an instance, initialize the properties only if
+// the component was initialized (for instances created later on.)
 Component.init_properties = function () {
-  if (!this.__pending_init_properties) {
-    return;
-  }
-  delete this.__pending_init_properties;
   if (this.hasOwnProperty("instances")) {
-    Object.getPrototypeOf(this).init_properties();
+    if (!this.__pending_init_properties) {
+      return this;
+    }
+    delete this.__pending_init_properties;
+    bender.trace("init_properties (component): %0 (%1)"
+        .fmt(this.__id, this.id()));
+    var prototype = Object.getPrototypeOf(this);
+    if (prototype.hasOwnProperty("instances")) {
+      prototype.init_properties();
+    }
     this.inherit_edges();
+    this.scope.children.forEach(function (ch) {
+      ch.init_properties();
+    });
     flexo.values(this.own_properties).forEach(function (property) {
+      property.init_value();
       if (property.select() === "#this") {
-        property.init_value();
-        try {
-          if (property.match().call(this, this.scope)) {
-            this.properties[property.name] =
-              property.value().call(this, this.scope);
-          }
-        } catch (e) {
-          console.error("Could not initialize property");
-        }
+        this.init_property(property);
       }
     }, this);
+  } else {
+    bender.trace("init_properties (instance): %0 (%1)"
+        .fmt(this.__id, this.id()));
+    this.all_properties.forEach(function (property) {
+      if (property.select() === "@this") {
+        this.init_property(property);
+      }
+    }, this);
+  }
+  return this;
+};
+
+// Initialize a single property as long as it has no bindings (in which case it
+// will be initialized through graph traversal.)
+Component.init_property = function (property) {
+  if (Object.keys(property.bindings).length > 0) {
+    return;
+  }
+  try {
+    if (property.match().call(this, this.scope)) {
+      this.properties[property.name] = property.value().call(this, this.scope);
+    }
+  } catch (e) {
+    console.error("Could not initialize property");
   }
 };
 

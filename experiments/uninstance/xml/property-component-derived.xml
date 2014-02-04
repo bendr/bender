@@ -1,0 +1,15 @@
+<component xmlns="http://bender.igel.co.jp" id="B"
+  href="property-component.xml">
+  <property name="y" select="#this" as="string" value="foo"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>
+      (component property) y = <text id="y"/>
+    </html:p>
+    <content/>
+  </view>
+  <watch>
+    <get property="y"/>
+    <set select="@y" property="text"/>
+  </watch>
+</component>
+

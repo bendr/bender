@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" id="A">
-  <property name="x"/>
+  <property name="x" value="31"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       x = <text id="text">???</text>

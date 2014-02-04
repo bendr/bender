@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <component xmlns="http://bender.igel.co.jp" id="button">
+  <property name="label" value="OK" as="string"/>
   <style>
     div.button {
       padding: 0.5rem 1rem;
@@ -12,9 +13,11 @@
   </style>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div class="button" render-id="class">
-      <content>
-        OK
-      </content>
+      <content><text id="label"/></content>
     </html:div>
   </view>
+  <watch>
+    <get property="label"/>
+    <set select="@label" property="text"/>
+  </watch>
 </component>

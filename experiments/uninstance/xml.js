@@ -260,9 +260,7 @@ Environment.deserialize.set = function (elem) {
 
 
 var loaded = Component.loaded = function () {
-  this.scope.children.forEach(flexo.call.bind(loaded));
-  this.render_graph();
-  return this;
+  return this.render_graph().init_properties();
 };
 
 
