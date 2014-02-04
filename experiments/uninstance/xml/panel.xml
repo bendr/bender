@@ -8,9 +8,7 @@
           Retry
         </view>
       </component>
-      <component href="button.xml" id="cancel">
-        <property name="label" value="Cancel"/>
-      </component>
+      <component href="button.xml" id="cancel" label="Cancel"/>
     </html:p>
   </view>
 </component>

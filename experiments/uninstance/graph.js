@@ -187,7 +187,10 @@ Component.init_property = function (property) {
   }
   try {
     if (property.match().call(this, this.scope)) {
-      this.properties[property.name] = property.value().call(this, this.scope);
+      var value = this.init_values.hasOwnProperty(property.name) ?
+        property.value_from_string(this.init_values[property.name], true) :
+        property.value();
+      this.properties[property.name] = value.call(this, this.scope);
     }
   } catch (e) {
     console.error("Could not initialize property");

@@ -281,7 +281,8 @@ var Component = bender.Component = flexo._ext(Element, {
     Object.defineProperty(this.scope, "type", { value: "component" });
     this.scope.components.push(this);
     this.derived = [];
-    this.own_properties = {};
+    this.own_properties = this.own_properties ?
+      Object.create(this.own_properties) : {};
     this.properties = this.properties ? Object.create(this.properties) : {};
     Object.defineProperty(this.properties, "", { value: this });
     this.events = Object.create(this.events);
@@ -545,14 +546,9 @@ flexo.make_readonly(Component, "all_instances", function () {
 });
 
 flexo.make_readonly(Component, "all_properties", function () {
-  var properties = {};
-  for (var p = Object.getPrototypeOf(this); p.hasOwnProperty("own_properties");
-    p = Object.getPrototypeOf(p)) {
-    Object.keys(p.own_properties).forEach(function (name) {
-      if (!properties.hasOwnProperty(name)) {
-        properties[name] = p.own_properties[name];
-      }
-    });
+  var properties = [];
+  for (var name in this.own_properties) {
+    properties.push(this.own_properties[name]);
   }
   return flexo.values(properties);
 });
@@ -870,6 +866,17 @@ var ValueElement = bender.ValueElement = flexo._ext(Element, {
       }
     }
     return "dynamic";
+  },
+
+  // Check that a value is set to the type of its property
+  check_value: function (component, v) {
+    var as = this.resolve_as();
+    if ((as === "boolean" || as === "number" || as === "string") &&
+        typeof v !== as) {
+      console.warn(("Setting property %0 (%1) `%2 to “%3”: expected %4, but " +
+          "got %5 instead")
+          .fmt(component.__id, component.id(), this.name, v, as, typeof(v)));
+    }
   },
 
   // Set the value of an object that has a value/as pair of attributes.
@@ -1363,7 +1370,7 @@ function define_js_property(component, name, value) {
     },
     set: function (v, silent) {
       if (this.hasOwnProperty(name)) {
-        // this[""].own_properties[name].check_value(v);
+        this[""].own_properties[name].check_value(this[""], v);
         value = v;
         bender.trace("Set: %0 (%1) `%2 <- “%3”"
           .fmt(this[""].__id, this[""].id(), name, v));

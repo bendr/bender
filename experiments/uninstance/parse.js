@@ -42,6 +42,7 @@ Property.value_string = function (string, needs_return) {
   return this;
 };
 
+// Initialize the value function of a property from its string value
 Property.init_value = function () {
   if (this.hasOwnProperty("__needs_return")) {
     this.value(this.value_from_string(this._value_string, this.__needs_return));
