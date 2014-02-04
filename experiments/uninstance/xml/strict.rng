@@ -208,6 +208,9 @@
 
   <define name="value-content">
     <optional>
+      <ref name="as"/>
+    </optional>
+    <optional>
       <ref name="select"/>
     </optional>
     <optional>
@@ -262,6 +265,19 @@
     </element>
   </define>
 
+
+  <define name="as">
+    <attribute name="as">
+      <choice>
+        <value>boolean</value>
+        <value>dynamic</value>
+        <value>inherit</value>
+        <value>json</value>
+        <value>number</value>
+        <value>string</value>
+      </choice>
+    </attribute>
+  </define>
 
   <define name="attr">
     <attribute name="attr">
