@@ -1,4 +1,5 @@
-/* global bender, console, exports, flexo, global, require, window */
+/* global bender, console, exports, flexo, global, parse_dynamic, parse_string,
+   require, window */
 // jshint -W097
 
 "use strict";
@@ -95,8 +96,8 @@ var Component = bender.Component = flexo._ext(Base, {
     this.own_properties = {};
     this.init_values = {};
     this.watches = [];
-    this.view = View.create();
-    this.view._component = this;
+    this._view = View.create();
+    this._view._component = this;
     this.properties = create_properties(this);
     this.vertices = this.vertices ?
       { dom: Object.create(this.vertices.dom),
@@ -110,24 +111,6 @@ var Component = bender.Component = flexo._ext(Base, {
     return Base.init.call(this);
   },
 
-  // Instantiate a component.
-  instantiate: function (parent) {
-    var instance = Base.instantiate.call(this);
-    var concrete_scope = this.create_concrete_scope(parent);
-    instance.scope = Object.create(concrete_scope, {
-      type: { value: "instance" },
-      "#this": { value: this, enumerable: true },
-      "@this": { value: instance, enumerable: true }
-    });
-    instance.properties = create_properties(instance);
-    instance.view = this.view.instantiate(concrete_scope);
-    if (parent) {
-      instance.parent = parent;
-      parent.children.push(instance);
-    }
-    return instance;
-  },
-
   // Create a concrete for an instance from the parent scope
   create_concrete_scope: function (parent) {
     return parent ?
@@ -138,10 +121,82 @@ var Component = bender.Component = flexo._ext(Base, {
       });
   },
 
+  did_set_property: flexo.nop,
+
+  // Instantiate a component.
+  instantiate: function (parent) {
+    var instance = Base.instantiate.call(this);
+    var concrete_scope = this.create_concrete_scope(parent);
+    instance.scope = Object.create(concrete_scope, {
+      type: { value: "instance" },
+      "#this": { value: this, enumerable: true },
+      "@this": { value: instance, enumerable: true }
+    });
+    instance.properties = create_properties(instance);
+    instance._view = this._view.instantiate(concrete_scope);
+    if (parent) {
+      instance.parent = parent;
+      parent.children.push(instance);
+    }
+    return instance;
+  },
+
   // Set the handler for on-init/on-instantiate/on-render
   // TODO
-  on: function (type, handler) {
+  on: function (/*type, handler*/) {
     return this;
+  },
+
+  // Add a link to the component
+  link: function (rel, href) {
+    this.links.push(Link.create(rel, href, this));
+  },
+
+  // Get a property definition (when called with a single argument) or add a
+  // property and return the component
+  property: function (property, args) {
+    if (!args) {
+      if (flexo.instance_of(property, Property)) {
+        if (this.own_properties.hasOwnProperty(property.name)) {
+          console.warn("Property “%0” is already defined".fmt(property.name));
+          return;
+        }
+        if (property.component && property.component !== this) {
+          throw "Property already in a component";
+        }
+        this.own_properties[property.name] = property;
+        property.component = this;
+        define_js_property(this, property.name);
+        return this;
+      } else {
+        return this.own_properties[property];
+      }
+    }
+    property = Property.create(property, this)
+      .as(args.as)
+      .delay(args.delay)
+      .select(args.select);
+    if (args.hasOwnProperty("match")) {
+      property.match(args.match);
+    } else if (args.hasOwnProperty("match_string")) {
+      property.match(args.match_string);
+    }
+    if (args.hasOwnProperty("value")) {
+      property.value(args.value);
+    } else if (args.hasOwnProperty("value_string")) {
+      property.value(args.value_string);
+    }
+    return this.property(property);
+  },
+
+  // Add an inline script element to the component
+  script: function (text) {
+    this.styles.push(Script.create(text, this));
+  },
+
+  // Add an inline style element to the component
+  style: function (text) {
+    this.styles.push(Style.create(text, this));
   },
 
   // Get or set the URL of the component (from the XML file of its description,
@@ -162,6 +217,32 @@ var Component = bender.Component = flexo._ext(Base, {
       return this._url;
     }
     this._url = url;
+    return this;
+  },
+
+  // Return the view when called with no arguments; otherwise add contents to
+  // the view and return the component.
+  view: function () {
+    if (arguments.length === 0) {
+      return this._view;
+    }
+    flexo.foreach(arguments, function (argument) {
+      this._view.insert_child(argument);
+    }, this);
+    return this;
+  },
+
+  // Add a new watch with the given contents
+  watch: function () {
+    var watch = Watch.create(this);
+    flexo.foreach(arguments, function (argument) {
+      if (flexo.instance_of(argument, Get)) {
+        watch.get(argument);
+      } else if (flexo.instance_of(argument, bender.Set)) {
+        watch.set(argument);
+      }
+    });
+    this.watches.push(watch);
     return this;
   }
 
@@ -355,8 +436,8 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
 
 var Attribute = bender.Attribute = flexo._ext(Element, {
   init: function (ns, name) {
-    this.ns = ns;
-    this.name = name;
+    this.ns = flexo.safe_string(ns);
+    this.name = flexo.safe_string(name);
     return Element.init.call(this);
   },
 
@@ -386,6 +467,218 @@ var Text = bender.Text = flexo._ext(Element, {
     return this;
   }
 });
+
+bender.$text = function (text) {
+  return Text.create().text(text);
+};
+
+
+var Value = bender.Value = {
+
+  create: Base.create,
+
+  resolve_as: function () {
+    var as = this.as();
+    if (as !== "inherit") {
+      return as;
+    }
+    for (var p = this.component; p.hasOwnProperty("own_properties");
+      p = Object.getPrototypeOf(p)) {
+      if (p.own_properties.hasOwnProperty(this.name)) {
+        as = p.own_properties[this.name].as();
+        if (as !== "inherit") {
+          return as;
+        }
+      }
+    }
+    return "dynamic";
+  },
+
+  // Check that a value is set to the type of its property
+  check_value: function (v) {
+    var as = this.resolve_as();
+    if ((as === "boolean" || as === "number" || as === "string") &&
+        typeof v !== as) {
+      console.warn(("Setting property `%0 to “%1”: expected %2, but " +
+          "got %3 instead").fmt(this.name, v, as, typeof(v)));
+    }
+  },
+
+  // Set the value of an object that has a value/as pair of attributes.
+  value_from_string: function (value, needs_return) {
+    var as = this.resolve_as();
+    if (as === "boolean") {
+      value = flexo.is_true(value);
+    } else if (as === "number") {
+      value = flexo.to_number(value);
+    } else {
+      if (as === "json") {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          console.error("Could not parse “%1” as JSON".fmt(value));
+          value = undefined;
+        }
+      } else if (as === "dynamic") {
+        value = parse_dynamic(value, needs_return, this.bindings);
+      } else {
+        value = parse_string(value, this.bindings);
+      }
+    }
+    return flexo.funcify(value);
+  }
+
+};
+
+flexo._accessor(Value, "select", normalize_select);
+flexo._accessor(Value, "as", normalize_as);
+flexo._accessor(Value, "delay", normalize_delay);
+flexo._accessor(Value, "match", flexo.funcify(true), true);
+flexo._accessor(Value, "value", flexo.snd, true);
+
+
+// Property definition
+var Property = bender.Property = flexo._ext(Value, {
+  init: function (name, component) {
+    this.name = name;
+    this.bindings = {};
+    this.component = component;
+    return this;
+  },
+});
+
+flexo._accessor(Property, "select", function (select) {
+  return flexo.safe_trim(select).toLowerCase() === "#this" ? "#this" : "@this";
+});
+
+
+var Get = bender.Get = flexo._ext(Value, {
+  init: function (watch) {
+    this.watch = watch;
+    return this;
+  }
+});
+
+flexo._accessor(Get, "property", flexo.safe_trim);
+
+
+var GetEvent = bender.GetEvent = flexo._ext(Get, {
+  init: function (type, watch) {
+    this.type = flexo.safe_trim(type);
+    return Get.init.call(this, watch);
+  }
+});
+
+
+var GetProperty = flexo._ext(GetProperty);
+
+
+bender.Set = flexo._ext(Value, {});
+
+flexo._accessor(bender.Set, "property", flexo.safe_trim);
+
+
+var SetEvent = bender.SetEvent = flexo._ext(bender.Set, {
+  init: function (type, watch) {
+    this.type = flexo.safe_trim(type);
+    return bender.Set.init.call(this, watch);
+  }
+});
+
+
+var SetProperty = bender.SetProperty = flexo._ext(bender.Set);
+
+
+var SetAttribute = bender.SetAttribute = flexo._ext(bender.Set, {
+  init: function (attr, watch) {
+    this.attr = flexo.safe_trim(attr);
+    return bender.Set.init.call(this, watch);
+  }
+});
+
+
+// Watch is a container for gets and sets
+var Watch = bender.Watch = {
+  init: function (component) {
+    this.component = component;
+    this.gets = [];
+    this.sets = [];
+    return this;
+  },
+
+  create: Base.create,
+
+  get: function (get) {
+    this.gets.push(get);
+    get.watch = this;
+  },
+
+  set: function (set) {
+    this.sets.push(set);
+    set.watch = this;
+  }
+};
+
+
+// Link to an external resource
+var Link = bender.Link = {
+  init: function (rel, href, component) {
+    this.rel = flexo.safe_trim(rel).toLowerCase();
+    this.href = flexo.safe_trim(href);
+    this.component = component;
+    return this;
+  },
+
+  create: Base.create,
+
+  load: function () {
+    if (!this.component) {
+      console.warn("Cannot load link: no environment.");
+      return;
+    }
+    if (this.component.scope.urls[this.href]) {
+      return this.component.scope.urls[this.href];
+    }
+    var f = this.load[this.rel];
+    if (typeof f === "function") {
+      // jshint -W093
+      return this.component.scope.urls[this.href] = f.call(this);
+    }
+    console.warn("Cannot load “%0” link (unsupported value for rel)"
+        .fmt(this.rel));
+  }
+};
+
+
+// Inline elements (script and style)
+var Inline = bender.Inline = {
+  init: function (text, component) {
+    this.text = flexo.safe_string(text);
+    this.component = component;
+    this.__pending = true;
+    return this;
+  },
+
+  create: Base.create
+};
+
+var Script = bender.Script = flexo._ext(Inline, {
+  apply: function () {
+    if (!this.__pending) {
+      return;
+    }
+    delete this.__pending;
+    try {
+      // jshint -W054
+      new Function(this.text).apply(this.component, arguments);
+    } catch (e) {
+      console.error("could not run script:", e);
+    }
+    return this;
+  }
+});
+
+var Style = bender.Style = Object.create(Inline);
 
 
 // Add an ID to the abstract scope of a component (i.e., the prototype of its
@@ -468,6 +761,35 @@ function convert_dom_node(node) {
   }
 }
 
+// Define a Javascript property to store the value of a property in a Bender
+// component’s properties object. Setting a property triggers a visit of the
+// corresponding vertex in the graph; however, a silent flag can be set to
+// prevent this (used during graph traversal.)
+function define_js_property(component, name, value) {
+  Object.defineProperty(component.properties, name, {
+    enumerable: true,
+    configurable: true,
+    get: function () {
+      return value;
+    },
+    set: function (v, silent) {
+      var property = this[""].own_properties[name];
+      var match = !silent && property.match()(this.scope, v);
+      if (match) {
+        if (this.hasOwnProperty(name)) {
+          property.check_value(this[""], v);
+          value = v;
+        } else {
+          define_js_property(this[""], name, v);
+        }
+        if (!silent) {
+          this[""].did_set_property(name, v);
+        }
+      }
+    }
+  });
+}
+
 // Delete the attribute {ns}name from elem and return elem.
 function delete_attribute(elem, ns, name) {
   if (elem.attrs.hasOwnProperty(ns) && elem.attrs[ns].hasOwnProperty(name)) {
@@ -484,6 +806,28 @@ function normalize_renderId(renderId) {
   renderId = flexo.safe_trim(renderId).toLowerCase();
   return renderId === "class" || renderId === "id" || renderId === "none" ?
     renderId : "inherit";
+}
+
+// Normalize the `as` property of an element so that it matches a known value.
+// Set to “dynamic” by default.
+function normalize_as(as) {
+  as = flexo.safe_trim(as).toLowerCase();
+  return as === "string" || as === "number" || as === "boolean" ||
+    as === "json" || as === "dynamic" ? as : "inherit";
+}
+
+// Normalize the `delay` property of an element so that it matches a legal value
+// (a number of milliseconds >= 0, “never”, “none”, or the empty string by
+// default.)
+function normalize_delay(delay) {
+  delay = flexo.safe_trim(delay).toLowerCase();
+  var d = flexo.to_number(delay);
+  return d >= 0 ? d : delay === "never" ? Infinity : "none";
+}
+
+// Normalize the select attribute, defaulting to "@this"
+function normalize_select(select) {
+  return typeof select === "string" && select || "@this";
 }
 
 // Set the attribute {ns}name to value on the element and return it.

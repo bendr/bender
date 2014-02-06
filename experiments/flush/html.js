@@ -1,4 +1,5 @@
-/* global bender, Component, Scope */
+/* global Attribute, Component, console, Content, DOMElement, flexo, Link,
+   Scope, Style, Text, View, window */
 // jshint -W097
 
 "use strict";
@@ -23,7 +24,6 @@ Component.render_instance = function (target, ref) {
 // is built (replacing the stack passed as parameter.)
 Component.render = function (stack, target, ref) {
   // on(this, "render");
-  var head = target.ownerDocument.head || target.ownerDocument.documentElement;
   stack = this.stack = this.create_render_stack();
   stack.i = 0;
   stack[stack.i].render(stack, target, ref);
@@ -44,7 +44,7 @@ Component.create_render_stack = function () {
           "@this": { value: this, enumerable: true } })) {
     var concrete_scope = Object.getPrototypeOf(scope);
     concrete_scope.derived.push(scope);
-    var view = prototype.view.instantiate(concrete_scope);
+    var view = prototype._view.instantiate(concrete_scope);
     view.scope = scope;
     stack.unshift(view);
   }
@@ -71,13 +71,17 @@ View.render = function (stack, target, ref) {
 };
 
 
-// Render content, which means either the next view on the stack, or if we’are
-// at the bottom, the contents of the element itself.
+// Render content, which means either the next non-empty view on the stack, or
+// if we’are at the bottom, the contents of the element itself.
 Content.render = function (stack, target, ref) {
-  if (stack.i < stack.length - 1) {
-    ++stack.i;
+  var n = stack.length;
+  var i;
+  for (i = stack.i + 1; i < n && stack[i].children.length === 0; ++i) {}
+  if (i < n) {
+    var j = stack.i;
+    stack.i = i;
     stack[stack.i].render(stack, target, ref);
-    --stack.i;
+    stack.i = j;
   } else {
     View.render.call(this, stack, target, ref);
   }
@@ -120,4 +124,47 @@ Text.render = function (_, target, ref) {
   // jshint unused: true, -W093
   return this.first = target.insertBefore(target.ownerDocument
       .createTextNode(this.text()), ref);
+};
+
+
+// Scripts are handled for HTML only by default. Override this method to
+// handle other types of documents.
+Link.load.script = function () {
+  var document = this.component.scope.document;
+  if (document.documentElement.namespaceURI === flexo.ns.html) {
+    return flexo.promise_script(this.href, document.head)
+      .then(function (script) {
+        return this.loaded = script, this;
+      }.bind(this));
+  }
+  console.warn("Cannot render script link for namespace %0"
+      .fmt(document.documentElement.namespaceURI));
+};
+
+// Stylesheets are handled for HTML only by default. Override this method to
+// handle other types of documents.
+Link.load.stylesheet = function () {
+  var document = this.component.scope.document;
+  if (document.documentElement.namespaceURI === flexo.ns.html) {
+    var link = document.createElement("link");
+    link.setAttribute("rel", "stylesheet");
+    link.setAttribute("href", this.href);
+    document.head.appendChild(link);
+    this.loaded = link;
+  } else {
+    console.warn("Cannot render stylesheet link for namespace %0"
+        .fmt(document.documentElement.namespaceURI));
+  }
+};
+
+
+// Applying a style element is adding a style element to the head of the target
+// document when rendering the component
+Style.apply = function (head) {
+  if (!this.__pending) {
+    return;
+  }
+  delete this.__pending;
+  head.appendChild(flexo.$style(this.text()));
+  return this;
 };

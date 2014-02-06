@@ -8,6 +8,11 @@
 body {
   font-family: Univers, Avenir, "Helvetica Neue", Helvetica, sans-serif;
 }
+
+div {
+  padding: 1em;
+  border: solid thin red;
+}
     </style>
     <script src="../flexo.js"></script>
     <script src="../core.js"></script>
@@ -17,8 +22,13 @@ body {
     <script>
 "use strict";
 
-var component = bender.Component.create().view(bender.$text("Hello, world!"));
-var $ = component.render_instance(document.body);
+var outer = bender.Component.create();
+outer.view
+  .child(bender.Text.create().text("Hello, world!"))
+  .child(bender.DOMElement.create(flexo.ns.html, "div")
+      .child(bender.Content.create()
+        .child(bender.Text.create().text("Default inner content"))));
+var $ = outer.render_instance(document.body);
 
     </script>
   </body>

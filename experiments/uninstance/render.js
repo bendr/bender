@@ -236,7 +236,7 @@ Style.apply = function (head) {
     return;
   }
   delete this.__pending;
-  head.appendChild(flexo.$style(this.text()));
+  head.appendChild(flexo.$style(this.text));
   return this;
 };
 
