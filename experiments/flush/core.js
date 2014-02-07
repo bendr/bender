@@ -121,14 +121,14 @@ var Component = bender.Component = flexo._ext(Base, {
     this._view._component = this;
     this.properties = create_properties(this);
     this.vertices = this.vertices ?
-      { dom: Object.create(this.vertices.dom),
-        event: Object.create(this.vertices.event),
+      { event: Object.create(this.vertices.event),
         property: Object.create(this.vertices.property) } :
-      { dom: {}, event: {}, property: {} };
+      {  event: {}, property: {} };
     if (scope && scope.hasOwnProperty("#this")) {
       this.parent = scope["#this"];
       this.parent.children.push(this);
     }
+    this.__pending_graph = true;
     return Base.init.call(this);
   },
 
@@ -283,6 +283,12 @@ var Component = bender.Component = flexo._ext(Base, {
 
 });
 
+// Get the prototype component, if any; not the prototype object.
+flexo.make_readonly(Component, "prototype", function () {
+  var p = Object.getPrototypeOf(this);
+  return p.instances && p;
+});
+
 
 // Bender view element hierarchy:
 // + Element (all view elements)
@@ -366,16 +372,6 @@ var Element = bender.Element = flexo._ext(Base, {
   child: function (child) {
     return this.insert_child(child), this;
   },
-
-  dump: function (indent) {
-    if (!indent) {
-      indent = "+ ";
-    }
-    console.log(indent, this.tag);
-    this.children.forEach(function (ch) {
-      ch.dump("  " + indent);
-    });
-  }
 });
 
 // Shallow text is the concatenation of the text value of all children, skipping
@@ -408,9 +404,7 @@ flexo._accessor(ViewElement, "renderId", normalize_renderId);
 var View = bender.View = flexo._ext(bender.ViewElement, {
   init_with_args: function (args) {
     return ViewElement.init_with_args.call(this.init(), args);
-  },
-
-  tag: "view"
+  }
 });
 
 flexo.make_readonly(View, "component", function () {
@@ -421,9 +415,7 @@ flexo.make_readonly(View, "component", function () {
 var Content = bender.Content = flexo._ext(ViewElement, {
   init_with_args: function (args) {
     return Element.init_with_args.call(this.init(), args);
-  },
-
-  tag: "content"
+  }
 });
 
 
@@ -432,6 +424,10 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
     this.ns = ns;
     this.name = name;
     this.attrs = {};
+    this.vertices = this.vertices ?
+      { event: Object.create(this.vertices.event),
+        property: Object.create(this.vertices.property) } :
+      {  event: {}, property: {} };
     return Element.init.call(this);
   },
 
@@ -463,10 +459,6 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
   }
 });
 
-flexo.make_readonly(DOMElement, "tag", function () {
-  return "{%0}:%1".fmt(this.ns, this.name);
-});
-
 
 var Attribute = bender.Attribute = flexo._ext(Element, {
   init: function (ns, name) {
@@ -478,9 +470,7 @@ var Attribute = bender.Attribute = flexo._ext(Element, {
   init_with_args: function (args) {
     return Element.init_with_args.call(this.init(args.ns || "", args.name),
       args);
-  },
-
-  tag: "attribute"
+  }
 });
 
 
@@ -501,9 +491,7 @@ var Text = bender.Text = flexo._ext(Element, {
     // this._text = Object.keys(this.bindings).length === 0 ? text : f;
     this._text = text;
     return this;
-  },
-
-  tag: "text"
+  }
 });
 
 bender.$text = function (text) {

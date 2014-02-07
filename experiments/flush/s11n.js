@@ -31,7 +31,7 @@ bender.load_component = function (scope, url, origin) {
     return deserialize(scope, response.documentElement);
   }.bind(scope)).then(function (component) {
     if (flexo.instance_of(component, Component)) {
-      return component.url(url); // .loaded();
+      return component.url(url);
     } else {
       throw { message: "not a Bender component", response: response_ };
     }

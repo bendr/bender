@@ -28,6 +28,7 @@ Component.load_links = function () {
 // optional ref node. Return the new, rendered instance. This is the method to
 // call to render a component explicitely.
 Component.render_instance = function (target, ref) {
+  this.render_graph();
   var instance = this.instantiate();
   if (arguments.length === 0) {
     target = this.scope.document.body;

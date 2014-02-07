@@ -18,6 +18,6 @@
   </view>
   <watch>
     <get property="label"/>
-    <set select="@label" property="text"/>
+    <set select="@label"/>
   </watch>
 </component>
