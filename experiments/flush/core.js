@@ -127,7 +127,7 @@ var Component = bender.Component = flexo._ext(Base, {
       { dom: {}, event: {}, property: {} };
     if (scope && scope.hasOwnProperty("#this")) {
       this.parent = scope["#this"];
-      parent.children.push(this);
+      this.parent.children.push(this);
     }
     return Base.init.call(this);
   },
@@ -341,6 +341,9 @@ var Element = bender.Element = flexo._ext(Base, {
     if (!child) {
       throw "cannot add a non-Bender element";
     }
+    if (flexo.instance_of(child, Component)) {
+      child = child.view();
+    }
     if (child.parent) {
       throw "cannot remove child from parent yet";
       // TODO check parent: remove child from its previous parent
@@ -362,6 +365,16 @@ var Element = bender.Element = flexo._ext(Base, {
   // returns the parent rather than the child.
   child: function (child) {
     return this.insert_child(child), this;
+  },
+
+  dump: function (indent) {
+    if (!indent) {
+      indent = "+ ";
+    }
+    console.log(indent, this.tag);
+    this.children.forEach(function (ch) {
+      ch.dump("  " + indent);
+    });
   }
 });
 
@@ -395,7 +408,9 @@ flexo._accessor(ViewElement, "renderId", normalize_renderId);
 var View = bender.View = flexo._ext(bender.ViewElement, {
   init_with_args: function (args) {
     return ViewElement.init_with_args.call(this.init(), args);
-  }
+  },
+
+  tag: "view"
 });
 
 flexo.make_readonly(View, "component", function () {
@@ -406,7 +421,9 @@ flexo.make_readonly(View, "component", function () {
 var Content = bender.Content = flexo._ext(ViewElement, {
   init_with_args: function (args) {
     return Element.init_with_args.call(this.init(), args);
-  }
+  },
+
+  tag: "content"
 });
 
 
@@ -446,6 +463,10 @@ var DOMElement = bender.DOMElement = flexo._ext(ViewElement, {
   }
 });
 
+flexo.make_readonly(DOMElement, "tag", function () {
+  return "{%0}:%1".fmt(this.ns, this.name);
+});
+
 
 var Attribute = bender.Attribute = flexo._ext(Element, {
   init: function (ns, name) {
@@ -457,7 +478,9 @@ var Attribute = bender.Attribute = flexo._ext(Element, {
   init_with_args: function (args) {
     return Element.init_with_args.call(this.init(args.ns || "", args.name),
       args);
-  }
+  },
+
+  tag: "attribute"
 });
 
 
@@ -478,7 +501,9 @@ var Text = bender.Text = flexo._ext(Element, {
     // this._text = Object.keys(this.bindings).length === 0 ? text : f;
     this._text = text;
     return this;
-  }
+  },
+
+  tag: "text"
 });
 
 bender.$text = function (text) {
@@ -487,7 +512,7 @@ bender.$text = function (text) {
 
 
 var Value = bender.Value = {
-
+  init: flexo.self,
   create: Base.create,
 
   resolve_as: function () {
@@ -733,7 +758,7 @@ function add_ids_to_scope(root) {
 function convert_node(node) {
   return node.nodeType ? convert_dom_node(node) :
     typeof node === "string" ? Text.create().text(node) :
-    flexo.instance_of(node, Element) && node;
+    flexo.instance_of(node, Base) && node;
 }
 
 // Create a properties object for a component, which maps property names to

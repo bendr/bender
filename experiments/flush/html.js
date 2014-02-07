@@ -1,10 +1,11 @@
-/* global Attribute, Component, console, Content, DOMElement, flexo, Link,
-   Scope, Style, Text, View, window */
+/* global Attribute, bender, Component, console, Content, DOMElement, flexo,
+   Link, Scope, Style, Text, View, window */
 // jshint -W097
 
 "use strict";
 
 
+// Create a global scope within a HTML document.
 bender.html_scope = function (document) {
   var scope = Object.create(Scope);
   scope.document = document || window.document;
@@ -39,7 +40,6 @@ Component.render_title = function (title) {
   this.scope.document.title = this.title() || title || "";
 };
 
-
 // Render the component. This is the internal method called from
 // render_instance(), which should not be called directly. A new stack of views
 // is built (replacing the stack passed as parameter.)
@@ -51,7 +51,6 @@ Component.render = function (stack, target, ref) {
   delete stack.i;
   return this;
 };
-
 
 // Create the render stack by instantiating views along the prototype chain.
 Component.create_render_stack = function () {
@@ -73,8 +72,12 @@ Component.create_render_stack = function () {
 };
 
 
-// Render a view, i.e., render the contents of the view.
+// Render either the content of the view, or an instance of the component that
+// this is the view of.
 View.render = function (stack, target, ref) {
+  if (Object.getPrototypeOf(stack.instance) !== this.component) {
+    return this.component.render_instance(target, ref);
+  }
   var fragment = target.ownerDocument.createDocumentFragment();
   this.target = fragment.__target = target.__target || target;
   stack[stack.i].scope["#this"].styles.forEach(function (style) {
@@ -181,11 +184,11 @@ Link.load.stylesheet = function () {
 
 // Applying a style element is adding a style element to the head of the target
 // document when rendering the component
-Style.apply = function (head) {
+Style.apply = function () {
   if (!this.__pending) {
     return;
   }
   delete this.__pending;
-  head.appendChild(flexo.$style(this.text()));
+  this.component.scope.document.head.appendChild(flexo.$style(this.text));
   return this;
 };

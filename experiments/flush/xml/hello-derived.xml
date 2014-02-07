@@ -1,0 +1,3 @@
+<component xmlns="http://bender.igel.co.jp" href="hello.xml">
+  <title>(derived from Hello, world!)</title>
+</component>

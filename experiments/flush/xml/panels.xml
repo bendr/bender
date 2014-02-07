@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<component xmlns="http://bender.igel.co.jp" id="panels">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p>Panels</html:p>
+    <component href="panel.xml" id="p1"/>
+    <component href="panel.xml" id="p2"/>
+  </view>
+</component>

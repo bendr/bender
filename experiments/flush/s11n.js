@@ -1,4 +1,4 @@
-/* global Attribute, bender, console, Component, Content, DOMElement, flexo,
+/* global Attribute, bender, Component, console, Content, DOMElement, flexo,
    GetEvent, GetProperty, Property, SetAttribute, SetEvent, SetProperty, Text,
    Value, View, Watch, window */
 // jshint -W097
@@ -30,7 +30,7 @@ bender.load_component = function (scope, url, origin) {
     response_ = response;
     return deserialize(scope, response.documentElement);
   }.bind(scope)).then(function (component) {
-    if (flexo.instance_of(component, bender.Component)) {
+    if (flexo.instance_of(component, Component)) {
       return component.url(url); // .loaded();
     } else {
       throw { message: "not a Bender component", response: response_ };
@@ -67,7 +67,6 @@ function deserialize(scope, node) {
 // Deserialize the view element
 deserialize.view = function (scope, elem) {
   return deserialize_children(scope, View.create()
-      .id(elem.getAttribute("id"))
       .renderId(elem.getAttribute("render-id")), elem);
 };
 
@@ -86,7 +85,8 @@ deserialize.attribute = function (scope, elem) {
 };
 
 // Deserialize the text element
-deserialize.text = function (elem) {
+deserialize.text = function (_, elem) {
+  // jshint unused: true
   return Text.create().text(shallow_text(elem));
 };
 
@@ -105,8 +105,7 @@ deserialize.component = function (scope, elem) {
             Object.create(prototype).init(scope), base_uri);
         });
     } else {
-      return deserialize_component(elem, bender.Component.create(scope),
-        base_uri);
+      return deserialize_component(elem, Component.create(scope), base_uri);
     }
   }()).then(function (component) {
     // component.on_handlers.init.call(component);
@@ -148,7 +147,8 @@ function deserialize_component(elem, component, url) {
     }
   });
   return view ? view.then(function (view) {
-      return component._view = view, component;
+      component._view = view;
+      return view._component = component;
     }) : new flexo.Promise().fulfill(component);
 }
 
@@ -160,7 +160,7 @@ deserialize_component.title = function (component, elem) {
 deserialize_component.property = function (component, elem) {
   return component.property(elem.getAttribute("name"), {
     as: elem.getAttribute("as"),
-    delay: elem.getAttriute("delay"),
+    delay: elem.getAttribute("delay"),
     select: elem.getAttribute("select"),
     match_string: elem.getAttribute("match"),
     value_string: elem.hasAttribute("value") ? elem.getAttribute("value") :
