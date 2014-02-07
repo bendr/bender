@@ -5,9 +5,11 @@
 
 "use strict";
 
-// Load a component from an URL and return a promise which is fulfilled once the
-// component has been loaded and deserialized (which may lead to loading
-// additional components, for its prototype, and its children.)
+// Load a component in a scope from an URL and return a promise which is
+// fulfilled once the component has been loaded and deserialized (which may lead
+// to loading additional components, for its prototype, and its children.)
+// Origin is an origin URL (i.e. the URL of a component that requires the
+// loading of another component) to check for dependencies.
 bender.load_component = function (scope, url, origin) {
   url = flexo.normalize_uri(flexo.base_uri(scope.document), url);
   if (origin && scope.urls[origin]) {
@@ -29,7 +31,7 @@ bender.load_component = function (scope, url, origin) {
     return deserialize(scope, response.documentElement);
   }.bind(scope)).then(function (component) {
     if (flexo.instance_of(component, bender.Component)) {
-      return component.url(url).loaded();
+      return component.url(url); // .loaded();
     } else {
       throw { message: "not a Bender component", response: response_ };
     }
@@ -63,22 +65,22 @@ function deserialize(scope, node) {
 }
 
 // Deserialize the view element
-deserialize.view = function (elem) {
-  return this.deserialize_children(View.create()
+deserialize.view = function (scope, elem) {
+  return deserialize_children(scope, View.create()
       .id(elem.getAttribute("id"))
       .renderId(elem.getAttribute("render-id")), elem);
 };
 
 // Deserialize the content element
-deserialize.content = function (elem) {
-  return this.deserialize_children(Content.create()
+deserialize.content = function (scope, elem) {
+  return deserialize_children(scope, Content.create()
       .id(elem.getAttribute("id"))
       .renderId(elem.getAttribute("render-id")), elem);
 };
 
 // Deserialize the attribute element
-deserialize.attribute = function (elem) {
-  return this.deserialize_children(Attribute
+deserialize.attribute = function (scope, elem) {
+  return deserialize_children(scope, Attribute
       .create(elem.getAttribute("ns"), elem.getAttribute("name"))
       .id(elem.getAttribute("id")), elem);
 };
@@ -99,21 +101,21 @@ deserialize.component = function (scope, elem) {
       var url = flexo.normalize_uri(base_uri, elem.getAttribute("href"));
       return bender.load_component(scope, url, base_uri)
         .then(function (prototype) {
-          return deserialize_component(scope, elem,
-            Object.create(prototype).init(), base_uri);
+          return deserialize_component(elem,
+            Object.create(prototype).init(scope), base_uri);
         });
     } else {
-      return deserialize_component(scope, elem,
-        bender.Component.create().init(), base_uri);
+      return deserialize_component(elem, bender.Component.create(scope),
+        base_uri);
     }
-  }.call(this)).then(function (component) {
+  }()).then(function (component) {
     // component.on_handlers.init.call(component);
     return component.load_links();
   });
 };
 
 // Deserialize the contents of the component created
-function deserialize_component(scope, elem, component, url) {
+function deserialize_component(elem, component, url) {
   component.url(url);
   delete component.__pending_init;
   // Attributes of the component element
@@ -137,7 +139,7 @@ function deserialize_component(scope, elem, component, url) {
       return;
     }
     if (ch.localName === "view") {
-      view = deserialize.view(scope, ch);
+      view = deserialize.view(component.scope, ch);
     } else {
       var f = deserialize_component[ch.localName];
       if (typeof f === "function") {
@@ -145,8 +147,14 @@ function deserialize_component(scope, elem, component, url) {
       }
     }
   });
-  return view ? view.then(flexo.funcify(component)) : component;
+  return view ? view.then(function (view) {
+      return component._view = view, component;
+    }) : new flexo.Promise().fulfill(component);
 }
+
+deserialize_component.title = function (component, elem) {
+  return component.title(shallow_text(elem));
+};
 
 // Deserialize a property element in a component
 deserialize_component.property = function (component, elem) {
@@ -230,7 +238,7 @@ function deserialize_children(scope, e, p) {
   return flexo.fold_promises(flexo.map(p.childNodes, function (ch) {
       return deserialize(scope, ch);
     }), flexo.call.bind(function (child) {
-      return child && Component.child.call(this, child) || this;
+      return child && this.child(child) || this;
     }), e);
 }
 

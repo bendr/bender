@@ -11,8 +11,8 @@ var flexo = require("flexo");
 var bender = require("../core.js");
 
 var files = {
-  node: ["core", "parse", "xml"],
-  html: ["core", "render", "graph", "parse", "xml"]
+  node: ["core", "s11n"],
+  html: ["core", "html", "s11n"]
 };
 
 function get_args(argv, args) {

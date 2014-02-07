@@ -40,6 +40,7 @@ Object.defineProperty(bender, "trace", {
 // The global scope for components to inherit from
 var Scope = bender.Scope = {};
 Object.defineProperty(Scope, "type", { value: "global", configurable: true });
+Object.defineProperty(Scope, "urls", { value: {} });
 
 
 // Base for Bender objects (element, component)
@@ -58,6 +59,28 @@ var Base = bender.Base = {
     return this.init.apply(Object.create(this), arguments);
   },
 
+  // Get or set the id of the component or element. Don’t do anything if the ID
+  // was not a valid XML id, or if it was the reserved keyword “this”.
+  id: function (id) {
+    if (arguments.length === 0) {
+      return this._id || "";
+    }
+    if (!this.hasOwnProperty("instances")) {
+      throw "cannot change the id of an instance";
+    }
+    var _id = flexo.check_xml_id(id);
+    // jshint -W041
+    if (_id == null) {
+      console.warn("“%0” is not a valid XML ID".fmt(id));
+    } else if (_id === "this") {
+      console.warn("“this” is a reserved ID");
+    } else {
+      this._id = _id;
+      add_id_to_scope(this);
+    }
+    return this;
+  },
+
   // Instantiate a base object.
   instantiate: function () {
     if (!this.hasOwnProperty("instances")) {
@@ -68,20 +91,18 @@ var Base = bender.Base = {
     return instance;
   },
 
-  // Stub for rendering
-  render: function (/* stack, target, ref */) {
-  }
 };
 
 
 // Component
 var Component = bender.Component = flexo._ext(Base, {
 
-  // Initialize a new component.
-  init: function (parent) {
-    var abstract_scope = parent ?
-      Object.getPrototypeOf(parent.scope) :
-      Object.create(Scope, {
+  // Initialize a new component. The scope should be either a global scope for a
+  // Bender component, or a component scope for the parent of the component.
+  init: function (scope) {
+    var abstract_scope = scope && scope.hasOwnProperty("#this") ?
+      Object.getPrototypeOf(scope) :
+      Object.create(scope || Scope, {
         type: { value: "abstract", configurable: true }
       });
     this.scope = Object.create(abstract_scope, {
@@ -104,8 +125,8 @@ var Component = bender.Component = flexo._ext(Base, {
         event: Object.create(this.vertices.event),
         property: Object.create(this.vertices.property) } :
       { dom: {}, event: {}, property: {} };
-    if (parent) {
-      this.parent = parent;
+    if (scope && scope.hasOwnProperty("#this")) {
+      this.parent = scope["#this"];
       parent.children.push(this);
     }
     return Base.init.call(this);
@@ -199,6 +220,20 @@ var Component = bender.Component = flexo._ext(Base, {
     this.styles.push(Style.create(text, this));
   },
 
+  // Default title for a component
+  title: function (title) {
+    if (arguments.length === 0) {
+      if (!this._title) {
+        var prototype = Object.getPrototypeOf(this);
+        if (prototype && prototype.title) {
+          return prototype.title();
+        }
+      }
+      return this._title;
+    }
+    this._title = flexo.safe_trim(title);
+  },
+
   // Get or set the URL of the component (from the XML file of its description,
   // or the environment document if created programmatically.) Return the
   // component for chaining.
@@ -289,28 +324,6 @@ var Element = bender.Element = flexo._ext(Base, {
       return ch.instantiate(scope, instance);
     });
     return instance;
-  },
-
-  // Get or set the id of the element. Don’t do anything if the ID was not a
-  // valid XML id, or if it was the reserved keyword “this”.
-  id: function (id) {
-    if (arguments.length === 0) {
-      return this._id || "";
-    }
-    if (!this.hasOwnProperty("instances")) {
-      throw "cannot change the id of an instance";
-    }
-    var _id = flexo.check_xml_id(id);
-    // jshint -W041
-    if (_id == null) {
-      console.warn("“%0” is not a valid XML ID".fmt(id));
-    } else if (_id === "this") {
-      console.warn("“this” is a reserved ID");
-    } else {
-      this._id = _id;
-      add_id_to_scope(this);
-    }
-    return this;
   },
 
   // Insert a child element. If no ref is given, insert at the end of the list
@@ -570,7 +583,7 @@ var GetEvent = bender.GetEvent = flexo._ext(Get, {
 });
 
 
-var GetProperty = flexo._ext(GetProperty);
+var GetProperty = bender.GetProperty = flexo._ext(Get);
 
 
 bender.Set = flexo._ext(Value, {});

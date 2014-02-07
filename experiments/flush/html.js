@@ -4,8 +4,24 @@
 
 "use strict";
 
-Scope.document = window.document;
 
+bender.html_scope = function (document) {
+  var scope = Object.create(Scope);
+  scope.document = document || window.document;
+  return scope;
+};
+
+
+// Load all links for the component.
+Component.load_links = function () {
+  var links = [];
+  for (var p = this; p.links; p = Object.getPrototypeOf(p)) {
+    flexo.unshift_all(links, p.links);
+  }
+  return flexo.collect_promises(links.map(function (link) {
+    return link.load();
+  }, this)).then(flexo.self.bind(this));
+};
 
 // Render an instance of the component as a child of the DOM target, before an
 // optional ref node. Return the new, rendered instance. This is the method to
@@ -13,9 +29,14 @@ Scope.document = window.document;
 Component.render_instance = function (target, ref) {
   var instance = this.instantiate();
   if (arguments.length === 0) {
-    target = this.scope.document.body || this.scope.document.documentElement;
+    target = this.scope.document.body;
   }
   return instance.render(null, target, ref);
+};
+
+// Render the title of the component as the title of the document.
+Component.render_title = function (title) {
+  this.scope.document.title = this.title() || title || "";
 };
 
 

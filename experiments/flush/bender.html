@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender HTML Runtime</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: "Avenir Next", sans-serif;
+}
+    </style>
+    <meta http-equiv="cache-control" content="no-cache">
+    <script src="flexo.js"></script>
+    <script src="core.js"></script>
+    <script src="html.js"></script>
+    <script src="s11n.js"></script>
+  </head>
+  <body>
+    <script>
+"use strict";
+
+var args = flexo.get_args({ title: "Bender application", trace: true });
+if (args.href) {
+  bender.TRACE = args.trace;
+  bender.load_component(bender.html_scope(), args.href)
+    .then(function (component) {
+      component.render_title(args.title);
+      var instance = global.$ = component.render_instance();
+    }, function (error) {
+      alert("Error: " + error.message || error);
+    });
+}
+
+    </script>
+  </body>
+</html>
