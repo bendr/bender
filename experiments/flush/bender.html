@@ -19,16 +19,18 @@ body {
     <script>
 "use strict";
 
+var scope = bender.html_scope();
+scope.ns[bender.ns + "/lib"] = "/lib";
+
 var args = flexo.get_args({ title: "Bender application", trace: true });
+bender.TRACE = args.trace;
 if (args.href) {
-  bender.TRACE = args.trace;
-  bender.load_component(bender.html_scope(), args.href)
-    .then(function (component) {
-      component.render_title(args.title);
-      var instance = global.$ = component.render_instance();
-    }, function (error) {
-      alert("Error: " + error.message || error);
-    });
+  bender.load_component(scope, args.href).then(function (component) {
+    component.render_title(args.title);
+    var instance = global.$ = component.render_instance();
+  }, function (error) {
+    alert("Error: " + error.message || error);
+  });
 }
 
     </script>

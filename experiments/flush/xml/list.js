@@ -1,7 +1,7 @@
 "use strict";
 
 var path = require("path");
-var flexo = require("flexo");
+var flexo = require("../flexo.js");
 
 exports.init = function (morbo) {
 

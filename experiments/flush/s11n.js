@@ -5,6 +5,10 @@
 
 "use strict";
 
+
+// Setup the namespaces map in the global scope
+Object.defineProperty(bender.Scope, "ns", { value: {} });
+
 // Load a component in a scope from an URL and return a promise which is
 // fulfilled once the component has been loaded and deserialized (which may lead
 // to loading additional components, for its prototype, and its children.)
@@ -55,6 +59,8 @@ function deserialize(scope, node) {
         console.warn("Unknow element in Bender namespace: “%0” in %1"
             .fmt(node.localName, flexo.base_uri(node)));
       }
+    } else if (node.namespaceURI in scope.ns) {
+      return deserialize_custom(scope, node);
     } else {
       return deserialize_foreign(scope, node);
     }
@@ -115,22 +121,7 @@ deserialize.component = function (scope, elem) {
 
 // Deserialize the contents of the component created
 function deserialize_component(elem, component, url) {
-  component.url(url);
-  delete component.__pending_init;
-  // Attributes of the component element
-  flexo.foreach(elem.attributes, function (attr) {
-    if (attr.namespaceURI === null) {
-      if (attr.localName.indexOf("on-") === 0) {
-        component.on(attr.localName.substr(3), attr.value);
-      } else if (attr.localName === "id") {
-        component.id(attr.value);
-      } else if (attr.localName !== "href") {
-        component.init_values[attr.localName] = attr.value;
-      }
-    } else if (attr.namespaceURI === bender.ns) {
-      component.init_values[attr.localName] = attr.value;
-    }
-  });
+  deserialize_component_attributes(elem, component, url);
   var view;
   flexo.foreach(elem.childNodes, function (ch) {
     if (ch.nodeType !== window.Node.ELEMENT_NODE ||
@@ -150,6 +141,26 @@ function deserialize_component(elem, component, url) {
       component._view = view;
       return view._component = component;
     }) : new flexo.Promise().fulfill(component);
+}
+
+// Deserialize the attributes of the component element
+function deserialize_component_attributes(elem, component, url, custom) {
+  component.url(url);
+  delete component.__pending_init;
+  // Attributes of the component element
+  flexo.foreach(elem.attributes, function (attr) {
+    if (attr.namespaceURI === null) {
+      if (attr.localName.indexOf("on-") === 0) {
+        component.on(attr.localName.substr(3), attr.value);
+      } else if (attr.localName === "id") {
+        component.id(attr.value);
+      } else if (attr.localName !== "href" || custom) {
+        component.init_values[attr.localName] = attr.value;
+      }
+    } else if (attr.namespaceURI === bender.ns) {
+      component.init_values[attr.localName] = attr.value;
+    }
+  });
 }
 
 deserialize_component.title = function (component, elem) {
@@ -240,6 +251,23 @@ function deserialize_children(scope, e, p) {
     }), flexo.call.bind(function (child) {
       return child && this.child(child) || this;
     }), e);
+}
+
+// Deserialize a custom element by creating a component and adding the contents
+// to the view (no other customization is possible.)
+function deserialize_custom(scope, elem) {
+  var base_uri = flexo.base_uri(elem);
+  var url = flexo.normalize_uri(base_uri,
+    "%0/%1.xml".fmt(scope.ns[elem.namespaceURI], elem.localName));
+  bender.trace("Custom component: {%0}:%1 -> %2"
+      .fmt(elem.namespaceURI, elem.localName, url));
+  return bender.load_component(scope, url, base_uri)
+    .then(function (prototype) {
+      var component = Object.create(prototype).init(scope);
+      deserialize_component_attributes(elem, component, url, true);
+      return deserialize_children(scope, component.view(), elem)
+        .then(flexo.self.bind(component));
+    });
 }
 
 // Deserialize a foreign element and its contents (attributes and children),

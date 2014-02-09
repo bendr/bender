@@ -175,7 +175,7 @@ Watch.render = function () {
     }
   }, this);
   this.sets.forEach(function (set) {
-    w.add_outgoing(set.render());
+    // w.add_outgoing(set.render());
   });
 };
 

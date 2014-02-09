@@ -1,0 +1,10 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:lib="http://bender.igel.co.jp/lib">
+  <style>
+    body { margin : 0 }
+    svg { display: block }
+  </style>
+  <view>
+    <lib:tomato/>
+  </view>
+</component>

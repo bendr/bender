@@ -1,0 +1,9 @@
+<component xmlns="http://bender.igel.co.jp"
+  xmlns:lib="http://bender.igel.co.jp/lib">
+  <view>
+    <lib:button>OK</lib:button>
+    <lib:button label="Cancel"/>
+  </view>
+</component>
+
+
