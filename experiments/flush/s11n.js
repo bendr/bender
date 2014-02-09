@@ -105,7 +105,7 @@ deserialize.component = function (scope, elem) {
   return (function () {
     if (elem.hasAttribute("href")) {
       var url = flexo.normalize_uri(base_uri, elem.getAttribute("href"));
-      return bender.load_component(scope, url, base_uri)
+      return bender.load_component(global_scope(scope), url, base_uri)
         .then(function (prototype) {
           return deserialize_component(elem,
             Object.create(prototype).init(scope), base_uri);
@@ -331,6 +331,12 @@ Property.value_string = function (string, needs_return) {
   this.__needs_return = !!needs_return;
   return this;
 };
+
+// Find the closest global scope for this scope
+function global_scope(scope) {
+  for (; scope.type !== "global"; scope = Object.getPrototypeOf(scope)) {}
+  return scope;
+}
 
 // Initialize the value function of a property from its string value
 Property.init_value = function () {

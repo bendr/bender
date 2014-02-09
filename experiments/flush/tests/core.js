@@ -22,7 +22,7 @@ describe("Bender core", function () {
         .toBe("global");
       expect(component.scope["#this"]).toBe(component);
       expect(component.scope["@this"]).toBe(component);
-      expect(Object.getPrototypeOf(component.view)).toBe(bender.View);
+      expect(Object.getPrototypeOf(component.view())).toBe(bender.View);
       expect(component.properties[""]).toBe(component);
       expect(Object.keys(component.properties).length).toBe(0);
     });
