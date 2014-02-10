@@ -35,7 +35,7 @@ bender.load_component = function (scope, url, origin) {
     return deserialize(scope, response.documentElement);
   }.bind(scope)).then(function (component) {
     if (flexo.instance_of(component, Component)) {
-      return component.url(url);
+      return component.url(url).finalize();
     } else {
       throw { message: "not a Bender component", response: response_ };
     }
@@ -93,7 +93,7 @@ deserialize.attribute = function (scope, elem) {
 // Deserialize the text element
 deserialize.text = function (_, elem) {
   // jshint unused: true
-  return Text.create().text(shallow_text(elem));
+  return Text.create().id(elem.getAttribute("id")).text(shallow_text(elem));
 };
 
 
@@ -137,10 +137,9 @@ function deserialize_component(elem, component, url) {
       }
     }
   });
-  return view ? view.then(function (view) {
-      component._view = view;
-      return view._component = component;
-    }) : new flexo.Promise().fulfill(component);
+  return view ?
+    view.then(component.view.bind(component)) :
+    new flexo.Promise().fulfill(component);
 }
 
 // Deserialize the attributes of the component element
@@ -202,9 +201,9 @@ deserialize_component.watch = function (component, elem) {
   flexo.foreach(elem.childNodes, function (ch) {
     if (ch.namespaceURI === bender.ns) {
       if (ch.localName === "get") {
-        watch.get(deserialize_get(elem));
+        watch.get(deserialize_get(ch));
       } else if (ch.localName === "set") {
-        watch.set(deserialize_set(elem));
+        watch.set(deserialize_set(ch));
       }
     }
   });

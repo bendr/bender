@@ -3,6 +3,9 @@
   <view>
     <lib:button>OK</lib:button>
     <lib:button label="Cancel"/>
+    <component href="../lib/button.xml">
+      <view>Retry</view>
+    </component>
   </view>
 </component>
 

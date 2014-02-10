@@ -28,7 +28,6 @@ Component.load_links = function () {
 // optional ref node. Return the new, rendered instance. This is the method to
 // call to render a component explicitely.
 Component.render_instance = function (target, ref) {
-  this.render_graph();
   var instance = this.instantiate();
   if (arguments.length === 0) {
     target = this.scope.document.body;
@@ -54,6 +53,8 @@ Component.render = function (stack, target, ref) {
 };
 
 // Create the render stack by instantiating views along the prototype chain.
+// Each view in the stack is associated with a view scope and points back to the
+// stack.
 Component.create_render_stack = function () {
   var stack = [];
   stack.instance = this;
@@ -67,6 +68,7 @@ Component.create_render_stack = function () {
     concrete_scope.derived.push(scope);
     var view = prototype._view.instantiate(concrete_scope);
     view.scope = scope;
+    view.stack = stack;
     stack.unshift(view);
   }
   return stack;
@@ -74,11 +76,15 @@ Component.create_render_stack = function () {
 
 
 // Render either the content of the view, or an instance of the component that
-// this is the view of.
+// this is the view of, if this view has no associated stack.
 View.render = function (stack, target, ref) {
-  if (Object.getPrototypeOf(stack.instance) !== this.component) {
-    return this.component.render_instance(target, ref);
-  }
+  return this.stack === stack ?
+    render_view_content.call(this, stack, target, ref) :
+    this.component.render_instance(target, ref);
+};
+
+// Render the actual content of view/content
+function render_view_content(stack, target, ref) {
   var fragment = target.ownerDocument.createDocumentFragment();
   this.target = fragment.__target = target.__target || target;
   stack[stack.i].scope["#this"].styles.forEach(function (style) {
@@ -93,7 +99,7 @@ View.render = function (stack, target, ref) {
     writable: true, value: fragment.lastChild });
   target.insertBefore(fragment, ref);
   return this;
-};
+}
 
 
 // Render content, which means either the next non-empty view on the stack, or
@@ -108,7 +114,7 @@ Content.render = function (stack, target, ref) {
     stack[stack.i].render(stack, target, ref);
     stack.i = j;
   } else {
-    View.render.call(this, stack, target, ref);
+    return render_view_content.call(this, stack, target, ref);
   }
 };
 

@@ -93,13 +93,20 @@ bender.flush_graph_later = function (f, delay) {
 };
 
 
+// Amend component finalization to render the graph as well
+(function () {
+  var finalize = Component.finalize;
+  Component.finalize = function () {
+    if (this.__pending_finalize) {
+      finalize.call(this).render_graph();
+    }
+    return this;
+  };
+}());
+
 // Render the graph for the component by adding new watches for the property
 // bindings, and then rendering all watches.
 Component.render_graph = function () {
-  if (!this.__pending_graph) {
-    return;
-  }
-  delete this.__pending_graph;
   var prototype = this.prototype;
   if (prototype) {
     prototype.render_graph();
@@ -174,8 +181,9 @@ Watch.render = function () {
       }
     }
   }, this);
+  var scope = this.component.scope;
   this.sets.forEach(function (set) {
-    // w.add_outgoing(set.render());
+    w.add_outgoing(set.render(scope));
   });
 };
 
@@ -191,8 +199,20 @@ GetProperty.render = function () {
 };
 
 
-SetProperty.render = function (scope) {
-  var dest = vertex_property(this, scope);
+// Render a <set> element with no property. If the target has a default property
+// to be set, use this default, otherwise render an edge to the vortex.
+bender.Set.render = function (scope) {
+  var target = scope[this.select()];
+  if (target && target.default_set_property) {
+    return SetProperty.render.call(this, scope, target.default_set_property);
+  }
+  return Edge.create(bender.vortex);
+};
+
+Text.default_set_property = "text";
+
+SetProperty.render = function (scope, property) {
+  var dest = vertex_property(this, scope, property);
   if (dest) {
     return PropertyEdge.create(this, dest);
   }
@@ -456,7 +476,7 @@ function vertex_event(element) {
 // Get a vertex for a property from an element, creating it first if necessary.
 // Note that this can be called for a property vertex, but also from an event
 // vertex (when introducing event listener edges.)
-function vertex_property(element, scope) {
+function vertex_property(element, scope, property) {
   var target = element.watch.component.scope[element.select()];
   if (!target) {
     console.warn("No target for property vertex; select=\"%0\" in scope"
@@ -464,8 +484,8 @@ function vertex_property(element, scope) {
     return;
   }
   if (typeof target.vertex_property === "function") {
-    return target.vertex_property.call(target, scope,
-        element.name || element.property);
+    return target.vertex_property.call(target,
+        property || element.name || element.property);
   }
 }
 

@@ -76,7 +76,6 @@ var Base = bender.Base = {
       console.warn("“this” is a reserved ID");
     } else {
       this._id = _id;
-      add_id_to_scope(this);
     }
     return this;
   },
@@ -128,7 +127,7 @@ var Component = bender.Component = flexo._ext(Base, {
       this.parent = scope["#this"];
       this.parent.children.push(this);
     }
-    this.__pending_graph = true;
+    this.__pending_finalize = true;
     return Base.init.call(this);
   },
 
@@ -143,6 +142,26 @@ var Component = bender.Component = flexo._ext(Base, {
   },
 
   did_set_property: flexo.nop,
+
+  // Finalize the component: setup scope and relationships
+  finalize: function () {
+    if (this.__pending_finalize) {
+      delete this.__pending_finalize;
+      flexo.beach_all(this._view.children.slice(), function (element) {
+        if (flexo.instance_of(element, View)) {
+          var child = element.component.finalize();
+          child.parent = this;
+          this.children.push(child);
+          this.add_element_to_scope(child);
+          // don’t go deeper; IDs are added when the child is finalized.
+        } else {
+          this.add_element_to_scope(element);
+          return element.children;
+        }
+      }, this);
+    }
+    return this;
+  },
 
   // Instantiate a component.
   instantiate: function (parent) {
@@ -256,14 +275,24 @@ var Component = bender.Component = flexo._ext(Base, {
   },
 
   // Return the view when called with no arguments; otherwise add contents to
-  // the view and return the component.
-  view: function () {
+  // the view and return the component. If the first and only argument is a view
+  // element, it becomes the view of this component (as long as its view had no
+  // contents yet.)
+  view: function (view) {
     if (arguments.length === 0) {
       return this._view;
     }
-    flexo.foreach(arguments, function (argument) {
-      this._view.insert_child(argument);
-    }, this);
+    if (arguments.length === 1 && flexo.instance_of(view, View)) {
+      if (this._view.children.length > 0) {
+        console.warn("Cannot replace non-empty view");
+      }
+      return this.view.apply(this, view.children)
+    } else {
+      flexo.foreach(arguments, function (argument) {
+        delete argument.parent;
+        this._view.insert_child(argument);
+      }, this);
+    }
     return this;
   },
 
@@ -279,6 +308,19 @@ var Component = bender.Component = flexo._ext(Base, {
     });
     this.watches.push(watch);
     return this;
+  },
+
+  // Add the element
+  add_element_to_scope: function (element) {
+    var id = element.id();
+    if (id) {
+      var scope = Object.getPrototypeOf(this.scope);
+      scope["@" + id] = element;
+      if (this.hasOwnProperty("instances")) {
+        scope["#" + id] = element;
+      }
+    }
+    return element;
   }
 
 });
@@ -338,10 +380,10 @@ var Element = bender.Element = flexo._ext(Base, {
   // index, before the child previously at this index. If ref is a negative
   // number, then the index is taken from the end of the list of children (-1
   // adding at the end, -2 before the last element, &c.)
-  // The child element may be a Bender element, a DOM element, or a text string.
-  // In the last two cases, the argument is first converted into a DOMElement or
-  // a Text element before being inserted.
-  // This is the method to override for different types of elements.
+  // The child element may be a Bender element, a component, a DOM element, or a
+  // text string. In the last two cases, the argument is first converted into a
+  // DOMElement or a Text element before being inserted. In the case of a
+  // component, the view gets added.
   insert_child: function (child, ref) {
     child = convert_node(child);
     if (!child) {
@@ -364,7 +406,7 @@ var Element = bender.Element = flexo._ext(Base, {
     var index = flexo.clamp(ref >= 0 ? ref : ref < 0 ? n + 1 + ref : n, 0, n);
     this.children.splice(index, 0, child);
     child.parent = this;
-    return add_ids_to_scope(child);
+    return child;
   },
 
   // Convenience method to chain child additions; this appends a child and
@@ -706,39 +748,6 @@ var Script = bender.Script = flexo._ext(Inline, {
 
 var Style = bender.Style = Object.create(Inline);
 
-
-// Add an ID to the abstract scope of a component (i.e., the prototype of its
-// scope) for an element. Since this is the abstract scope, add both # and @
-// forms of the ID. If the element is not in a component yet, do nothing.
-function add_id_to_scope(element) {
-  var component = element.component;
-  if (component) {
-    var scope = Object.getPrototypeOf(component.scope);
-    scope["@" + element._id] = element;
-    if (component.hasOwnProperty("instances")) {
-      scope["#" + element._id] = element;
-    }
-  }
-}
-
-// Add all IDs in the subtree at root to the scope of the component in which
-// root is and return the root.
-function add_ids_to_scope(root) {
-  var component = root.component;
-  if (component) {
-    var scope = Object.getPrototypeOf(component.scope);
-    flexo.beach(root, function (element) {
-      if (element._id) {
-        scope["@" + element._id] = element;
-        if (component.hasOwnProperty("instances")) {
-          scope["#" + element._id] = element;
-        }
-      }
-      return element.children;
-    });
-  }
-  return root;
-}
 
 // Convert an object to a Bender element. This can be a DOM node, a text string
 // (which becomes a Text element), or a plain old Bender element, which is

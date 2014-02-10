@@ -36,6 +36,33 @@ describe("Bender core", function () {
       expect(Object.getPrototypeOf(B.properties)).toBe(A.properties);
       expect(B.properties[""]).toBe(B);
     });
+
+    describe("bender.Component.finalize()", function () {
+      it("finalizes the component after it was populated, and before it is " +
+        "rendered", function () {
+        var A = bender.Component.create();
+        A.finalize();
+        expect(A.__pending_finalize).toBeUndefined();
+      });
+      it("returns the component", function () {
+        var A = bender.Component.create();
+        expect(A.finalize()).toBe(A);
+      });
+      it("adds IDs to the scope of the component", function () {
+        var A = bender.Component.create();
+        var div = A.view().insert_child(flexo.$div({ id: "div" }));
+        var p = div.insert_child(flexo.$p({ id: "p" }));
+        var div2 = A.view().insert_child(flexo.$div());
+        var q = div2.insert_child(flexo.$p({ id: "q" }));
+        A.finalize();
+        expect(A.scope["#div"]).toBe(div);
+        expect(A.scope["@div"]).toBe(div);
+        expect(A.scope["#p"]).toBe(p);
+        expect(A.scope["@p"]).toBe(p);
+        expect(A.scope["#q"]).toBe(q);
+        expect(A.scope["@q"]).toBe(q);
+      });
+    });
   })
 
 });
