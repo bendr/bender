@@ -136,7 +136,95 @@ Component.render_graph = function () {
   this.watches.forEach(function (watch) {
     watch.render();
   }, this);
+  return this.init_properties();
+};
+
+// Initialize component properties. For the component itself, it means
+// initializing the properties of its prototype, then its children’s, then its
+// own, then its instances’s. For an instance, initialize the properties only if
+// the component was initialized (for instances created later on.)
+Component.init_properties = function () {
+  this.init_properties
+    [this.hasOwnProperty("instances") ? "component" : "instance"].call(this);
   return this;
+};
+
+Component.init_properties.component = function () {
+  var prototype = Object.getPrototypeOf(this);
+  if (prototype.hasOwnProperty("instances")) {
+    prototype.init_properties();
+  }
+  this.inherit_edges();
+  this.children.forEach(function (ch) {
+    ch.init_properties();
+  });
+  for (var name in this.property_definitions) {
+    var property = this.property_definitions[name];
+    property.init_value();
+    if (property.select() === "#this") {
+      this.init_property(property);
+    }
+  }
+};
+
+Component.init_properties.instance = function () {
+  for (var name in this.property_definitions) {
+    var property = this.property_definitions[name];
+    if (property.select() === "@this") {
+      this.init_property(property);
+    }
+  }
+};
+
+// Initialize a single property as long as it has no bindings (in which case it
+// will be initialized through graph traversal.)
+Component.init_property = function (property) {
+  if (Object.keys(property.bindings).length > 0) {
+    return;
+  }
+  try {
+    if (property.match().call(this, this.scope)) {
+      var value = this.init_values.hasOwnProperty(property.name) ?
+        property.value_from_string(this.init_values[property.name], true) :
+        property.value();
+      this.properties[property.name] = value.call(this, this.scope);
+    }
+  } catch (e) {
+    console.error("Could not initialize property");
+  }
+};
+
+// Setup inheritance edges: if B inherits from A and both have vertex for e.g.
+// a property x, make an inheritance edge from A`x to B`x. Then for all outgoing
+// edges of A that are not inheritance edges, add a cloned edge from B.
+// TODO this could be avoided by looking up inheritance edge during traversal
+Component.inherit_edges = function () {
+  ["event", "property"].forEach(function (kind) {
+    var p = Object.getPrototypeOf(this);
+    if (p.hasOwnProperty("vertices")) {
+      Object.keys(this.vertices[kind]).forEach(function (name) {
+        if (name in p.vertices[kind]) {
+          var source = p.vertices[kind][name];
+          var dest = this.vertices[kind][name];
+          source.add_outgoing(InheritEdge.create(dest));
+          source.outgoing.forEach(function (edge) {
+            if (!flexo.instance_of(edge, InheritEdge)) {
+              dest.add_outgoing(edge.redirect());
+            }
+          });
+        }
+      }, this);
+    }
+  }, this);
+};
+
+// Flush the graph after setting a property on a component.
+Component.did_set_property = function (name, value) {
+  var vertex = this.vertices.property[name];
+  if (vertex) {
+    vertex.push_value([this.scope, value]);
+    bender.flush_graph();
+  }
 };
 
 // Create a property vertex for the property with the given name.
@@ -146,6 +234,11 @@ Component.vertex_property = function (name) {
     vertices[name] = bender.add_vertex(PropertyVertex.create(this, name));
   }
   return vertices[name];
+};
+
+// Set the property named `name` to `value` from an edge traversal
+Component.edge_set_property = function (name, value) {
+  set_property_silent(this, name, value);
 };
 
 
@@ -163,6 +256,16 @@ Text.vertex_property = function (name) {
     self.vertex = bender.add_vertex(PropertyVertex.create(self, name));
   }
   return this.vertex;
+};
+
+// Set the text property to `value` from an edge traversal
+Text.edge_set_property = function (name, value) {
+  if (name == null || name === "text") {
+    this.text(value);
+    if (this.first) {
+      this.first.textContent = value;
+    }
+  }
 };
 
 
@@ -382,6 +485,10 @@ var Edge = bender.Edge = {
 var remove_edge = Function.prototype.call.bind(Edge.remove);
 
 
+// Inherit edges (cf. Component.inherit_edges)
+var InheritEdge = bender.InheritEdge = flexo._ext(Edge);
+
+
 // Edges that are tied to an element (e.g., watch, get, set)
 var ElementEdge = bender.ElementEdge = flexo._ext(Edge, {
   init: function (element, dest) {
@@ -408,10 +515,10 @@ var WatchEdge = bender.WatchEdge = flexo._ext(ElementEdge, {
     if (scope["@this"] === scope["#this"]) {
       return scope;
     }
-    var component = this.element.component;
+    var component = this.element.watch.component;
     var select = this.element.select();
-    for (var i = 0, n = scope.stack.length; i < n; ++i) {
-      var s = scope.stack[i];
+    for (var i = 0, n = scope["@this"].stack.length; i < n; ++i) {
+      var s = scope["@this"].stack[i].scope;
       if (s["#this"] === component) {
         return s;
       }
@@ -448,9 +555,61 @@ var PropertyEdge = bender.PropertyEdge = flexo._ext(ElementEdge, {
 });
 
 
+// TODO multiple scopes (from component to instances)
+function exit_scope(edge, scope) {
+  if (scope["@this"] === scope["#this"]) {
+    return scope;
+  }
+  var component = edge.dest.target;
+  var select = edge.element.select();
+  return flexo.find_first(scope.derived, function (s) {
+    return s["#this"] === component && s[select] === s["@this"];
+  }) || scope;
+}
 
-
-
+// Sort all edges in a graph from its set of vertices. Simply go through the
+// list of vertices, starting with the sink vertices (which have no outgoing
+// edge) and moving edges from the vertices to the sorted list of edges.
+function sort_edges(vertices) {
+  var edges = [];
+  var queue = vertices.filter(function (vertex) {
+    vertex.__out = vertex.outgoing.filter(function (edge) {
+      if (edge.delay >= 0) {
+        edges.push(edge);
+        return false;
+      }
+      return true;
+    }).length;
+    return vertex.__out === 0;
+  });
+  var process_incoming_edge = function (edge) {
+    if (edge.source.hasOwnProperty("__out")) {
+      --edge.source.__out;
+    } else {
+      edge.source.__out = edge.source.outgoing.length - 1;
+    }
+    if (edge.source.__out === 0) {
+      queue.push(edge.source);
+    }
+    return edge;
+  };
+  var delayed = function (edge) {
+    // jshint -W018
+    // this handles NaN as well as negative values
+    return !(edge.delay >= 0);
+  };
+  while (queue.length > 0) {
+    flexo.unshift_all(edges,
+        queue.shift().incoming.filter(delayed).map(process_incoming_edge));
+  }
+  vertices.forEach(function (vertex) {
+    if (vertex.__out !== 0) {
+      console.error("sort_edges: unqueued vertex", vertex);
+    }
+    delete vertex.__out;
+  });
+  return edges;
+}
 
 // Get an event vertex, either returning an already existing vertex or creating
 // a new one.
@@ -485,7 +644,7 @@ function vertex_property(element, scope, property) {
   }
   if (typeof target.vertex_property === "function") {
     return target.vertex_property.call(target,
-        property || element.name || element.property);
+        property || element.name || element.property());
   }
 }
 

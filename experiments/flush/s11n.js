@@ -174,7 +174,7 @@ deserialize_component.property = function (component, elem) {
     select: elem.getAttribute("select"),
     match_string: elem.getAttribute("match"),
     value_string: elem.hasAttribute("value") ? elem.getAttribute("value") :
-      shallow_text(elem)
+      shallow_text(elem, true)
   });
 };
 
@@ -220,7 +220,7 @@ function deserialize_get(elem) {
     .property(elem.getAttribute("property"))
     .select(elem.getAttribute("select"))
     .value_string(elem.hasAttribute("value") ? elem.getAttribute("value") :
-      shallow_text(elem));
+      shallow_text(elem, true));
 }
 
 // Deserialize a set element
@@ -238,7 +238,7 @@ function deserialize_set(elem) {
     .match_string(elem.getAttribute("match"))
     .select(elem.getAttribute("select"))
     .value_string(elem.hasAttribute("value") ? elem.getAttribute("value") :
-      shallow_text(elem));
+      shallow_text(elem, true));
 }
 
 
@@ -297,11 +297,12 @@ Value.match_string = function (string) {
   if (arguments.length === 0) {
     return this._match_string || "";
   }
-  string = flexo.safe_string(string);
-  var f = parse_dynamic(string, true, this.bindings);
-  if (f) {
-    this._match = f;
-    this._match_string = string;
+  if (typeof string === "string") {
+    var f = parse_dynamic(string, true, this.bindings);
+    if (f) {
+      this._match = f;
+      this._match_string = string;
+    }
   }
   return this;
 };
@@ -311,11 +312,12 @@ Value.value_string = function (string, needs_return) {
   if (arguments.length === 0) {
     return this._value_string || "";
   }
-  string = flexo.safe_string(string);
-  var f = parse_dynamic(string, needs_return, this.bindings);
-  if (f) {
-    this._value = f;
-    this._value_string = string;
+  if (typeof string === "string") {
+    var f = parse_dynamic(string, needs_return, this.bindings);
+    if (f) {
+      this._value = f;
+      this._value_string = string;
+    }
   }
   return this;
 };
@@ -377,15 +379,17 @@ function parse_string(string, bindings, loc) {
 
 // Return the concatenation of all text children (and only children) of elem.
 // Any other content (including child elements) is skipped.
-function shallow_text(elem) {
+function shallow_text(elem, strict) {
   var text = "";
+  var has_text = !strict;
   for (var ch = elem.firstChild; ch; ch = ch.nextSibling) {
     if (ch.nodeType === window.Node.TEXT_NODE ||
         ch.nodeType === window.Node.CDATA_SECTION_NODE) {
       text += ch.textContent;
+      has_text = true;
     }
   }
-  return text;
+  return has_text && text;
 }
 
 // Convert a chunk containing an id/property pair to the right string form and

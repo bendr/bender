@@ -32,7 +32,7 @@ Component.render_instance = function (target, ref) {
   if (arguments.length === 0) {
     target = this.scope.document.body;
   }
-  return instance.render(null, target, ref);
+  return instance.render(null, target, ref).init_properties();
 };
 
 // Render the title of the component as the title of the document.
@@ -62,6 +62,7 @@ Component.create_render_stack = function () {
       prototype = Object.getPrototypeOf(prototype), scope = prototype.scope &&
       Object.create(prototype.create_concrete_scope(),
         { type: { value: "view" },
+          stack: { value: stack },
           "#this": { value: prototype, enumerable: true },
           "@this": { value: this, enumerable: true } })) {
     var concrete_scope = Object.getPrototypeOf(scope);

@@ -113,7 +113,8 @@ var Component = bender.Component = flexo._ext(Base, {
     this.scripts = [];
     this.links = [];
     this.events = {};
-    this.own_properties = {};
+    this.property_definitions = this.property_definitions ?
+      Object.create(this.property_definitions) : {};
     this.init_values = {};
     this.watches = [];
     this._view = View.create();
@@ -197,19 +198,19 @@ var Component = bender.Component = flexo._ext(Base, {
   property: function (property, args) {
     if (!args) {
       if (flexo.instance_of(property, Property)) {
-        if (this.own_properties.hasOwnProperty(property.name)) {
+        if (this.property_definitions.hasOwnProperty(property.name)) {
           console.warn("Property “%0” is already defined".fmt(property.name));
           return;
         }
         if (property.component && property.component !== this) {
           throw "Property already in a component";
         }
-        this.own_properties[property.name] = property;
+        this.property_definitions[property.name] = property;
         property.component = this;
         define_js_property(this, property.name);
         return this;
       } else {
-        return this.own_properties[property];
+        return this.property_definitions[property];
       }
     }
     property = Property.create(property, this)
@@ -219,12 +220,12 @@ var Component = bender.Component = flexo._ext(Base, {
     if (args.hasOwnProperty("match")) {
       property.match(args.match);
     } else if (args.hasOwnProperty("match_string")) {
-      property.match(args.match_string);
+      property.match_string(args.match_string);
     }
     if (args.hasOwnProperty("value")) {
       property.value(args.value);
     } else if (args.hasOwnProperty("value_string")) {
-      property.value(args.value_string);
+      property.value_string(args.value_string);
     }
     return this.property(property);
   },
@@ -550,10 +551,10 @@ var Value = bender.Value = {
     if (as !== "inherit") {
       return as;
     }
-    for (var p = this.component; p.hasOwnProperty("own_properties");
+    for (var p = this.component; p.hasOwnProperty("property_definitions");
       p = Object.getPrototypeOf(p)) {
-      if (p.own_properties.hasOwnProperty(this.name)) {
-        as = p.own_properties[this.name].as();
+      if (p.property_definitions.hasOwnProperty(this.name)) {
+        as = p.property_definitions[this.name].as();
         if (as !== "inherit") {
           return as;
         }
@@ -808,7 +809,7 @@ function define_js_property(component, name, value) {
       return value;
     },
     set: function (v, silent) {
-      var property = this[""].own_properties[name];
+      var property = this[""].property_definitions[name];
       var match = !silent && property.match()(this.scope, v);
       if (match) {
         if (this.hasOwnProperty(name)) {
