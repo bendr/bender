@@ -32,7 +32,10 @@ Component.render_instance = function (target, ref) {
   if (arguments.length === 0) {
     target = this.scope.document.body;
   }
-  return instance.render(null, target, ref).init_properties();
+  return instance
+    .render(null, target, ref)
+    .add_event_listeners()
+    .init_properties();
 };
 
 // Render the title of the component as the title of the document.

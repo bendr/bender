@@ -15,7 +15,7 @@ function get_args(argv, args) {
       args.href = flexo.safe_trim(m[1]);
     } else if ((m = arg.match(/^-?-?id=(\S+)$/i))) {
       args.id = flexo.safe_trim(m[1]);
-    } else if ((m = arg.match(/^-?-?t(?:itle)?=(\S*)$/i))) {
+    } else if ((m = arg.match(/^-?-?t(?:itle)?=(.*)$/i))) {
       args.title = flexo.safe_trim(m[1]);
     } else if ((m = arg.match(/^-?-?v(?:iew)?=(\S*)$/i))) {
       var v = flexo.safe_trim(m[1]).toLowerCase();

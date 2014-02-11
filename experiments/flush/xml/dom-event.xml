@@ -1,0 +1,11 @@
+<component xmlns="http://bender.igel.co.jp" id="dom-event">
+  <title>DOM Event</title>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:p id="p" style="cursor:pointer;background-color:yellow;padding:4rem">
+      Click me!
+    </html:p>
+  </view>
+  <watch>
+    <get select="@p" event="click" value="bender.trace($in)"/>
+  </watch>
+</component>

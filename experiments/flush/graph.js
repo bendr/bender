@@ -139,6 +139,24 @@ Component.render_graph = function () {
   return this.init_properties();
 };
 
+// Add event listeners for get edges to DOM element nodes
+Component.add_event_listeners = function () {
+  this.watches.forEach(function (watch) {
+    watch.gets.forEach(function (get) {
+      get.add_event_listener(this);
+    }, this);
+  }, this);
+  return this;
+};
+
+// Add a Bender event listener for the component
+Component.add_event_listener = function (scope, type, vertex) {
+  flexo.listen(this, type, function (e) {
+    vertex.push_value([scope, e]);
+    bender.flush_graph();
+  });
+};
+
 // Initialize component properties. For the component itself, it means
 // initializing the properties of its prototype, then its children’s, then its
 // own, then its instances’s. For an instance, initialize the properties only if
@@ -288,6 +306,28 @@ Watch.render = function () {
   this.sets.forEach(function (set) {
     w.add_outgoing(set.render(scope));
   });
+};
+
+
+Get.add_event_listener = flexo.nop;
+
+// Add an event listener for this get for the given instance
+GetEvent.add_event_listener = function (instance) {
+  var target = instance.scope[this.select()];
+  if (target) {
+    target.add_event_listener(instance.scope, this.type, vertex_event(this));
+  }
+};
+
+Element.add_event_listener = flexo.nop;
+
+DOMElement.add_event_listener = function (scope, type, vertex) {
+  if (this.first) {
+    this.first.addEventListener(type, function (e) {
+      vertex.push_value([scope, e]);
+      bender.flush_graph();
+    });
+  }
 };
 
 
@@ -625,7 +665,7 @@ function vertex_event(element) {
     console.warn("Wrong target for event %0; select=“%1” in scope"
         .fmt(element.type, element.select()), element.watch.component.scope);
   }
-  if (!vertices.event.hasOwnProperty(element.type)) {
+  if (!vertices.hasOwnProperty(element.type)) {
     vertices[element.type] = bender.add_vertex(EventVertex.create(target,
           element.type));
   }
