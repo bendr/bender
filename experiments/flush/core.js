@@ -43,8 +43,8 @@ Object.defineProperty(Scope, "type", { value: "global", configurable: true });
 Object.defineProperty(Scope, "urls", { value: {} });
 
 
-// Base for Bender objects (element, component)
-var Base = bender.Base = {
+// Base for Bender nodes (element, component)
+bender.Node = {
   // Initialize a base object with no parent, an empty list of children, and an
   // empty list of instances.
   init: function () {
@@ -94,7 +94,7 @@ var Base = bender.Base = {
 
 
 // Component
-var Component = bender.Component = flexo._ext(Base, {
+var Component = bender.Component = flexo._ext(bender.Node, {
 
   // Initialize a new component. The scope should be either a global scope for a
   // Bender component, or a component scope for the parent of the component.
@@ -129,7 +129,7 @@ var Component = bender.Component = flexo._ext(Base, {
       this.parent.children.push(this);
     }
     this.__pending_finalize = true;
-    return Base.init.call(this);
+    return bender.Node.init.call(this);
   },
 
   // Create a concrete for an instance from the parent scope
@@ -166,7 +166,7 @@ var Component = bender.Component = flexo._ext(Base, {
 
   // Instantiate a component.
   instantiate: function (parent) {
-    var instance = Base.instantiate.call(this);
+    var instance = bender.Node.instantiate.call(this);
     var concrete_scope = this.create_concrete_scope(parent);
     instance.scope = Object.create(concrete_scope, {
       type: { value: "instance" },
@@ -347,7 +347,7 @@ flexo.make_readonly(Component, "prototype", function () {
 // elements and no other kind of node (see the Text element for instance, which
 // does have text content in addition to children; there is no equivalent of
 // document or document fragment, but there is the environment defined below.)
-var Element = bender.Element = flexo._ext(Base, {
+var Element = bender.Element = flexo._ext(bender.Node, {
 
   // Initialize an element from an arguments object (see create_element.) All
   // elements may have an id. Important: only additional initializations are
@@ -363,7 +363,7 @@ var Element = bender.Element = flexo._ext(Base, {
   // component descendant, and the scope is also updated when the element has an
   // id. The instance is attached to its new parent `parent`.
   instantiate: function (scope, parent) {
-    var instance = Base.instantiate.call(this);
+    var instance = bender.Node.instantiate.call(this);
     var id = this.id();
     if (id) {
       scope["@" + id] = instance;
@@ -542,9 +542,9 @@ bender.$text = function (text) {
 };
 
 
-var Value = bender.Value = {
+var Adaptor = bender.Adaptor = {
   init: flexo.self,
-  create: Base.create,
+  create: bender.Node.create,
 
   resolve_as: function () {
     var as = this.as();
@@ -599,15 +599,15 @@ var Value = bender.Value = {
 
 };
 
-flexo._accessor(Value, "select", normalize_select);
-flexo._accessor(Value, "as", normalize_as);
-flexo._accessor(Value, "delay", normalize_delay);
-flexo._accessor(Value, "match", flexo.funcify(true), true);
-flexo._accessor(Value, "value", flexo.snd, true);
+flexo._accessor(Adaptor, "select", normalize_select);
+flexo._accessor(Adaptor, "as", normalize_as);
+flexo._accessor(Adaptor, "delay", normalize_delay);
+flexo._accessor(Adaptor, "match", flexo.funcify(true), true);
+flexo._accessor(Adaptor, "value", flexo.snd, true);
 
 
-// Property definition
-var Property = bender.Property = flexo._ext(Value, {
+// Property definition: a named adaptor, keeping track of its bindings.
+var Property = bender.Property = flexo._ext(Adaptor, {
   init: function (name, component) {
     this.name = name;
     this.bindings = {};
@@ -621,7 +621,7 @@ flexo._accessor(Property, "select", function (select) {
 });
 
 
-var Get = bender.Get = flexo._ext(Value, {
+var Get = bender.Get = flexo._ext(Adaptor, {
   init: function (watch) {
     this.watch = watch;
     return this;
@@ -642,7 +642,7 @@ var GetEvent = bender.GetEvent = flexo._ext(Get, {
 var GetProperty = bender.GetProperty = flexo._ext(Get);
 
 
-bender.Set = flexo._ext(Value, {});
+bender.Set = flexo._ext(Adaptor, {});
 
 flexo._accessor(bender.Set, "property", flexo.safe_trim);
 
@@ -675,7 +675,7 @@ var Watch = bender.Watch = {
     return this;
   },
 
-  create: Base.create,
+  create: bender.Node.create,
 
   get: function (get) {
     this.gets.push(get);
@@ -698,7 +698,7 @@ var Link = bender.Link = {
     return this;
   },
 
-  create: Base.create,
+  create: bender.Node.create,
 
   load: function () {
     if (!this.component) {
@@ -728,7 +728,7 @@ var Inline = bender.Inline = {
     return this;
   },
 
-  create: Base.create
+  create: bender.Node.create
 };
 
 var Script = bender.Script = flexo._ext(Inline, {
@@ -756,7 +756,7 @@ var Style = bender.Style = Object.create(Inline);
 function convert_node(node) {
   return node.nodeType ? convert_dom_node(node) :
     typeof node === "string" ? Text.create().text(node) :
-    flexo.instance_of(node, Base) && node;
+    flexo.instance_of(node, bender.Node) && node;
 }
 
 // Create a properties object for a component, which maps property names to

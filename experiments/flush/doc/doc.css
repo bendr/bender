@@ -1,0 +1,33 @@
+body {
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
+  max-width: 48rem;
+  padding: 0 2rem;
+  margin: 2rem auto;
+}
+
+div.def > div {
+  border-top: solid medium black;
+  border-bottom: solid thin black;
+  padding: 1rem 0;
+  margin: 1rem 0;
+}
+
+pre, code {
+  font-family: Inconsolata, monospace;
+}
+
+pre {
+  background-color: #ffc;
+  margin: 0 1em;
+  padding: 0.5em 1em;
+}
+
+h1, h2, h3 {
+  font-weight: normal;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>The Bender Data Model (v0.9, February 2014)</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="doc.css">
+  </head>
+  <body>
+    <h1>The Bender Data Model</h1>
+    <p>Version 0.9, February 2014</p>
+
+    <h2>Introduction</h2>
+
+    <h2>Notation and preliminary definitions</h2>
+    <p>We use a loose notation to describe the data model of Bender in terms of
+    objects and prototype, following the Javascript model.</p>
+    <ul>
+      <li>The data model is defined in terms of <code>Object</code>s, which are
+      defined by their <em>properties</em>. A property has a name and a value,
+      which may be an <code>Object</code> or <em>data</em>: a string, a number,
+      a boolean, or the undefined value.</li>
+      <li><em>O</em> <code>&lt;</code> <em>P</em> means that the object
+      <em>O</em> is <em>created</em> from the object <em>P</em>. The
+      <code>prototype</code> of <em>O</em> is <em>P</em>. <em>O</em> inherits
+      all of the properties of <em>P</em>, along with their values. <em>O</em>
+      may have additional properties, and may override any property of
+      <em>P</em>.</li>
+      <li><code>?</code> means that the property may be undefined.</li>
+      <li><code>*</code> means a list of zero or more objects.</li>
+      <li><code>=</code> means that the object property on the left-hand side
+      has a default value, defined on the right-hand side.</li>
+    </ul>
+
+    <div class="def" id="Node">
+      <p>The basis of both Bender components and view elements is the tree
+      <code>Node</code>.</p>
+      <div>
+        <pre>Node &lt; Object:
+  Node?    parent
+  Node*    children
+  string?  id</pre>
+        <ul>
+          <li><code>parent</code> is the parent node, if any, of the node. If a
+          node has no parent, then it is the root of a tree.</li>
+          <li><code>children</code> is the ordered list of child nodes of the
+          node.</li>
+          <li><code>id</code> is an optional string identifier. The identifier
+          must be unique within a <em>scope</em>. The special value
+          <code>this</code> is reserved to point to the current component.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h2>Component</h2>
+
+    <div class="def" id="Component">
+      <p>The <code>Component</code> is the basic unit of functionality in
+      Bender. Component are defined in terms of other components, both through
+      <em>composition</em> (a component may contain child components) and
+      <em>derivation</em> (a derived component is created from another
+      component.)</li>
+      <div>
+        <pre>Component &lt; Node:
+  Component?  component-prototype
+  Scope       scope
+  Property*   property-definitions
+  data*       properties
+  View        view
+  Watch*      watches</pre>
+        <ul>
+          <li><code>component-prototype</code> is the <code>Component</code>
+          from which this component is derived, if any. If
+          <code>component-prototype</code> is defined, it is the same as
+          <code>prototype</code>.</li>
+          <li><code>scope</code> is the scope of the component and defines all
+          <code>Node</code> identifiers visible within the scope of this
+          component. The scope is shared with the scope of the parent component,
+          if any.</li>
+          <li><code>property-definitions</code> is the list of all property
+          definitions for this component. This includes the property definitions
+          of the prototype component, if any. Properties are indexed by their
+          name.</li>
+          <li><code>properties</code> is the list of all property values for a
+          component, indexed by their name.</li>
+          <li><code>view</code> is the root of the view tree of a
+          component.</li>
+          <li><code>watches</code> is the list of all <code>Watch</code>es of
+          the component. The order of watches is not relevant.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h2>Properties</h2>
+    <p>Properties are named values that are used to parametrize both the
+    appearance and behavior of a component. A property value may be any data:
+    undefined, boolean, number, string, or <code>Object</code>.</p>
+
+    <div class="def" id="Adaptor">
+      <p>An <code>Adaptor</code> filters and transforms an input value into an
+      output value, with an optional delay.</p>
+      <div>
+        <pre>Adaptor &lt; Object:
+  string    select = "@this"
+  Function  value = λx.x
+  Function  match = λx.true
+  number?   delay</pre>
+        <ul>
+          <li><code>select</code> indicates which component the adaptor applies
+          to. See <code>Scope</code> below.</li>
+          <li><code>value</code> transforms any input value into any output
+          value. The default is the identity function which returns its
+          input.</li>
+          <li><code>match</code> is a predicate that takes any input value and
+          returns a boolean value that is true if and only if the input is
+          valid. When an input is not acceptable, no value is output by the
+          adaptor. The default is a function that returns true for any input,
+          <em>i.e.</em>, any input is valid.</li>
+          <li><code>delay</code> is the delay before the output value is
+          returned. When <code>delay</code> is undefined, there is no delay, and
+          the output value is returned immediately. When the delay is 0, then
+          the output value is returned as soon as possible, but asynchronously.
+          When the delay is number larger than 0, then this is the delay in
+          milliseconds before which the output value is returned.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="Property">
+      <p>A <code>Property</code> is the <em>definition</em> of a property of a
+      Bender component.</p>
+      <div>
+        <pre>Property &lt; Adaptor:
+  Component  component
+  string     name</pre>
+      </div>
+      <ul>
+        <li><code>component</code> points back to the component that this is a
+        property of.</li>
+        <li><code>select</code> has only two legal values for a
+        <code>Property</code>: <code>@this</code> (which remains the default
+        value, giving the property dynamic scope), or <code>#this</code>
+        (giving the property lexical scope.)</li>
+        <li><code>name</code> is the name of the property. In that sense, a
+        property definition is simply a named adaptor belonging to a
+        component.</li>
+      </ul>
+    </div>
+
+
+    <h2>View and elements</h2>
+
+    <p>The view of a component describes its contents as a tree of
+    <code>Element</code>s. These elements describe how a component is
+    rendered and which other components it interacts with.</p>
+
+    <div class="def" id="Element">
+      <p><code>Element</code>s are <code>Node</code>s describing the view of a
+      <code>Component</code>.
+      <div>
+        <pre>Element &lt; Node:
+  Component  component</pre>
+        <ul>
+          <li><code>component</code> is the <code>Component</code> that the
+          element is in the view of. Except for <code>View</code>, this is the
+          <code>component</code> of the closest <code>View</code> ancestor
+          element.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="View">
+      <p>The <code>View</code> element is a container for the view of a
+      component.</p>
+      <div>
+        <pre>View &lt; Element</pre>
+        <ul>
+          <li><code>component</code> is the <code>Component</code> <em>C</em>
+          such that <code>C.view</code> is this element.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="Content">
+      <p>The <code>Content</code> element is a container for the view of an
+      optional derived component. The children of a <code>Content</code> element
+      are default contents for the element.</p>
+      <div>
+        <pre>Content &lt; Element</pre>
+      </div>
+    </div>
+
+    <div class="def" id="DOMElement">
+      <p>The <code>DOMElement</code> element represents a foreign element. Its
+      properties map to properties of DOM elements.</p>
+      <div>
+        <pre>DOMElement &lt; Element
+  string  ns
+  string  name
+  data*   attrs</pre>
+        <ul>
+          <li><code>ns</code> is the namespace URI of the DOM element.</li>
+          <li><code>name</code> is the local name of the DOM element.</li>
+          <li><code>attrs</code> is a list of attribute values of the DOM
+          element, indexed by the attribute name.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="Text">
+      <p>The <code>Text</code> element represents a text node, similarly to a
+      DOM text node. A <code>Text</code> element should not have children.</p>
+      <div>
+        <pre>Text &lt; Element
+  string  text</pre>
+        <ul>
+          <li><code>text</code> is the text content of the element.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="Attribute">
+      <p>The <code>Attribute</code> element represents an attribute of its
+      parent element. The value of the attribute is defined by its children,
+      which should only be Text elements.</p>
+      <div>
+        <pre>Attribute &lt; Element
+  string  ns
+  string  name</pre>
+        <ul>
+          <li><code>ns</code> is the namespace URI of the attribute.</li>
+          <li><code>name</code> is the local name of the attribute.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h2>Watches</h2>
+    <p>Watches describe the behavior of a component. A watch generalizes the
+    concept of the event listener by allowing components to listen to events
+    from rendered elements (<em>e.g.</em>, DOM events), event notifications
+    from components, and property changes from components; and associating these
+    observations with corresponding actions, such as generating new event
+    notifications, setting new values for properties, or mutating a
+    component.</p>
+
+    <h3>Watch</h3>
+
+    <div class="def" id="Watch">
+      <p>A <code>Watch</code> has <em>inputs</em> (incoming event notifications
+      or property changes) and <em>outputs</em> (outgoing event notifications,
+      property changes, or mutations.)</p>
+      <div>
+        <pre>Watch &lt; Object:
+  Component  component
+  Get*       gets
+  Set*       sets</pre>
+        <ul>
+          <li><code>component</code> is the parent <code>Component</code> of
+          the watch.</li>
+          <li><code>gets</code> is the unordered list of <code>Get</code>s
+          (inputs) of the watch.</li>
+          <li><code>sets</code> is the unordered list of <code>Set</code>s
+          (outputs) of the watch.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h3>Get</h3>
+
+    <div class="def" id="Get">
+      <p>A <code>Get</code> is a watch input. There are two different types of
+      input: a <em>property input</em>, or an <em>event input</em>.</p>
+      <div>
+        <pre>Get &lt; Adaptor:
+  Watch  watch</pre>
+        <ul>
+          <li><code>watch</code> is the parent <code>Watch</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="GetProperty">
+      <p>A <code>GetProperty</code> is a property input.</p>
+      <div>
+        <pre>GetProperty &lt; Get:
+  string  name</pre>
+        <ul>
+          <li><code>name</code> is the name of the <code>Property</code> that is
+          monitored. It should be defined for the component designated by the
+          <code>select</code> property.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="GetEvent">
+      <div>
+        <pre>GetEvent &lt; Get:
+  string  type</pre>
+        <ul>
+          <li><code>type</code> is the type of the event that is being listened
+          to.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Set</h3>
+
+    <div class="def" id="Set">
+      <p>A <code>Set</code> is a watch output. There are four different types
+      of output: a plain output, a property output, an attribute output, or an
+      event output.</p>
+      <div>
+        <pre>Set &lt; Adaptor:
+  Watch  watch</pre>
+        <ul>
+          <li><code>watch</code> is the parent <code>Watch</code>.</li>
+          <li>This is a <em>plain</em> output and is used for side effects
+          only, such as mutating the contents of a component.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="SetProperty">
+      <p>A <code>SetProperty</code> is a property output.</p>
+      <div>
+        <pre>SetProperty &lt; Set:
+  string  name</pre>
+        <ul>
+          <li><code>name</code> is the name of the property to be set. Note that
+          “property” here means something different depending on the target
+          designated by <code>select</code>:
+          <ul>
+            <li>if the target is a <code>DOMElement</code>, then the property is
+            a DOM property (<em>e.g.</em>, <code>value</code> for an HTML text
+            input element);</li>
+            <li>if the target is a <code>Text</code> element, then the only
+            valid value for <code>name</code> is <code>text</code>, in which
+            case the text of the element is set;</li>
+            <li>if the target is a <code>Component</code>, then the property is
+            <code>Property</code> of the component.</li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="SetAttribute">
+      <p>A <code>SetAttribute</code> is an attribute output.</p>
+      <div>
+        <pre>SetAttribute &lt; Set:
+  string?  ns
+  string   name</pre>
+        <ul>
+          <li><code>select</code> should designate a
+          <code>DOMElement</code>.</li>
+          <li><code>ns</code> is the namespace URI of the attribute to
+          set.</li>
+          <li><code>name</code> is the local name of the attribute to set.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="SetEvent">
+      <p>A <code>SetEvent</code> is an event output.</p>
+      <div>
+        <pre>SetEvent &lt; Set:
+  string  type</pre>
+        <ul>
+          <li><code>type</code> is the type of the event to generate. If
+          <code>select</code> points to a <code>DOMElement</code>, then a DOM
+          event is synthesized. Otherwise, a Bender event notification is
+          generated.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h2>Scope</h2>
+    <p>A scope is an object mapping select expressions (<em>i.e.</em>, possible
+    values of the <code>select</code> property of <code>Adaptor</code>s) to
+    <code>Node</code>s.</p>
+
+    <p>TODO: finish scopes and instances.</p>
+
+
+  </body>
+</html>

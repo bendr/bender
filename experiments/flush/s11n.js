@@ -1,6 +1,6 @@
-/* global Attribute, bender, Component, console, Content, DOMElement, flexo,
-   GetEvent, GetProperty, Property, SetAttribute, SetEvent, SetProperty, Text,
-   Value, View, Watch, window */
+/* global Adaptor, Attribute, bender, Component, console, Content, DOMElement,
+   flexo, GetEvent, GetProperty, Property, SetAttribute, SetEvent, SetProperty,
+   Text, View, Watch, window */
 // jshint -W097
 
 "use strict";
@@ -293,7 +293,7 @@ function deserialize_foreign(scope, elem) {
 
 
 // Set match from a string, parsing it.
-Value.match_string = function (string) {
+Adaptor.match_string = function (string) {
   if (arguments.length === 0) {
     return this._match_string || "";
   }
@@ -308,7 +308,7 @@ Value.match_string = function (string) {
 };
 
 // Set value from a string, parsing it.
-Value.value_string = function (string, needs_return) {
+Adaptor.value_string = function (string, needs_return) {
   if (arguments.length === 0) {
     return this._value_string || "";
   }

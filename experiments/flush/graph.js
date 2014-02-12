@@ -373,7 +373,7 @@ var Vertex = bender.Vertex = {
     return this;
   },
 
-  create: Base.create,
+  create: bender.Node.create,
 
   // Add an incoming edge to the vertex, setting the destination of the edge at
   // the same time.
@@ -459,7 +459,7 @@ var Edge = bender.Edge = {
     return this;
   },
 
-  create: Base.create,
+  create: bender.Node.create,
 
   // Make a copy of this edge to be added to a new source vertex (the source
   // will be rewritten once the cloned edge is added to its new source.)
