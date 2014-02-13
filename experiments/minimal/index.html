@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender a minima</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+    </style>
+    <script src="flexo.js"></script>
+    <script src="bender.js"></script>
+  </head>
+  <body>
+    <script>
+"use strict";
+
+var c = Object.create(bender.Component).init().id("foo");
+var d = Object.create(bender.Component).init().id("bar"); 
+c.add_child(d);
+
+    </script>
+  </body>
+</html>
+
+
