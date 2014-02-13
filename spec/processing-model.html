@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>The Bender Processing Model (v0.9, February 2014)</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="doc.css">
+  </head>
+  <body>
+    <h1>The Bender Processing Model</h1>
+    <p>Version 0.9, February 2014</p>
+    <p>See also <a href="data-model.html">the Bender Data Model</a> for
+    reference.</p>
+
+
+    <h2>Sketch of the processing model</h2>
+    <p>An application is run by rendering its top-level component <em>A</em>
+    into a target HTML element <em>T</em>. Its properties are then initialized
+    and a <code>ready</code> event notification is sent. The watch graph is then
+    running and user interactions are handled.</p>
+    <ol>
+      <li>Render the watch graph of a <em>A</em>:
+      <ol>
+        <li>Render the watch graph of the prototype of A, if it exists and
+        its watch graph has not been rendered yet.</li>
+        <li><span class="TODO">Inherit and redirect edges.</span></li>
+        <li>For every <code>Watch</code>:
+        <ol>
+          <li>Create a new watch vertex <em>W</em>.</li>
+          <li>For every <code>Get</code> <em>G</em>:
+          <ol>
+            <li>Get or create the property or event vertex <code>V</code>
+            corresponding to the input property or event and the target of
+            <em>G</em>.</li>
+            <li>Add a new <code>WatchEdge</code> <em>E<sub>G</sub></em> from
+            <em>V</em> to <em>W</em>.</li>
+          </ol>
+          </li>
+          <li>For every <code>Set</code> <em>S</em>:
+          <ol>
+            <li>Get or create the destination vertex <code>V</code>
+            corresponding to the output target and property or event. This may
+            be a <code>PropertyVertex</code>, an <code>EventVertex</code> or the
+            <code>Vortex</code>.</li>
+            <li>Add a new <code>SetEdge</code> <em>E<sub>S</sub></em> of the
+            appropriate type for <em>W</em> to <em>V</em>.</li>
+          </ol>
+          </li>
+        </ol>
+        </li>
+        <li>Render the watch graph of the child components of <em>A</em>.</li>
+      </ol>
+      </li>
+      <li>Render the view stack of <em>A</em>:
+      <ol>
+        <li>Build the view stack of <em>A</em>, which is defined by its view on
+        top of the view stack of its prototype’s view stack.</li>
+        <li>Render the bottom-most view of <em>V</em> of the stack. The
+        rendering of a Bender element in a target DOM element <em>T</em> is
+        defined as follows:
+        <ul>
+          <li>A <code>View</code> element is rendered by rendering its child
+          elements in <em>T</em>. <span class="TODO">New view
+            stack for child components.</span></li>
+          <li>A <code>Content</code> element is rendered by rendering the next
+          non-empty view in the view stack, or its own child elements if there
+          is no such view (default content), in <em>T</em>.</li>
+          <li>A <code>DOMElement</code> is rendered by adding a new DOM
+          element <code>U</code> to <code>T</code> with the given namespace URI,
+          local name and attributes, then rendering its child elements in
+          <code>U</code>.</li>
+          <li>An <code>Attribute</code> element is rendered by setting a
+          property on <code>T</code> with the given namespace URI and local name
+          and the text value of the element.</li>
+          <li>A <code>Text</code> element is rendered by adding a new DOM
+          text node to <code>T</code> with the text value of the element.</li>
+        </ul>
+        </li>
+      </ol>
+      </li>
+      <li><span class="TODO">Add event listeners</span></li>
+      <li><span class="TODO">Property initialization</span></li>
+      <li><span class="TODO">Ready event notification</span></li>
+    </ol>
+
+    <h2>Rendering to HTML</h2>
+    <p><span class="TODO">TODO</span></p>
+
+    <p>A component is rendered to HTML by creating its <em>view stack</em> and
+    rendering that stack into a HTML document.</p>
+
+
+    <h2>Scoping</h2>
+    <p><span class="TODO">TODO</span></p>
+
+    <p>Bender nodes (components and view elements) can all have an ID. IDs are
+    visible, and must be unique, within a <em>scope</em>. Bender defines a
+    <em>component scope</em>, introduced by a top-level component, and including
+    all descendant components, <em>i.e.</em>, spanning the whole component
+    tree.</p>
+
+
+    <h2>Watch Graph Traversal</h2>
+    <p><span class="TODO">TODO</span></p>
+
+  </body>
+</html>

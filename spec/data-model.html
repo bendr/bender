@@ -3,7 +3,44 @@
   <head>
     <title>The Bender Data Model (v0.9, February 2014)</title>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="doc.css">
+    <style>
+body {
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
+  max-width: 48rem;
+  padding: 0 2rem;
+  margin: 2rem auto;
+}
+
+div.def > div {
+  border-top: solid medium black;
+  border-bottom: solid thin black;
+  padding: 1rem 0;
+  margin: 1rem 0;
+}
+
+pre, code {
+  font-family: Inconsolata, monospace;
+}
+
+pre {
+  background-color: #ffc;
+  margin: 0 1em;
+  padding: 0.5em 1em;
+}
+
+h1, h2, h3 {
+  font-weight: normal;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+
+.TODO {
+  background-color: yellow;
+}
+    </style>
   </head>
   <body>
     <h1>The Bender Data Model</h1>
@@ -67,7 +104,9 @@
       Bender. Component are defined in terms of other components, both through
       <em>composition</em> (a component may contain child components) and
       <em>derivation</em> (a derived component is created from another
-      component.)</li>
+      component.)</p>
+      <p>A <em>top-level component</em> is a component that has no
+      <code>parent</code>, <em>i.e.</em>, the root of a component tree.</p>
       <div>
         <pre>Component &lt; Node:
   Component?  prototype
@@ -77,7 +116,9 @@
   Watch*      watches</pre>
         <ul>
           <li><code>prototype</code> is the <code>Component</code>
-          from which this component is derived, if any.</li>
+          from which this component is derived, if any. The prototype may not
+          be a component in the same component tree, nor can there be any cycle
+          in the chain of components.</li>
           <li><code>property-definitions</code> is the list of all property
           definitions for this component. This includes the property definitions
           of the prototype component, or no property by default. Properties are
@@ -104,7 +145,7 @@
       output value, with an optional delay.</p>
       <div>
         <pre>Adaptor &lt; Object:
-  string    select = "@this"
+  string    select = <span class="TODO">"@this"</span>
   Function  value = λx.x
   Function  match = λx.true
   number?   delay</pre>
@@ -146,9 +187,10 @@
         <li><code>name</code> is the name of the property. In that sense, a
         property definition is simply a named adaptor belonging to a
         component.</li>
-        <li><strong>Note</strong>: the <code>select</code> property, inherited
-        from <code>Adaptor</code>, has only two legal values for
-        <code>Property</code>; <code>@this</code>, and <code>#this</code>.</li>
+        <li><span class="TODO"><strong>Note</strong>: the <code>select</code>
+          property, inherited from <code>Adaptor</code>, has only two legal
+          values for <code>Property</code>; <code>@this</code>,
+          and <code>#this</code>.</span></li>
       </ul>
     </div>
 
@@ -401,5 +443,63 @@
         </ul>
       </div>
     </div>
+
+    <h2>Two example components</h2>
+    <p><span class="TODO">Describe the data model for these two
+      components.</span></p>
+
+    <div class="def" id="Button">
+      <p>An HTML button component with a <code>label</code> string property. The
+      value of the label property is displayed as the label of the button. The
+      button is rendered as an HTML <code>div</code> element. When this element
+      receives a mouse <code>click</code> DOM event, the button sends a
+      <code>pushed</code> notification.</p>
+      <div>
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="button"&gt;
+  &lt;property name="label" value="Label"&gt;
+  &lt;view html:href="http://www.w3.org/1999/xhtml"&gt;
+    &lt;html:div id="frame"&gt;
+      &lt;content&gt;
+        &lt;text id="text-label"/&gt;
+      &lt;/content&gt;
+    &lt;/html:div&gt;
+  &lt;/view&gt;
+  &lt;watch&gt;
+    &lt;get property="label"/&gt;
+    &lt;set select="@text-label"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt;
+    &lt;get select="@frame" event="click"/&gt;
+    &lt;set event="pushed"/&gt;
+  &lt;/watch&gt;
+&lt;/component&gt;</pre>
+      </div>
+    </div>
+
+    <div class="def" id="Panel">
+      <p>A panel component, using three <code>Button</code>s as defined
+      above.</p>
+      <div>
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="panel"&gt;
+  &lt;view html:href="http://www.w3.org/1999/xhtml"&gt;
+    &lt;html:div&gt;
+      &lt;component href="button.xml" id="ok-button"/&gt;
+      &lt;component href="button.xml" id="retry-button" label="retry"/&gt;
+      &lt;component href="button.xml" id="cancel-button"&gt;
+        &lt;view&gt;
+          &lt;html:span style="color: red"&gt;Cancel&lt;/html:span&gt;
+        &lt;/view&gt;
+      &lt;/component&gt;
+    &lt;/html:div&gt;
+  &lt;/view&gt;
+  &lt;watch&gt;
+    &lt;get select="@ok-button" event="pushed"/&gt;
+    ...
+  &lt;/watch&gt;
+  ...
+&lt;/component&gt;</pre>
+      </div>
+    </div>
+
   </body>
 </html>
