@@ -3,44 +3,7 @@
   <head>
     <title>The Bender Data Model (v0.9, February 2014)</title>
     <meta charset="UTF-8">
-    <style>
-body {
-  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
-  max-width: 48rem;
-  padding: 0 2rem;
-  margin: 2rem auto;
-}
-
-div.def > div {
-  border-top: solid medium black;
-  border-bottom: solid thin black;
-  padding: 1rem 0;
-  margin: 1rem 0;
-}
-
-pre, code {
-  font-family: Inconsolata, monospace;
-}
-
-pre {
-  background-color: #ffc;
-  margin: 0 1em;
-  padding: 0.5em 1em;
-}
-
-h1, h2, h3 {
-  font-weight: normal;
-}
-
-a {
-  text-decoration: none;
-  color: #ff4040;
-}
-
-.TODO {
-  background-color: yellow;
-}
-    </style>
+    <link rel="stylesheet" href="doc.css">
   </head>
   <body>
     <h1>The Bender Data Model</h1>
@@ -58,7 +21,7 @@ a {
       <code>data</code>: a boolean, a number, a string, a number, an
       <code>Object</code>, or the undefined value.</li>
       <li>A <em>Function</em> is a callable <code>Object</code>. We use lambda
-      notation for functions.</li>
+      notation for anonymous functions.</li>
       <li><em>O</em> <code>&lt;</code> <em>P</em> means that the object
       <em>O</em> is <em>created</em> from the object <em>P</em>. <em>O</em>
       inherits all of the properties of <em>P</em>, along with their values.
@@ -66,8 +29,15 @@ a {
       of <em>P</em>.</li>
       <li><code>?</code> means that the property may be undefined.</li>
       <li><code>*</code> means a list of zero or more objects.</li>
+      <li><code>+</code> means a list of one or more objects.</li>
       <li><code>=</code> means that the object property on the left-hand side
       has a default value, defined on the right-hand side.</li>
+      <li><code>[]</code> means an empty list.</li>
+      <li><code>"..."</code> means a string (which can be considered as a list
+      of characters.)</li>
+      <li><em>L</em> <code>:</code> <em>x</em> means appending <em>x</em> to the
+      list <em>L</em>.</li>
+      <li><code>::</code> is the concatenation of two lists.</li>
     </ul>
 
 
@@ -106,7 +76,9 @@ a {
       <em>derivation</em> (a derived component is created from another
       component.)</p>
       <p>A <em>top-level component</em> is a component that has no
-      <code>parent</code>, <em>i.e.</em>, the root of a component tree.</p>
+      <code>parent</code>, <em>i.e.</em>, the root of a component tree. There is
+      no specific “application” type in Bender; an application is just a
+      top-level component.</p>
       <div>
         <pre>Component &lt; Node:
   Component?  prototype
@@ -146,8 +118,8 @@ a {
       <div>
         <pre>Adaptor &lt; Object:
   string    select = <span class="TODO">"@this"</span>
-  Function  value = λx.x
-  Function  match = λx.true
+  Function  value = λx x
+  Function  match = λx true
   number?   delay</pre>
         <ul>
           <li><code>select</code> indicates which component this adaptor applies
@@ -457,7 +429,7 @@ a {
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="button"&gt;
   &lt;property name="label" value="Label"&gt;
-  &lt;view html:href="http://www.w3.org/1999/xhtml"&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div id="frame"&gt;
       &lt;content&gt;
         &lt;text id="text-label"/&gt;
@@ -481,7 +453,7 @@ a {
       above.</p>
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="panel"&gt;
-  &lt;view html:href="http://www.w3.org/1999/xhtml"&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div&gt;
       &lt;component href="button.xml" id="ok-button"/&gt;
       &lt;component href="button.xml" id="retry-button" label="retry"/&gt;

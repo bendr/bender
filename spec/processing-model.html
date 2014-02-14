@@ -13,36 +13,33 @@
 
 
     <h2>Sketch of the processing model</h2>
-    <p>An application is run by rendering its top-level component <em>A</em>
-    into a target HTML element <em>T</em>. Its properties are then initialized
-    and a <code>ready</code> event notification is sent. The watch graph is then
-    running and user interactions are handled.</p>
+    <p>An application defined by a <code>Component</code> <em>A</em> is run by
+    rendering <em>A</em> into a target HTML element <em>T</em>. Its properties
+    are then initialized and a <code>ready</code> event notification is sent.
+    The watch graph is then running and user interactions are handled.</p>
     <ol>
-      <li>Render the watch graph of a <em>A</em>:
+      <li>Render the <a href="#Graph">watch graph</a> of a <em>A</em>:
       <ol>
-        <li>Render the watch graph of the prototype of A, if it exists and
-        its watch graph has not been rendered yet.</li>
-        <li><span class="TODO">Inherit and redirect edges.</span></li>
+        <li>Render the watch graph of the prototype of A, if it exists and its
+        watch graph has not been rendered yet.</li>
         <li>For every <code>Watch</code>:
         <ol>
           <li>Create a new watch vertex <em>W</em>.</li>
           <li>For every <code>Get</code> <em>G</em>:
           <ol>
-            <li>Get or create the property or event vertex <code>V</code>
-            corresponding to the input property or event and the target of
-            <em>G</em>.</li>
-            <li>Add a new <code>WatchEdge</code> <em>E<sub>G</sub></em> from
-            <em>V</em> to <em>W</em>.</li>
+            <li>Get or create the adapter vertex <code>V</code> corresponding
+            to the input property or event and the target of <em>G</em>.</li>
+            <li>Add a new <code>Edge</code> from <em>V</em> to <em>W</em>.</li>
           </ol>
           </li>
           <li>For every <code>Set</code> <em>S</em>:
           <ol>
             <li>Get or create the destination vertex <code>V</code>
             corresponding to the output target and property or event. This may
-            be a <code>PropertyVertex</code>, an <code>EventVertex</code> or the
-            <code>Vortex</code>.</li>
-            <li>Add a new <code>SetEdge</code> <em>E<sub>S</sub></em> of the
-            appropriate type for <em>W</em> to <em>V</em>.</li>
+            be an <code>AdapterVertex</code>, or the <code>Vortex</code> (sink
+            state of the graph.)</li>
+            <li>Add a new <code>SetEdge</code> from <em>W</em> to
+            <em>V</em>.</li>
           </ol>
           </li>
         </ol>
@@ -52,15 +49,15 @@
       </li>
       <li>Render the view stack of <em>A</em>:
       <ol>
-        <li>Build the view stack of <em>A</em>, which is defined by its view on
-        top of the view stack of its prototype’s view stack.</li>
+        <li>Build the <a href="#view-stack">view stack</a> of <em>A</em>.</li>
         <li>Render the bottom-most view of <em>V</em> of the stack. The
         rendering of a Bender element in a target DOM element <em>T</em> is
         defined as follows:
         <ul>
           <li>A <code>View</code> element is rendered by rendering its child
-          elements in <em>T</em>. <span class="TODO">New view
-            stack for child components.</span></li>
+          elements in <em>T</em>, if it is the view of a top-level component.
+          If it is the view of a child component, a new view stack is created
+          and rendered in <em>T</em>.</li>
           <li>A <code>Content</code> element is rendered by rendering the next
           non-empty view in the view stack, or its own child elements if there
           is no such view (default content), in <em>T</em>.</li>
@@ -82,11 +79,229 @@
       <li><span class="TODO">Ready event notification</span></li>
     </ol>
 
-    <h2>Rendering to HTML</h2>
-    <p><span class="TODO">TODO</span></p>
+    <h2>Rendering the Watch Graph</h2>
+    <p>The <em>watch graph</em> is a graph of that is built to manage the flow
+    of events and property changes in a Bender application.</p>
 
+    <div class="def" id="Graph">
+      <p>The <code>Graph</code> is defined as a set of directed <em>edges</em>
+      between <em>vertices</em>. Edges are kept sorted using topological sort,
+      which normally means the graph should be acyclic. However, under certain
+      conditions discussed below, cycles can be tolerated.</p>
+      <div>
+        <pre>Graph &lt; Object:
+  Vertex+  vertices
+  Vertex   vortex
+  Edges*   edges</pre>
+        <ul>
+          <li><code>vertices</code> is the unordered list of vertices.</li>
+          <li><code>vortex</code> is a <em>sink state</em> of the graph. It
+          has no outgoing edge and is a member of <code>vertices</code>.</li>
+          <li><code>edges</code> is the ordered list of edges.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h3>Graph Vertices</h3>
+
+    <div class="def" id="Vertex">
+      <p>A <code>Vertex</code> in the <code>Graph</code>.</p>
+      <div>
+        <pre>Vertex &lt; Object:
+  Edge*  incoming
+  Edge*  outgoing</pre>
+        <ul>
+          <li><code>incoming</code> is the unordered list of incoming
+          <code>Edge</code>s, <em>i.e.</em> edges that have this vertex as
+          destination.</li>
+          <li><code>outgoing</code> is the unordered list of outgoing
+          <code>Edge</code>s, <em>i.e.</em> edges that have this vertex as
+          source.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="WatchVertex">
+      <p>A <code>WatchVertex</code> is a vertex representing a
+      <code>Watch</code> of a <code>Component</code>.</p>
+      <div>
+        <pre>WatchVertex &lt; Vertex
+  Watch  watch</pre>
+        <ul>
+          <li><code>watch</code> is the <code>Watch</code> for this vertex.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="AdaptorVertex">
+      <p>An <code>AdaptorVertex</code> is a vertex representing a
+      <code>Get</code> or <code>Set</code> in a <code>Watch</code>.</p>
+      <div>
+        <pre>AdaptorVertex &lt; Vertex
+  Adaptor  adaptor</pre>
+        <ul>
+          <li><code>adaptor</code> is the <code>Get</code> or <code>Set</code>
+          for this vertex.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h3>Graph Edges</h3>
+
+    <div class="def" id="Edge">
+      <p>An <code>Edge</code> is a directed transition from a <em>source</em> to
+      a <em>destination</em> vertex.</p>
+      <div>
+        <pre>Edge &lt; Object:
+  Vertex  source
+  Vertex  dest</pre>
+        <ul>
+          <li><code>source</code> is the source vertex of the edge.</li>
+          <li><code>dest</code> is the destination vertex of the edge.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="AdapterEdge">
+      <p>An <code>AdapterEdge</code> is an edge rendered from a <code>Get</code>
+      or <code>Set</code>.</p>
+      <div>
+        <pre>AdapterEdge &lt; Object:
+  Adapter  adapter</pre>
+        <ul>
+          <li><code>adapter</code> is the <code>Get</code> or <code>Set</code>
+          for this edge.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Rendering the Watch Graph of a Component</h3>
+
+    <p>The <code>Graph</code> of a <code>Component</code> is rendered by
+    rendering the <code>Graph</code> of the prototype, if any; then rendering
+    vertices and edges for every <code>Watch</code>; and finally rendering the
+    <code>Graph</code> of the child components. The component is marked as
+    being rendered so that its watch gets rendered only once. This is necessary
+    since a prototype component may be shared by several components.</p>
+    <pre class="code">render-graph(Component C) =
+  do mark C
+    if defined? C.prototype and not marked? C.prototype
+      then render-graph(C.prototype)
+    for W in C.Watches
+      render-watch(W)
+    for C’ in C.children
+      render-graph(C’)</pre>
+
+    <p>The sub-graph for a watch is created by creating a new vertex, then an
+    <code>AdaptorEdge</code> to that vertex for each <code>Get</code> of the
+    watch, and an <code>AdaptorEdge</code> from that vertex for each
+    <code>Set</code> of the watch.</p>
+    <pre class="code">render-watch(Watch W) =
+  let V = create(Vertex) in
+    do for G in W.gets
+         let U = render-get(G) in
+           add-edge(create(AdapterEdge, U, V, G))
+       for S in W.sets
+         let W = render-set(S) in
+           add-edge(create(AdapterEdge, V, W, S))</pre>
+                        
+
+    <h2>Rendering to HTML</h2>
     <p>A component is rendered to HTML by creating its <em>view stack</em> and
-    rendering that stack into a HTML document.</p>
+    rendering that stack into a HTML element, such as a <code>div</code>, the
+    <code>body</code> of a document, or an <code>iframe</code>.</p>
+
+    <pre class="code">render-component(Component C, DOM element T) = render-view-stack(view-stack(C), T)</pre>
+
+    <h3 id="view-stack">The View Stack</h3>
+    <p>The <em>view stack</em> of a component is the stack of the views of the
+    component, its prototype, its prototype’s view, and so on. The views along
+    the prototype chain are actually new views created from the original views
+    so that a component may modify its version of a view in the view stack
+    without affecting other components derived from the same prototype. For a
+    <code>Component</code> <em>C</em>, the bottom-most view in the stack
+    (<em>i.e.</em>, the first element in the list of views returned by
+    <code>view-stack(C)</code>) is a view of the furthest prototype, while the
+    last element in the list is the view of <em>C</em>. Because components
+    always have a view but may not have a prototype, the view stack has a length
+    of 1 or more.</p>
+
+    <pre class="code">view-stack(Component C) -&gt; View+ = prototype-view-stack(C) : C.view
+view-stack’(Component C) -&gt; View+ = prototype-view-stack(C) : create(C.view)
+prototype-view-stack(Component C) -&gt; View+ =
+  if defined? C.prototype
+    then view-stack’(C.prototype)
+    else []</pre>
+
+    <h3>Rendering Elements in a View Stack</h3>
+
+    <p>Rendering a view stack <em>S</em> in a target DOM element <em>T</em> is
+    simply rendering the bottom-most view in the stack.</p>
+    <pre class="code">render-view-stack(View+ S, DOM element T) = render-element(S, 0, S<sub>0</sub>, T)</pre>
+
+    <p>Rendering an element <em>E</em> from the view at index <em>I</em> in the
+    view stack <em>S</em> in a target DOM element <em>T</em> depends on the type
+    of the element to render.</p>
+    <em>S</em> and index of the current view in the stack that is being rendered
+    <pre>render-element    = λS,I,E,T case E of
+                               View = render-view(S, I, E, T)
+                               Content = render-content(S, I, E, T)
+                               DOMElement = render-dom(S, I, E, T)
+                               Attribute = render-attribute(E, T)
+                               Text = render-text(E, T)</pre>
+
+    <p>Rendering a <code>View</code> element depends on whether the view is a
+    member of the view stack, <em>i.e.</em>, the view of the component or of a
+    prototype; or the view of a child component. In the former case, the
+    child elements of the view are rendered in the target element. In the latter
+    case, <span class="TODO">render a copy of the component?</span></p>
+    <pre>render-view       = λS,I,E,T if View == S<sub>I</sub>
+                               then render-children(S, I, E, T)
+                               else <span class="TODO">render-component(E.component, T)</span>
+render-children   = λS,I,E,T for C in E.children:
+                               render-element(S, I, C, T)</pre>
+
+    <p>Rendering a <code>Content</code> element depends on the view stack. If
+    there is a non-empty <code>View</code> (with at least on child) above the
+    current <code>View</code> in the stack, then render that view. If no such
+    view exists, then render the children of the element as the default
+    content.</p>
+    <pre>render-content    = λS,I,E,T let J = next-view-index(S, I + 1) in
+                               if J &lt; length S
+                                 then render-view(S, J, S<sub>J</sub>, T)
+                                 else render-children(S, I, E, T)
+next-view-index   = λS,I if I &lt; length S
+                           then if length S<sub>I</sub>.children == 0
+                                  then next-view-index(S, I + 1)
+                                  else I
+                           else I</pre>
+
+    <p>Rendering a <code>DOMElement</code> <em>E</em> is simply adding a new
+    DOM element <em>N</em> to <em>T</em>, then rendering the children of
+    <em>E</em> in <em>N</em>.</p>
+    <pre>render-dom        = λS,I,E,T let N = new DOM element node in
+                               N.namespace-uri = E.ns
+                               N.local-name = E.name
+                               N.attributes = E.attrs
+                               render-children(S, I, E, N)
+                               append-child(T, E)</pre>
+
+    <p>Rendering an <code>Attribute</code> <em>A</em> is simply setting an
+    attribute on the target element with the value resulting from the
+    concatenation of the text value of the child elements of <em>A</em>.</p>
+    <pre>render-attribute  = λE,T set-attribute-ns(T, E.ns, E.name,
+                           fold(E.children, "",
+                                λZ,C Z :: (case C of
+                                             Text = C.text,
+                                             otherwise = "")))</pre>
+
+    <p>Rendering a <code>Text</code> <em>E</em> element is simply adding a new
+    text node to <em>T</em> with the text content of <em>E</em>.</p>
+    <pre>render-text       = λE,T let N = new DOM text node in
+                           N.text-content = E.text
+                           append-child(T, N)</pre>
 
 
     <h2>Scoping</h2>

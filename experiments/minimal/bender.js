@@ -17,7 +17,15 @@ bender.VERSION = "0.9.m";
 bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 
-bender.Node = {
+bender.Base = {
+  create: function () {
+    var c = Object.create(this);
+    return c.init.apply(c, arguments);
+  }
+};
+
+
+bender.Node = flexo._ext(bender.Base, {
   init: function () {
     this.children = [];
     return this;
@@ -59,7 +67,7 @@ bender.Node = {
     child.parent = this;
     return child;
   }
-};
+});
 
 
 bender.Component = flexo._ext(bender.Node, {
@@ -72,6 +80,7 @@ bender.Component = flexo._ext(bender.Node, {
       value: this });
     this.watches = [];
     this.set_scope({});
+    this.rendered_graph = false;
     return bender.Node.init.call(this);
   },
 
@@ -109,17 +118,30 @@ bender.Component = flexo._ext(bender.Node, {
     return watch;
   },
 
+  render_graph: function (graph) {
+    delete this.rendered_graph;
+    var prototype = this.prototype;
+    if (prototype && !prototype.rendered_graph) {
+      prototype.render_graph(graph);
+    }
+
+  },
+
   render: function (target) {
-    var stack = this.stack_views();
+    var stack = this.view_stack();
     stack[0].render(stack, 0, target);
   },
 
-  stack_views: function () {
-    var prototype = this.prototype;
-    var stack = prototype ? prototype.stack_views() : [];
-    var view = this.view.clone();
-    view.stack = stack;
-    stack.push(view);
+  view_stack: function () {
+    var unshift_view = function (stack, view) {
+      stack.unshift(view);
+      view.stack = stack;
+    };
+    var stack = [];
+    unshift_view(stack, this.view);
+    for (var p = this.prototype; p; p = p.prototype) {
+      unshift_view(stack, p.view.clone());
+    }
     return stack;
   }
 });
@@ -132,9 +154,16 @@ flexo.make_readonly(bender.Component, "prototype", function () {
 });
 
 
-bender.Adaptor = {
-  init: flexo.self
-};
+bender.Adaptor = flexo._ext(bender.Base, {
+  init: flexo.self,
+
+  render: function (graph) {
+    if (!this.vertex) {
+      this.vertex = graph.add_vertex(bender.AdaptorVertex.create(this));
+    }
+    return this.vertex;
+  }
+});
 
 flexo._accessor(bender.Adaptor, "select", function (select) {
   return flexo.safe_trim(select) || "@this";
@@ -265,7 +294,7 @@ flexo._accessor(bender.Text, "text", function (text) {
 });
 
 
-bender.Watch = {
+bender.Watch = flexo._ext(bender.Base, {
   init: function (component) {
     this.component = component;
     this.gets = [];
@@ -285,17 +314,20 @@ bender.Watch = {
     return set;
   },
 
-  render: function () {
-    var w = Object.create(bender.WatchVertex).init(this);
+  render: function (graph) {
+    var v = graph.add_vertex(bender.WatchVertex.create(this));
     this.gets.forEach(function (get) {
-      // TODO
+      bender.Edge.create(get.render(graph), v);
+    });
+    this.gets.forEach(function (set) {
+      bender.AdapterEdge.create(v, set.render(graph));
     });
   }
-};
-
-
-bender.Get = flexo._ext(bender.Adaptor, {
 });
+
+
+bender.Get = flexo._ext(bender.Adaptor);
+
 
 bender.GetProperty = flexo._ext(bender.Get, {
   init: function (name) {
@@ -304,7 +336,8 @@ bender.GetProperty = flexo._ext(bender.Get, {
   }
 });
 
-bender.GetProperty = flexo._ext(bender.Get, {
+
+bender.GetEvent = flexo._ext(bender.Get, {
   init: function (type) {
     this.type = flexo.safe_string(type);
     return bender.Get.init.call(this);
@@ -312,8 +345,8 @@ bender.GetProperty = flexo._ext(bender.Get, {
 });
 
 
-bender.Set = flexo._ext(bender.Adaptor, {
-});
+bender.Set = flexo._ext(bender.Adaptor);
+
 
 bender.SetProperty = flexo._ext(bender.Set, {
   init: function (name) {
@@ -338,7 +371,22 @@ bender.SetEvent = flexo._ext(bender.Set, {
 });
 
 
-bender.Vertex = {
+bender.Graph = flexo._ext(bender.Base, {
+  init: function () {
+    this.vortex = bender.Vertex.create();
+    this.vertices = [vortex];
+    this.edges = [];
+  },
+
+  add_vertex: function (vertex) {
+    return this.vertices.push(vertex);
+  }
+});
+
+bender.graph = bender.Graph.create();
+
+
+bender.Vertex = flexo._ext(bender.Base, {
   init: function () {
     this.incoming = [];
     this.outgoing = [];
@@ -349,15 +397,48 @@ bender.Vertex = {
     this.outgoing.push(edge);
     edge.source = this;
     return edge;
+  },
+
+  add_incoming: function (edge) {
+    this.incoming.push(edge);
+    edge.dest = this;
+    return edge;
   }
-};
+});
 
-
-bender.Vortex = flexo._ext(bender.Vertex);
 
 bender.WatchVertex = flexo._ext(bender.Vertex, {
   init: function (watch) {
     this.watch = watch;
     return bender.Vertex.init.call(this);
+  }
+});
+
+
+bender.AdaptorVertex = flexo._ext(bender.Vertex, {
+  init: function (adapter) {
+    this.adapter = adpater;
+    return bender.Vertext.init.call(this);
+  }
+});
+
+
+bender.Edge = flexo._ext(bender.Base, {
+  init: function (source, dest) {
+    if (source) {
+      source.add_outgoing(this);
+    }
+    if (dest) {
+      dest.add_incoming(this);
+    }
+    return this;
+  }
+});
+
+
+bender.SetEdge = flexo._ext(bender.Edge, {
+  init: function (source, dest, set) {
+    this.set = set;
+    return bender.Edge.init.call(this, source, dest);
   }
 });
