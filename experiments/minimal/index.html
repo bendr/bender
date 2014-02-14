@@ -20,9 +20,11 @@ a {
     <script>
 "use strict";
 
-var c = Object.create(bender.Component).init().id("foo");
-var d = Object.create(bender.Component).init().id("bar"); 
-c.add_child(d);
+var hello = Object.create(bender.Component).init();
+var p = Object.create(bender.DOMElement).init(flexo.ns.html, "p");
+hello.view.add_child(p);
+p.add_child(Object.create(bender.Text).init().text("Hello, world!"));
+hello.render(document.body);
 
     </script>
   </body>
