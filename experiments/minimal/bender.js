@@ -89,22 +89,35 @@ bender.Node = flexo._ext(bender.Base, {
 // Bender components
 bender.Component = flexo._ext(bender.Node, {
 
-  // A component keeps track of its property definitions,
+  // A Component object has the following properties:
+  //   Node parent: the parent component [from Node]
+  //   Node* children: child components [from Node]
+  //   string? id: ID [from Node]
+  //   prototype?: the prototype component. Properties and vertices are
+  //     inherited from the prototype.
+  //   Property* property_definitions: Bender property definitions, inherited.
+  //   data* properties: Bender property values, inherited.
+  //   View view: the view, which may be empty.
+  //   Watches* watch: watches for this component.
+  //   Scope scope: shared with its children and its parent
+  //   Vertex* vertices: vertices for properties and events, inherited.
   init: function () {
     this.property_definitions = this.property_definitions ?
       Object.create(this.property_definitions) : {};
     this.properties = this.properties ? Object.create(this.properties) : {};
-    this.watches = [];
-    this.set_scope({});
-    this.rendered_graph = false;
     this.set_view();
+    this.watches = [];
     this.vertices = this.vertices ?
       { properties: Object.create(this.vertices.properties),
         events: Object.create(this.vertices.events) } :
       { properties: {}, events: {} };
+    this.set_scope();
+    this.rendered_graph = false;
     return bender.Node.init.call(this);
   },
 
+  // Add a child component (presumably from the view.) The scopes of the child
+  // and the parent are merged.
   add_child: function (child) {
     var scope = Object.getPrototypeOf(this.scope);
     Object.keys(Object.getPrototypeOf(child.scope)).forEach (function (id) {
@@ -114,25 +127,41 @@ bender.Component = flexo._ext(bender.Node, {
     return bender.Node.add_child.call(this, child);
   },
 
-  set_view: function (view) {
-    var configurable = !view;
-    this.view = view || bender.View.create();
-    Object.defineProperty(this.view, "component", { enumerable: true,
-      configurable: configurable, value: this });
-    return this.view;
-  },
-
-  set_scope: function (scope) {
-    this.scope = Object.create(scope, {
-      "#this": { value: this, enumerable: true },
-      "@this": { value: this, enumerable: true }
-    });
+  // Add a component to the scope. This is not a child component, but a
+  // component that can be referred to through its ID. Its view is not rendered
+  // so it only appears as an abstract ID.
+  add_component: function (component, id) {
+    var id_ = "#" + id;
+    if (id_ in this.scope) {
+      console.warn("Id %0 already defined in scope".fmt(id_));
+      return;
+    }
+    Object.getPrototypeOf(this.scope)[id_] = component;
   },
 
   add_property: function (name) {
     var property = Object.create(bender.Property).init(name, this);
     this.property_definitions[name] = property;
     return property;
+  },
+
+  // Set the scope of the component to a new scope created from the given scope,
+  // or a new empty scope by default.
+  set_scope: function (scope) {
+    this.scope = Object.create(scope || {}, {
+      "#this": { value: this, enumerable: true },
+      "@this": { value: this, enumerable: true }
+    });
+  },
+
+  // Set the view of the component to the given view, or a new empty view by
+  // default.
+  set_view: function (view) {
+    var configurable = !view;
+    this.view = view || bender.View.create();
+    Object.defineProperty(this.view, "component", { enumerable: true,
+      configurable: configurable, value: this });
+    return this.view;
   },
 
   add_watch: function (watch) {
@@ -177,23 +206,23 @@ flexo.make_readonly(bender.Component, "prototype", function () {
 });
 
 
-bender.Adaptor = flexo._ext(bender.Base, {
+bender.Adapter = flexo._ext(bender.Base, {
   init: flexo.self,
 
   render: function (graph) {
     if (!this.vertex) {
-      this.vertex = graph.add_vertex(bender.AdaptorVertex.create(this));
+      this.vertex = graph.add_vertex(bender.AdapterVertex.create(this));
     }
     return this.vertex;
   }
 });
 
-flexo._accessor(bender.Adaptor, "select", function (select) {
+flexo._accessor(bender.Adapter, "select", function (select) {
   return flexo.safe_trim(select) || "@this";
 });
-flexo._accessor(bender.Adaptor, "match", flexo.funcify(true), true);
-flexo._accessor(bender.Adaptor, "value", flexo.snd, true);
-flexo._accessor(bender.Adaptor, "delay", function (delay) {
+flexo._accessor(bender.Adapter, "match", flexo.funcify(true), true);
+flexo._accessor(bender.Adapter, "value", flexo.snd, true);
+flexo._accessor(bender.Adapter, "delay", function (delay) {
   var d = flexo.to_number(delay);
   if (d >= 0) {
     return d;
@@ -201,11 +230,11 @@ flexo._accessor(bender.Adaptor, "delay", function (delay) {
 });
 
 
-bender.Property = flexo._ext(bender.Adaptor, {
+bender.Property = flexo._ext(bender.Adapter, {
   init: function (name, component) {
     this.name = name;
     this.component = component;
-    return bender.Adaptor.init.call(this);
+    return bender.Adapter.init.call(this);
   }
 });
 
@@ -351,16 +380,16 @@ bender.Watch = flexo._ext(bender.Base, {
   render: function (graph) {
     var v = graph.add_vertex(bender.WatchVertex.create(this));
     this.gets.forEach(function (get) {
-      bender.AdaptorEdge.create(get.vertex(graph), v, get);
+      bender.AdapterEdge.create(get.vertex(graph), v, get);
     });
     this.gets.forEach(function (set) {
-      bender.AdaptorEdge.create(v, set.vertex(graph), set);
+      bender.AdapterEdge.create(v, set.vertex(graph), set);
     });
   }
 });
 
 
-bender.Get = flexo._ext(bender.Adaptor);
+bender.Get = flexo._ext(bender.Adapter);
 
 
 bender.GetProperty = flexo._ext(bender.Get, {
@@ -379,7 +408,7 @@ bender.GetEvent = flexo._ext(bender.Get, {
 });
 
 
-bender.Set = flexo._ext(bender.Adaptor);
+bender.Set = flexo._ext(bender.Adapter);
 
 
 bender.SetProperty = flexo._ext(bender.Set, {
@@ -447,7 +476,7 @@ bender.WatchVertex = flexo._ext(bender.Vertex, {
 });
 
 
-bender.AdaptorVertex = flexo._ext(bender.Vertex, {
+bender.AdapterVertex = flexo._ext(bender.Vertex, {
   init: function (adapter) {
     this.adapter = adpater;
     return bender.Vertext.init.call(this);
@@ -471,9 +500,9 @@ bender.Edge = flexo._ext(bender.Base, {
 bender.InheritEdge = flexo._ext(bender.Edge);
 
 
-bender.AdaptorEdge = flexo._ext(bender.Edge, {
-  init: function (source, dest, adaptor) {
-    this.adaptor = adaptor;
+bender.AdapterEdge = flexo._ext(bender.Edge, {
+  init: function (source, dest, adapter) {
+    this.adapter = adapter;
     return bender.Edge.init.call(this, source, dest);
   }
 });

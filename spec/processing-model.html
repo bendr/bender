@@ -12,73 +12,6 @@
     reference.</p>
 
 
-    <h2>Sketch of the processing model</h2>
-    <p>An application defined by a <code>Component</code> <em>A</em> is run by
-    rendering <em>A</em> into a target HTML element <em>T</em>. Its properties
-    are then initialized and a <code>ready</code> event notification is sent.
-    The watch graph is then running and user interactions are handled.</p>
-    <ol>
-      <li>Render the <a href="#Graph">watch graph</a> of a <em>A</em>:
-      <ol>
-        <li>Render the watch graph of the prototype of A, if it exists and its
-        watch graph has not been rendered yet.</li>
-        <li>For every <code>Watch</code>:
-        <ol>
-          <li>Create a new watch vertex <em>W</em>.</li>
-          <li>For every <code>Get</code> <em>G</em>:
-          <ol>
-            <li>Get or create the adapter vertex <code>V</code> corresponding
-            to the input property or event and the target of <em>G</em>.</li>
-            <li>Add a new <code>Edge</code> from <em>V</em> to <em>W</em>.</li>
-          </ol>
-          </li>
-          <li>For every <code>Set</code> <em>S</em>:
-          <ol>
-            <li>Get or create the destination vertex <code>V</code>
-            corresponding to the output target and property or event. This may
-            be an <code>AdapterVertex</code>, or the <code>Vortex</code> (sink
-            state of the graph.)</li>
-            <li>Add a new <code>SetEdge</code> from <em>W</em> to
-            <em>V</em>.</li>
-          </ol>
-          </li>
-        </ol>
-        </li>
-        <li>Render the watch graph of the child components of <em>A</em>.</li>
-      </ol>
-      </li>
-      <li>Render the view stack of <em>A</em>:
-      <ol>
-        <li>Build the <a href="#view-stack">view stack</a> of <em>A</em>.</li>
-        <li>Render the bottom-most view of <em>V</em> of the stack. The
-        rendering of a Bender element in a target DOM element <em>T</em> is
-        defined as follows:
-        <ul>
-          <li>A <code>View</code> element is rendered by rendering its child
-          elements in <em>T</em>, if it is the view of a top-level component.
-          If it is the view of a child component, a new view stack is created
-          and rendered in <em>T</em>.</li>
-          <li>A <code>Content</code> element is rendered by rendering the next
-          non-empty view in the view stack, or its own child elements if there
-          is no such view (default content), in <em>T</em>.</li>
-          <li>A <code>DOMElement</code> is rendered by adding a new DOM
-          element <code>U</code> to <code>T</code> with the given namespace URI,
-          local name and attributes, then rendering its child elements in
-          <code>U</code>.</li>
-          <li>An <code>Attribute</code> element is rendered by setting a
-          property on <code>T</code> with the given namespace URI and local name
-          and the text value of the element.</li>
-          <li>A <code>Text</code> element is rendered by adding a new DOM
-          text node to <code>T</code> with the text value of the element.</li>
-        </ul>
-        </li>
-      </ol>
-      </li>
-      <li><span class="TODO">Add event listeners</span></li>
-      <li><span class="TODO">Property initialization</span></li>
-      <li><span class="TODO">Ready event notification</span></li>
-    </ol>
-
     <h2>Rendering the Watch Graph</h2>
     <p>The <em>watch graph</em> is a graph of that is built to manage the flow
     of events and property changes in a Bender application.</p>
@@ -220,64 +153,69 @@
     component, its prototype, its prototype’s view, and so on. The views along
     the prototype chain are actually new views created from the original views
     so that a component may modify its version of a view in the view stack
-    without affecting other components derived from the same prototype. For a
+    without affecting other components created from the same prototype. For a
     <code>Component</code> <em>C</em>, the bottom-most view in the stack
     (<em>i.e.</em>, the first element in the list of views returned by
-    <code>view-stack(C)</code>) is a view of the furthest prototype, while the
-    last element in the list is the view of <em>C</em>. Because components
-    always have a view but may not have a prototype, the view stack has a length
-    of 1 or more.</p>
+    <code>view-stack(C)</code>, with index 0) is a view of the furthest
+    prototype, while the last element in the list is the view of <em>C</em>.
+    Because components always have a view but may not have a prototype, the view
+    stack has a length of 1 (for components with no prototype) or more (for
+    components with a prototype.)</p>
+    <pre class="code">View+ view-stack(Component C) = bottom-view-stack(C) : C.view
+View+ view-stack’(Component C) = bottom-view-stack(C) : clone-element(C.view)
+View+ bottom-view-stack(Component C) = if defined? C.prototype
+                                         then view-stack’(C.prototype)
+                                         else []</pre>
 
-    <pre class="code">view-stack(Component C) -&gt; View+ = prototype-view-stack(C) : C.view
-view-stack’(Component C) -&gt; View+ = prototype-view-stack(C) : clone-node(C.view)
-prototype-view-stack(Component C) -&gt; View+ = if defined? C.prototype
-                                                  then view-stack’(C.prototype)
-                                                  else []</pre>
-
-    <p>The <code>clone-node(N)</code> function creates a copy of a
-    <code>Node</code> <em>N</em> and its children. In the case of a
-    <code>View</code>, the <code>component</code> of the view is also
-    copied.</p>
-<pre>
-clone-node(Node N) -&gt; Node =
-  let N’ = create(N) in
+    <p>The <code>clone-element(E, P)</code> function creates a copy of a
+    <code>Node</code> <em>E</em> and its children and add it as a child of its
+    parent <em>P</em>. In the case of a <code>View</code> element, a clone of
+    the <code>Component</code> is also created for the <code>component</code> of
+    the view, while maintaining the parent/children relationships of the
+    component tree (so that in effect view tree and component tree are cloned in
+    parallel.) The component tree is cloned so that each component may maintain
+    its own state independently of its prototype.</p>
+    <pre class="code">Element clone-element(Element E, Element? P) =
+  let E’ = create(E) in
     do
-      N.children = map(N.children, λC let C’ = clone-node(C) in
-                                        do
-                                          C’.parent = N’
-                                          C’)
-      case N of
-        View = do
-          N’.component = create(N.component)
-          N’.component.view = N’
-        otherwise = N’
-    </pre>
+      E’.parent = P
+      E’.children = map(E.children, λC clone-element(C, E’))
+      if E’ is-a View
+        clone-component(E’)
+      E’
+clone-component(View V) =
+  let C’ = create(V.component)
+    in
+      V.component = C’
+      C’.view = V
+      C’.children = []
+      if defined? V.parent
+        then do
+          C’.parent = V.parent.component
+          C’.parent.children = C’.parent.children : C’</pre>
 
     <h3>Rendering Elements in a View Stack</h3>
-
     <p>Rendering a view stack <em>S</em> in a target DOM element <em>T</em> is
     simply rendering the bottom-most view in the stack, <em>i.e.</em> the
-    element at index 0 in the stack.</p>
+    element at index 0 in the list of <code>View</code>s.</p>
     <pre class="code">render-view-stack(View+ S, DOM element T) = render-element(S, 0, S<sub>0</sub>, T)</pre>
 
     <p>Rendering an element <em>E</em> from the view at index <em>I</em> in the
     view stack <em>S</em> in a target DOM element <em>T</em> depends on the type
     of the element to render.</p>
-    <em>S</em> and index of the current view in the stack that is being rendered
     <pre>render-element(View+ S, integer I, Element E, DOM element T) =
   case E of
     View = render-view(S, I, E, T)
     Content = render-content(S, I, E, T)
-    DOMElement = render-dom(S, I, E, T)
+    DOMElement = render-dom-element(S, I, E, T)
     Attribute = render-attribute(E, T)
     Text = render-text(E, T)</pre>
 
     <p>Rendering a <code>View</code> element depends on whether the view is a
-    member of the view stack, <em>i.e.</em>, the view of the component or of a
-    prototype; or the view of a child component. In the former case, the
+    member of the view stack, <em>i.e.</em>, the view of the component or of one
+    of its prototypes; or the view of a child component. In the former case, the
     child elements of the view are rendered in the target element. In the latter
-    case, <code>render-component</code> is callled on the component of the
-    view.</p>
+    case, <code>render-component</code> is callled on the child component.</p> 
     <pre>render-view(View+ S, integer I, View V, DOM element T) =
   if V == S<sub>I</sub>
     then render-children(S, I, V, T)
@@ -290,41 +228,47 @@ render-children(View+ S, integer I, Element E, DOM element T) =
     there is a non-empty <code>View</code> (with at least on child) above the
     current <code>View</code> in the stack, then render that view. If no such
     view exists, then render the children of the element as the default
-    content.</p>
-    <pre>render-content    = λS,I,E,T let J = next-view-index(S, I + 1) in
-                               if J &lt; length S
-                                 then render-view(S, J, S<sub>J</sub>, T)
-                                 else render-children(S, I, E, T)
-next-view-index   = λS,I if I &lt; length S
-                           then if length S<sub>I</sub>.children == 0
-                                  then next-view-index(S, I + 1)
-                                  else I
-                           else I</pre>
+    content using <code>render-children</code> as seen above.</p>
+    <pre>render-content(View+ S, integer I, Content C, DOM element T) =
+  let J = next-view-index(S, I + 1) in
+    if J &lt; length S
+      then render-view(S, J, S<sub>J</sub>, T)
+      else render-children(S, I, C, T)
+integer next-view-index(View+ S, integer I) =
+  if I &lt; length S
+    then if length S<sub>I</sub>.children == 0
+      then next-view-index(S, I + 1)
+      else I
+    else I</pre>
 
-    <p>Rendering a <code>DOMElement</code> <em>E</em> is simply adding a new
-    DOM element <em>N</em> to <em>T</em>, then rendering the children of
-    <em>E</em> in <em>N</em>.</p>
-    <pre>render-dom        = λS,I,E,T let N = new DOM element node in
-                               N.namespace-uri = E.ns
-                               N.local-name = E.name
-                               N.attributes = E.attrs
-                               render-children(S, I, E, N)
-                               append-child(T, E)</pre>
+    <p>Rendering a <code>DOMElement</code> <em>D</em> is adding a new DOM
+    element <em>N</em> to <em>T</em>, then rendering the children of <em>D</em>
+    in <em>N</em>.</p>
+    <pre>render-dom-element(View+ S, integer I, DOMElement D, DOM element T) =
+  let N = new DOM element node in
+    do
+      N.namespace-uri = D.ns
+      N.local-name = D.name
+      N.attributes = D.attrs
+      render-children(S, I, D, N)
+      append-child(T, N)</pre>
 
-    <p>Rendering an <code>Attribute</code> <em>A</em> is simply setting an
-    attribute on the target element with the value resulting from the
-    concatenation of the text value of the child elements of <em>A</em>.</p>
-    <pre>render-attribute  = λE,T set-attribute-ns(T, E.ns, E.name,
-                           fold(E.children, "",
-                                λZ,C Z :: (case C of
-                                             Text = C.text,
-                                             otherwise = "")))</pre>
+    <p>Rendering an <code>Attribute</code> <em>A</em> is setting an attribute on
+    the target element with the value resulting from the concatenation of the
+    text value of the child elements of <em>A</em>.</p>
+    <pre>render-attribute(Attribute A, DOM element T) =
+  set-attribute-ns(T, E.ns, E.name, fold(E.children, "",
+                                         λZ,C Z :: (case C of
+                                                      Text = C.text,
+                                                       otherwise = "")))</pre>
 
-    <p>Rendering a <code>Text</code> <em>E</em> element is simply adding a new
-    text node to <em>T</em> with the text content of <em>E</em>.</p>
-    <pre>render-text       = λE,T let N = new DOM text node in
-                           N.text-content = E.text
-                           append-child(T, N)</pre>
+    <p>Rendering a <code>Text</code> element <em>E</em> is adding a new text
+    node to <em>T</em> with the text content of <em>E</em>.</p>
+    <pre>render-text(Text E, DOM element T) =
+  let N = new DOM text node in
+    do
+      N.text-content = E.text
+      append-child(T, N)</pre>
 
 
     <h2>Scoping</h2>

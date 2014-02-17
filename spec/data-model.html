@@ -21,7 +21,9 @@
       <code>data</code>: a boolean, a number, a string, a number, an
       <code>Object</code>, or the undefined value.</li>
       <li>A <em>Function</em> is a callable <code>Object</code>. We use lambda
-      notation for anonymous functions.</li>
+      notation for anonymous functions. The pseudo-code used is a simple
+      expression-based language with a liberal syntax that allows side
+      effects (functions may not return any value.)</li>
       <li><em>O</em> <code>&lt;</code> <em>P</em> means that the object
       <em>O</em> is <em>created</em> from the object <em>P</em>. <em>O</em>
       inherits all of the properties of <em>P</em>, along with their values.
@@ -67,7 +69,7 @@
     </div>
 
 
-    <h2>Component</h2>
+    <h2>Components</h2>
 
     <div class="def" id="Component">
       <p>The <code>Component</code> is the basic unit of functionality in
@@ -82,7 +84,6 @@
       <div>
         <pre>Component &lt; Node:
   Component?  prototype
-  Link*       links
   Property*   property-definitions
   data*       properties
   View        view
@@ -92,8 +93,6 @@
           from which this component is derived, if any. The prototype may not
           be a component in the same component tree, nor can there be any cycle
           in the chain of components.</li>
-          <li><code>links</code> is the list of all external resources that this
-          component links to.</li>
           <li><code>property-definitions</code> is the list of all property
           definitions for this component. This includes the property definitions
           of the prototype component, or no property by default. Properties are
@@ -109,26 +108,23 @@
     </div>
 
 
-    <h2>Links</h2>
-    <p><span class="TODO">rel=script, stylesheet, component (w/ ID)</span></p>
-
     <h2>Properties</h2>
 
     <p>Properties are named values that are used to parametrize both the
     appearance and behavior of a component. A property value may be any
     <code>data</code>.</p>
 
-    <div class="def" id="Adaptor">
-      <p>An <code>Adaptor</code> filters and transforms an input value into an
+    <div class="def" id="Adapter">
+      <p>An <code>Adapter</code> filters and transforms an input value into an
       output value, with an optional delay.</p>
       <div>
-        <pre>Adaptor &lt; Object:
+        <pre>Adapter &lt; Object:
   string    select = <span class="TODO">"@this"</span>
   Function  value = λx x
   Function  match = λx true
   number?   delay</pre>
         <ul>
-          <li><code>select</code> indicates which component this adaptor applies
+          <li><code>select</code> indicates which component this adapter applies
           to. See <a href="processing-model.html">the Bender Processing
             model</a> for more information about the values of
           <code>select</code>.</li>
@@ -138,7 +134,7 @@
           <li><code>match</code> is a predicate that takes an input value and
           returns a boolean value that is true if and only if the input is
           <em>valid</em>. If an input is invalid, no value is output by the
-          adaptor. The default is a function that returns true for any input,
+          adapter. The default is a function that returns true for any input,
           treating any input value as valid.</li>
           <li><code>delay</code> is the delay before an output value is
           returned. When <code>delay</code> is undefined, there is no delay, and
@@ -155,7 +151,7 @@
       <p>A <code>Property</code> is the <em>definition</em> of a property of a
       Bender component.</p>
       <div>
-        <pre>Property &lt; Adaptor:
+        <pre>Property &lt; Adapter:
   Component  component
   string     name</pre>
       </div>
@@ -163,10 +159,10 @@
         <li><code>component</code> points back to the component that this is a
         property of.</li>
         <li><code>name</code> is the name of the property. In that sense, a
-        property definition is simply a named adaptor belonging to a
+        property definition is simply a named adapter belonging to a
         component.</li>
         <li><span class="TODO"><strong>Note</strong>: the <code>select</code>
-          property, inherited from <code>Adaptor</code>, has only two legal
+          property, inherited from <code>Adapter</code>, has only two legal
           values for <code>Property</code>; <code>@this</code>,
           and <code>#this</code>.</span></li>
       </ul>
@@ -311,7 +307,7 @@
       <p>A <code>Get</code> is a watch input. There are two different types of
       input: a <em>property input</em>, or an <em>event input</em>.</p>
       <div>
-        <pre>Get &lt; Adaptor:
+        <pre>Get &lt; Adapter:
   Watch  watch</pre>
         <ul>
           <li><code>watch</code> is the parent <code>Watch</code>.</li>
@@ -358,7 +354,7 @@
       of output: a plain output, a property output, an attribute output, or an
       event output.</p>
       <div>
-        <pre>Set &lt; Adaptor:
+        <pre>Set &lt; Adapter:
   Watch  watch</pre>
         <ul>
           <li><code>watch</code> is the parent <code>Watch</code>.</li>
@@ -456,7 +452,10 @@
 
     <div class="def" id="Panel">
       <p>A panel component, using three <code>Button</code>s as defined
-      above.</p>
+      above. The first button reuses the view and default properties of the
+      <code>Button</code> component. The second button sets its own
+      <code>label</code> property. The third button has additional content in
+      its view.</p>
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="panel"&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
@@ -472,7 +471,7 @@
   &lt;/view&gt;
   &lt;watch&gt;
     &lt;get select="@ok-button" event="pushed"/&gt;
-    ...
+    &lt;set .../&gt;
   &lt;/watch&gt;
   ...
 &lt;/component&gt;</pre>
