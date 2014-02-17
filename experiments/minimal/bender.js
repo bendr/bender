@@ -41,17 +41,6 @@ bender.Node = flexo._ext(bender.Base, {
     return this;
   },
 
-  // Clone a node and its children.
-  clone: function () {
-    var clone = Object.create(this);
-    clone.children = this.children.map(function (child) {
-      var child_ = child.clone();
-      child_.parent = clone;
-      return child_;
-    });
-    return clone;
-  },
-
   // Get or set the ID of a node and update the scope accordingly.
   id: function (id) {
     if (arguments.length === 0) {
@@ -243,7 +232,18 @@ flexo._accessor(bender.Property, "select", function (select) {
 });
 
 
+// Elements are Nodes that appear in the view of a component.
 bender.Element = flexo._ext(bender.Node, {
+
+  // Clone an element and its children.
+  clone: function (parent) {
+    var clone = Object.create(this);
+    clone.parent = parent;
+    clone.children = this.children.map(function (child) {
+      return child.clone(clone);
+    });
+    return clone;
+  }
 });
 
 flexo.make_readonly(bender.Element, "component", function () {
@@ -252,8 +252,18 @@ flexo.make_readonly(bender.Element, "component", function () {
 
 
 bender.View = flexo._ext(bender.Element, {
-  clone: function () {
-    return this.component.clone().set_view(bender.Element.clone.call(this)));
+
+  // Cloning a view also clones its component
+  clone: function (parent) {
+    var view = bender.Element.clone.call(this, parent);
+    var component = view.component = view.component.create();
+    component.set_view(view);
+    component.children = [];
+    if (parent) {
+      component.parent = parent.component;
+      component.parent.children.push(component);
+    }
+    return view;
   },
 
   render: function (stack, index, target) {
