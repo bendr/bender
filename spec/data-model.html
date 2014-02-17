@@ -82,6 +82,7 @@
       <div>
         <pre>Component &lt; Node:
   Component?  prototype
+  Link*       links
   Property*   property-definitions
   data*       properties
   View        view
@@ -91,6 +92,8 @@
           from which this component is derived, if any. The prototype may not
           be a component in the same component tree, nor can there be any cycle
           in the chain of components.</li>
+          <li><code>links</code> is the list of all external resources that this
+          component links to.</li>
           <li><code>property-definitions</code> is the list of all property
           definitions for this component. This includes the property definitions
           of the prototype component, or no property by default. Properties are
@@ -105,6 +108,9 @@
       </div>
     </div>
 
+
+    <h2>Links</h2>
+    <p><span class="TODO">rel=script, stylesheet, component (w/ ID)</span></p>
 
     <h2>Properties</h2>
 

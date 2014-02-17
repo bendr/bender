@@ -229,39 +229,62 @@
     of 1 or more.</p>
 
     <pre class="code">view-stack(Component C) -&gt; View+ = prototype-view-stack(C) : C.view
-view-stack’(Component C) -&gt; View+ = prototype-view-stack(C) : create(C.view)
-prototype-view-stack(Component C) -&gt; View+ =
-  if defined? C.prototype
-    then view-stack’(C.prototype)
-    else []</pre>
+view-stack’(Component C) -&gt; View+ = prototype-view-stack(C) : clone-node(C.view)
+prototype-view-stack(Component C) -&gt; View+ = if defined? C.prototype
+                                                  then view-stack’(C.prototype)
+                                                  else []</pre>
+
+    <p>The <code>clone-node(N)</code> function creates a copy of a
+    <code>Node</code> <em>N</em> and its children. In the case of a
+    <code>View</code>, the <code>component</code> of the view is also
+    copied.</p>
+<pre>
+clone-node(Node N) -&gt; Node =
+  let N’ = create(N) in
+    do
+      N.children = map(N.children, λC let C’ = clone-node(C) in
+                                        do
+                                          C’.parent = N’
+                                          C’)
+      case N of
+        View = do
+          N’.component = create(N.component)
+          N’.component.view = N’
+        otherwise = N’
+    </pre>
 
     <h3>Rendering Elements in a View Stack</h3>
 
     <p>Rendering a view stack <em>S</em> in a target DOM element <em>T</em> is
-    simply rendering the bottom-most view in the stack.</p>
+    simply rendering the bottom-most view in the stack, <em>i.e.</em> the
+    element at index 0 in the stack.</p>
     <pre class="code">render-view-stack(View+ S, DOM element T) = render-element(S, 0, S<sub>0</sub>, T)</pre>
 
     <p>Rendering an element <em>E</em> from the view at index <em>I</em> in the
     view stack <em>S</em> in a target DOM element <em>T</em> depends on the type
     of the element to render.</p>
     <em>S</em> and index of the current view in the stack that is being rendered
-    <pre>render-element    = λS,I,E,T case E of
-                               View = render-view(S, I, E, T)
-                               Content = render-content(S, I, E, T)
-                               DOMElement = render-dom(S, I, E, T)
-                               Attribute = render-attribute(E, T)
-                               Text = render-text(E, T)</pre>
+    <pre>render-element(View+ S, integer I, Element E, DOM element T) =
+  case E of
+    View = render-view(S, I, E, T)
+    Content = render-content(S, I, E, T)
+    DOMElement = render-dom(S, I, E, T)
+    Attribute = render-attribute(E, T)
+    Text = render-text(E, T)</pre>
 
     <p>Rendering a <code>View</code> element depends on whether the view is a
     member of the view stack, <em>i.e.</em>, the view of the component or of a
     prototype; or the view of a child component. In the former case, the
     child elements of the view are rendered in the target element. In the latter
-    case, <span class="TODO">render a copy of the component?</span></p>
-    <pre>render-view       = λS,I,E,T if View == S<sub>I</sub>
-                               then render-children(S, I, E, T)
-                               else <span class="TODO">render-component(E.component, T)</span>
-render-children   = λS,I,E,T for C in E.children:
-                               render-element(S, I, C, T)</pre>
+    case, <code>render-component</code> is callled on the component of the
+    view.</p>
+    <pre>render-view(View+ S, integer I, View V, DOM element T) =
+  if V == S<sub>I</sub>
+    then render-children(S, I, V, T)
+    else render-component(V.component, T)
+render-children(View+ S, integer I, Element E, DOM element T) =
+  for C in E.children
+    render-element(S, I, C, T)</pre>
 
     <p>Rendering a <code>Content</code> element depends on the view stack. If
     there is a non-empty <code>View</code> (with at least on child) above the

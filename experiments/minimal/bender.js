@@ -17,7 +17,14 @@ bender.VERSION = "0.9.m";
 bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
 
+// Base for all Bender objects
 bender.Base = {
+
+  // All object should have an init method that return the object itself.
+  init: flexo.self,
+
+  // Create a new object and initialize it by calling its init method with the
+  // given argument.
   create: function () {
     var c = Object.create(this);
     return c.init.apply(c, arguments);
@@ -25,12 +32,16 @@ bender.Base = {
 };
 
 
+// Nodes are Components and Elements.
 bender.Node = flexo._ext(bender.Base, {
+
+  // Initialize a new node with no parent yet.
   init: function () {
     this.children = [];
     return this;
   },
 
+  // Clone a node and its children.
   clone: function () {
     var clone = Object.create(this);
     clone.children = this.children.map(function (child) {
@@ -41,6 +52,7 @@ bender.Node = flexo._ext(bender.Base, {
     return clone;
   },
 
+  // Get or set the ID of a node and update the scope accordingly.
   id: function (id) {
     if (arguments.length === 0) {
       return this._id || "";
@@ -54,14 +66,18 @@ bender.Node = flexo._ext(bender.Base, {
     } else {
       this._id = _id;
       if (_id) {
-        var scope = Object.getPrototypeOf(this.scope || this.component.scope);
-        scope["#" + _id] = this;
-        scope["@" + _id] = this;
+        var scope = this.scope || this.component && this.component.scope;
+        if (scope) {
+          var scope_ = Object.getPrototypeOf(scope);
+          scope_["#" + _id] = this;
+          scope_["@" + _id] = this;
+        }
       }
     }
     return this;
   },
 
+  // Append a child node.
   add_child: function (child) {
     this.children.push(child);
     child.parent = this;
@@ -70,24 +86,23 @@ bender.Node = flexo._ext(bender.Base, {
 });
 
 
+// Bender components
 bender.Component = flexo._ext(bender.Node, {
+
+  // A component keeps track of its property definitions,
   init: function () {
     this.property_definitions = this.property_definitions ?
       Object.create(this.property_definitions) : {};
     this.properties = this.properties ? Object.create(this.properties) : {};
-    this.view = Object.create(bender.View).init();
-    Object.defineProperty(this.view, "component", { enumerable: true,
-      value: this });
     this.watches = [];
     this.set_scope({});
     this.rendered_graph = false;
+    this.set_view();
+    this.vertices = this.vertices ?
+      { properties: Object.create(this.vertices.properties),
+        events: Object.create(this.vertices.events) } :
+      { properties: {}, events: {} };
     return bender.Node.init.call(this);
-  },
-
-  clone: function () {
-    var clone = bender.Node.clone.call(this);
-    clone.view = this.view.clone();
-    return clone;
   },
 
   add_child: function (child) {
@@ -97,6 +112,14 @@ bender.Component = flexo._ext(bender.Node, {
     });
     child.set_scope(scope);
     return bender.Node.add_child.call(this, child);
+  },
+
+  set_view: function (view) {
+    var configurable = !view;
+    this.view = view || bender.View.create();
+    Object.defineProperty(this.view, "component", { enumerable: true,
+      configurable: configurable, value: this });
+    return this.view;
   },
 
   set_scope: function (scope) {
@@ -200,6 +223,10 @@ flexo.make_readonly(bender.Element, "component", function () {
 
 
 bender.View = flexo._ext(bender.Element, {
+  clone: function () {
+    return this.component.clone().set_view(bender.Element.clone.call(this)));
+  },
+
   render: function (stack, index, target) {
     if (this.stack === stack) {
       this.render_children(stack, index, target);
@@ -236,7 +263,14 @@ bender.DOMElement = flexo._ext(bender.Element, {
     this.ns = flexo.safe_string(ns);
     this.name = flexo.safe_string(name);
     this.attrs = attrs || {};
+    this.vertices = {};
     return bender.Element.init.call(this);
+  },
+
+  clone: function () {
+    var clone = bender.Element.clone.call(this);
+    clone.vertices = Object.create(this.vertices);
+    return clone;
   },
 
   attr: function (ns, name, value) {
@@ -317,10 +351,10 @@ bender.Watch = flexo._ext(bender.Base, {
   render: function (graph) {
     var v = graph.add_vertex(bender.WatchVertex.create(this));
     this.gets.forEach(function (get) {
-      bender.Edge.create(get.render(graph), v);
+      bender.AdaptorEdge.create(get.vertex(graph), v, get);
     });
     this.gets.forEach(function (set) {
-      bender.AdapterEdge.create(v, set.render(graph));
+      bender.AdaptorEdge.create(v, set.vertex(graph), set);
     });
   }
 });
@@ -374,7 +408,7 @@ bender.SetEvent = flexo._ext(bender.Set, {
 bender.Graph = flexo._ext(bender.Base, {
   init: function () {
     this.vortex = bender.Vertex.create();
-    this.vertices = [vortex];
+    this.vertices = [this.vortex];
     this.edges = [];
   },
 
@@ -382,8 +416,6 @@ bender.Graph = flexo._ext(bender.Base, {
     return this.vertices.push(vertex);
   }
 });
-
-bender.graph = bender.Graph.create();
 
 
 bender.Vertex = flexo._ext(bender.Base, {
@@ -436,9 +468,14 @@ bender.Edge = flexo._ext(bender.Base, {
 });
 
 
-bender.SetEdge = flexo._ext(bender.Edge, {
-  init: function (source, dest, set) {
-    this.set = set;
+bender.InheritEdge = flexo._ext(bender.Edge);
+
+
+bender.AdaptorEdge = flexo._ext(bender.Edge, {
+  init: function (source, dest, adaptor) {
+    this.adaptor = adaptor;
     return bender.Edge.init.call(this, source, dest);
   }
 });
+
+bender.graph = bender.Graph.create();
