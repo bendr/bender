@@ -1,0 +1,24 @@
+digraph tree {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  VA [label="A" shape=triangle]
+  VB1 [label="B1" shape=triangle]
+  VB2 [label="B2" shape=triangle]
+  VB_ [label="B’" shape=triangle]
+  VC_ [label="C’" shape=triangle]
+  VD_ [label="D’" shape=triangle]
+  VB__ [label="B”" shape=triangle]
+  VC__ [label="C”" shape=triangle]
+  VD__ [label="D”" shape=triangle]
+
+  VA -> VB1
+  VA -> VB2
+  VB1 -> VB_ [dir=none, style=dashed]
+  VB2 -> VB__ [dir=none, style=dashed]
+  VB_ -> VC_
+  VB_ -> VD_
+  VB__ -> VC__
+  VB__ -> VD__
+
+}

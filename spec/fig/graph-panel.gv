@@ -1,0 +1,57 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  t [label="", shape=triangle, fixedsize=true, width=0.5];
+
+  ppushed [label="pushed (Plus)", shape=septagon];
+  w1 [label="1", shape=square, fixedsize=true, width=0.3];
+  ppushed -> w1;
+  w1 -> n;
+
+  mpushed [label="pushed (Minus)", shape=septagon];
+  w2 [label="2", shape=square, fixedsize=true, width=0.3];
+  mpushed -> w2;
+  w2 -> n;
+
+  n [label="n (Panel)"];
+  w3 [label="3", shape=square, fixedsize=true, width=0.3];
+  menabled [label="enabled (Minus)"];
+  n -> w3
+  w3 -> t
+  w3 -> menabled
+
+
+  label [label="label (Button)"];
+  w4 [label="4", shape=square, fixedsize=true, width=0.3];
+  label -> w4;
+  w4 -> t;
+
+  mousedown [label="mousedown (frame)", shape=septagon];
+  w5 [label="5", shape=square, fixedsize=true, width=0.3];
+  down [label="down (Button)"];
+  mousedown -> w5;
+  w5 -> down;
+
+  mouseup [label="mouseup (frame)", shape=septagon];
+  w6 [label="6", shape=square, fixedsize=true, width=0.3];
+  mouseup -> w6;
+  w6 -> down;
+  w6 -> pushed;
+
+  pushed [label="pushed (Button)", shape=septagon];
+  pushed -> ppushed [color="#f94179"];
+  pushed -> mpushed [color="#f94179"];
+
+  w7 [label="7", shape=square, fixedsize=true, width=0.3];
+  down -> w7;
+  w7 -> t;
+
+  w8 [label="8", shape=square, fixedsize=true, width=0.3];
+  enabled -> w8;
+  enabled -> menabled [color="#f94179"];
+  enabled [label="enabled (Button)"];
+  menabled -> w8 [color="#f8ca00"];
+  w8 -> t;
+
+}

@@ -15,14 +15,15 @@
     <h2>Running a Bender Application</h2>
     <p>A Bender application is defined by a top-level component and is run in by
     rendering the view and watches of the component, its children and their
-    prototype in a host application (<em>e.g.</em>, a Web browser.)</p>
+    prototype in a host application (<em>e.g.</em>, a Web browser.) Properties
+    of the component are initialized, the watch graph is flushed, and the
+    application is running.</p>
     <pre class="code">run-application(Component C, DOM element T) =
   let G = new Graph in
     do
       render-subgraph(C, G)
       render-component(C, T)
       init-properties(C, G)</pre>
-    
 
     <h2>Rendering the Watch Graph</h2>
     <p>The <em>watch graph</em> is a graph of that is built to manage the flow
@@ -101,7 +102,7 @@
       <code>GetProperty</code> or <code>SetProperty</code> in a
       <code>Watch</code>.</p>
       <div>
-        <pre>PropertyVertex &lt; AdapterVertex</pre>
+        <pre>PropertyVertex &lt; AdapterVertex
   Property  property</pre>
         <ul>
           <li><code>property</code> is the <code>Property</code> of the
@@ -115,7 +116,7 @@
       <code>GetEvent</code> or <code>SetEvent</code> in a
       <code>Watch</code>.</p>
       <div>
-        <pre>PropertyVertex &lt; AdapterVertex</pre>
+        <pre>EventVertex &lt; AdapterVertex
   string  type</pre>
         <ul>
           <li><code>property</code> is the <code>Property</code> of the
@@ -228,15 +229,139 @@
               E’.source = V
               G.edges = G.edges : E’</pre>
 
-    <p><span class="TODO">Find the prototype vertex for the
-      <code>InheritEdge</code>; go up the prototype chain and look for a vertex
-      for the same accessor defined on the component.</p>
-    <pre class="code">AdapterVertex? find-prototype-vertex(Graph G, AdapterVertex V) =
-  find-prototype-vertex’(G, V, V.adapter.watch.component.prototype)
 
-AdapterVertex? find-prototype-vertex’(Graph G, AdapterVertex V, Component? C) =
-  ...</pre>
-      
+    <h3>Example</h3>
+
+    <p>To illustrate the rendering of the watch graph, consider a non-trivial
+    component (called <em>Panel</em>) defined in XML as follows <span
+      class="TODO">(the XML syntax and Javascript API are described in a
+      separate document)</span>:</p>
+
+    <div class="def" id="Panel">
+      <div>
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Panel"&gt;
+  &lt;property name="n" value="0"/&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
+    &lt;html:div&gt;
+      &lt;component href="button.xml" id="Minus" label="—"/&gt;
+      &lt;text id="text-n"/&gt;
+      &lt;component href="button.xml" id="Plus" label="+"/&gt;
+    &lt;/html:div&gt;
+  &lt;/view&gt;
+  &lt;watch&gt; <span class="number">1</span>
+    &lt;get select="@Plus" event="pushed"/&gt;
+    &lt;set property="n" value="$in + 1"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">2</span>
+    &lt;get select="@Minus" event="pushed"/&gt;
+    &lt;set property="n" value="$in - 1"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">3</span>
+    &lt;get property="n"/&gt;
+    &lt;set select="@text-n"/&gt;
+    &lt;set select="@Minus" property="enabled" value="$in &gt; 0"/&gt;
+  &lt;/watch&gt;
+&lt;/component&gt;</pre>
+      </div>
+      <ul>
+        <li><code>Panel</code> has a property <code>n</code> with an initial
+        value of 0.</li>
+        <li>There are two child components, <code>Plus</code> and
+        <code>Minus</code>, both inheriting from the <code>Button</code>
+        component shown below.</li>
+        <li>The first two <code>Watch</code>es <span class="number">1</span>
+        and <span class="number">2</span> monitor <code>pushed</code>
+        events on the two buttons, and increase or decrease the value of
+        <code>n</code> by 1 depending on which button is pushed.</li>
+        <li>The last <code>Watch</code> <span class="number">3</span> monitors
+        changes in the value of <code>n</code>, and does two things: change the
+        <code>text</code> property of the <code>Text</code> element with ID
+        <code>text-n</code>, and disables the <code>Minus</code> button when the
+        value of <code>n</code> is not greater than zero. <code>n</code> is
+        displayed and updated every time it changes, and since the
+        <code>Minus</code> is disabled when <code>n</code> is zero, it cannot
+        become negative through this interface.</li>
+      </ul>
+    </div>
+
+    <div class="def" id="Button">
+      <p>This is the <code>Button</code> prototype of both <code>Plus</code> and
+      <code>Minus</code> button above.</p>
+      <div>
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
+  &lt;property name="label" value="Label"&gt;
+  &lt;property name="enabled" value="true"&gt;
+  &lt;property name="pushed" value="false"&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
+    &lt;html:div id="frame"&gt;
+      &lt;content&gt;
+        &lt;text id="text-label"/&gt;
+      &lt;/content&gt;
+    &lt;/html:div&gt;
+  &lt;/view&gt;
+  &lt;watch&gt; <span class="number">4</span>
+    &lt;get property="label"/&gt;
+    &lt;set select="@text-label"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">5</span>
+    &lt;get select="@frame" event="mousedown"/&gt;
+    &lt;set property="down" match="`enabled" value="true"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">6</span>
+    &lt;get select="@frame" event="mouseup"/&gt;
+    &lt;set event="pushed" match="`down"/&gt;
+    &lt;set property="down" value="false"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">7</span>
+    &lt;get property="down"/&gt;
+    &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">8</span>
+    &lt;get property="enabled"/&gt;
+    &lt;set select="@frame" attribute="@class" value="$in ? '' : 'disabled'/&gt;
+  &lt;/watch&gt;
+&lt;/component&gt;</pre>
+      </div>
+      <ul>
+        <li>The button has a <code>label</code> property, the value of which is
+        displayed in the <code>Text</code> element with ID
+        <code>text-label</code> <span class="number">4</span>.</li>
+        <li>The outer frame of the button has two DOM event listeners for
+        <code>mousedown</code> <span class="number">5</span> and
+        <code>mouseup</code> <span class="number">6</span> events. On
+        <code>mousedown</code> events, the <code>down</code> property is set
+        to <code>true</code>, then set back to <code>false</code> on
+        <code>mouseup</code> events. A <code>pushed</code> event is also
+        generated on <code>mouseup</code> events if the button was down.
+        The value of the <code>down</code> property is also used to update the
+        <code>class</code> attribute of the outer frame element <span
+          class="number">7</span>. A style sheet can then change the appearance
+        of the button depending on its pushed status.</li>
+        <li>A third property is <code>enabled</code>, which can be set to
+        <code>false</code> to prevent the button from getting mouse events
+        (see <code>match="`enabled"</code> in the second <code>Watch</code>
+        which returns the value of the <code>enabled</code> property.) The style
+        of the frame also changes when the value of <code>enabled</code>
+        changes <span class="number">8</span>.</li>
+        <li><strong>Note</strong>: the definition of this button was simplified
+        for this example.</li>
+      </ul>
+    </div>
+
+    <p>The figure below shows the rendered graph for <code>Panel</code>.
+    Vertices are represented by ovals (properties), heptagons (events),
+    squares (watches), and a triangle for the vortex. Edges are represented
+    by arrows between the vertices; <code>InheritEdges</code> are pink while
+    yellow edges are edges that were copied from the prototype vertex. In this
+    case, there is an edge from the <code>enabled</code> property vertex of
+    <code>Button</code> to <span class="number">8</span>, which is copied to the
+    <code>enabled</code> property vertex of <code>Minus</code>.</p>
+
+    <figure>
+      <img src="fig/graph-panel.svg">
+      <figcaption>The watch graph for the <code>Panel</code>
+      component.</figcaption>
+    </figure>
 
     <h2>Rendering to HTML</h2>
     <p>A component is rendered to HTML by creating its <em>view stack</em> and
@@ -270,26 +395,61 @@ View+ bottom-view-stack(Component C) = if defined? C.prototype
     the <code>Component</code> is also created for the <code>component</code> of
     the view, while maintaining the parent/children relationships of the
     component tree (so that in effect view tree and component tree are cloned in
-    parallel.) The component tree is cloned so that each component may maintain
-    its own state independently of its prototype.</p>
+    parallel.)</p>
     <pre class="code">Element clone-element(Element E, Element? P) =
   let E’ = create(E) in
     do
       E’.parent = P
       E’.children = map(E.children, λC clone-element(C, E’))
-      if E’ is-a View
+      if E’ is-a View &amp; defined? P
         clone-component(E’)
-      E’
-clone-component(View V) =
+      E’</pre>
+    <p>When a view <em>V</em> that is not the view of a top-level component is
+    cloned, a clone of the component of <em>V</em> is made as well, so that this
+    component can keep its own state independently of its prototype. The clone
+    is <em>shallow</em>, because the children of the component will be cloned
+    when the <code>View</code> children of <em>V</em> will be cloned. The
+    hierarchy of the component tree is not preserved, but it is not required for
+    the copies. Lastly, the component of the top-level view is never cloned
+    because its state is maintained by the component that this is the prototype
+    of.</p>
+    <pre class="code">clone-component(View V) =
   let C’ = create(V.component)
     in
       V.component = C’
-      C’.view = V
-      C’.children = []
-      if defined? V.parent
-        then do
-          C’.parent = V.parent.component
-          C’.parent.children = C’.parent.children : C’</pre>
+      C’.view = V</pre>
+
+    <p>To illustrate the process, consider the following component tree. Arrows
+    point downwards from parent to child, and upwards from component to
+    prototype. In this example, a component <em>A</em> has two children
+    <em>B<sub>1</sub></em> and <em>B<sub>2</sub></em> which both inherit from
+    <em>B</em>, which itself has two children, <em>C</em> and <em>D</em>.</p>
+
+    <figure>
+      <img src="fig/view-stack-1.svg">
+      <figcaption>Example component tree before rendering.</figcaption>
+    </figure>
+
+    <p>The complete tree of views after the view stacks have been created is
+    shown below. The dashed lines indicate views in the same stack. It can be
+    seen that the view of <em>B</em> was cloned twice into <em>B’</em> and
+    <em>B”</em>, for the view stack of <em>B<sub>1</sub></em> and
+    <em>B<sub>2</sub></em>; and likewise for its children <em>C</em> and
+    <em>D</em>.</p>
+
+    <figure>
+      <img src="fig/view-stack-2.svg">
+      <figcaption>The view tree of <em>A</em>.</figcaption>
+    </figure>
+
+    <p>Finally, the component tree after the view stack was created is shown
+    below. Note that while <em>B</em> was not cloned, because it is a top-level
+    component, <em>C</em> and <em>D</em> have both been cloned twice.</p>
+    <figure>
+      <img src="fig/view-stack-3.svg">
+      <figcaption>The component tree after the view stack was
+      created.</figcaption>
+    </figure>
 
     <h3>Rendering Elements in a View Stack</h3>
     <p>Rendering a view stack <em>S</em> in a target DOM element <em>T</em> is
@@ -368,24 +528,195 @@ integer next-view-index(View+ S, integer I) =
       append-child(T, N)</pre>
 
 
-    <h2>Scoping</h2>
-    <p><span class="TODO">TODO</span></p>
-
-    <p>Bender nodes (components and view elements) can all have an ID. IDs are
-    visible, and must be unique, within a <em>scope</em>. Bender defines a
-    <em>component scope</em>, introduced by a top-level component, and including
-    all descendant components, <em>i.e.</em>, spanning the whole component
-    tree.</p>
-
-
     <h2>Watch Graph Traversal</h2>
-    <p><span class="TODO">TODO</span></p>
+    <p>The watch graph is traversed when one of its <em>input vertices</em>
+    is activated with a value. Edges of the graph are then traversed in the
+    sorted order. Edges have different effects on the application, such as
+    setting property values, generating events, modifying rendered elements,
+    &amp;c. The order of the edges defines the order in which these changes
+    occur. After all edges have been visited, vertex values are cleared until
+    the next traversal.</p>
+
+    <h3>Input Vertices, Scopes, and Vertex Values</h3>
+    <p>Both a <code>PropertyVertex</code> and an <code>EventVertex</code> can
+    act as input vertices and be <em>activated</em>. A <code>PropertyEdge</code>
+    is activated when the corresponding property is set to a new value
+    externally. An <code>EventVertex</code> is actiaved when the corresponding
+    event notification is received.</p>
+    <p>A vertex represents a <code>Watch</code> or <code>Adapter</code> for a
+    </p>
+
+    <div class="def" id="Scope">
+      <p>A <code>Scope</code> is a list of <code>Nodes</code> indexed by their
+      ID. All components in a component tree share the same scope.</p>
+      <div>
+        <pre>Scope = Node+</pre>
+        <ul>
+          <li><strong>Note</strong>: </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="def" id="VertexValue">
+      <p>A <code>VertexValue</code> is a value associated with a
+      <code>Vertex</code> during graph traversal in the context of a scope. The
+      value itself can be any <code>data</code>.</p>
+      <div>
+        <pre>VertexValue = (Scope, data)</pre>
+        <ul>
+          <li>A <code>Vertex</code> in a <code>Graph</code> can have zero or
+          more associated values, which can be retried with the function
+          <code>VertexValue* get-vertex-values(Graph G, Vertex V)</code>.</li>
+          <li>A <code>VertexValue</code> can be set for a <code>Vertex</code> in
+          a <code>Graph</code> with the function <code>set-vertex-value(Graph G,
+            Vertex V, VertexValue W)</code>. Any previous value with the same
+          <code>Scope</code> is replaced with the new value, otherwise a new
+          value is added to the list of values.</li>
+          <li>All vertex values can be cleared from a <code>Graph</code> with
+          the function <code>clear-vertex-values(Graph G)</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <h3>Edge Traversal</h3>
+    <p>Every edge of the graph is visited in turn.</p>
+    <pre class="code">traverse-graph(Graph G) =
+  do
+    for E in G.edges
+      traverse-edge(E)
+    clear-vertex-values(G)</pre>
+
+    <p>Traversing and edge means filtering input values (from the source
+    vertex), computing output values, and <em>applying</em> them.</p>
+    <pre class="code">traverse-edge(Edge E) =
+  for (S, V) in get-vertex-values(G, E.source)
+    let S’ = enter-scope(E, S) in
+      if defined? S’ &amp; match-edge(E, S’, V)
+        let V’ = apply-edge(E, S’, V) in
+          for S” in exit-scopes(E, S’)
+            set-vertex-value(G, E.dest, (S”, V’))</pre>
+
+    <p>Enter scope: InheritEdge and edges to a watch vertex.</p>
+    <pre class="code">Scope? enter-scope(Edge E, Scope S) =
+  case E of
+    InheritEdge = enter-scope-inherit(E, S)
+    AdapterEdge = case E.dest of
+                    WatchVertex = enter-scope-get(E, S)
+                    otherwise = S
+    otherwise = S</pre>
+
+    <p><code>enter-scope-inherit</code> handles the case of an
+    <code>InheritEdge</code>.</p>
+    <pre class="code">Scope? enter-scope-inherit(InheritEdge E, Scope S) =
+  find(stack-of(S), λN </pre>
+
+    <p><code>enter-scope-get</code> handles the enter scope for an
+    <code>AdapterEdge</code> </p>
+
+Scope? enter-scope-get(AdapterEdge E, Scope S) =</pre>
+
+    <p>The <code>match-edge</code> function is a predicate used to filter input
+    values for an edge using the <code>match</code> function of the adapter of
+    the edge. Remember that the default value for <code>match</code> is a
+    function that returns true.</p>
+    <pre class="code">boolean match-edge(Edge E, Scope S, data V) = E.adapter.match(V, S)</pre>
+
+    <p>The <code>apply-edge</code> function has two roles:</p>
+    <ol>
+      <li>compute the input value of the edge from its input value;</li>
+      <li>apply the value according to the type of edge.</li>
+    </ol>
+    <pre class="code">data apply-edge(Edge E, Scope S, data V) =
+  case E of
+    AdapterEdge = apply-edge’(E, S, V)
+    otherwise = V
+data apply-edge’(Edge E, Scope S, data V) =
+  let V’ = E.adapter.value(V, S) in
+    do
+      case E.adapter of
+        SetProperty = apply-property(E.adapter, S, V)
+        SetAttribute = apply-attribute(E.adapter, S, V)
+        SetEvent = apply-event(E.adapter, S, V)
+        otherwise = nothing
+      V’
+    </pre>
+
+    <p>Exit scopes</p>
+    <pre class="code">Scope* exit-scope(Edge E, Scope S) =
+  if E is-a AdapterEdge &amp; E.source is-a WatchVertex
+    then exit-scope’(E, S)
+    else S
+Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
+
+    <h3>Example</h3>
+    <p>Using the example graph shown above, the process of graph traversal is
+    illustrated in the figure below. The relevant state of the application at
+    the instant before graph traversal begins is as follows:</p>
+    <ul>
+      <li>The <code>n</code> property of <code>Panel</code> has value 2.</li>
+      <li>The <code>down</code> property of <code>Plus</code> has value true
+      (the button has been pressed.)</li>
+      <li>The <code>frame</code> of <code>Plus</code> has just received a
+      <code>mouseup</code> event.</li>
+    </ul>
+
+    <figure>
+      <img src="fig/graph-traverse.svg">
+      <figcaption>Graph traversal after a <code>mouseup</code> event in the
+      <code>Plus</code> child of the <code>Panel</code> component. </figcaption>
+    </figure>
+
+    <p>The <code>mouseup</code> event vertex was just activated for the
+    <code>Plus</code> button with an event value. The graph traversal then
+    starts, following edges in the order below (dashed edges are not followed
+    as they have no input value and are omitted for brevity), with the following
+    effects:
+    <ol>
+      <li>A DOM event is received from the <code>frame</code> DOM element of the
+      clone of the view of <code>Button</code> for the <code>Plus</code>
+      component (abbreviated <code>Button/Plus</code>.)</li>
+      <li>The <code>down</code> property of <code>Plus</code> is set to
+      false.</li>
+      <li>The <code>down</code> property of <code>Plus</code> is passed to
+      <span class="number">7</span>.</li>
+      <li>The <code>class</code> of the view <code>Button/Plus</code> is set to
+      "".</li>
+      <li>A <code>pushed</code> event is generated for the <code>Plus</code>
+      component.</li>
+      <li>This <code>InheritEdge</code> cannot be followed because
+      <code>Plus</code> is not in the view stack of <code>Minus</code>.</li>
+      <li>This <code>InheritEdge</code> is followed for <code>Plus</code> with
+      the generated event as the value.</li>
+      <li>The event value from <code>Plus</code> is passed to
+      <span class="number">1</span>.</li>
+      <li>The property <code>n</code> of <code>Panel</code> is set to 3.</li>
+      <li>The property <code>n</code> of <code>Panel</code> is passed to
+      <span class="number">3</span>.</li>
+      <li>The property <code>enabled</code> of <code>Minus</code> is set to
+      true.</li>
+      <li>The property <code>enabled</code> of <code>Minus</code> is passed to
+      <span class="number">8</span>.<li>
+      <li>The DOM text node <code>text-n</code> of <code>Panel</code> is updated
+      to show the text "3".</li>
+      <li>The <code>class</code> attribute of the <code>frame</code> of
+      <code>Button/Minus</code> is set to "".</li>
+    </ol>
 
 
     <h2>Property Initialization</h2>
     <p><span class="TODO">TODO</span></p>
 
     <pre class="code">init-properties(Component C, Graph G) = ...</pre>
+
+    <h3>Example</h3>
+
+    <figure>
+      <img src="fig/graph-init.svg">
+      <figcaption>Initialization of the graph of the <code>Panel</code>
+      component.</figcaption>
+    </figure>
+
 
     <h2>Component Mutations</h2>
     <p><span class="TODO">Re-render but keep previous values instead of initial

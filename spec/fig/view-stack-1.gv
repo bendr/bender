@@ -1,0 +1,13 @@
+digraph tree {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  A -> B1
+  A -> B2
+
+  B -> B1 [color="#f94179", dir=back]
+  B -> B2 [color="#f94179", dir=back]
+  B -> C
+  B -> D
+
+}

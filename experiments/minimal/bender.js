@@ -16,6 +16,11 @@ if (typeof window === "object") {
 bender.VERSION = "0.9.m";
 bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+bender.run = function (component, target) {
+  var graph = Graph.create();
+  component.render(target);
+}
+
 
 // Base for all Bender objects
 bender.Base = {
@@ -159,18 +164,23 @@ bender.Component = flexo._ext(bender.Node, {
     return watch;
   },
 
-  render_graph: function (graph) {
+  render: function (graph, target) {
+    this.render_subgraph(graph);
+    var stack = this.view_stack();
+    stack[0].render(stack, 0, target);
+    this.init_properties(graph);
+  },
+
+  render_subgraph: function (graph) {
     delete this.rendered_graph;
     var prototype = this.prototype;
     if (prototype && !prototype.rendered_graph) {
       prototype.render_graph(graph);
     }
-
   },
 
-  render: function (target) {
-    var stack = this.view_stack();
-    stack[0].render(stack, 0, target);
+  init_properties: function (graph) {
+    // TODO
   },
 
   view_stack: function () {

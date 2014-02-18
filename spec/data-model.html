@@ -423,34 +423,6 @@
     <p><span class="TODO">Describe the data model for these two
       components.</span></p>
 
-    <div class="def" id="Button">
-      <p>An HTML button component with a <code>label</code> string property. The
-      value of the label property is displayed as the label of the button. The
-      button is rendered as an HTML <code>div</code> element. When this element
-      receives a mouse <code>click</code> DOM event, the button sends a
-      <code>pushed</code> notification.</p>
-      <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="button"&gt;
-  &lt;property name="label" value="Label"&gt;
-  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
-    &lt;html:div id="frame"&gt;
-      &lt;content&gt;
-        &lt;text id="text-label"/&gt;
-      &lt;/content&gt;
-    &lt;/html:div&gt;
-  &lt;/view&gt;
-  &lt;watch&gt;
-    &lt;get property="label"/&gt;
-    &lt;set select="@text-label"/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt;
-    &lt;get select="@frame" event="click"/&gt;
-    &lt;set event="pushed"/&gt;
-  &lt;/watch&gt;
-&lt;/component&gt;</pre>
-      </div>
-    </div>
-
     <div class="def" id="Panel">
       <p>A panel component, using three <code>Button</code>s as defined
       above. The first button reuses the view and default properties of the

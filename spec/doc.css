@@ -22,6 +22,18 @@ pre {
   padding: 0.5em 1em;
 }
 
+.number {
+  background-color: #333;
+  color: #f8f9f0;
+  -webkit-border-radius: 1em;
+  border-radius: 1em;
+  width: 1em;
+  height: 1em;
+  line-height: 1.2em;
+  display: inline-block;
+  text-align: center;
+}
+
 h1, h2, h3 {
   font-weight: normal;
 }
@@ -33,4 +45,16 @@ a {
 
 .TODO {
   background-color: yellow;
+}
+
+figure {
+  text-align: center;
+}
+
+figure img {
+  zoom: 0.7;
+}
+
+figcaption {
+  font-style: italic;
 }
