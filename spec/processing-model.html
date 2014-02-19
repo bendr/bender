@@ -144,10 +144,7 @@
       </div>
     </div>
 
-    <p><span class="TODO">Define prototype vertex here.</span></p>
-
     <h3>Edges</h3>
-
     <div class="def" id="Edge">
       <p>An <code>Edge</code> is a directed transition from a <em>source</em> to
       a <em>destination</em> <code>Vertex</code>.</p>
@@ -166,20 +163,22 @@
 
     <div class="def" id="InheritEdge">
       <p>An <code>InheritEdge</code> is an edge between two vertices
-      representing the same property or event. The source of the edge is a
-      vertex for a component that is in the prototype chain of the component
-      of the destination vertex. The purpose of <code>InheritEdge</code>s is
-      to make components inherit the behavior of their prototype, while adding
-      behavior of their own. Another use of these edges is to avoid situations
-      that may lead to spurious cycles in the graph.</p>
+      representing the same property or event. The source of the
+      <code>Edge</code> is the <em>prototype vertex</em> of the destination
+      <code>Vertex</code>, and is a vertex for a <code>Component</code> that is
+      in the prototype chain of the component of the destination
+      <code>Vertex</code>. The purpose of <code>InheritEdge</code>s is to make
+      components inherit the behavior of their prototype, while adding behavior
+      of their own. Another benefit of these edges is to avoid situations that
+      may lead to spurious cycles in the graph.</p>
       <div>
         <pre>InheritEdge &lt; Edge</pre>
       </div>
     </div>
 
     <div class="def" id="AdapterEdge">
-      <p>An <code>AdapterEdge</code> is an edge rendered from a <code>Get</code>
-      or <code>Set</code>.</p>
+      <p>An <code>AdapterEdge</code> is an <code>Edge</code> rendered from a
+      <code>Get</code> or <code>Set</code>.</p>
       <div>
         <pre>AdapterEdge &lt; Object:
   Adapter  adapter</pre>
@@ -191,16 +190,17 @@
     </div>
 
     <h3>Rendering the Watch Graph of a Component</h3>
-
-    <p>The sub-graph of a <code>Component</code> in a <code>Graph</code>
-    <em>G</em> is rendered by rendering the sub-graph of the prototype of the
-    component, if any, in <em>G</em>; then rendering vertices and edges for
-    every <code>Watch</code>; and finally rendering the sub-graph of the child
-    components. The component is marked as being rendered so that its sub-graph
-    is rendered only once. This is necessary because a prototype component may
-    be shared by several components.</p>
-    <pre class="code">render-subgraph(Component C, Graph G) =
-  do mark C
+    <p>The sub-graph of a <code>Component</code> <em>C</em> in a
+    <code>WatchGraph</code> <em>G</em> is constructed by rendering the sub-graph
+    of the prototype <em>C</em>, if any, in <em>G</em>; then rendering vertices
+    and edges for every <code>Watch</code> in <em>C</em>; and finally rendering
+    the sub-graph of the child components. The component is marked so that its
+    sub-graph is rendered only once. This is necessary because a prototype
+    component may be shared by several components, which will all require it
+    to render its sub-graph.</p>
+    <pre class="code">render-subgraph(Component C, WatchGraph G) =
+  do
+    mark C
     if defined? C.prototype and not marked? C.prototype
       then render-subgraph(C.prototype, G)
     for W in C.Watches
@@ -224,6 +224,7 @@
         let V’ = find-adapter-vertex(S, G) in
           G.edges = G.edges : new AdapterEdge(V, V’, S)</pre>
 
+
     <p>The source or destination vertex of an <code>AdapterEdge</code> to or
     from a <code>WatchVertex</code> is a <code>PropertyVertex</code>,
     <code>EventVertex</code> or <code>DOMEventVertex</code>, depending on the
@@ -241,6 +242,48 @@
             G.vertices = G.vertices : V’
             add-inherit-edge(V’, G)
             V’</pre>
+
+    <p>The figure below shows the rendering of watch <span
+    class="watch">6</span> of the <code>Button</code> example component (in this
+    example, other watches are ignored.) A <code>WatchVertex</code> (square) is
+    created, then an <code>AdapterEdge</code> to this vertex is added from a new
+    <code>EventVertex</code> (heptagon) for the <code>GetEvent</code>, then two
+    <code>AdapterEdge</code>s from the <code>WatchVertex</code> are created for
+    the <code>SetProperty</code> to a <code>PropertyVertex</code> (ellipse) for
+    the <code>down</code> <code>Property</code>, and another
+    <code>AdapterEdge</code> for the <code>SetEvent</code> to an
+    <code>EventVertex</code>.</p>
+
+    <pre class="code">&lt;watch&gt; <span class="watch">6</span>
+  &lt;get select="@frame" event="mouseup"/&gt;
+  &lt;set event="pushed" match="`down"/&gt;
+  &lt;set property="down" value="false"/&gt;
+&lt;/watch&gt;</pre>
+
+    <figure>
+      <img src="fig/graph-watch-6.svg">
+      <figcaption>The watch sub-graph for watch <span class="watch">6</span> of
+      the <code>Button</code>.</figcaption>
+    </figure>
+
+    <p>The figure below shows the addition of the sub-graph for watch <span
+    class="watch">7</span>. A new <code>WatchVertex</code> is added, then a new
+    <code>AdapterEdge</code> for the <code>GetProperty</code>, reusing the
+    <code>PropertyVertex</code> of <code>down</code> as the source vertex.
+    Finally, the <code>SetAttribute</code> is rendered as an
+    <code>AdapterEdge</code> to the vortex (triangle.)</p>
+
+    <pre class="code">&lt;watch&gt; <span class="watch">7</span>
+  &lt;get property="down"/&gt;
+  &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
+&lt;/watch&gt;
+    </pre>
+
+    <figure>
+      <img src="fig/graph-watch-67.svg">
+      <figcaption>The watch sub-graph for watches <span class="watch">6</span>
+      and <span class="watch">7</span> of the <code>Button</code>.</figcaption>
+    </figure>
 
     <p>If there exists a prototype vertex <em>V’</em> for a vertex <em>V</em>
     (see below), then a new <code>InheritEdge</code> is added between
@@ -544,7 +587,7 @@ integer next-view-index(View+ S, integer I) =
     occur. After all edges have been visited, vertex values are cleared until
     the next traversal.</p>
 
-    <h3>Input Vertices, Scopes, and Vertex Values</h3>
+    <h3>Input Vertices and Vertex Values</h3>
     <p>Both a <code>PropertyVertex</code> and an <code>EventVertex</code> can
     act as input vertices and be <em>activated</em>. A <code>PropertyEdge</code>
     is activated when the corresponding property is set to a new value
@@ -553,20 +596,11 @@ integer next-view-index(View+ S, integer I) =
     <p>A vertex represents a <code>Watch</code> or <code>Adapter</code> for a
     </p>
 
-    <div class="def" id="Scope">
-      <p>A <code>Scope</code> is a list of <code>Nodes</code> indexed by their
-      ID. All components in a component tree share the same scope.</p>
-      <div>
-        <pre>Scope = Node+</pre>
-        <ul>
-          <li><strong>Note</strong>: </li>
-        </ul>
-      </div>
-    </div>
+    <p><span class="TODO">Replace scope with context</span>.<p>
 
     <div class="def" id="VertexValue">
       <p>A <code>VertexValue</code> is a value associated with a
-      <code>Vertex</code> during graph traversal in the context of a scope. The
+      <code>Vertex</code> and a <code>Context</code> during graph traversal. The
       value itself can be any <code>data</code>.</p>
       <div>
         <pre>VertexValue = (Scope, data)</pre>

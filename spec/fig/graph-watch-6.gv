@@ -1,0 +1,13 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  mouseup [label="mouseup (frame)", shape=septagon];
+  down [label="down (Button)"];
+  pushed [label="push (Button)", shape=septagon];
+  w6 [label="6", shape=square, fixedsize=true, width=0.3];
+  mouseup -> w6;
+  w6 -> down;
+  w6 -> pushed;
+
+}
