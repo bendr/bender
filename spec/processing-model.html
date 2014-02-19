@@ -8,8 +8,8 @@
   <body>
     <h1>The Bender Processing Model</h1>
     <p>Version 0.9, February 2014</p>
-    <p>See also <a href="data-model.html">the Bender Data Model</a> for
-    reference.</p>
+    <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
+      href="xml-api.html">the Bender XML and Javascript API</a> for reference.</p>
 
 
     <h2>Informal Overview</h2>
@@ -260,16 +260,19 @@
     <em>V</em> that has such a vertex, if it exists.</p>
 
 
-    <h3>Edge sorting</h3>
-    <p class="TODO">Edges are sorted in topological order. Starting from
-    vertices that have no outgoing edge (there must be at least one such vertex,
-    the <code>vortex</code>), incoming edges are pushed at the end of the end
-    list and removed from the list of outgoing edges of their source vertex.
-    Then, new vertices with no outgoing edges are processed. If there were no
-    cycles in the graph, all edges and vertices are processed, otherwise an
-    error is raised (although cycles may be broken when they include delayed
-    edges, see below.) Order of <code>AdapterEdge</code>s versus
-    <code>InheritEdge</code>s and copied edges.</p>
+    <h3>Edge Sorting</h3>
+    <p>Once the graph <em>G</em> is built, its <code>edges</code> are sorted in
+    topological order. Starting from vertices that have no outgoing edge (there
+    is always at least one such vertex, the <code>vortex</code>), incoming edges
+    are pushed at the end of the list of edges and removed from the list of
+    outgoing edges their source vertex. The process repeats with the vertices
+    which do not have any outgoing edge anymore. If there were no cycles in the
+    graph, all edges and vertices are processed, otherwise an error is raised
+    (although cycles may be broken when they include delayed edges, see
+    below.)</p>
+    <p>The list of incoming edges of a vertex is not ordered, 
+    <p>When pushing a list incoming edges,  </p>
+    <pre class="code"><span class="TODO">Edge* sort-edges(Edge *) = ...</span></pre>
 
 
     <h3>Example</h3>

@@ -2,13 +2,13 @@ body {
   font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
   max-width: 48rem;
   padding: 0 2rem;
-  margin: 2rem auto;
+  margin: 4rem auto;
 }
 
 div.def > div {
   border-top: solid medium black;
   border-bottom: solid thin black;
-  padding: 1rem 0;
+  padding: 1rem 0 0 0;
   margin: 1rem 0;
 }
 
@@ -18,7 +18,7 @@ pre, code {
 
 pre {
   background-color: #ffc;
-  margin: 0 1em;
+  margin: 0 1em 1em 1em;
   padding: 0.5em 1em;
 }
 
@@ -34,7 +34,17 @@ pre {
   text-align: center;
 }
 
+.watch {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  text-align: center;
+  border: solid thin #ad2bad;
+  color: #ad2bad;
+}
+
 h1, h2, h3 {
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
   font-weight: normal;
 }
 

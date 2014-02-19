@@ -16,9 +16,10 @@ if (typeof window === "object") {
 bender.VERSION = "0.9.m";
 bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
 
+// Run an application defined by `component` in `target`.
 bender.run = function (component, target) {
   var graph = Graph.create();
-  component.render(target);
+  component.render(graph, target);
 }
 
 
