@@ -22,18 +22,6 @@ pre {
   padding: 0.5em 1em;
 }
 
-.number {
-  background-color: #333;
-  color: #f8f9f0;
-  -webkit-border-radius: 1em;
-  border-radius: 1em;
-  width: 1em;
-  height: 1em;
-  line-height: 1.2em;
-  display: inline-block;
-  text-align: center;
-}
-
 .watch {
   display: inline-block;
   width: 1.2em;

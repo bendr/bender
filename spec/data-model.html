@@ -59,16 +59,12 @@
       <div>
         <pre>Node &lt; Object
   Node?    parent
-  Node*    children
-  string?  id</pre>
+  Node*    children</pre>
         <ul>
           <li><code>parent</code> is the parent <code>Node</code>, if any, of
           the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
           <li><code>children</code> is the ordered list of child nodes of the
           node. A <em>leaf</em> in a tree has zero children.</li>
-          <li><code>id</code> is an optional string identifier. The identifier
-          must be unique within the scope of a <code>Component</code> (see
-          below.)</li>
         </ul>
       </div>
     </div>
@@ -86,11 +82,6 @@
       <code>parent</code>, <em>i.e.</em>, it is the root of a component tree.
       There is no separate concept of “application” in Bender; an application is
       a top-level component.</p>
-      <p>The <em>scope</em> of a <code>component</code> <em>C</em> covers the
-      component tree that <em>C</em> is in and the view tree that its
-      <code>View</code> is in. The scope does not cover the whole component
-      graph, as it excludes the prototype of <em>C</em> as well as the
-      prototypes of its parent and children.</p>
       <div>
         <pre>Component &lt; Node
   Component?  prototype
@@ -168,9 +159,7 @@
         <li><code>component</code> points back to the owner
         <code>Component</code>.</li>
         <li><code>name</code> is the name of the property. The name of a
-        <code>Property</code> must be unique for a <code>Component</code>,
-        but other components in the same scope may have a <code>Property</code>
-        with the same name.</li>
+        <code>Property</code> must be unique for a <code>Component</code>.</li>
       </ul>
     </div>
 
@@ -583,8 +572,8 @@
     arrows are parent/child relationships. Pink arrows point to a prototype.
     Blue arrows point from a <code>Component</code> to its <code>View</code>.
     <code>Component</code> nodes are shown as ellipses, while view
-    <code>Element</code>s are shown as boxes. Scopes are enclosed in green
-    boxes.</p>
+    <code>Element</code>s are shown as boxes. The graph of a top-level component
+    is enclosed within a green box.</p>
 
     <figure>
       <img src="fig/panel.svg">

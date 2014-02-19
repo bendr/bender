@@ -46,10 +46,10 @@
     <h2>Constructing the Watch Graph</h2>
 
     <div class="def" id="WatchGraph">
-      <p>The <code>WatchGraph</code> is defined as a set of directed
+      <p>The <code>WatchGraph</code> is defined as an ordered list of directed
       <em>edges</em> between <em>vertices</em>. Edges are kept sorted in
       <em>topological order</em> so that data flow is consistent and
-      predictible. This also means that the graph should be acyclic; however,
+      predictable. This also means that the graph should be acyclic; however,
       through the use of <em>delayed</em> edges (see below), cycles may be
       introduced under certain conditions.</p>
       <div>
@@ -70,10 +70,10 @@
     </div>
 
 
-    <h3>Graph Vertices</h3>
+    <h3>Vertices</h3>
 
     <div class="def" id="Vertex">
-      <p>A <code>Vertex</code> in the <code>Graph</code>.</p>
+      <p>A vertex in the <code>WatchGraph</code>.</p>
       <div>
         <pre>Vertex &lt; Object
   Edge*  incoming
@@ -119,11 +119,12 @@
       <code>GetProperty</code> or <code>SetProperty</code> in a
       <code>Watch</code>.</p>
       <div>
-        <pre>PropertyVertex &lt; AdapterVertex
-  Property  property</pre>
+        <pre>PropertyVertex &lt; AdapterVertex</pre>
         <ul>
-          <li><code>property</code> is the <code>Property</code> of the
-          <code>adapter</code> of this vertex.</li>
+          <li><strong>Note</strong>: the <code>Adapter</code> of the vertex
+          being either a <code>GetProperty</code> or <code>SetProperty</code>,
+          the property associated with this vertex is accessible through
+          <code>adapter.property</code>.</li>
         </ul>
       </div>
     </div>
@@ -133,27 +134,32 @@
       <code>GetEvent</code> or <code>SetEvent</code> in a
       <code>Watch</code>.</p>
       <div>
-        <pre>EventVertex &lt; AdapterVertex
-  string  type</pre>
+        <pre>EventVertex &lt; AdapterVertex</pre>
         <ul>
-          <li><code>property</code> is the <code>Property</code> of the
-          <code>adapter</code> of this vertex.</li>
+          <li><strong>Note</strong>: the <code>Adapter</code> of the vertex
+          being either a <code>GetEvent</code> or <code>SetEvent</code>,
+          the type of the event associated with this vertex is accessible
+          through <code>adapter.type</code>.</li>
         </ul>
       </div>
     </div>
 
-    <h3>Graph Edges</h3>
+    <p><span class="TODO">Define prototype vertex here.</span></p>
+
+    <h3>Edges</h3>
 
     <div class="def" id="Edge">
       <p>An <code>Edge</code> is a directed transition from a <em>source</em> to
-      a <em>destination</em> vertex.</p>
+      a <em>destination</em> <code>Vertex</code>.</p>
       <div>
-        <pre>Edge &lt; Object:
+        <pre>Edge &lt; Object
   Vertex  source
   Vertex  dest</pre>
         <ul>
-          <li><code>source</code> is the source vertex of the edge.</li>
-          <li><code>dest</code> is the destination vertex of the edge.</li>
+          <li><code>source</code> is the source <code>Vertex</code> of the
+          edge.</li>
+          <li><code>dest</code> is the destination <code>Vertex</code> of the
+          edge.</li>
         </ul>
       </div>
     </div>
@@ -284,20 +290,20 @@
   &lt;property name="n" value="0"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div&gt;
-      &lt;component href="button.xml" id="Minus" label="—"/&gt;
-      &lt;component href="button.xml" id="Plus" label="+"/&gt;
       &lt;text id="text-n"/&gt;
+      &lt;component href="button.xml" id="Plus" label="+"/&gt;
+      &lt;component href="button.xml" id="Minus" label="—"/&gt;
     &lt;/html:div&gt;
   &lt;/view&gt;
-  &lt;watch&gt; <span class="number">1</span>
+  &lt;watch&gt; <span class="watch">1</span>
     &lt;get select="@Plus" event="pushed"/&gt;
-    &lt;set property="n" value="$in + 1"/&gt;
+    &lt;set property="n" value="`n + 1"/&gt;
   &lt;/watch&gt;
-  &lt;watch&gt; <span class="number">2</span>
+  &lt;watch&gt; <span class="watch">2</span>
     &lt;get select="@Minus" event="pushed"/&gt;
-    &lt;set property="n" value="$in - 1"/&gt;
+    &lt;set property="n" value="`n - 1"/&gt;
   &lt;/watch&gt;
-  &lt;watch&gt; <span class="number">3</span>
+  &lt;watch&gt; <span class="watch">3</span>
     &lt;get property="n"/&gt;
     &lt;set select="@text-n"/&gt;
     &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
@@ -310,7 +316,7 @@
       <p>This is the <code>Button</code> component.</p>
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
-  &lt;property name="label" value="Label"&gt;
+  &lt;property name="label" as="string" value="Label"&gt;
   &lt;property name="enabled" value="true"&gt;
   &lt;property name="pushed" value="false"&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
@@ -320,24 +326,24 @@
       &lt;/content&gt;
     &lt;/html:div&gt;
   &lt;/view&gt;
-  &lt;watch&gt; <span class="number">4</span>
+  &lt;watch&gt; <span class="watch">4</span>
     &lt;get property="label"/&gt;
     &lt;set select="@text-label"/&gt;
   &lt;/watch&gt;
-  &lt;watch&gt; <span class="number">5</span>
+  &lt;watch&gt; <span class="watch">5</span>
     &lt;get select="@frame" event="mousedown"/&gt;
     &lt;set property="down" match="`enabled" value="true"/&gt;
   &lt;/watch&gt;
-  &lt;watch&gt; <span class="number">6</span>
+  &lt;watch&gt; <span class="watch">6</span>
     &lt;get select="@frame" event="mouseup"/&gt;
     &lt;set event="pushed" match="`down"/&gt;
     &lt;set property="down" value="false"/&gt;
   &lt;/watch&gt;
-  &lt;watch&gt; <span class="number">7</span>
+  &lt;watch&gt; <span class="watch">7</span>
     &lt;get property="down"/&gt;
     &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
   &lt;/watch&gt;
-  &lt;watch&gt; <span class="number">8</span>
+  &lt;watch&gt; <span class="watch">8</span>
     &lt;get property="enabled"/&gt;
     &lt;set select="@frame" attribute="@class" value="$in ? '' : 'disabled'/&gt;
   &lt;/watch&gt;
@@ -351,7 +357,7 @@
     by arrows between the vertices; <code>InheritEdges</code> are pink while
     yellow edges are edges that were copied from the prototype vertex. In this
     case, there is an edge from the <code>enabled</code> property vertex of
-    <code>Button</code> to <span class="number">8</span>, which is copied to the
+    <code>Button</code> to <span class="watch">8</span>, which is copied to the
     <code>enabled</code> property vertex of <code>Minus</code>.</p>
 
     <figure>
@@ -680,7 +686,7 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
       <li>The <code>down</code> property of <code>Plus</code> is set to
       false.</li>
       <li>The <code>down</code> property of <code>Plus</code> is passed to
-      <span class="number">7</span>.</li>
+      <span class="watch">7</span>.</li>
       <li>The <code>class</code> of the view <code>Button/Plus</code> is set to
       "".</li>
       <li>A <code>pushed</code> event is generated for the <code>Plus</code>
@@ -690,14 +696,14 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
       <li>This <code>InheritEdge</code> is followed for <code>Plus</code> with
       the generated event as the value.</li>
       <li>The event value from <code>Plus</code> is passed to
-      <span class="number">1</span>.</li>
+      <span class="watch">1</span>.</li>
       <li>The property <code>n</code> of <code>Panel</code> is set to 3.</li>
       <li>The property <code>n</code> of <code>Panel</code> is passed to
-      <span class="number">3</span>.</li>
+      <span class="watch">3</span>.</li>
       <li>The property <code>enabled</code> of <code>Minus</code> is set to
       true.</li>
       <li>The property <code>enabled</code> of <code>Minus</code> is passed to
-      <span class="number">8</span>.</li>
+      <span class="watch">8</span>.</li>
       <li>The DOM text node <code>text-n</code> of <code>Panel</code> is updated
       to show the text "3".</li>
       <li>The <code>class</code> attribute of the <code>frame</code> of
@@ -715,7 +721,7 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
     several delayed traversals may be scheduled from a given graph
     traversal.</p>
     <p>In the example traversal above, the <code>SetEvent</code> of <span
-    class="number">6</span> should have a delay of 0 so that the event is
+    class="watch">6</span> should have a delay of 0 so that the event is
     dispatched asynchronously. This means that edges 1 through 4 are traversed
     as above, but edge 5 is delayed. After the traversal has ended, a new
     traversal starts from edge 5, with the false value on the <code>Plus</code>
