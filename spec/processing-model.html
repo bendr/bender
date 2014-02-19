@@ -14,48 +14,46 @@
 
     <h2>Informal Overview</h2>
     <p>A Bender application is defined by a component, its children, and their
-    prototype. The tree of all components that are part of the definition of an
-    application is called the <em>static tree</em> of the application. To run
-    the application in a HTML context, <em>e.g.</em> a Web browser, that tree
-    is rendered to a <em>dynamic tree</em> (<span class="TODO">or runtime
-    tree?</span>) and a <em>watch graph</em> is constructed to handle property
-    changes and events in the dynamic tree.</p>
-    <p>The dynamic tree differs from the static tree in that copies of
-    components may be created for rendering purposes. In an application with
-    several components that share a single prototype, child components of the
-    prototype components need copying in order to maintain their own state
-    independently of each other.</p>
-    <p>The watch graph is a compilation of all watches in the static tree. The
-    main idea behind the watch graph is to create edges between vertices, where
-    a vertex represent the value of a property or the occurrence of an event,
-    and edges the changes that happen in between. When a value changes or an
-    event occurs, that value is propagated through the edges and vertices of
-    the graph, having effects on the whole application.</p>
+    prototype. The graph of all components that are part of the definition of an
+    application is called the <em>component graph</em> of the application.
+    At runtime, the component graph is augmented with copies of views and
+    components; the result is the <em>runtime graph</em>.</p>
+    <p>Copies of nodes are necessary in when several components have a common
+    prototype, as child components of a shared prototype component need copying
+    in order to maintain their own state independently of each other. The views
+    of the runtime graph are then rendered by the user agent, and a <em>watch
+      graph</em> is also constructed.</p>
+    <p>The watch graph is a compilation of all the watches in the component
+    graph. The main idea behind the watch graph is to create edges between
+    vertices, where a vertex represents the value of a property or the
+    occurrence of an event, and edges the changes that happen in between. When
+    a value changes or an event occurs, that value is propagated through the
+    edges and vertices of the graph, having effects on the running
+    application.</p>
 
 
-    <h2>Running a Bender Application</h2>
-    <p>A Bender application is defined by a top-level component and is run in by
-    rendering the view and watches of the component, its children and their
-    prototype in a host application (<em>e.g.</em>, a Web browser.) Properties
-    of the component are initialized, the watch graph is flushed, and the
-    application is running.</p>
+    <h2>Running a Bender Application in a User Agent</h2>
+    <p>Running a Bender application in a user agent, such as a Web browser, is
+    rendering the <code>Component</code> in a target DOM element.</p>
     <pre class="code">run-application(Component C, DOM element T) =
-  let G = new Graph in
+  let G = new WatchGraph in
     do
       render-subgraph(C, G)
       render-component(C, T)
       init-properties(C, G)</pre>
 
-    <h2>Rendering the Watch Graph</h2>
 
-    <div class="def" id="Graph">
-      <p>The <code>Graph</code> is defined as a set of directed <em>edges</em>
-      between <em>vertices</em>. Edges are kept sorted in <em>topological
-      order</em> so that data flow is consistent and predictible. This also
-      means that the graph should be acyclic; however, through the use of
-      <em>delayed</em> edges (see below), cycles may be introduced.</p>
+    <h2>Constructing the Watch Graph</h2>
+
+    <div class="def" id="WatchGraph">
+      <p>The <code>WatchGraph</code> is defined as a set of directed
+      <em>edges</em> between <em>vertices</em>. Edges are kept sorted in
+      <em>topological order</em> so that data flow is consistent and
+      predictible. This also means that the graph should be acyclic; however,
+      through the use of <em>delayed</em> edges (see below), cycles may be
+      introduced under certain conditions.</p>
       <div>
-        <pre>Graph &lt; Object:
+        <pre>WatchGraph &lt; Object
   Vertex+  vertices
   Vertex   vortex
   Edges*   edges</pre>
@@ -77,7 +75,7 @@
     <div class="def" id="Vertex">
       <p>A <code>Vertex</code> in the <code>Graph</code>.</p>
       <div>
-        <pre>Vertex &lt; Object:
+        <pre>Vertex &lt; Object
   Edge*  incoming
   Edge*  outgoing</pre>
         <ul>
