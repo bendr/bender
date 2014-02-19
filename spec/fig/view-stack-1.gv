@@ -5,8 +5,8 @@ digraph tree {
   A -> B1
   A -> B2
 
-  B -> B1 [color="#f94179", dir=back]
-  B -> B2 [color="#f94179", dir=back]
+  B1 -> B [color="#f94179"]
+  B2 -> B [color="#f94179"]
   B -> C
   B -> D
 

@@ -5,19 +5,23 @@ digraph tree {
   A -> B1
   A -> B2
 
-  B -> B1 [color="#f94179", dir=back]
-  B -> B2 [color="#f94179", dir=back]
+  B1 -> B [color="#f94179"]
+  B2 -> B [color="#f94179"]
   B -> C
   B -> D
 
   C_ [label="C’"]
-  C -> C_ [color="#f94179", dir=back]
+  C_ -> C [color="#f94179"]
   C__ [label="C”"]
-  C -> C__ [color="#f94179", dir=back]
+  C__ -> C [color="#f94179"]
+  B -> C_ [style=dashed]
+  B -> C__ [style=dashed]
 
   D_ [label="D’"]
-  D -> D_ [color="#f94179", dir=back]
+  D_ -> D [color="#f94179"]
   D__ [label="D”"]
-  D -> D__ [color="#f94179", dir=back]
+  D__ -> D [color="#f94179"]
+  B -> D_ [style=dashed]
+  B -> D__ [style=dashed]
 
 }

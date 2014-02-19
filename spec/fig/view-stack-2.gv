@@ -14,8 +14,8 @@ digraph tree {
 
   VA -> VB1
   VA -> VB2
-  VB1 -> VB_ [dir=none, style=dashed]
-  VB2 -> VB__ [dir=none, style=dashed]
+  VB1 -> VB_ [dir=none, color="#f94179"]
+  VB2 -> VB__ [dir=none, color="#f94179"]
   VB_ -> VC_
   VB_ -> VD_
   VB__ -> VC__

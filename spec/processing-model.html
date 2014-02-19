@@ -12,6 +12,27 @@
     reference.</p>
 
 
+    <h2>Informal Overview</h2>
+    <p>A Bender application is defined by a component, its children, and their
+    prototype. The tree of all components that are part of the definition of an
+    application is called the <em>static tree</em> of the application. To run
+    the application in a HTML context, <em>e.g.</em> a Web browser, that tree
+    is rendered to a <em>dynamic tree</em> (<span class="TODO">or runtime
+    tree?</span>) and a <em>watch graph</em> is constructed to handle property
+    changes and events in the dynamic tree.</p>
+    <p>The dynamic tree differs from the static tree in that copies of
+    components may be created for rendering purposes. In an application with
+    several components that share a single prototype, child components of the
+    prototype components need copying in order to maintain their own state
+    independently of each other.</p>
+    <p>The watch graph is a compilation of all watches in the static tree. The
+    main idea behind the watch graph is to create edges between vertices, where
+    a vertex represent the value of a property or the occurrence of an event,
+    and edges the changes that happen in between. When a value changes or an
+    event occurs, that value is propagated through the edges and vertices of
+    the graph, having effects on the whole application.</p>
+
+
     <h2>Running a Bender Application</h2>
     <p>A Bender application is defined by a top-level component and is run in by
     rendering the view and watches of the component, its children and their
@@ -26,8 +47,6 @@
       init-properties(C, G)</pre>
 
     <h2>Rendering the Watch Graph</h2>
-    <p>The <em>watch graph</em> is a graph of that is built to manage the flow
-    of events and property changes in a Bender application.</p>
 
     <div class="def" id="Graph">
       <p>The <code>Graph</code> is defined as a set of directed <em>edges</em>
@@ -141,6 +160,19 @@
       </div>
     </div>
 
+    <div class="def" id="InheritEdge">
+      <p>An <code>InheritEdge</code> is an edge between two vertices
+      representing the same property or event. The source of the edge is a
+      vertex for a component that is in the prototype chain of the component
+      of the destination vertex. The purpose of <code>InheritEdge</code>s is
+      to make components inherit the behavior of their prototype, while adding
+      behavior of their own. Another use of these edges is to avoid situations
+      that may lead to spurious cycles in the graph.</p>
+      <div>
+        <pre>InheritEdge &lt; Edge</pre>
+      </div>
+    </div>
+
     <div class="def" id="AdapterEdge">
       <p>An <code>AdapterEdge</code> is an edge rendered from a <code>Get</code>
       or <code>Set</code>.</p>
@@ -206,18 +238,10 @@
             add-inherit-edge(V’, G)
             V’</pre>
 
-    <p>If a component <em>C</em> has <em>e.g.</em> a <code>GetProperty</code>
-    for a <code>Property</code> <em>P</em>, then a <code>PropertyVertex</code>
-    <em>V</em> will exist for <em>P</em> in <em>G</em>. Now, if there exists a
-    component <em>C’</em> that is the nearest ancestor of <em>C</em> along the
-    prototype chain such that there exists a <code>PropertyVertex</code>
-    <em>V’</em> for that same property <em>P</em> in <em>G</em>, a new
-    <code>InheritEdge</code> is created between <em>V’</em> and <em>V</em>.
-    Then, for every outgoing edge <em>E</em> of <em>V’</em>, a copy <em>E’</em>
-    of <em>E</em> is added to the outgoing edges of <em>V</em>. By using
-    <code>InheritEdge</code>s and copying edges in this manner, we ensure that
-    a component shares the behavior of its prototype. The role of
-    <code>InheritEdge</code>s is described in more detail below.</p>
+    <p>If there exists a prototype vertex <em>V’</em> for a vertex <em>V</em>
+    (see below), then a new <code>InheritEdge</code> is added between
+    <em>V’</em> and <em>V</em>. The outgoing edges of <em>V’</em> are also
+    copied to <em>V</em>.</p>
     <pre class="code">add-inherit-edge(AdapterVertex V, Graph G) =
   let V’ = find-prototype-vertex(V, G) in
     if defined? V’ then
@@ -229,14 +253,30 @@
               E’.source = V
               G.edges = G.edges : E’</pre>
 
+    <p><span class="TODO"><code>Vertex? find-prototype-vertex(Graph G,
+    Vertex V)</code> finds the prototype vertex <em>V’</em> in <em>G</em> such
+    that <em>V</em> and <em>V’</em> share the same property or event, and the
+    component of <em>V’</em> is the closes component in the prototype chain of
+    <em>V</em> that has such a vertex, if it exists.</p>
+
+
+    <h3>Edge sorting</h3>
+    <p class="TODO">Edges are sorted in topological order. Starting from
+    vertices that have no outgoing edge (there must be at least one such vertex,
+    the <code>vortex</code>), incoming edges are pushed at the end of the end
+    list and removed from the list of outgoing edges of their source vertex.
+    Then, new vertices with no outgoing edges are processed. If there were no
+    cycles in the graph, all edges and vertices are processed, otherwise an
+    error is raised (although cycles may be broken when they include delayed
+    edges, see below.) Order of <code>AdapterEdge</code>s versus
+    <code>InheritEdge</code>s and copied edges.</p>
+
 
     <h3>Example</h3>
 
-    <p>To illustrate the rendering of the watch graph, consider a non-trivial
-    component (called <em>Panel</em>) defined in XML as follows <span
-      class="TODO">(the XML syntax and Javascript API are described in a
-      separate document)</span>:</p>
-
+    <p>To illustrate the rendering of the watch graph, review the
+    <code>Panel</code> component from the <a href="data-model.html#example">Data
+    Model</a> description.</p>
     <div class="def" id="Panel">
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Panel"&gt;
@@ -244,8 +284,8 @@
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div&gt;
       &lt;component href="button.xml" id="Minus" label="—"/&gt;
-      &lt;text id="text-n"/&gt;
       &lt;component href="button.xml" id="Plus" label="+"/&gt;
+      &lt;text id="text-n"/&gt;
     &lt;/html:div&gt;
   &lt;/view&gt;
   &lt;watch&gt; <span class="number">1</span>
@@ -259,34 +299,14 @@
   &lt;watch&gt; <span class="number">3</span>
     &lt;get property="n"/&gt;
     &lt;set select="@text-n"/&gt;
-    &lt;set select="@Minus" property="enabled" value="$in &gt; 0"/&gt;
+    &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
       </div>
-      <ul>
-        <li><code>Panel</code> has a property <code>n</code> with an initial
-        value of 0.</li>
-        <li>There are two child components, <code>Plus</code> and
-        <code>Minus</code>, both inheriting from the <code>Button</code>
-        component shown below.</li>
-        <li>The first two <code>Watch</code>es <span class="number">1</span>
-        and <span class="number">2</span> monitor <code>pushed</code>
-        events on the two buttons, and increase or decrease the value of
-        <code>n</code> by 1 depending on which button is pushed.</li>
-        <li>The last <code>Watch</code> <span class="number">3</span> monitors
-        changes in the value of <code>n</code>, and does two things: change the
-        <code>text</code> property of the <code>Text</code> element with ID
-        <code>text-n</code>, and disables the <code>Minus</code> button when the
-        value of <code>n</code> is not greater than zero. <code>n</code> is
-        displayed and updated every time it changes, and since the
-        <code>Minus</code> is disabled when <code>n</code> is zero, it cannot
-        become negative through this interface.</li>
-      </ul>
     </div>
 
     <div class="def" id="Button">
-      <p>This is the <code>Button</code> prototype of both <code>Plus</code> and
-      <code>Minus</code> button above.</p>
+      <p>This is the <code>Button</code> component.</p>
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
   &lt;property name="label" value="Label"&gt;
@@ -322,30 +342,6 @@
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
       </div>
-      <ul>
-        <li>The button has a <code>label</code> property, the value of which is
-        displayed in the <code>Text</code> element with ID
-        <code>text-label</code> <span class="number">4</span>.</li>
-        <li>The outer frame of the button has two DOM event listeners for
-        <code>mousedown</code> <span class="number">5</span> and
-        <code>mouseup</code> <span class="number">6</span> events. On
-        <code>mousedown</code> events, the <code>down</code> property is set
-        to <code>true</code>, then set back to <code>false</code> on
-        <code>mouseup</code> events. A <code>pushed</code> event is also
-        generated on <code>mouseup</code> events if the button was down.
-        The value of the <code>down</code> property is also used to update the
-        <code>class</code> attribute of the outer frame element <span
-          class="number">7</span>. A style sheet can then change the appearance
-        of the button depending on its pushed status.</li>
-        <li>A third property is <code>enabled</code>, which can be set to
-        <code>false</code> to prevent the button from getting mouse events
-        (see <code>match="`enabled"</code> in the second <code>Watch</code>
-        which returns the value of the <code>enabled</code> property.) The style
-        of the frame also changes when the value of <code>enabled</code>
-        changes <span class="number">8</span>.</li>
-        <li><strong>Note</strong>: the definition of this button was simplified
-        for this example.</li>
-      </ul>
     </div>
 
     <p>The figure below shows the rendered graph for <code>Panel</code>.
@@ -419,19 +415,19 @@ View+ bottom-view-stack(Component C) = if defined? C.prototype
       V.component = C’
       C’.view = V</pre>
 
-    <p>To illustrate the process, consider the following component tree. Arrows
-    point downwards from parent to child, and upwards from component to
-    prototype. In this example, a component <em>A</em> has two children
+    <p>To illustrate the process, consider the following component tree. Black
+    arrows point from parent to child, while pink arrows point from component
+    to prototype. In this example, a component <em>A</em> has two children
     <em>B<sub>1</sub></em> and <em>B<sub>2</sub></em> which both inherit from
     <em>B</em>, which itself has two children, <em>C</em> and <em>D</em>.</p>
 
     <figure>
       <img src="fig/view-stack-1.svg">
-      <figcaption>Example component tree before rendering.</figcaption>
+      <figcaption>Static component tree (before rendering.)</figcaption>
     </figure>
 
     <p>The complete tree of views after the view stacks have been created is
-    shown below. The dashed lines indicate views in the same stack. It can be
+    shown below. The pink lines indicate views in the same stack. It can be
     seen that the view of <em>B</em> was cloned twice into <em>B’</em> and
     <em>B”</em>, for the view stack of <em>B<sub>1</sub></em> and
     <em>B<sub>2</sub></em>; and likewise for its children <em>C</em> and
@@ -439,16 +435,20 @@ View+ bottom-view-stack(Component C) = if defined? C.prototype
 
     <figure>
       <img src="fig/view-stack-2.svg">
-      <figcaption>The view tree of <em>A</em>.</figcaption>
+      <figcaption>The rendered view tree of <em>A</em>.</figcaption>
     </figure>
 
     <p>Finally, the component tree after the view stack was created is shown
     below. Note that while <em>B</em> was not cloned, because it is a top-level
-    component, <em>C</em> and <em>D</em> have both been cloned twice.</p>
+    component, <em>C</em> and <em>D</em> have both been cloned twice. The dashed
+    arrows indicate that the parent/child relationships are not maintained for
+    copies of component (since B is not copied, the parent of C’ is still B,
+    but B does not have C’ as its child) but this relationship is only pertinent
+    in the static tree.</p>
     <figure>
       <img src="fig/view-stack-3.svg">
-      <figcaption>The component tree after the view stack was
-      created.</figcaption>
+      <figcaption>Dynamic component tree (after the view stack was
+      created.)</figcaption>
     </figure>
 
     <h3>Rendering Elements in a View Stack</h3>
@@ -696,16 +696,42 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
       <li>The property <code>enabled</code> of <code>Minus</code> is set to
       true.</li>
       <li>The property <code>enabled</code> of <code>Minus</code> is passed to
-      <span class="number">8</span>.<li>
+      <span class="number">8</span>.</li>
       <li>The DOM text node <code>text-n</code> of <code>Panel</code> is updated
       to show the text "3".</li>
       <li>The <code>class</code> attribute of the <code>frame</code> of
       <code>Button/Minus</code> is set to "".</li>
     </ol>
 
+    <h3>Delayed edge traversal</h3>
+    <p><code>Adapter</code>s have a <code>delay</code> property. If that delay
+    is a positive number, then the traversal of the edge corresponding to that
+    adapter is <em>delayed</em>. No value is set on the target vertex, but a
+    new graph traversal is scheduled to take place after the delay has elapsed.
+    If the delay was 0, then the new traversal happens as soon as possible after
+    the current traversal has ended; otherwise, a timer is set to start the
+    traversal after the amount of time given by <code>delay</code>. Note that
+    several delayed traversals may be scheduled from a given graph
+    traversal.</p>
+    <p>In the example traversal above, the <code>SetEvent</code> of <span
+    class="number">6</span> should have a delay of 0 so that the event is
+    dispatched asynchronously. This means that edges 1 through 4 are traversed
+    as above, but edge 5 is delayed. After the traversal has ended, a new
+    traversal starts from edge 5, with the false value on the <code>Plus</code>
+    button, and edges 6 through 14 are traversed as usual.</p>
+    <p>Delayed edge traversal allows the graph to contain cycles, as long as at
+    least one edge in the cycle has a delay. When sorting the edges of the
+    graph, all edges with a delay are pushed back to the end of the list of
+    edges, then the remaining edges can be sorted since possible cycles have
+    been broken. Note that while this ensures that the edges can be sorted,
+    in order to avoid an infinite number of traversal, there must be conditional
+    edges (<em>i.e.</em>, edges for which the <code>match</code> predicate is
+    not always true) in every cycle as well.</p>
+
 
     <h2>Property Initialization</h2>
-    <p><span class="TODO">TODO</span></p>
+    <p><span class="TODO">Property vertices are initialized with the initial
+    value of the <code>Adapter</code>.</span></p>
 
     <pre class="code">init-properties(Component C, Graph G) = ...</pre>
 

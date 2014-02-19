@@ -41,7 +41,7 @@
 </g>
 <!-- VB1&#45;&gt;VB_ -->
 <g id="edge3" class="edge"><title>VB1&#45;&gt;VB_</title>
-<path fill="none" stroke="black" stroke-dasharray="5,2" d="M140,-270.027C140,-254.017 140,-231.421 140,-211.657"/>
+<path fill="none" stroke="#f94179" d="M140,-270.027C140,-254.017 140,-231.421 140,-211.657"/>
 </g>
 <!-- VB__ -->
 <g id="node7" class="node"><title>VB__</title>
@@ -50,7 +50,7 @@
 </g>
 <!-- VB2&#45;&gt;VB__ -->
 <g id="edge4" class="edge"><title>VB2&#45;&gt;VB__</title>
-<path fill="none" stroke="black" stroke-dasharray="5,2" d="M251,-270.027C251,-254.017 251,-231.421 251,-211.657"/>
+<path fill="none" stroke="#f94179" d="M251,-270.027C251,-254.017 251,-231.421 251,-211.657"/>
 </g>
 <!-- VC_ -->
 <g id="node5" class="node"><title>VC_</title>

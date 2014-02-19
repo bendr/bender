@@ -419,37 +419,133 @@
       </div>
     </div>
 
-    <h2>Two example components</h2>
-    <p><span class="TODO">Describe the data model for these two
-      components.</span></p>
+    <h3 id="example">Example</h3>
+    <p>To illustrate the data model, consider a non-trivial component (called
+    <em>Panel</em>) defined in XML as follows <span class="TODO">(the XML syntax
+      and Javascript API are described in a separate document)</span>:</p>
 
     <div class="def" id="Panel">
-      <p>A panel component, using three <code>Button</code>s as defined
-      above. The first button reuses the view and default properties of the
-      <code>Button</code> component. The second button sets its own
-      <code>label</code> property. The third button has additional content in
-      its view.</p>
       <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="panel"&gt;
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Panel"&gt;
+  &lt;property name="n" value="0"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div&gt;
-      &lt;component href="button.xml" id="ok-button"/&gt;
-      &lt;component href="button.xml" id="retry-button" label="retry"/&gt;
-      &lt;component href="button.xml" id="cancel-button"&gt;
-        &lt;view&gt;
-          &lt;html:span style="color: red"&gt;Cancel&lt;/html:span&gt;
-        &lt;/view&gt;
-      &lt;/component&gt;
+      &lt;component href="button.xml" id="Minus" label="—"/&gt;
+      &lt;component href="button.xml" id="Plus" label="+"/&gt;
+      &lt;text id="text-n"/&gt;
     &lt;/html:div&gt;
   &lt;/view&gt;
-  &lt;watch&gt;
-    &lt;get select="@ok-button" event="pushed"/&gt;
-    &lt;set .../&gt;
+  &lt;watch&gt; <span class="number">1</span>
+    &lt;get select="@Plus" event="pushed"/&gt;
+    &lt;set property="n" value="$in + 1"/&gt;
   &lt;/watch&gt;
-  ...
+  &lt;watch&gt; <span class="number">2</span>
+    &lt;get select="@Minus" event="pushed"/&gt;
+    &lt;set property="n" value="$in - 1"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">3</span>
+    &lt;get property="n"/&gt;
+    &lt;set select="@text-n"/&gt;
+    &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
+  &lt;/watch&gt;
 &lt;/component&gt;</pre>
+        <ul>
+          <li><code>Panel</code> has a property <code>n</code> with an initial
+          value of 0.</li>
+          <li>There are two child components, <code>Plus</code> and
+          <code>Minus</code>, both inheriting from the <code>Button</code>
+          component shown below.</li>
+          <li>The first two <code>Watch</code>es <span class="number">1</span>
+          and <span class="number">2</span> monitor <code>pushed</code>
+          events on the two buttons, and increase or decrease the value of
+          <code>n</code> by 1 depending on which button is pushed.</li>
+          <li>The last <code>Watch</code> <span class="number">3</span> monitors
+          changes in the value of <code>n</code>, and does two things: change the
+          <code>text</code> property of the <code>Text</code> element with ID
+          <code>text-n</code>, and disables the <code>Minus</code> button when the
+          value of <code>n</code> is not greater than zero. <code>n</code> is
+          displayed and updated every time it changes, and since the
+          <code>Minus</code> is disabled when <code>n</code> is zero, it cannot
+          become negative through this interface.</li>
+        </ul>
       </div>
     </div>
+
+    <div class="def" id="Button">
+      <p>This is the <code>Button</code> prototype of both <code>Plus</code> and
+      <code>Minus</code> button above.</p>
+      <div>
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
+  &lt;property name="label" value="Label"&gt;
+  &lt;property name="enabled" value="true"&gt;
+  &lt;property name="pushed" value="false"&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
+    &lt;html:div id="frame"&gt;
+      &lt;content&gt;
+        &lt;text id="text-label"/&gt;
+      &lt;/content&gt;
+    &lt;/html:div&gt;
+  &lt;/view&gt;
+  &lt;watch&gt; <span class="number">4</span>
+    &lt;get property="label"/&gt;
+    &lt;set select="@text-label"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">5</span>
+    &lt;get select="@frame" event="mousedown"/&gt;
+    &lt;set property="down" match="`enabled" value="true"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">6</span>
+    &lt;get select="@frame" event="mouseup"/&gt;
+    &lt;set event="pushed" match="`down"/&gt;
+    &lt;set property="down" value="false"/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">7</span>
+    &lt;get property="down"/&gt;
+    &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
+  &lt;/watch&gt;
+  &lt;watch&gt; <span class="number">8</span>
+    &lt;get property="enabled"/&gt;
+    &lt;set select="@frame" attribute="@class" value="$in ? '' : 'disabled'/&gt;
+  &lt;/watch&gt;
+&lt;/component&gt;</pre>
+        <ul>
+          <li>The button has a <code>label</code> property, the value of which is
+          displayed in the <code>Text</code> element with ID
+          <code>text-label</code> <span class="number">4</span>.</li>
+          <li>The outer frame of the button has two DOM event listeners for
+          <code>mousedown</code> <span class="number">5</span> and
+          <code>mouseup</code> <span class="number">6</span> events. On
+          <code>mousedown</code> events, the <code>down</code> property is set
+          to <code>true</code>, then set back to <code>false</code> on
+          <code>mouseup</code> events. A <code>pushed</code> event is also
+          generated on <code>mouseup</code> events if the button was down.
+          The value of the <code>down</code> property is also used to update the
+          <code>class</code> attribute of the outer frame element <span
+            class="number">7</span>. A style sheet can then change the appearance
+          of the button depending on its pushed status.</li>
+          <li>A third property is <code>enabled</code>, which can be set to
+          <code>false</code> to prevent the button from getting mouse events
+          (see <code>match="`enabled"</code> in the second <code>Watch</code>
+          which returns the value of the <code>enabled</code> property.) The style
+          of the frame also changes when the value of <code>enabled</code>
+          changes <span class="number">8</span>.</li>
+          <li><strong>Note</strong>: the definition of this button was simplified
+          for this example.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p>The figure below shows both the component and view tree of
+    <code>Panel</code>. Black arrows are parent/child relationships. Pink arrows
+    point to a prototype. Blue arrows point from a component to its view.
+    <code>Component</code> nodes are shown as ellipses while view
+    <code>Element</code>s are shown as boxes.</p>
+
+    <figure>
+      <img src="fig/panel.svg">
+      <figcaption>Component and view tree of <code>Panel</code>.</figcaption>
+    </figure>
+
 
   </body>
 </html>
