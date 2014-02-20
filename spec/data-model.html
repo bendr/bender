@@ -9,7 +9,7 @@
     <h1>The Bender Data Model</h1>
     <p>Version 0.9, February 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
-    and <a href="xml-api.html">the Bender XML and Javascript API</a> for
+    and <a href="runtime.html">the Bender Runtime</a> for
     reference.</p>
 
     <h2>Preliminaries</h2>
@@ -22,6 +22,8 @@
       <em>properties</em>. A property has a name and a value, which may be any
       <code>data</code>: a boolean, a number, a string, a number, an
       <code>Object</code>, or the undefined value.</li>
+      <li>The binary operator <code>is-a</code> checks if the Object on the
+      left-hand side was created from the object on the right-hand side.</li>
       <li>A <em>Function</em> is a callable <code>Object</code>. We use lambda
       notation for anonymous functions. The pseudo-code used is a simple
       expression-based language with a liberal syntax that allows side
@@ -34,7 +36,8 @@
       of <em>P</em>.</li>
       <li><em>O</em><code>.</code><em>x</em> means the property <em>x</em> of
       object <em>O</em>.</li>
-      <li><code>?</code> means that the property may be undefined.</li>
+      <li><code>?</code> means that the property may be undefined.
+      The operator <code>defined</code> checks if a value is defined.</li>
       <li><code>*</code> means a list of zero or more objects.</li>
       <li><code>+</code> means a list of one or more objects.</li>
       <li><code>=</code> means that the object property on the left-hand side
@@ -58,13 +61,13 @@
         graph</em>. Both trees are defined by tree <code>Node</code>s.</p>
       <div>
         <pre>Node &lt; Object
-  Node?    parent
-  Node*    children</pre>
+  Node?  parent
+  Node*  children</pre>
         <ul>
           <li><code>parent</code> is the parent <code>Node</code>, if any, of
           the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
           <li><code>children</code> is the ordered list of child nodes of the
-          node. A <em>leaf</em> in a tree has zero children.</li>
+          node.</li>
         </ul>
       </div>
     </div>
@@ -80,27 +83,34 @@
       component.)</p>
       <p>A <em>top-level component</em> is a <code>Component</code> with no
       <code>parent</code>, <em>i.e.</em>, it is the root of a component tree.
-      There is no separate concept of “application” in Bender; an application is
-      a top-level component.</p>
+      There is no separate concept of “application” in Bender; a Bender
+      application is a component.</p>
       <div>
         <pre>Component &lt; Node
   Component?  prototype
   Property*   property-definitions
   data*       properties
-  View        view
+  View?       view
   Watch*      watches</pre>
         <ul>
-          <li><code>prototype</code> is the <code>Component</code>
-          from which this component is derived, if any. The prototype must not
-          be a component in the same component tree, nor can there be any cycle
-          in the prototype chain.</li>
+          <li><code>prototype</code> is the <code>Component</code> that this
+          component inherit from, if any. The prototype component must be a
+          top-level component. The <em>prototype chain</em> is the sequence of
+          <code>Component</code>s formed by the prototype and its prototype
+          chain. The prototype chain must not contain any cycle, <em>i.e.</em>,
+          a component cannot inherit from itself either directly or
+          indirectly.</li>
           <li><code>property-definitions</code> is the list of all
           <code>Property</code> definitions for this component, indexed by their
           name. This includes the property definitions of the prototype
-          component.</li>
+          component.<span class="TODO"> This means that all properties of a
+          component are “public”. However, having private properties could be
+          useful; the list of property definitions could be split in two, a list
+          of public properties, and a list of private properties. Only the
+          public property defintions would be inherited.</span></li>
           <li><code>properties</code> is the list of all property values for
           this component, indexed by their name.</li>
-          <li><code>view</code> is the root of the view tree of this
+          <li><code>view</code> is the root of the optional view tree of this
           component.</li>
           <li><code>watches</code> is the unordered list of all
           <code>Watch</code>es of the component.</li>
@@ -112,46 +122,14 @@
     <h2>Properties</h2>
 
     <p>Properties are named values that are used to parametrize both the
-    appearance and behavior of a component. A property value may be any
+    appearance and behavior of a component. The value of a property may be any
     <code>data</code>.</p>
-
-    <div class="def" id="Adapter">
-      <p>An <code>Adapter</code> filters and transforms an input value into an
-      output value, with an optional delay, in the context of a <em>target</em>
-      <code>Node</code>.</p>
-      <div>
-        <pre>Adapter &lt; Object
-  Node      target
-  Function  value = λx x
-  Function  match = λx true
-  number?   delay</pre>
-        <ul>
-          <li><code>target</code> is the target node of this adapter. The role
-          of the target depends on the actual kind of adapter.</li>
-          <li><code>value</code> is a function transforming an input value into
-          an output value. The default is the identity function, which returns
-          its input.</li>
-          <li><code>match</code> is a predicate that takes an input value and
-          returns a boolean value that is true if and only if the input is
-          <em>valid</em>. If an input is invalid, no value is output by the
-          adapter. The default is a function that returns true for any input,
-          treating any input value as valid.</li>
-          <li><code>delay</code> is the delay before an output value is
-          returned. When <code>delay</code> is undefined, there is no delay, and
-          the output value is returned synchronously. When <code>delay</code> is
-          0, then the output value is returned as soon as possible, but
-          asynchronously. When <code>delay</code> is larger than 0, then this is
-          the delay in milliseconds before which an output value is
-          returned.</li>
-        </ul>
-      </div>
-    </div>
 
     <div class="def" id="Property">
       <p>A <code>Property</code> is the <em>definition</em> of a property of a
       Bender component.</p>
       <div>
-        <pre>Property &lt; Adapter
+        <pre>Property &lt; Object
   Component  component
   string     name</pre>
       </div>
@@ -159,7 +137,12 @@
         <li><code>component</code> points back to the owner
         <code>Component</code>.</li>
         <li><code>name</code> is the name of the property. The name of a
-        <code>Property</code> must be unique for a <code>Component</code>.</li>
+        <code>Property</code> must be unique for a <code>Component</code>.
+        This includes properties inherited from the prototype.<span
+          class="TODO"> If properties can be made private, then a component may
+          have its own definition for a property <code>x</code> even if its
+          prototype has a property named <code>x</code> and this property is
+          private.</span></li>
       </ul>
     </div>
 
@@ -176,12 +159,10 @@
       <code>Component</code>.</p>
       <div>
         <pre>Element &lt; Node
-  Component  component</pre>
+  View  view</pre>
         <ul>
-          <li><code>component</code> is the <code>Component</code> that the
-          element is in the view of. Except for <code>View</code>, this is the
-          <code>component</code> of the closest <code>View</code> ancestor
-          element.</li>
+          <li><code>view</code> is the closest <code>View</code> ancestor
+          element of the <code>Element</code>.</li>
         </ul>
       </div>
     </div>
@@ -190,28 +171,22 @@
       <p>The <code>View</code> element is a container for the view of a
       component.</p>
       <div>
-        <pre>View &lt; Element</pre>
+        <pre>View &lt; Element
+  Component  component</pre>
         <ul>
-          <li><strong>Note</strong>: for a <code>View</code> <em>V</em>,
-          <code>component</code> is the <code>Component</code> <em>C</em> such
-          that <code>C.view</code> is <em>V</em>. Additionally, if <em>V</em>
-          has a <code>parent</code>, then there exists a component <em>P</em>
-          such that <code>V.parent.component</code> is <em>P</em>, and
-          <code>C.parent</code> is <em>P</em>.</li>
+          <li><code>component</code> is the <code>Component</code> that this is
+          the view of.</li>
+          <li><strong>Note</strong>: for a <code>View</code>, the
+          <code>view</code> property is itself.</li>
         </ul>
       </div>
     </div>
 
     <div class="def" id="Content">
       <p>The <code>Content</code> element provides an extension point for the
-      view of derived components.</p>
+      view of derived components. Its children define default content.</p>
       <div>
         <pre>Content &lt; Element</pre>
-        <ul>
-          <li><strong>Note</strong>: the <code>children</code> of a
-          <code>Content</code> element are the default contents for the
-          element.</li>
-        </ul>
       </div>
     </div>
 
@@ -252,15 +227,14 @@
 
     <div class="def" id="Text">
       <p>The <code>Text</code> element represents a text node, similarly to a
-      DOM text node or CDATA section. Contrary to DOM text nodes,
-      <code>Text</code> elements may have an ID.</p>
+      DOM text node or CDATA section.</p>
       <div>
         <pre>Text &lt; Element
   string  text</pre>
         <ul>
           <li><code>text</code> is the text content of the element.</li>
           <li><strong>Note</strong>: a <code>Text</code> element should not
-          have children and should be a leaf node.</li>
+          have children.</li>
         </ul>
       </div>
     </div>
@@ -270,8 +244,8 @@
     <p>Watches describe the behavior of a component. A <em>watch</em>
     generalizes the concept of the <em>event listener</em> by allowing
     components to listen to event notifications from rendered elements
-    (<em>e.g.</em>, DOM events), event notifications and property changes from
-    <code>Component</code>s; and associating these occurrences with
+    (<em>e.g.</em>, DOM events), and event notifications and property changes
+    from <code>Component</code>s; and associating these occurrences with
     corresponding actions, such as generating new event notifications, setting
     new values for properties, or mutating a component.</p>
 
@@ -298,17 +272,50 @@
     </div>
 
 
+    <h3>Adapters</h3>
+
+    <div class="def" id="Adapter">
+      <p>An <code>Adapter</code> filters and transforms an input value into an
+      output value, with an optional delay, in the context of a <em>target</em>
+      <code>Node</code>.</p>
+      <div>
+        <pre>Adapter &lt; Object
+  Watch     watch
+  Node      target
+  Function  value = λx x
+  Function  match = λx true
+  number?   delay</pre>
+        <ul>
+          <li><code>watch</code> is the owner <code>Watch</code> of the
+          adapter.</li>
+          <li><code>target</code> is the target node of this adapter. The role
+          of the target depends on the adapter.</li>
+          <li><code>value</code> is a function transforming an input value into
+          an output value. The default is the identity function, which returns
+          its input. It may return any <code>data</code>.</li>
+          <li><code>match</code> is a predicate that takes an input value and
+          returns a boolean value that is true if and only if the input is
+          <em>valid</em> for this adapter. If an input is invalid, no value is
+          output by the adapter. The default is a function that returns true for
+          any input, treating any input value as valid.</li>
+          <li><code>delay</code> is the delay before an output value is
+          returned. When <code>delay</code> is undefined, there is no delay, and
+          the output value is returned synchronously. When <code>delay</code> is
+          0, then the output value is returned as soon as possible, but
+          asynchronously. When <code>delay</code> is larger than 0, then this is
+          the delay in milliseconds before which an output value is
+          returned.</li>
+        </ul>
+      </div>
+    </div>
+
     <h3>Get</h3>
 
     <div class="def" id="Get">
-      <p>A <code>Get</code> is a watch input. There are two different kinds of
-      input: a <em>property input</em>, or an <em>event input</em>.</p>
+      <p>A <code>Get</code> is a watch input adapter. There are two different
+      kinds of input: a <em>property input</em>, or an <em>event input</em>.</p>
       <div>
-        <pre>Get &lt; Adapter
-  Watch  watch</pre>
-        <ul>
-          <li><code>watch</code> is the owner <code>Watch</code>.</li>
-        </ul>
+        <pre>Get &lt; Adapter</pre>
       </div>
     </div>
 
@@ -322,7 +329,10 @@
           monitored.</li>
           <li><strong>Note</strong>: the <code>target</code> of a
           <code>GetProperty</code> must be a <code>Component</code> for which
-          <code>property</code> is defined.</li>
+          <code>property</code> is defined, <em>i.e.</em>, <code>property</code>
+          must be a member of <code>target.property_definitions</code>. Note
+          that <code>property.component</code> is then <code>target</code> or is
+          in the prototype chain of <code>target</code>.</li>
         </ul>
       </div>
     </div>
@@ -352,10 +362,8 @@
       a <em>node proprety output</em>, an <em>attribute output</em>, or an
       <em>event output</em>.</p>
       <div>
-        <pre>Set &lt; Adapter
-  Watch  watch</pre>
+        <pre>Set &lt; Adapter</pre>
         <ul>
-          <li><code>watch</code> is the owner <code>Watch</code>.</li>
           <li><strong>Note</strong>: this is a <em>plain</em> output and is used
           for side effects only, such as mutating the contents of a
           component, or having effects outside of the scope of Bender.</li>
@@ -371,8 +379,12 @@
   Property  property</pre>
         <ul>
           <li><code>property</code> is the <code>Property</code> to be set.</li>
-          <li><strong>Note</strong>: <code>target</code> must be a
-          <code>Component</code>.</li>
+          <li><strong>Note</strong>: the <code>target</code> of a
+          <code>SetProperty</code> must be a <code>Component</code> for which
+          <code>property</code> is defined, <em>i.e.</em>, <code>property</code>
+          must be a member of <code>target.property_definitions</code>. Note
+          that <code>property.component</code> is then <code>target</code> or is
+          in the prototype chain of <code>target</code>.</li>
         </ul>
       </div>
     </div>
@@ -425,7 +437,7 @@
 
     <h3 id="example">Example</h3>
     <p>Consider a non-trivial component (called <em>Panel</em>) <a
-      href="xml-api.html#s11n">defined in XML</a> as follows:</p>
+      href="runtime.html#s11n">defined in XML</a> as follows:</p>
 
     <div class="def" id="Panel">
       <div>

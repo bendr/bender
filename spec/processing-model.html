@@ -9,7 +9,7 @@
     <h1>The Bender Processing Model</h1>
     <p>Version 0.9, February 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
-      href="xml-api.html">the Bender XML and Javascript API</a> for reference.</p>
+      href="runtime.html">the Bender Runtime</a> for reference.</p>
 
 
     <h2>Informal Overview</h2>
@@ -201,7 +201,7 @@
     <pre class="code">render-subgraph(Component C, WatchGraph G) =
   do
     mark C
-    if defined? C.prototype and not marked? C.prototype
+    if defined C.prototype and not marked? C.prototype
       then render-subgraph(C.prototype, G)
     for W in C.Watches
       render-watch(W, G)
@@ -234,7 +234,7 @@
     already created vertex.</p>
     <pre class="code">AdapterVertex find-adapter-vertex(Adapter A, Graph G) =
   let V = find(G.vertices, λV V is-a AdapterVertex &amp; V.adapter == A) in
-    if defined? V
+    if defined V
       then V
       else
         let V’ = new AdapterVertex(A) in
@@ -291,7 +291,7 @@
     copied to <em>V</em>.</p>
     <pre class="code">add-inherit-edge(AdapterVertex V, Graph G) =
   let V’ = find-prototype-vertex(V, G) in
-    if defined? V’ then
+    if defined V’ then
       do
         G.edges = G.edges : new InheritEdge(V’, V)
         for E in V’.outgoing
@@ -431,7 +431,7 @@
     components with a prototype.)</p>
     <pre class="code">View+ view-stack(Component C) = bottom-view-stack(C) : C.view
 View+ view-stack’(Component C) = bottom-view-stack(C) : clone-element(C.view)
-View+ bottom-view-stack(Component C) = if defined? C.prototype
+View+ bottom-view-stack(Component C) = if defined C.prototype
                                          then view-stack’(C.prototype)
                                          else []</pre>
 
@@ -447,7 +447,7 @@ View+ bottom-view-stack(Component C) = if defined? C.prototype
     do
       E’.parent = P
       E’.children = map(E.children, λC clone-element(C, E’))
-      if E’ is-a View &amp; defined? P
+      if E’ is-a View &amp; defined P
         clone-component(E’)
       E’</pre>
     <p>When a view <em>V</em> that is not the view of a top-level component is
@@ -633,7 +633,7 @@ integer next-view-index(View+ S, integer I) =
     <pre class="code">traverse-edge(Edge E) =
   for (S, V) in get-vertex-values(G, E.source)
     let S’ = enter-scope(E, S) in
-      if defined? S’ &amp; match-edge(E, S’, V)
+      if defined S’ &amp; match-edge(E, S’, V)
         let V’ = apply-edge(E, S’, V) in
           for S” in exit-scopes(E, S’)
             set-vertex-value(G, E.dest, (S”, V’))</pre>

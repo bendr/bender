@@ -14,17 +14,14 @@ a {
 }
     </style>
     <script src="flexo.js"></script>
-    <script src="bender.js"></script>
+    <script src="core.js"></script>
+    <script src="runtime.js"></script>
   </head>
   <body>
     <script>
 "use strict";
 
-var hello = Object.create(bender.Component).init();
-var p = Object.create(bender.DOMElement).init(flexo.ns.html, "p");
-hello.view.add_child(p);
-p.add_child(Object.create(bender.Text).init().text("Hello, world!"));
-hello.render(document.body);
+console.log("OK");
 
     </script>
   </body>
