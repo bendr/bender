@@ -21,6 +21,42 @@ a {
     <script>
 "use strict";
 
+var text_label = bender.Text.create();
+var frame = bender.DOMElement.create(flexo.ns.html, "div")
+  .child(bender.Content.create().child(text_label));
+var label = bender.Property.create("label");
+var enabled = bender.Property.create("enabled");
+var down = bender.Property.create("down");
+var button = bender.Component.create(bender.View.create().child(frame))
+  .property(label)
+  .property(enabled)
+  .property(down)
+  .watch(bender.Watch.create()  // 4
+      .get(bender.GetProperty.create(button, label))
+      .set(bender.SetNodeProperty.create(text_label, "text")))
+  .watch(bender.Watch.create()  // 5
+      .get(bender.GetEvent.create(frame, "mousedown"))
+      .set(bender.SetProperty.create(button, down)
+        .match(function () { return this.properties.enabled; })
+        .value(flexo.funcify(true))))
+  .watch(bender.Watch.create()  // 6
+      .get(bender.GetEvent.create(frame, "mouseup"))
+      .set(bender.SetEvent.create(button, "pushed")
+        .match(function () { return this.properties.down; }))
+      .set(bender.SetProperty.create(button, down)
+        .value(flexo.funcify(false))))
+  .watch(bender.Watch.create()  // 7
+      .get(bender.GetProperty.create(button, down))
+      .set(bender.SetAttribute.create(frame, "", "class")
+        .value(function ($in) { return $in ? "down" : ""; })))
+  .watch(bender.Watch.create()  // 8
+      .get(bender.GetProperty.create(button, enabled))
+      .set(bender.SetAttribute.create(frame, "", "class")
+        .value(function ($in) { return $in ? "" : "disabled"; })))
+
+var graph = bender.WatchGraph.create();
+button.render_subgraph(graph);
+
 console.log("OK");
 
     </script>

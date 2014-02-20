@@ -282,6 +282,7 @@
         <pre>Adapter &lt; Object
   Watch     watch
   Node      target
+  boolean   static = false
   Function  value = λx x
   Function  match = λx true
   number?   delay</pre>
@@ -290,6 +291,9 @@
           adapter.</li>
           <li><code>target</code> is the target node of this adapter. The role
           of the target depends on the adapter.</li>
+          <li><code>static</code> is a flag that makes the adapter
+          <em>static</em> when set to true. When this flag is set, then the
+          target does not change at run time.</li>
           <li><code>value</code> is a function transforming an input value into
           an output value. The default is the identity function, which returns
           its input. It may return any <code>data</code>.</li>
@@ -451,17 +455,17 @@
     &lt;/html:div&gt;
   &lt;/view&gt;
   &lt;watch&gt; <span class="watch">1</span>
-    &lt;get select="@Plus" event="pushed"/&gt;
+    &lt;get select="Plus" event="pushed"/&gt;
     &lt;set property="n" value="`n + 1"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">2</span>
-    &lt;get select="@Minus" event="pushed"/&gt;
+    &lt;get select="Minus" event="pushed"/&gt;
     &lt;set property="n" value="`n - 1"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">3</span>
     &lt;get property="n"/&gt;
-    &lt;set select="@text-n"/&gt;
-    &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
+    &lt;set select="text-n"/&gt;
+    &lt;set select="Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
@@ -510,7 +514,7 @@
             is the <code>text-n</code> <code>Text</code> element; by default,
             the property to set is <code>text</code>;</li>
             <li>the second output is a <code>SetProperty</code>. The target
-            property is the <code>enabled</code> <code>Property</code> of the 
+            property is the <code>enabled</code> <code>Property</code> of the
             <code>Minus</code> <code>Component</code>. The output value is
             a boolean value that is true if and only if the input value is
             greater than 0. (Because this is XML, the <code>&gt;</code>
@@ -528,7 +532,7 @@
         <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
   &lt;property name="label" as="string" value="Label"&gt;
   &lt;property name="enabled" value="true"&gt;
-  &lt;property name="pushed" value="false"&gt;
+  &lt;property name="down" value="false"&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div id="frame"&gt;
       &lt;content&gt;
@@ -538,24 +542,24 @@
   &lt;/view&gt;
   &lt;watch&gt; <span class="watch">4</span>
     &lt;get property="label"/&gt;
-    &lt;set select="@text-label"/&gt;
+    &lt;set select="text-label"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">5</span>
-    &lt;get select="@frame" event="mousedown"/&gt;
+    &lt;get select="frame" event="mousedown"/&gt;
     &lt;set property="down" match="`enabled" value="true"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">6</span>
-    &lt;get select="@frame" event="mouseup"/&gt;
+    &lt;get select="frame" event="mouseup"/&gt;
     &lt;set event="pushed" match="`down"/&gt;
     &lt;set property="down" value="false"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">7</span>
     &lt;get property="down"/&gt;
-    &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
+    &lt;set select="frame" attribute="class" value="$in ? 'down' : ''/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">8</span>
     &lt;get property="enabled"/&gt;
-    &lt;set select="@frame" attribute="@class" value="$in ? '' : 'disabled'/&gt;
+    &lt;set select="frame" attribute="class" value="$in ? '' : 'disabled'/&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
@@ -573,9 +577,98 @@
             containing a <code>Text</code> element with ID
             <code>text-label</code>.</li>
           <li><code>Button</code> has no child <code>Component</code>.</li>
-          <li><span class="TODO">TODO: describe <code>Watch</code>es <span
-              class="watch">4</span> through <span class="watch">8</span> in
-            detail. <code>match</code> properties.</li>
+          <li>The <code>Watch</code> <span class="watch">4</span> has one
+          input and one output:
+          <ul>
+            <li>the input is a <code>GetProperty</code>. The <code>target</code>
+            is the <code>Button</code> <code>Component</code>, and the
+            <code>property</code> is the <code>label</code> property of
+            <code>Button</code>;</li>
+            <li>the output is a <code>SetNodeProperty</code>. The target
+            <code>Node</code> is the <code>text-label</code> <code>Text</code>
+            element, and the property to set defaults to <code>text</code> in
+            the absence of a <code>property</code> attribute.</li>
+          </ul>
+          The effect of this watch is to show the value of the
+          <code>label</code> string in the button.</li>
+          <li>The <code>Watch</code> <span class="watch">5</span> has one
+          input and one output:
+          <ul>
+            <li>the input is a <code>GetEvent</code>. The <code>target</code>
+            is the <code>frame</code> <code>DOMElement</code>, and the event
+            <code>type</code> is <code>mousedown</code>;
+            <li>the output is a <code>SetProperty</code>. The target is the
+            <code>Button</code> component, and the <code>property</code> is the
+            <code>down</code> <code>Property</code> of <code>Button</code>.
+            The <code>value</code> is a function that returns true. The
+            <code>match</code> function returns true if and only if the
+            <code>enabled</code> property of the <code>target</code> is
+            true.</li>
+          </ul>
+          The effect of this watch is to set the <code>down</code> property of
+          the button to true when the mouse button is pressed, but only when
+          the button is enabled.</li>
+          <li>The <code>Watch</code> <span class="watch">6</span> has one input
+          and two outputs:
+          <ul>
+            <li>the input is a <code>GetEvent</code>. The <code>target</code>
+            is the <code>frame</code> <code>DOMElement</code>, and the event
+            <code>type</code> is <code>mouseup</code>;
+            <li>the first output is a <code>SetEvent</code>. The target is
+            the <code>Button</code> <code>Component</code>, and the
+            <code>type</code> of the event is <code>pushed</code>. The
+            <code>match</code> function of the output is a function that returns
+            true if and only if <code>down</code> property of the
+            <code>target</code> is true;</li>
+            <li>the second output is a <code>SetProperty</code>. The target is
+            the <code>Button</code> component, and the <code>property</code> is
+            the <code>down</code> <code>Property</code> of <code>Button</code>.
+            The <code>value</code> is a function that returns false.</li>
+          </ul>
+          The effect of this watch is to set the <code>down</code> property of
+          the button back to false when the mouse button is released, and
+          dispatch a pushed event if the <code>down</code> property was indeed
+          true (<em>i.e.</em> the mouse was pressed inside the button.)</li>
+          </li>
+          <li>The <code>Watch</code> <span class="watch">7</span> has one input
+          and one output:
+          <ul>
+            <li>the input is a <code>GetProperty</code>. The <code>target</code>
+            is a the <code>Button</code> <code>Component</code>, and the
+            <code>property</code> is the <code>down</code>
+            <code>Property</code>;</li>
+            <li>the output is a <code>SetAttribute</code>. The
+            <code>target</code> is the <code>frame</code>
+            <code>DOMElement</code>, the attribute to set has no namespace and
+            the <code>class</code> name (<em>i.e.</em>, the HTML
+            <code>class</code> attribute of the HTML <code>div</code> element),
+            and the value is a function that returns the string
+            <code>"down"</code> if its input is true, and the empty string
+            otherwise.</li>
+          </ul>
+          The effect of this watch is to set the class of the frame element to
+          <code>down</code> if and only if the button is down.
+          </li>
+          <li>The <code>Watch</code> <span class="watch">8</span> has one input
+          and one output:
+          <ul>
+            <li>the input is a <code>GetProperty</code>. The <code>target</code>
+            is a the <code>Button</code> <code>Component</code>, and the
+            <code>property</code> is the <code>enabled</code>
+            <code>Property</code>;</li>
+            <li>the output is a <code>SetAttribute</code>. The
+            <code>target</code> is the <code>frame</code>
+            <code>DOMElement</code>, the attribute to set has no namespace and
+            the <code>class</code> name (<em>i.e.</em>, the HTML
+            <code>class</code> attribute of the HTML <code>div</code> element),
+            and the value is a function that returns the string
+            <code>"disabled"</code> if its input is false, and the empty string
+            otherwise.</li>
+          </ul>
+          The effect of this watch is to set the class of the frame element to
+          <code>disabled</code> if and only if the button is <em>not</em>
+          enabled.
+          </li>
         </ul>
       </div>
     </div>
