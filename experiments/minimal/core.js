@@ -324,12 +324,12 @@
           if (protovertex) {
             graph.edge(bender.InheritEdge.create(protovertex, vertices[name]));
             protovertex.outgoing.forEach(function (edge) {
-              if (edge.priority === 1) {
+              if (edge.priority === 0) {
                 var edge_ = Object.create(edge);
                 edge_.source = vertices[name];
                 vertices[name].outgoing.push(edge_);
                 edge_.dest.incoming.push(edge_);
-                edge_.priority = 0;
+                edge_.priority = -1;
                 graph.edge(edge_);
               }
             });
@@ -565,11 +565,11 @@
       return bender.Base.init.call(this);
     },
 
-    priority: 1
+    priority: 0
   });
 
   // InheritEdge < Edge
-  bender.InheritEdge = flexo._ext(bender.Edge, { priority: 2 });
+  bender.InheritEdge = flexo._ext(bender.Edge, { priority: 1 });
 
 
   // AdapterEdge < Object:

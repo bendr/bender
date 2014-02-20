@@ -301,7 +301,7 @@
     <p>If there exists a prototype vertex <em>V’</em> for a vertex <em>V</em>
     (see below), then a new <code>InheritEdge</code> is added between
     <em>V’</em> and <em>V</em>. The outgoing edges of <em>V’</em> are also
-    copied to <em>V</em> and given a lower priority so that they come later in
+    copied to <em>V</em> and given a higher priority so that they come later in
     a sort.</p>
     <pre class="code">add-inherit-edge(AdapterVertex V, Graph G) =
   let V’ = find-prototype-vertex(V, G) in
@@ -312,7 +312,7 @@
           let E’ = create(E) in
             do
               E’.source = V
-              E’.priority = E.priority + 1
+              E’.priority = -1
               G.edges = G.edges : E’</pre>
 
     <p><span class="TODO"><code>Vertex? find-prototype-vertex(Graph G,
