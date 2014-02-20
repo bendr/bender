@@ -35,11 +35,12 @@
     <h2>Running a Bender Application in a User Agent</h2>
     <p>Running a Bender application in a user agent, such as a Web browser, is
     rendering the <code>Component</code> in a target DOM element.</p>
-    <pre class="code">run-application(Component C, DOM element T) =
+    <pre class="code">render-component(Component C, DOM element T) =
   let G = new WatchGraph in
     do
       render-subgraph(C, G)
-      render-component(C, T)
+      render-component-view(C, T)
+      sort-watch-graph(G)
       init-properties(C, G)</pre>
 
 
@@ -225,13 +226,13 @@
     <pre class="code">render-watch(Watch W, Graph G) =
   let V = new WatchVertex(W) in
     do
-      G.vertices = G.vertices : V
+      G.vertices &lt;- G.vertices : V
       for H in W.gets
         let V’ = find-adapter-vertex(H, G) in
-          G.edges = G.edges : new AdapterEdge(V’, V, H)
+          G.edges &lt;- G.edges : new AdapterEdge(V’, V, H)
       for S in W.sets
         let V’ = find-adapter-vertex(S, G) in
-          G.edges = G.edges : new AdapterEdge(V, V’, S)</pre>
+          G.edges &lt;- G.edges : new AdapterEdge(V, V’, S)</pre>
 
 
     <p>The source or destination vertex of an <code>AdapterEdge</code> to or
@@ -242,13 +243,13 @@
     Subsequent calls to <code>find-adapter-vertex(A, G)</code> will return the
     already created vertex.</p>
     <pre class="code">AdapterVertex find-adapter-vertex(Adapter A, Graph G) =
-  let V = find(G.vertices, λV V is-a AdapterVertex &amp; V.adapter == A) in
+  let V = find(G.vertices, λV V is-a AdapterVertex and V.adapter = A) in
     if defined V
       then V
       else
         let V’ = new AdapterVertex(A) in
           do
-            G.vertices = G.vertices : V’
+            G.vertices &lt;- G.vertices : V’
             add-inherit-edge(V’, G)
             V’</pre>
 
@@ -307,13 +308,13 @@
   let V’ = find-prototype-vertex(V, G) in
     if defined V’ then
       do
-        G.edges = G.edges : new InheritEdge(V’, V)
+        G.edges &lt;- G.edges : new InheritEdge(V’, V)
         for E in V’.outgoing
           let E’ = create(E) in
             do
-              E’.source = V
-              E’.priority = -1
-              G.edges = G.edges : E’</pre>
+              E’.source &lt;- V
+              E’.priority &lt;- -1
+              G.edges &lt;- G.edges : E’</pre>
 
     <p><span class="TODO"><code>Vertex? find-prototype-vertex(Graph G,
     Vertex V)</code> finds the prototype vertex <em>V’</em> in <em>G</em> such
@@ -333,7 +334,8 @@
     anymore. If there were no cycles in the graph, all edges and vertices are
     processed, otherwise an error is raised (although cycles may be broken when
     they include delayed edges, see below.)</p>
-    <pre class="code"><span class="TODO">Edge* sort-edges(Edge *) = ...</span></pre>
+    <pre class="code">sort-watch-graph(WatchGraph G) = G.edges &lt;- sort-edges(G.edges)
+<span class="TODO">Edge* sort-edges(Edge* E) = ...</span></pre>
 
 
     <h3>Example</h3>
@@ -357,7 +359,7 @@
     rendering that stack into a HTML element, such as a <code>div</code>, the
     <code>body</code> of a document, or an <code>iframe</code>.</p>
 
-    <pre class="code">render-component(Component C, DOM element T) = render-view-stack(view-stack(C), T)</pre>
+    <pre class="code">render-component-view(Component C, DOM element T) = render-view-stack(view-stack(C), T)</pre>
 
     <h3 id="view-stack">The View Stack</h3>
     <p>The <em>view stack</em> of a component is the stack of the views of the
@@ -388,9 +390,9 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     <pre class="code">Element clone-element(Element E, Element? P) =
   let E’ = create(E) in
     do
-      E’.parent = P
+      E’.parent &lt;- P
       E’.children = map(E.children, λC clone-element(C, E’))
-      if E’ is-a View &amp; defined P
+      if E’ is-a View and defined P
         clone-component(E’)
       E’</pre>
     <p>When a view <em>V</em> that is not the view of a top-level component is
@@ -405,8 +407,8 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     <pre class="code">clone-component(View V) =
   let C’ = create(V.component)
     in
-      V.component = C’
-      C’.view = V</pre>
+      V.component &lt;- C’
+      C’.view &lt;- V</pre>
 
     <p>To illustrate the process, consider the following component tree. Black
     arrows point from parent to child, while pink arrows point from component
@@ -448,16 +450,16 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     <p>Rendering a view stack <em>S</em> in a target DOM element <em>T</em> is
     simply rendering the bottom-most view in the stack, <em>i.e.</em> the
     element at index 0 in the list of <code>View</code>s.</p>
-    <pre class="code">render-view-stack(View+ S, DOM element T) = render-element(S, 0, S<sub>0</sub>, T)</pre>
+    <pre class="code">render-view-stack(View+ S, DOM element T) = render-element(S<sub>0</sub>, T, S, 0)</pre>
 
     <p>Rendering an element <em>E</em> from the view at index <em>I</em> in the
     view stack <em>S</em> in a target DOM element <em>T</em> depends on the type
     of the element to render.</p>
-    <pre>render-element(View+ S, integer I, Element E, DOM element T) =
+    <pre>render-element(Element E, DOM element T, View+ S, integer I) =
   case E of
-    View = render-view(S, I, E, T)
-    Content = render-content(S, I, E, T)
-    DOMElement = render-dom-element(S, I, E, T)
+    View = render-view(E, T, S, I)
+    Content = render-content(E, T, S, I)
+    DOMElement = render-dom-element(E, T, S, I)
     Attribute = render-attribute(E, T)
     Text = render-text(E, T)</pre>
 
@@ -465,28 +467,29 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     member of the view stack, <em>i.e.</em>, the view of the component or of one
     of its prototypes; or the view of a child component. In the former case, the
     child elements of the view are rendered in the target element. In the latter
-    case, <code>render-component</code> is callled on the child component.</p> 
-    <pre>render-view(View+ S, integer I, View V, DOM element T) =
-  if V == S<sub>I</sub>
-    then render-children(S, I, V, T)
-    else render-component(V.component, T)
-render-children(View+ S, integer I, Element E, DOM element T) =
+    case, <code>render-component-view</code> is callled on the child
+    component.</p> 
+    <pre>render-view(View V, DOM element T, View+ S, integer I) =
+  if V = S<sub>I</sub>
+    then render-children(V, T, S, I)
+    else render-component-view(V.component, T)
+render-children(Element E, DOM element T, View+ S, integer I) =
   for C in E.children
-    render-element(S, I, C, T)</pre>
+    render-element(C, T, S, I)</pre>
 
     <p>Rendering a <code>Content</code> element depends on the view stack. If
-    there is a non-empty <code>View</code> (with at least on child) above the
-    current <code>View</code> in the stack, then render that view. If no such
-    view exists, then render the children of the element as the default
-    content using <code>render-children</code> as seen above.</p>
-    <pre>render-content(View+ S, integer I, Content C, DOM element T) =
+    there is a non-default <code>View</code> above the current
+    <code>View</code> in the stack, then render that view. If no such view
+    exists, then render the children of the element as the default content using
+    <code>render-children</code> as seen above.</p>
+    <pre>render-content(Content C, DOM element T, View+ S, integer I) =
   let J = next-view-index(S, I + 1) in
     if J &lt; length S
-      then render-view(S, J, S<sub>J</sub>, T)
-      else render-children(S, I, C, T)
+      then render-view(S<sub>J</sub>, T, S, J)
+      else render-children(C, T, S, I)
 integer next-view-index(View+ S, integer I) =
   if I &lt; length S
-    then if length S<sub>I</sub>.children == 0
+    then if S.default
       then next-view-index(S, I + 1)
       else I
     else I</pre>
@@ -494,13 +497,13 @@ integer next-view-index(View+ S, integer I) =
     <p>Rendering a <code>DOMElement</code> <em>D</em> is adding a new DOM
     element <em>N</em> to <em>T</em>, then rendering the children of <em>D</em>
     in <em>N</em>.</p>
-    <pre>render-dom-element(View+ S, integer I, DOMElement D, DOM element T) =
+    <pre>render-dom-element(DOMElement D, DOM element T, View+ S, integer I) =
   let N = new DOM element node in
     do
-      N.namespace-uri = D.ns
-      N.local-name = D.name
-      N.attributes = D.attrs
-      render-children(S, I, D, N)
+      N.namespace-uri &lt;- D.ns
+      N.local-name &lt;- D.name
+      N.attributes &lt;- D.attrs
+      render-children(D, N, S, I)
       append-child(T, N)</pre>
 
     <p>Rendering an <code>Attribute</code> <em>A</em> is setting an attribute on
@@ -517,7 +520,7 @@ integer next-view-index(View+ S, integer I) =
     <pre>render-text(Text E, DOM element T) =
   let N = new DOM text node in
     do
-      N.text-content = E.text
+      N.text-content &lt;- E.text
       append-child(T, N)</pre>
 
 
@@ -576,7 +579,7 @@ integer next-view-index(View+ S, integer I) =
     <pre class="code">traverse-edge(Edge E) =
   for (S, V) in get-vertex-values(G, E.source)
     let S’ = enter-scope(E, S) in
-      if defined S’ &amp; match-edge(E, S’, V)
+      if defined S’ and match-edge(E, S’, V)
         let V’ = apply-edge(E, S’, V) in
           for S” in exit-scopes(E, S’)
             set-vertex-value(G, E.dest, (S”, V’))</pre>
@@ -628,7 +631,7 @@ data apply-edge’(Edge E, Scope S, data V) =
 
     <p>Exit scopes</p>
     <pre class="code">Scope* exit-scope(Edge E, Scope S) =
-  if E is-a AdapterEdge &amp; E.source is-a WatchVertex
+  if E is-a AdapterEdge and E.source is-a WatchVertex
     then exit-scope’(E, S)
     else S
 Scope exit-scope’(AdapterEdge E, Scope S) =</pre>

@@ -88,6 +88,14 @@
       return this;
     },
 
+    // Clone the component for a cloned view
+    clone: function (view) {
+      var clone = this.create();
+      clone.properties = Object.create(this.properties);
+      clone.view = view;
+      return clone;
+    },
+
     // Add a property to the component and return the component.
     property: function (property) {
       if (property in this.properties) {
@@ -133,6 +141,30 @@
         watch.render_subgraph(graph);
       });
       return this;
+    },
+
+    // Render the view of the component in a DOM target.
+    render_view: function (target) {
+      var fragment = target.ownerDocument.createDocumentFragment();
+      this.render_view_stack(this.view_stack(), fragment);
+      target.appendChild(fragment);
+    },
+
+    // Render the view stack of the component from bottom to top.
+    render_view_stack: function (stack, target) {
+      stack[0].render(target, stack, 0);
+    },
+
+    // Create the view stack for the component from its prototype and its own
+    // view. The prototype views are cloned.
+    view_stack: function () {
+      var stack = [];
+      for (var prototype = this.prototype; prototype;
+          prototype = prototype.prototype) {
+        stack.unshift(prototype.view.clone());
+      }
+      stack.push(this.view);
+      return stack;
     }
   });
 
@@ -160,7 +192,22 @@
 
   // Element < Node
   //   View  view
-  bender.Element = flexo._ext(bender.Node);
+  bender.Element = flexo._ext(bender.Node, {
+    clone: function (parent) {
+      var clone = this.create();
+      clone.parent = parent;
+      clone.children = this.children.map(function (child) {
+        return child.clone(clone);
+      });
+      return clone;
+    },
+
+    render_children: function (target, stack, i) {
+      this.children.forEach(function (child) {
+        child.render(target, stack, i);
+      });
+    }
+  });
 
   Object.defineProperty(bender.Element, "view", {
     enumerable: true,
@@ -206,6 +253,22 @@
         parent_component.add_child(this.component);
       }
       return this;
+    },
+
+    clone: function (parent) {
+      var clone = bender.Element.clone.call(this, parent);
+      if (parent) {
+        clone.component = this.component.clone(clone);
+      }
+      return clone;
+    },
+
+    render: function (target, stack, i) {
+      if (this == stack[i]) {
+        this.render_children(target, stack, i);
+      } else {
+        this.component.render_view(target);
+      }
     }
   });
 
@@ -216,12 +279,23 @@
 
 
   // Content < Element
-  bender.Content = flexo._ext(bender.Element);
+  bender.Content = flexo._ext(bender.Element, {
+    render: function (target, stack, i) {
+      var j = i + 1;
+      var n = stack.length;
+      for (; j < n && stack[j].default; ++j) {}
+      if (j < n) {
+        stack[j].render(target, stack, j);
+      } else {
+        this.render_children(target, stack, i);
+      }
+    }
+  });
 
 
   // DOMElement < Element
-  //   string  ns
-  //   string  name
+  //   string  namespace-uri
+  //   string  local-name
   //   data*   attributess
   bender.DOMElement = flexo._ext(bender.Element, {
     init: function (ns, name, attributes) {
@@ -230,18 +304,43 @@
       this.attributes = attributes || {};
       this.event_vertices = {};
       return bender.Element.init.call(this);
+    },
+
+    clone: function (parent) {
+      var clone = bender.Element.clone.call(this, parent);
+      clone.event_vertices = {};
+      return clone;
+    },
+
+    render: function (target, stack, i) {
+      var element = target.ownerDocument.createElementNS(this.namespace_uri,
+        this.local_name);
+      Object.keys(this.attributes, function (ns) {
+        Object.keys(this.attributes[ns], function (name) {
+          element.setAttributeNS(ns, name, this.attributes[ns][name]);
+        });
+      });
+      this.render_children(element, stack, i);
+      target.appendChild(element);
     }
   });
 
 
   // Attribute < Element
-  //   string  ns
-  //   string  name
+  //   string  namespace-uri
+  //   string  local-name
   bender.Attribute = flexo._ext(bender.Element, {
     init: function (ns, name) {
-      this.ns = ns;
-      this.name = name;
+      this.namespace_uri = ns;
+      this.local_name = name;
       return bender.Element.init.call(this);
+    },
+
+    render: function (target) {
+      target.setAttributeNS(this.namespace_uri, this.local_name,
+        this.children.reduce(function (text, child) {
+          return text + (typeof child.text === "function" ? child.text() : "");
+        }, ""));
     }
   });
 
@@ -255,6 +354,12 @@
       }
       this._text = flexo.safe_string(text);
       return this;
+    },
+
+    render: function (target) {
+      var node = target.ownerDocument.createTextNode();
+      node.textContent = this.text();
+      target.appendChild(node);
     }
   });
 
