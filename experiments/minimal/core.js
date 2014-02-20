@@ -46,13 +46,17 @@
       }
       child.parent = this;
       this.children.push(child);
-      return child;
+      return child.added();
     },
+
+    added: flexo.self,
 
     child: function (child) {
       return this.add_child(child), this;
     }
   });
+
+  flexo._accessor(bender.Node, "name", flexo.safe_trim);
 
 
   // Component < Node
@@ -63,23 +67,25 @@
   //   Watch*      watches
   bender.Component = flexo._ext(bender.Node, {
     init: function (view) {
+      this._name = flexo.random_id();
+      bender.Node.init.call(this);
       this.property_definitions = "property_definitions" in this ?
         Object.create(this.property_definitions) : {};
       this.properties = {};
-      if (view) {
-        if (view.component) {
-          console.error("View already in a component");
-        }
-        this.view = view;
-        this.view.component = this;
+      if (!view) {
+        view = bender.View.create(true);
       }
+      if (view.component) {
+        console.error("View already in a component");
+      }
+      this.view = view;
+      this.view.component = this;
+      this.view.add_child_components();
       this.watches = [];
-      this.property_vertices = "property_vertices" in this ?
-        Object.create(this.property_vertices) : {};
-      this.event_vertices = "event_vertices" in this ?
-        Object.create(this.event_vertices) : {};
       this.__render_subgraph = true;
-      return bender.Node.init.call(this);
+      this.property_vertices = {};
+      this.event_vertices = {};
+      return this;
     },
 
     // Add a property to the component and return the component.
@@ -120,11 +126,11 @@
       if (prototype) {
         this.prototype.render_subgraph(graph);
       }
-      this.watches.forEach(function (watch) {
-        watch.render_subgraph(graph);
-      });
       this.children.forEach(function (child) {
         child.render_subgraph(graph);
+      });
+      this.watches.forEach(function (watch) {
+        watch.render_subgraph(graph);
       });
       return this;
     }
@@ -167,7 +173,41 @@
 
   // View < Element
   //   Component  component
-  bender.View = flexo._ext(bender.Element);
+  bender.View = flexo._ext(bender.Element, {
+    init: function (_default) {
+      this.default = !!_default;
+      return bender.Element.init.call(this);
+    },
+
+    add_child: function (child) {
+      if (this.default) {
+        console.error("Cannot add children to a default view");
+        return;
+      }
+      if (this.component) {
+        this.add_child_components(child);
+      }
+      return bender.Element.add_child.call(this, child);
+    },
+
+    add_child_components: function (child) {
+      flexo.beach_all(child ? [child] : this.children, function (element) {
+        if (element.component) {
+          this.component.add_child(element.component);
+        } else {
+          return element.children;
+        }
+      }, this);
+    },
+
+    added: function () {
+      var parent_component = this.parent && this.parent.component;
+      if (parent_component) {
+        parent_component.add_child(this.component);
+      }
+      return this;
+    }
+  });
 
   Object.defineProperty(bender.View, "view", {
     enumerable: true,
@@ -185,11 +225,10 @@
   //   data*   attributess
   bender.DOMElement = flexo._ext(bender.Element, {
     init: function (ns, name, attributes) {
-      this.ns = ns;
-      this.name = name;
+      this.namespace_uri = ns;
+      this.local_name = name;
       this.attributes = attributes || {};
-      this.event_vertices = "event_vertices" in this ?
-        Object.create(this.event_vertices) : {};
+      this.event_vertices = {};
       return bender.Element.init.call(this);
     }
   });
@@ -275,12 +314,26 @@
       return bender.Base.init.call(this);
     },
 
-    vertex: function (graph, name, vertices, prototype) {
+    vertex: function (graph, name, vertices_name, prototype) {
+      var vertices = this.target[vertices_name];
       if (!vertices.hasOwnProperty(name)) {
-        var protovertex = vertices[name];
         vertices[name] = graph.vertex(prototype.create(this));
-        if (protovertex) {
-          graph.edge(bender.InheritEdge.create(protovertex, vertices[name]));
+        var prototype = Object.getPrototypeOf(this.target);
+        if (vertices_name in prototype) {
+          var protovertex = prototype[vertices_name][name];
+          if (protovertex) {
+            graph.edge(bender.InheritEdge.create(protovertex, vertices[name]));
+            protovertex.outgoing.forEach(function (edge) {
+              if (edge.priority === 1) {
+                var edge_ = Object.create(edge);
+                edge_.source = vertices[name];
+                vertices[name].outgoing.push(edge_);
+                edge_.dest.incoming.push(edge_);
+                edge_.priority = 0;
+                graph.edge(edge_);
+              }
+            });
+          }
         }
       }
       return vertices[name];
@@ -307,7 +360,7 @@
 
     vertex: function (graph) {
       return bender.Adapter.vertex.call(this, graph, this.property.name,
-        this.watch.component.property_vertices, bender.PropertyVertex);
+        "property_vertices", bender.PropertyVertex);
     }
   });
 
@@ -322,7 +375,7 @@
 
     vertex: function (graph) {
       return bender.Adapter.vertex.call(this, graph, this.type,
-        this.watch.component.event_vertices, bender.EventVertex);
+        "event_vertices", bender.EventVertex);
     }
   });
 
@@ -397,7 +450,66 @@
       return vertex;
     },
 
-    edge: flexo.id
+    edge: function (edge) {
+      this.__unsorted = true;
+      return edge;
+    },
+
+    sort: function () {
+      if (!this.__unsorted) {
+        return;
+      }
+      delete this.__unsorted;
+      this.edges = [];
+      this.vertices.forEach(function (v, i) {
+        v.__index = i;
+        // flexo.push_all(this.edges, v.outgoing);
+      }, this);
+      // return this;
+      var queue = this.vertices.filter(function (vertex) {
+        vertex.__out = vertex.outgoing.filter(function (edge) {
+          if (edge.delay >= 0) {
+            edges.push(edge);
+            return false;
+          }
+          return true;
+        }).length;
+        return vertex.__out === 0;
+      });
+      var incoming = function (edge) {
+        console.log("Incoming: v%0 -> v%1"
+            .fmt(edge.source.__index, edge.dest.__index));
+        if (edge.source.hasOwnProperty("__out")) {
+          --edge.source.__out;
+        } else {
+          edge.source.__out = edge.source.outgoing.length - 1;
+        }
+        if (edge.source.__out === 0) {
+          queue.push(edge.source);
+        }
+        return edge;
+      };
+      var delayed = function (edge) {
+        return !(edge.delay >= 0);
+      };
+      var prioritize = function (a, b) {
+        return b.priority - a.priority;
+      }
+      while (queue.length > 0) {
+        console.log("Queue:", queue.map(function (v) {
+          return "v%0 (%1)".fmt(v.__index, v.__out);
+        }).join(" "));
+        flexo.unshift_all(this.edges, queue.shift().incoming.filter(delayed)
+            .map(incoming).sort(prioritize));
+      }
+      this.vertices.forEach(function (vertex) {
+        if (vertex.__out !== 0) {
+          console.error("sort_edges: unqueued vertex", vertex.__index);
+        }
+        delete vertex.__out;
+      });
+      return this;
+    }
   });
 
 
@@ -451,11 +563,13 @@
       this.source.outgoing.push(this);
       this.dest.incoming.push(this);
       return bender.Base.init.call(this);
-    }
+    },
+
+    priority: 1
   });
 
   // InheritEdge < Edge
-  bender.InheritEdge = flexo._ext(bender.Edge);
+  bender.InheritEdge = flexo._ext(bender.Edge, { priority: 2 });
 
 
   // AdapterEdge < Object:
@@ -466,6 +580,5 @@
       return bender.Edge.init.call(this, source, dest);
     }
   });
-
 
 }());

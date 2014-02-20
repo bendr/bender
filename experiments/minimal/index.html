@@ -21,17 +21,19 @@ a {
     <script>
 "use strict";
 
-var text_label = bender.Text.create();
+var text_label = bender.Text.create().name("text-label");
 var frame = bender.DOMElement.create(flexo.ns.html, "div")
+  .name("frame")
   .child(bender.Content.create().child(text_label));
 var label = bender.Property.create("label");
 var enabled = bender.Property.create("enabled");
 var down = bender.Property.create("down");
 var button = bender.Component.create(bender.View.create().child(frame))
+  .name("Button")
   .property(label)
   .property(enabled)
-  .property(down)
-  .watch(bender.Watch.create()  // 4
+  .property(down);
+button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, label))
       .set(bender.SetNodeProperty.create(text_label, "text")))
   .watch(bender.Watch.create()  // 5
@@ -54,13 +56,35 @@ var button = bender.Component.create(bender.View.create().child(frame))
       .set(bender.SetAttribute.create(frame, "", "class")
         .value(function ($in) { return $in ? "" : "disabled"; })))
 
-var graph = bender.WatchGraph.create();
-button.render_subgraph(graph);
+var n = bender.Property.create("n");
+var text_n = bender.Text.create().name("text-n");
+var plus = button.create().name("Plus");
+var minus = button.create().name("Minus");
+var panel = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "div")
+      .child(text_n)
+      .child(plus.view)
+      .child(minus.view)))
+  .name("Panel")
+  .property(n)
+panel.watch(bender.Watch.create()  // 1
+      .get(bender.GetEvent.create(plus, "pushed"))
+      .set(bender.SetProperty.create(panel, n)
+        .value(function () { return this.properties.n + 1; })))
+  .watch(bender.Watch.create()  // 2
+      .get(bender.GetEvent.create(minus, "pushed"))
+      .set(bender.SetProperty.create(panel, n)
+        .value(function () { return this.properties.n - 1; })))
+  .watch(bender.Watch.create()  // 3
+      .get(bender.GetProperty.create(panel, n))
+      .set(bender.SetNodeProperty.create(text_n, "text"))
+      .set(bender.SetProperty.create(minus, enabled)
+        .value(function ($in) { return $in > 0; })));
 
-console.log("OK");
+var graph = bender.WatchGraph.create();
+panel.render_subgraph(graph);
+graph.sort().dump();
 
     </script>
   </body>
 </html>
-
-

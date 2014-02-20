@@ -90,7 +90,7 @@
   Component?  prototype
   Property*   property-definitions
   data*       properties
-  View?       view
+  View        view
   Watch*      watches</pre>
         <ul>
           <li><code>prototype</code> is the <code>Component</code> that this
@@ -110,7 +110,7 @@
           public property defintions would be inherited.</span></li>
           <li><code>properties</code> is the list of all property values for
           this component, indexed by their name.</li>
-          <li><code>view</code> is the root of the optional view tree of this
+          <li><code>view</code> is the root of the view tree of this
           component.</li>
           <li><code>watches</code> is the unordered list of all
           <code>Watch</code>es of the component.</li>
@@ -172,10 +172,17 @@
       component.</p>
       <div>
         <pre>View &lt; Element
-  Component  component</pre>
+  Component  component
+  boolean    default</pre>
         <ul>
           <li><code>component</code> is the <code>Component</code> that this is
           the view of.</li>
+          <li><code>default</code> is a flag that distinguishes the absence of
+          a view from an empty view. If this flag is set, then there should be
+          zero <code>children</code>. An <em>empty</em> view is a view with
+          zero <code>children</code> but with the <code>default</code> flag
+          unset.<span class="TODO"> Instead of a flag, a
+            <code>DefaultView</code> could be used instead?</span></li>
           <li><strong>Note</strong>: for a <code>View</code>, the
           <code>view</code> property is itself.</li>
         </ul>
@@ -196,12 +203,13 @@
       DOM elements.</p>
       <div>
         <pre>DOMElement &lt; Element
-  string  ns
-  string  name
+  string  namespace-uri
+  string  local-name
   data*   attributess</pre>
         <ul>
-          <li><code>ns</code> is the namespace URI of the DOM element.</li>
-          <li><code>name</code> is the local name of the DOM element.</li>
+          <li><code>namespace-uri</code> is the namespace URI of the DOM
+          element.</li>
+          <li><code>local-name</code> is the local name of the DOM element.</li>
           <li><code>attributes</code> is a list of attribute values of the DOM
           element, indexed first by namespace URI, then by local name.</li>
         </ul>
@@ -213,11 +221,12 @@
       parent element, similarly to a DOM attribute node.</p>
       <div>
         <pre>Attribute &lt; Element
-  string  ns
-  string  name</pre>
+  string  namespace-uri
+  string  local-name</pre>
         <ul>
-          <li><code>ns</code> is the namespace URI of the attribute.</li>
-          <li><code>name</code> is the local name of the attribute.</li>
+          <li><code>namespace-uri</code> is the namespace URI of the
+          attribute.</li>
+          <li><code>local-name</code> is the local name of the attribute.</li>
           <li><strong>Note</strong>: the value of the attribute is defined by
           the concatenation of the <code>text</code> of its <code>Text</code>
           child elements. Other children are ignored.</li>
@@ -445,13 +454,13 @@
 
     <div class="def" id="Panel">
       <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Panel"&gt;
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Panel"&gt;
   &lt;property name="n" value="0"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div&gt;
-      &lt;text id="text-n"/&gt;
-      &lt;component href="button.xml" id="Plus" label="+"/&gt;
-      &lt;component href="button.xml" id="Minus" label="—"/&gt;
+      &lt;text name="text-n"/&gt;
+      &lt;component href="button.xml" name="Plus" label="+"/&gt;
+      &lt;component href="button.xml" name="Minus" label="—"/&gt;
     &lt;/html:div&gt;
   &lt;/view&gt;
   &lt;watch&gt; <span class="watch">1</span>
@@ -475,16 +484,16 @@
           attribute.</li>
           <li><code>Panel</code> has a <code>View</code> with a
           <code>DOMElement</code> child (a HTML <code>div</code> element), with
-          three children. The first is a <code>Text</code> child with ID
+          three children. The first is a <code>Text</code> child with the name
           <code>text-n</code>, as specified by the <code>id</code>
           attribute.</li>
-          <li><code>Panel</code> also has two child components with the ID
+          <li><code>Panel</code> also has two child components with the name
           <code>Plus</code> and <code>Minus</code> (as specified by the
           <code>id</code> attribute), both inheriting from the
           <code>Button</code> component shown below (as specified by the
           <code>href</code> attribute), with a different initial value for the
           <code>label</code> property (as specified by the <code>label</code>
-          attribute), and an empty view.</li>
+          attribute), and a default view.</li>
           <li>The <code>Watch</code> <span class="watch">1</span> has one
           input and one output:
           <ul>
@@ -529,14 +538,14 @@
       <p>This second component is the <code>Button</code> prototype of both
       <code>Plus</code> and <code>Minus</code> buttons above.</p>
       <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
+        <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
   &lt;property name="label" as="string" value="Label"&gt;
   &lt;property name="enabled" value="true"&gt;
   &lt;property name="down" value="false"&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
-    &lt;html:div id="frame"&gt;
+    &lt;html:div name="frame"&gt;
       &lt;content&gt;
-        &lt;text id="text-label"/&gt;
+        &lt;text name="text-label"/&gt;
       &lt;/content&gt;
     &lt;/html:div&gt;
   &lt;/view&gt;
@@ -572,9 +581,9 @@
           <li><code>Button</code> has a <code>Property</code> named
           <code>down</code> with initial value <code>false</code>.</li>
           <li><code>Button</code> has a <code>View</code> containing a
-            <code>DOMElement</code> (a HTML <code>div</code> element with ID
-            <code>frame</code>), containing a <code>Content</code> element,
-            containing a <code>Text</code> element with ID
+            <code>DOMElement</code> (a HTML <code>div</code> element with the
+            name <code>frame</code>), containing a <code>Content</code> element,
+            containing a <code>Text</code> element with the name
             <code>text-label</code>.</li>
           <li><code>Button</code> has no child <code>Component</code>.</li>
           <li>The <code>Watch</code> <span class="watch">4</span> has one

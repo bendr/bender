@@ -151,12 +151,16 @@
       <div>
         <pre>Edge &lt; Object
   Vertex  source
-  Vertex  dest</pre>
+  Vertex  dest
+  number  priority = 0</pre>
         <ul>
           <li><code>source</code> is the source <code>Vertex</code> of the
           edge.</li>
           <li><code>dest</code> is the destination <code>Vertex</code> of the
           edge.</li>
+          <li><code>priority</code> is a number that is used to sort the
+          incoming edges of a <code>Vertex</code>. The lower the number,
+          the higher the priority.</li>
         </ul>
       </div>
     </div>
@@ -172,7 +176,12 @@
       of their own. Another benefit of these edges is to avoid situations that
       may lead to spurious cycles in the graph.</p>
       <div>
-        <pre>InheritEdge &lt; Edge</pre>
+        <pre>InheritEdge &lt; Edge
+  number  priority = 1</pre>
+        <ul>
+          <li><code>priority</code> is set to 1 so that these edges have a lower
+          priority during sorting.</li>
+        </ul>
       </div>
     </div>
 
@@ -192,10 +201,10 @@
     <h3>Rendering the Watch Graph of a Component</h3>
     <p>The sub-graph of a <code>Component</code> <em>C</em> in a
     <code>WatchGraph</code> <em>G</em> is constructed by rendering the sub-graph
-    of the prototype <em>C</em>, if any, in <em>G</em>; then rendering vertices
-    and edges for every <code>Watch</code> in <em>C</em>; and finally rendering
-    the sub-graph of the child components. The component is marked so that its
-    sub-graph is rendered only once. This is necessary because a prototype
+    of the prototype <em>C</em>, if any, in <em>G</em>; then rendering the
+    sub-graph of the child components; and finally rendering vertices and edges
+    for every <code>Watch</code> in <em>C</em>. The component is marked so that
+    its sub-graph is rendered only once. This is necessary because a prototype
     component may be shared by several components, which will all require it
     to render its sub-graph.</p>
     <pre class="code">render-subgraph(Component C, WatchGraph G) =
@@ -203,10 +212,10 @@
     mark C
     if defined C.prototype and not marked? C.prototype
       then render-subgraph(C.prototype, G)
-    for W in C.Watches
-      render-watch(W, G)
     for C’ in C.children
-      render-subgraph(C’, G)</pre>
+      render-subgraph(C’, G)
+    for W in C.Watches
+      render-watch(W, G)</pre>
 
     <p>The sub-graph for a <code>Watch</code> <em>W</em> is rendered by
     creating a new <code>WatchVertex</code> <em>V</em> in <em>G</em>, then an
@@ -243,6 +252,10 @@
             add-inherit-edge(V’, G)
             V’</pre>
 
+    <p>To illustrate the rendering of the watch graph, review the
+    <code>Panel</code> component from the <a href="data-model.html#example">Data
+    Model</a> description.</p>
+
     <p>The figure below shows the rendering of watch <span
     class="watch">6</span> of the <code>Button</code> example component (in this
     example, other watches are ignored.) A <code>WatchVertex</code> (square) is
@@ -255,7 +268,7 @@
     <code>EventVertex</code>.</p>
 
     <pre class="code">&lt;watch&gt; <span class="watch">6</span>
-  &lt;get select="@frame" event="mouseup"/&gt;
+  &lt;get select="frame" event="mouseup"/&gt;
   &lt;set event="pushed" match="`down"/&gt;
   &lt;set property="down" value="false"/&gt;
 &lt;/watch&gt;</pre>
@@ -275,7 +288,7 @@
 
     <pre class="code">&lt;watch&gt; <span class="watch">7</span>
   &lt;get property="down"/&gt;
-  &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
+  &lt;set select="frame" attribute="class" value="$in ? 'down' : ''/&gt;
 &lt;/watch&gt;
     </pre>
 
@@ -288,7 +301,8 @@
     <p>If there exists a prototype vertex <em>V’</em> for a vertex <em>V</em>
     (see below), then a new <code>InheritEdge</code> is added between
     <em>V’</em> and <em>V</em>. The outgoing edges of <em>V’</em> are also
-    copied to <em>V</em>.</p>
+    copied to <em>V</em> and given a lower priority so that they come later in
+    a sort.</p>
     <pre class="code">add-inherit-edge(AdapterVertex V, Graph G) =
   let V’ = find-prototype-vertex(V, G) in
     if defined V’ then
@@ -298,6 +312,7 @@
           let E’ = create(E) in
             do
               E’.source = V
+              E’.priority = E.priority + 1
               G.edges = G.edges : E’</pre>
 
     <p><span class="TODO"><code>Vertex? find-prototype-vertex(Graph G,
@@ -311,89 +326,17 @@
     <p>Once the graph <em>G</em> is built, its <code>edges</code> are sorted in
     topological order. Starting from vertices that have no outgoing edge (there
     is always at least one such vertex, the <code>vortex</code>), incoming edges
-    are pushed at the end of the list of edges and removed from the list of
-    outgoing edges their source vertex. The process repeats with the vertices
-    which do not have any outgoing edge anymore. If there were no cycles in the
-    graph, all edges and vertices are processed, otherwise an error is raised
-    (although cycles may be broken when they include delayed edges, see
-    below.)</p>
-    <p>The list of incoming edges of a vertex is not ordered, 
-    <p>When pushing a list incoming edges,  </p>
+    are pushed at the end of the list of edges in order of priority (the
+    relative order of edges with the same priority is irrelevant) and removed
+    from the list of outgoing edges their source vertex.</p>
+    <p>The process repeats with the vertices which do not have any outgoing edge
+    anymore. If there were no cycles in the graph, all edges and vertices are
+    processed, otherwise an error is raised (although cycles may be broken when
+    they include delayed edges, see below.)</p>
     <pre class="code"><span class="TODO">Edge* sort-edges(Edge *) = ...</span></pre>
 
 
     <h3>Example</h3>
-
-    <p>To illustrate the rendering of the watch graph, review the
-    <code>Panel</code> component from the <a href="data-model.html#example">Data
-    Model</a> description.</p>
-    <div class="def" id="Panel">
-      <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Panel"&gt;
-  &lt;property name="n" value="0"/&gt;
-  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
-    &lt;html:div&gt;
-      &lt;text id="text-n"/&gt;
-      &lt;component href="button.xml" id="Plus" label="+"/&gt;
-      &lt;component href="button.xml" id="Minus" label="—"/&gt;
-    &lt;/html:div&gt;
-  &lt;/view&gt;
-  &lt;watch&gt; <span class="watch">1</span>
-    &lt;get select="@Plus" event="pushed"/&gt;
-    &lt;set property="n" value="`n + 1"/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">2</span>
-    &lt;get select="@Minus" event="pushed"/&gt;
-    &lt;set property="n" value="`n - 1"/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">3</span>
-    &lt;get property="n"/&gt;
-    &lt;set select="@text-n"/&gt;
-    &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
-  &lt;/watch&gt;
-&lt;/component&gt;</pre>
-      </div>
-    </div>
-
-    <div class="def" id="Button">
-      <p>This is the <code>Button</code> component.</p>
-      <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" id="Button"&gt;
-  &lt;property name="label" as="string" value="Label"&gt;
-  &lt;property name="enabled" value="true"&gt;
-  &lt;property name="pushed" value="false"&gt;
-  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
-    &lt;html:div id="frame"&gt;
-      &lt;content&gt;
-        &lt;text id="text-label"/&gt;
-      &lt;/content&gt;
-    &lt;/html:div&gt;
-  &lt;/view&gt;
-  &lt;watch&gt; <span class="watch">4</span>
-    &lt;get property="label"/&gt;
-    &lt;set select="@text-label"/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">5</span>
-    &lt;get select="@frame" event="mousedown"/&gt;
-    &lt;set property="down" match="`enabled" value="true"/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">6</span>
-    &lt;get select="@frame" event="mouseup"/&gt;
-    &lt;set event="pushed" match="`down"/&gt;
-    &lt;set property="down" value="false"/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">7</span>
-    &lt;get property="down"/&gt;
-    &lt;set select="@frame" attribute="@class" value="$in ? 'down' : ''/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">8</span>
-    &lt;get property="enabled"/&gt;
-    &lt;set select="@frame" attribute="@class" value="$in ? '' : 'disabled'/&gt;
-  &lt;/watch&gt;
-&lt;/component&gt;</pre>
-      </div>
-    </div>
-
     <p>The figure below shows the rendered graph for <code>Panel</code>.
     Vertices are represented by ovals (properties), heptagons (events),
     squares (watches), and a triangle for the vortex. Edges are represented
