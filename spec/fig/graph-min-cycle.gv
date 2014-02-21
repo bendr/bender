@@ -1,0 +1,39 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  t [label="", shape=triangle, fixedsize=true, width=0.5];
+  w0 [label="0", shape=square, fixedsize=true, width=0.3];
+  w1 [label="1", shape=square, fixedsize=true, width=0.3];
+  w2 [label="2", shape=square, fixedsize=true, width=0.3];
+  PA [label="P (A)"]
+  PB1 [label="P (B)"]
+  PB2 [label="P (C)"]
+
+  w0 -> PB1
+  PB1 -> w1
+  w1 -> PB2
+  PA -> w2
+  w2 -> t
+
+  PA -> PB1 [color="#f94179"];
+  PA -> PB2 [color="#f94179"];
+  PB1 -> w2 [color="#f8ca00"];
+  PB2 -> w2 [color="#f8ca00"];
+
+  t_ [label="", shape=triangle, fixedsize=true, width=0.5];
+  w0_ [label="0", shape=square, fixedsize=true, width=0.3];
+  PA_ [label="P (A, B, C)"]
+  w0_ -> PA_
+  PA_ -> t_
+  PA_ -> PA_
+
+  subgraph {
+    rank=same; w0; w0_
+  }
+
+  subgraph {
+    rank=same; t; t_
+  }
+
+}

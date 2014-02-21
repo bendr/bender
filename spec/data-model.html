@@ -38,10 +38,8 @@
       object <em>O</em>.</li>
       <li><code>?</code> means that the property may be undefined.
       The operator <code>defined</code> checks if a value is defined.</li>
-      <li><code>*</code> means a list of zero or more objects.</li>
-      <li><code>+</code> means a list of one or more objects.</li>
-      <li><code>=</code> means that the object property on the left-hand side
-      has a default value, defined on the right-hand side.</li>
+      <li><code>*</code> means a list or set of zero or more objects.</li>
+      <li><code>+</code> means a list or set of one or more objects.</li>
       <li><code>[]</code> means an empty list.</li>
       <li><code>"..."</code> means a string (which can be considered as a list
       of characters.)</li>
@@ -70,8 +68,7 @@
         <ul>
           <li><code>parent</code> is the parent <code>Node</code>, if any, of
           the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
-          <li><code>children</code> is the ordered list of child nodes of the
-          node.</li>
+          <li><code>children</code> is the list of child nodes of the node.</li>
         </ul>
       </div>
     </div>
@@ -116,8 +113,8 @@
           this component, indexed by their name.</li>
           <li><code>view</code> is the root of the view tree of this
           component.</li>
-          <li><code>watches</code> is the unordered list of all
-          <code>Watch</code>es of the component.</li>
+          <li><code>watches</code> is the set of all <code>Watch</code>es of the
+          component.</li>
         </ul>
       </div>
     </div>
@@ -276,10 +273,10 @@
         <ul>
           <li><code>component</code> is the owner <code>Component</code> of
           this watch.</li>
-          <li><code>gets</code> is the unordered list of <code>Get</code>s
-          (inputs) of this watch.</li>
-          <li><code>sets</code> is the unordered list of <code>Set</code>s
-          (outputs) of this watch.</li>
+          <li><code>gets</code> is the set of <code>Get</code>s (inputs) of this
+          watch.</li>
+          <li><code>sets</code> is the set of <code>Set</code>s (outputs) of
+          this watch.</li>
         </ul>
       </div>
     </div>
@@ -699,7 +696,7 @@
     </figure>
 
     <p>This example is used again to illustrate <a
-      href="processing-model.html">processing model of Bender</a>.</p>
+      href="processing-model.html">the processing model of Bender</a>.</p>
 
   </body>
 </html>

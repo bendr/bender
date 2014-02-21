@@ -21,4 +21,7 @@ digraph tree {
   VB__ -> VC__
   VB__ -> VD__
 
+  subgraph cluster1 { VB1; VB_ }
+  subgraph cluster2 { VB2; VB__ }
+
 }

@@ -12,7 +12,7 @@
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
 
-    <h2>Informal Overview</h2>
+    <h2>Overview</h2>
     <p>A Bender application is defined by a component, its children, and their
     prototype. The graph of all components that are part of the definition of an
     application is called the <em>component graph</em> of the application.
@@ -47,8 +47,8 @@
     <h2>Constructing the Watch Graph</h2>
 
     <div class="def" id="WatchGraph">
-      <p>The <code>WatchGraph</code> is defined as an ordered list of directed
-      <em>edges</em> between <em>vertices</em>. Edges are kept sorted in
+      <p>The <code>WatchGraph</code> is defined as a list of directed
+      <em>edges</em> between <em>vertices</em>. Edges are eventually sorted in
       <em>topological order</em> so that data flow is consistent and
       predictable. This also means that the graph should be acyclic; however,
       through the use of <em>delayed</em> edges (see below), cycles may be
@@ -59,13 +59,14 @@
   Vertex   vortex
   Edges*   edges</pre>
         <ul>
-          <li><code>vertices</code> is the unordered list of vertices. It always
+          <li><code>vertices</code> is the set of list of vertices that are
+          the source or destination of the <code>Edge</code>s. It always
           contains at least one <code>Vertex</code> (the
           <code>vortex</code>.)</li>
           <li><code>vortex</code> is a <em>sink state</em> in the watch graph.
           It has no outgoing edge and is a member of <code>vertices</code>.</li>
-          <li><code>edges</code> is the ordered list of edges between vertices
-          in the graph.</li>
+          <li><code>edges</code> is the list of edges between vertices in the
+          graph.</li>
         </ul>
       </div>
     </div>
@@ -80,12 +81,10 @@
   Edge*  incoming
   Edge*  outgoing</pre>
         <ul>
-          <li><code>incoming</code> is the unordered list of incoming
-          <code>Edge</code>s, <em>i.e.</em> edges that have this vertex as
-          destination.</li>
-          <li><code>outgoing</code> is the unordered list of outgoing
-          <code>Edge</code>s, <em>i.e.</em> edges that have this vertex as
-          source.</li>
+          <li><code>incoming</code> is the set of incoming <code>Edge</code>s,
+          <em>i.e.</em> edges that have this vertex as destination.</li>
+          <li><code>outgoing</code> is the set of outgoing <code>Edge</code>s,
+          <em>i.e.</em> edges that have this vertex as source.</li>
         </ul>
       </div>
     </div>
@@ -211,7 +210,7 @@
     <pre class="code">render-subgraph(Component C, WatchGraph G) =
   do
     mark C
-    if defined C.prototype and not marked? C.prototype
+    if defined C.prototype and not marked C.prototype
       then render-subgraph(C.prototype, G)
     for C’ in C.children
       render-subgraph(C’, G)
@@ -322,18 +321,37 @@
     component of <em>V’</em> is the closes component in the prototype chain of
     <em>V</em> that has such a vertex, if it exists.</p>
 
+    <p>Continuing the previous example, adding watch <span
+      class="watch">1</span> to the graph introduces a new vertex for the
+    <code>pushed</code> event of <code>Plus</code>. Because <code>Plus</code>
+    inherits from <code>Button</code>, a new <code>InheritEdge</code> is
+    introduced from the prototype event vertex <code>pushed</code> of
+    <code>Button</code>.</p>
+
+    <pre class="code">&lt;watch&gt; <span class="watch">1</span>
+  &lt;get select="Plus" event="pushed"/&gt;
+  &lt;set property="n" value="`n + 1"/&gt;
+&lt;/watch&gt;</pre>
+
+    <figure>
+      <img src="fig/graph-watch-671.svg">
+      <figcaption>The watch sub-graph for watches <span class="watch">6</span>,
+      and <span class="watch">7</span> of <code>Button</code>, and <span
+        class="watch">1</span> of <code>Panel</code>.</figcaption>
+    </figure>
+
 
     <h3>Edge Sorting</h3>
     <p>Once the graph <em>G</em> is built, its <code>edges</code> are sorted in
     topological order. Starting from vertices that have no outgoing edge (there
     is always at least one such vertex, the <code>vortex</code>), incoming edges
-    are pushed at the end of the list of edges in order of priority (the
-    relative order of edges with the same priority is irrelevant) and removed
-    from the list of outgoing edges their source vertex.</p>
+    are inserted at the beginning of the sorted list of edges in order of
+    priority (the relative order of edges with the same priority is irrelevant)
+    and removed from the list of outgoing edges their source vertex.</p>
     <p>The process repeats with the vertices which do not have any outgoing edge
     anymore. If there were no cycles in the graph, all edges and vertices are
     processed, otherwise an error is raised (although cycles may be broken when
-    they include delayed edges, see below.)</p>
+    they include <em>delayed edges</em> as detailed below.)</p>
     <pre class="code">sort-watch-graph(WatchGraph G) = G.edges &lt;- sort-edges(G.edges)
 <span class="TODO">Edge* sort-edges(Edge* E) = ...</span></pre>
 
@@ -346,7 +364,8 @@
     yellow edges are edges that were copied from the prototype vertex. In this
     case, there is an edge from the <code>enabled</code> property vertex of
     <code>Button</code> to <span class="watch">8</span>, which is copied to the
-    <code>enabled</code> property vertex of <code>Minus</code>.</p>
+    <code>enabled</code> property vertex of <code>Minus</code>.<span
+      class="TODO"> Number the edges from the sort order.</span></p>
 
     <figure>
       <img src="fig/graph-panel.svg">
@@ -354,10 +373,67 @@
       component.</figcaption>
     </figure>
 
+    <h3>Minimization and Compilation of the Watch Graph</h3>
+    <p>As a possible optimization, the watch graph can be minimized by removing
+    redundant edges and vertices after sorting. The remaining edges are kept in
+    the original order.</p>
+    <ul>
+      <li>An <code>InheritEdge</code> can be removed by merging the source and
+      destination vertices, and removing all copied edges from the destination
+      vertex.</li>
+      <li>A <code>WatchVertex</code> with exactly one incoming edge and one
+      outgoing edge can be removed by creating a new edge between the source
+      vertex of the incoming edge and the destination vertex of the outgoing
+      edge. A new <code>Adapter</code> can be created for this edge by composing
+      the match and value functions. Note that although removing a
+      <code>WatchVertex</code> with two incoming edges and one outgoing edge,
+      or one incoming edge and two outgoing edges would still reduce the number
+      of edges in the graph, the semantics of graph traversal would not be
+      preserved as either the input value or the output value of the
+      <code>WatchVertex</code> would have to be computed twice, which may lead
+      to undesireable side effects. (This would be possible if the absence of
+      side effects were guaranteed.)</p>
+    </ul>
+    <p>After applying these steps whenever possible, the graph only contains
+    <code>AdapterEdge</code>s. Cycles may appear as a result of merging
+    vertices, but this does not result in infinite loops.<span
+      class="TODO"> TODO: actual algorithm, and proof that the order is
+      maintained.</span> For the sake of simplicity, furhter discussion of the
+    watch graph will refer to the unminimized version of the graph.</p>
+
+    <figure>
+      <img src="fig/graph-panel-min.svg">
+      <figcaption>The minimized watch graph for the <code>Panel</code>
+      component.</figcaption>
+    </figure>
+
+    <p>The figure below shows how a watch graph may include a cycle after
+    minimization. On the left is the original graph, and on the right is the
+    minimized graph. The origin of the cycle is that setting a property
+    <em>P</em> on <em>C</em> after it has changed on <em>B</em> (where both
+    <em>B</em> and <em>C</em> inherit from a component <em>A</em>) results in an
+    edge that has its source and destination in different vertices before
+    minimization, but which have been merged in the minimized version.</p>
+    <figure>
+      <img src="fig/graph-min-cycle.svg">
+      <figcaption>Introduction of a cycle in a minimized watch
+      graph.</figcaption>
+    </figure>
+
+    <p>Another optimization consists in <em>compiling</em> the graph into code.
+    A set of functions can be compiled for the input vertices of the graph;
+    instead of setting an initial value on an input vertex <em>V</em> and
+    initiating a traversal of the watch graph, the function
+    <em>F<sub>V</sub></em> compiled from <em>V</em> is called instead. These
+    functions call each other to implement the full graph traversal.<span
+      class="TODO"> This section needs to be developed.</span></p>
+
+
     <h2>Rendering to HTML</h2>
-    <p>A component is rendered to HTML by creating its <em>view stack</em> and
-    rendering that stack into a HTML element, such as a <code>div</code>, the
-    <code>body</code> of a document, or an <code>iframe</code>.</p>
+    <p>The view of a component is rendered to HTML by creating its <em>view
+      stack</em> and rendering that stack into a HTML element, such as the
+    <code>body</code> of a document, a <code>div</code>, or an
+    <code>iframe</code>.</p>
 
     <pre class="code">render-component-view(Component C, DOM element T) = render-view-stack(view-stack(C), T)</pre>
 

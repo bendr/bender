@@ -9,48 +9,54 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 464)">
 <title>tree</title>
 <polygon fill="white" stroke="white" points="-4,4 -4,-464 407,-464 407,4 -4,4"/>
+<g id="clust1" class="cluster"><title>cluster1</title>
+<polygon fill="none" stroke="black" points="83,-116 83,-344 193,-344 193,-116 83,-116"/>
+</g>
+<g id="clust2" class="cluster"><title>cluster2</title>
+<polygon fill="none" stroke="black" points="201,-116 201,-344 311,-344 311,-116 201,-116"/>
+</g>
 <!-- VA -->
 <g id="node1" class="node"><title>VA</title>
-<polygon fill="none" stroke="black" points="195,-459.538 158.77,-394.231 231.23,-394.231 195,-459.538"/>
-<text text-anchor="middle" x="195" y="-413.474" font-family="Avenir Next" font-size="14.00">A</text>
+<polygon fill="none" stroke="black" points="197,-459.538 160.77,-394.231 233.23,-394.231 197,-459.538"/>
+<text text-anchor="middle" x="197" y="-413.474" font-family="Avenir Next" font-size="14.00">A</text>
 </g>
 <!-- VB1 -->
 <g id="node2" class="node"><title>VB1</title>
-<polygon fill="none" stroke="black" points="140,-335.538 93.4462,-270.231 186.554,-270.231 140,-335.538"/>
-<text text-anchor="middle" x="140" y="-289.474" font-family="Avenir Next" font-size="14.00">B1</text>
+<polygon fill="none" stroke="black" points="138,-335.538 91.4462,-270.231 184.554,-270.231 138,-335.538"/>
+<text text-anchor="middle" x="138" y="-289.474" font-family="Avenir Next" font-size="14.00">B1</text>
 </g>
 <!-- VA&#45;&gt;VB1 -->
 <g id="edge1" class="edge"><title>VA&#45;&gt;VB1</title>
-<path fill="none" stroke="black" d="M185.545,-394.027C177.448,-376.067 165.615,-349.818 156.039,-328.578"/>
-<polygon fill="black" stroke="black" points="159.121,-326.897 151.82,-319.219 152.739,-329.774 159.121,-326.897"/>
+<path fill="none" stroke="black" d="M186.858,-394.027C178.075,-375.868 165.195,-349.234 154.864,-327.872"/>
+<polygon fill="black" stroke="black" points="157.971,-326.257 150.467,-318.779 151.67,-329.305 157.971,-326.257"/>
 </g>
 <!-- VB2 -->
 <g id="node3" class="node"><title>VB2</title>
-<polygon fill="none" stroke="black" points="251,-335.538 204.446,-270.231 297.554,-270.231 251,-335.538"/>
-<text text-anchor="middle" x="251" y="-289.474" font-family="Avenir Next" font-size="14.00">B2</text>
+<polygon fill="none" stroke="black" points="256,-335.538 209.446,-270.231 302.554,-270.231 256,-335.538"/>
+<text text-anchor="middle" x="256" y="-289.474" font-family="Avenir Next" font-size="14.00">B2</text>
 </g>
 <!-- VA&#45;&gt;VB2 -->
 <g id="edge2" class="edge"><title>VA&#45;&gt;VB2</title>
-<path fill="none" stroke="black" d="M204.627,-394.027C212.871,-376.067 224.919,-349.818 234.669,-328.578"/>
-<polygon fill="black" stroke="black" points="237.974,-329.767 238.965,-319.219 231.612,-326.847 237.974,-329.767"/>
+<path fill="none" stroke="black" d="M207.142,-394.027C215.925,-375.868 228.805,-349.234 239.136,-327.872"/>
+<polygon fill="black" stroke="black" points="242.33,-329.305 243.533,-318.779 236.029,-326.257 242.33,-329.305"/>
 </g>
 <!-- VB_ -->
 <g id="node4" class="node"><title>VB_</title>
-<polygon fill="none" stroke="black" points="140,-211.538 100.578,-146.231 179.422,-146.231 140,-211.538"/>
-<text text-anchor="middle" x="140" y="-165.474" font-family="Avenir Next" font-size="14.00">B’</text>
+<polygon fill="none" stroke="black" points="138,-211.538 98.5781,-146.231 177.422,-146.231 138,-211.538"/>
+<text text-anchor="middle" x="138" y="-165.474" font-family="Avenir Next" font-size="14.00">B’</text>
 </g>
 <!-- VB1&#45;&gt;VB_ -->
 <g id="edge3" class="edge"><title>VB1&#45;&gt;VB_</title>
-<path fill="none" stroke="#f94179" d="M140,-270.027C140,-254.017 140,-231.421 140,-211.657"/>
+<path fill="none" stroke="#f94179" d="M138,-270.027C138,-254.017 138,-231.421 138,-211.657"/>
 </g>
 <!-- VB__ -->
 <g id="node7" class="node"><title>VB__</title>
-<polygon fill="none" stroke="black" points="251,-211.538 208.676,-146.231 293.324,-146.231 251,-211.538"/>
-<text text-anchor="middle" x="251" y="-165.474" font-family="Avenir Next" font-size="14.00">B”</text>
+<polygon fill="none" stroke="black" points="256,-211.538 213.676,-146.231 298.324,-146.231 256,-211.538"/>
+<text text-anchor="middle" x="256" y="-165.474" font-family="Avenir Next" font-size="14.00">B”</text>
 </g>
 <!-- VB2&#45;&gt;VB__ -->
 <g id="edge4" class="edge"><title>VB2&#45;&gt;VB__</title>
-<path fill="none" stroke="#f94179" d="M251,-270.027C251,-254.017 251,-231.421 251,-211.657"/>
+<path fill="none" stroke="#f94179" d="M256,-270.027C256,-254.017 256,-231.421 256,-211.657"/>
 </g>
 <!-- VC_ -->
 <g id="node5" class="node"><title>VC_</title>
@@ -59,8 +65,8 @@
 </g>
 <!-- VB_&#45;&gt;VC_ -->
 <g id="edge5" class="edge"><title>VB_&#45;&gt;VC_</title>
-<path fill="none" stroke="black" d="M122.981,-146.027C106.241,-125.397 80.6255,-93.8314 62.489,-71.4814"/>
-<polygon fill="black" stroke="black" points="65.1947,-69.2611 56.1758,-63.7015 59.7592,-73.6719 65.1947,-69.2611"/>
+<path fill="none" stroke="black" d="M121.325,-146.027C105.091,-125.609 80.3382,-94.4769 62.6032,-72.171"/>
+<polygon fill="black" stroke="black" points="65.1452,-69.7442 56.1821,-64.095 59.6659,-74.1006 65.1452,-69.7442"/>
 </g>
 <!-- VD_ -->
 <g id="node6" class="node"><title>VD_</title>
@@ -69,8 +75,8 @@
 </g>
 <!-- VB_&#45;&gt;VD_ -->
 <g id="edge6" class="edge"><title>VB_&#45;&gt;VD_</title>
-<path fill="none" stroke="black" d="M140.344,-146.027C140.567,-132.416 140.868,-114.044 141.152,-96.7"/>
-<polygon fill="black" stroke="black" points="144.653,-96.7063 141.317,-86.6502 137.654,-96.5915 144.653,-96.7063"/>
+<path fill="none" stroke="black" d="M138.688,-146.027C139.139,-132.245 139.751,-113.582 140.326,-96.0473"/>
+<polygon fill="black" stroke="black" points="143.829,-96.008 140.659,-85.8986 136.833,-95.7785 143.829,-96.008"/>
 </g>
 <!-- VC__ -->
 <g id="node8" class="node"><title>VC__</title>
@@ -79,8 +85,8 @@
 </g>
 <!-- VB__&#45;&gt;VC__ -->
 <g id="edge7" class="edge"><title>VB__&#45;&gt;VC__</title>
-<path fill="none" stroke="black" d="M250.828,-146.027C250.718,-132.656 250.571,-114.691 250.431,-97.6185"/>
-<polygon fill="black" stroke="black" points="253.927,-97.1239 250.346,-87.153 246.928,-97.1814 253.927,-97.1239"/>
+<path fill="none" stroke="black" d="M254.969,-146.027C254.28,-132.018 253.343,-112.964 252.468,-95.1788"/>
+<polygon fill="black" stroke="black" points="255.949,-94.7172 251.962,-84.9012 248.958,-95.0611 255.949,-94.7172"/>
 </g>
 <!-- VD__ -->
 <g id="node9" class="node"><title>VD__</title>
@@ -89,8 +95,8 @@
 </g>
 <!-- VB__&#45;&gt;VD__ -->
 <g id="edge8" class="edge"><title>VB__&#45;&gt;VD__</title>
-<path fill="none" stroke="black" d="M269.394,-146.027C287.488,-125.397 315.172,-93.8314 334.775,-71.4814"/>
-<polygon fill="black" stroke="black" points="337.635,-73.5275 341.598,-63.7015 332.373,-68.9118 337.635,-73.5275"/>
+<path fill="none" stroke="black" d="M273.534,-146.027C290.58,-125.64 316.554,-94.5726 335.197,-72.274"/>
+<polygon fill="black" stroke="black" points="337.975,-74.4084 341.704,-64.4915 332.604,-69.9184 337.975,-74.4084"/>
 </g>
 </g>
 </svg>

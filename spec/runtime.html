@@ -13,15 +13,28 @@
     reference.</p>
 
 
+    <h2>Overview</h2>
+    <p>The reference Bender HTML runtime is a Javascript application running in
+    a Web browser. Its role is to load a component description from an XML file
+    and render that component and its watch graph in the host document. The
+    runtime offers additional features, such as custom components, property
+    bindings, &amp;c. which are implemented on top of the functional core of
+    Bender described in the <a href="processing-model.html">processing model</a>
+    specification, as well as a Javascript API for the <code>match</code> and
+    <code>value</code> properties of <code>Adapter</code>s, and manipulating
+    the <a href="data-model.html">data model</a> programmatically through
+    Javascript.</p>
+
     <h2 id="s11n">XML Serialization of Bender Components</h2>
     <p><span class="TODO">Describe XML grammar and how it maps to the data
-      model.</span></p>
+      model. File-centric attributes: links, inline style and script, name
+    and render-name properties, &amp;c.</span></p>
 
     <h2 id="api">The Bender Javascript API</h2>
-    <p><span class="TODO">Javascript API to manipulate components
-      programmatically and for code with XML files (value and match attribtues),
-      including bindings. Mapping the API to the data and processing
-      models.</span></p>
+    <p><span class="TODO">Custom elements (mapping namespace URI + local name to
+      components); bindings (auto-generating watches for property, text nodes
+      and attributes); Javascript API (match and value attributes, syntactic
+      sugar); &amp;c.</span></p> 
 
   </body>
 </html>
