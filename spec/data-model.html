@@ -299,11 +299,13 @@
         <ul>
           <li><code>watch</code> is the owner <code>Watch</code> of the
           adapter.</li>
-          <li><code>target</code> is the target node of this adapter. The role
-          of the target depends on the adapter.</li>
-          <li><code>static</code> is a flag that makes the adapter
-          <em>static</em> when set to true. When this flag is set, then the
-          target does not change at run time.</li>
+          <li><code>target</code> is the <em>static target</em> of this adapter.
+          The role of the target depends on the specific
+          <code>Adapter</code>.</li>
+          <li><code>static</code> is a flag that defines whether the
+          <code>Adapter</code> applies to a static target (when set) or a
+          <em>runtime target</em> (otherwise), meaning any <code>Node</code>
+          that is, or derives from, the static target <code>Node</code>.</li>
           <li><code>value</code> is a function transforming an input value into
           an output value. The default is the identity function, which returns
           its input. It may return any <code>data</code>.</li>

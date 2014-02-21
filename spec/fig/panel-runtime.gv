@@ -1,0 +1,70 @@
+digraph panel {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  subgraph cluster_panel {
+    color="white";
+    Panel [ordering=out]
+    Panel -> vpanel [color="#4dbce9"]
+    Panel -> Plus
+    Panel -> Minus
+
+    subgraph { rank=same; Plus; Minus }
+
+    div1 [label="html:div", shape=box, color="#5eb26b"]
+    vpanel [label="view (Panel)", shape=box]
+    vminus [label="view (Minus)", shape=box]
+    vplus [label="view (Plus)", shape=box]
+    vbutton_ [label="view (Button/Plus)", shape=box]
+    frame_ [label="html:div (frame/Plus)", shape=box, color="#5eb26b"]
+    content_ [label="content", shape=box]
+    textlabel_ [label="text (text-label/Plus)", shape=box, color="#5eb26b"]
+    vbutton__ [label="view (Button) clone", shape=box]
+    frame__ [label="html:div (frame/Minus)", shape=box, color="#5eb26b"]
+    content__ [label="content", shape=box]
+    textlabel__ [label="text (text-label/Minus)", shape=box, color="#5eb26b"]
+
+    textn [label="text (text-n)", shape=box, color="#5eb26b"]
+    vpanel -> div1
+    div1 -> textn
+    div1 -> vminus
+    div1 -> vplus
+
+    Plus -> vplus [color="#4dbce9"]
+    Minus -> vminus [color="#4dbce9"]
+
+    vplus -> vbutton_ [dir=none, color="#f94179"]
+    vbutton_ -> frame_
+    frame_ -> content_
+    content_ -> textlabel_
+
+    vminus -> vbutton__ [dir=none, color="#f94179"]
+    vbutton__ -> frame__
+    frame__ -> content__
+    content__ -> textlabel__
+
+    // div1 -> frame_ [color="#5eb26b"]
+    // frame_ -> textlabel_ [color="#5eb26b"]
+    // div1 -> frame__ [color="#5eb26b"]
+    // frame__ -> textlabel__ [color="#5eb26b"]
+
+  }
+
+  Minus -> Button [color="#f94179"]
+  Plus -> Button [color="#f94179"]
+
+  subgraph cluster_button {
+    color="gray";
+
+    Button -> vbutton [color="#4dbce9"]
+    vbutton [label="view (Button)", shape=box]
+    frame [label="html:div (frame)", shape=box]
+    content [shape=box]
+    textlabel [label="text (text-label)", shape=box]
+    vbutton -> frame
+    frame -> content
+    content -> textlabel
+
+  }
+
+}

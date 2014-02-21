@@ -2,26 +2,26 @@ digraph tree {
   node [fontname="Avenir Next"];
   edge [fontname="Avenir Next"];
 
+  A [ordering=out]
+  B1 [ordering=out]
+  B2 [ordering=out]
   A -> B1
   A -> B2
 
-  B1 -> B [color="#f94179"]
-  B2 -> B [color="#f94179"]
   B -> C
   B -> D
 
   C_ [label="C’"]
-  C_ -> C [color="#f94179"]
+  C -> C_ [color="#f94179", dir=back]
   C__ [label="C”"]
-  C__ -> C [color="#f94179"]
-  B -> C_ [style=dashed]
-  B -> C__ [style=dashed]
+  C -> C__ [color="#f94179", dir=back]
+  B1 -> B [color="#f94179"]
+
 
   D_ [label="D’"]
-  D_ -> D [color="#f94179"]
+  D -> D_ [color="#f94179", dir=back]
   D__ [label="D”"]
-  D__ -> D [color="#f94179"]
-  B -> D_ [style=dashed]
-  B -> D__ [style=dashed]
+  D -> D__ [color="#f94179", dir=back]
+  B2 -> B [color="#f94179"]
 
 }

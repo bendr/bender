@@ -4,28 +4,37 @@ digraph panel {
 
   subgraph cluster_panel {
     color="#5eb26b";
-    div1 [label="html:div", shape=box]
-    vminus [label="view (Minus)", shape=box]
-    vplus [label="view (Plus)", shape=box]
-    textn [label="text (text-n)", shape=box]
-    div1 -> vminus
-    div1 -> textn
-    div1 -> vplus
-
-    Panel -> div1 [color="#4dbce9"]
-    Plus -> vplus [color="#4dbce9"]
-    Minus -> vminus [color="#4dbce9"]
+    Panel [ordering=out]
+    Panel -> vpanel [color="#4dbce9"]
     Panel -> Plus
     Panel -> Minus
+
+    subgraph { rank=same; Plus; Minus }
+
+    div1 [label="html:div", shape=box]
+    vpanel [label="view (Panel)", shape=box]
+    vminus [label="view (Minus)", shape=box]
+    vplus [label="view (Plus)", shape=box]
+
+    textn [label="text (text-n)", shape=box]
+    vpanel -> div1
+    div1 -> textn
+    div1 -> vminus
+    div1 -> vplus
+
+    Plus -> vplus [color="#4dbce9"]
+    Minus -> vminus [color="#4dbce9"]
   }
 
   subgraph cluster_button {
     color="#5eb26b";
 
-    Button -> frame [color="#4dbce9"]
+    Button -> vbutton [color="#4dbce9"]
+    vbutton [label="view (Button)", shape=box]
     frame [label="html:div (frame)", shape=box]
     content [shape=box]
     textlabel [label="text (text-label)", shape=box]
+    vbutton -> frame
     frame -> content
     content -> textlabel
 

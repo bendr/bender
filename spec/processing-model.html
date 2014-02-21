@@ -373,62 +373,6 @@
       component.</figcaption>
     </figure>
 
-    <h3>Minimization and Compilation of the Watch Graph</h3>
-    <p>As a possible optimization, the watch graph can be minimized by removing
-    redundant edges and vertices after sorting. The remaining edges are kept in
-    the original order.</p>
-    <ul>
-      <li>An <code>InheritEdge</code> can be removed by merging the source and
-      destination vertices, and removing all copied edges from the destination
-      vertex.</li>
-      <li>A <code>WatchVertex</code> with exactly one incoming edge and one
-      outgoing edge can be removed by creating a new edge between the source
-      vertex of the incoming edge and the destination vertex of the outgoing
-      edge. A new <code>Adapter</code> can be created for this edge by composing
-      the match and value functions. Note that although removing a
-      <code>WatchVertex</code> with two incoming edges and one outgoing edge,
-      or one incoming edge and two outgoing edges would still reduce the number
-      of edges in the graph, the semantics of graph traversal would not be
-      preserved as either the input value or the output value of the
-      <code>WatchVertex</code> would have to be computed twice, which may lead
-      to undesireable side effects. (This would be possible if the absence of
-      side effects were guaranteed.)</p>
-    </ul>
-    <p>After applying these steps whenever possible, the graph only contains
-    <code>AdapterEdge</code>s. Cycles may appear as a result of merging
-    vertices, but this does not result in infinite loops.<span
-      class="TODO"> TODO: actual algorithm, and proof that the order is
-      maintained.</span> For the sake of simplicity, furhter discussion of the
-    watch graph will refer to the unminimized version of the graph.</p>
-
-    <figure>
-      <img src="fig/graph-panel-min.svg">
-      <figcaption>The minimized watch graph for the <code>Panel</code>
-      component.</figcaption>
-    </figure>
-
-    <p>The figure below shows how a watch graph may include a cycle after
-    minimization. On the left is the original graph, and on the right is the
-    minimized graph. The origin of the cycle is that setting a property
-    <em>P</em> on <em>C</em> after it has changed on <em>B</em> (where both
-    <em>B</em> and <em>C</em> inherit from a component <em>A</em>) results in an
-    edge that has its source and destination in different vertices before
-    minimization, but which have been merged in the minimized version.</p>
-    <figure>
-      <img src="fig/graph-min-cycle.svg">
-      <figcaption>Introduction of a cycle in a minimized watch
-      graph.</figcaption>
-    </figure>
-
-    <p>Another optimization consists in <em>compiling</em> the graph into code.
-    A set of functions can be compiled for the input vertices of the graph;
-    instead of setting an initial value on an input vertex <em>V</em> and
-    initiating a traversal of the watch graph, the function
-    <em>F<sub>V</sub></em> compiled from <em>V</em> is called instead. These
-    functions call each other to implement the full graph traversal.<span
-      class="TODO"> This section needs to be developed.</span></p>
-
-
     <h2>Rendering to HTML</h2>
     <p>The view of a component is rendered to HTML by creating its <em>view
       stack</em> and rendering that stack into a HTML element, such as the
@@ -445,7 +389,7 @@
     without affecting other components created from the same prototype. For a
     <code>Component</code> <em>C</em>, the bottom-most view in the stack
     (<em>i.e.</em>, the first element in the list of views returned by
-    <code>view-stack(C)</code>, with index 0) is a view of the furthest
+    <code>view-stack(C)</code>, with index 0) is the view of the furthest
     prototype, while the last element in the list is the view of <em>C</em>.
     Because components always have a view but may not have a prototype, the view
     stack has a length of 1 (for components with no prototype) or more (for
@@ -461,8 +405,8 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     parent <em>P</em>. In the case of a <code>View</code> element, a clone of
     the <code>Component</code> is also created for the <code>component</code> of
     the view, while maintaining the parent/children relationships of the
-    component tree (so that in effect view tree and component tree are cloned in
-    parallel.)</p>
+    component graph (so that in effect view tree and component graph are cloned
+    in parallel.)</p>
     <pre class="code">Element clone-element(Element E, Element? P) =
   let E’ = create(E) in
     do
@@ -475,18 +419,17 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     cloned, a clone of the component of <em>V</em> is made as well, so that this
     component can keep its own state independently of its prototype. The clone
     is <em>shallow</em>, because the children of the component will be cloned
-    when the <code>View</code> children of <em>V</em> will be cloned. The
-    hierarchy of the component tree is not preserved, but it is not required for
-    the copies. Lastly, the component of the top-level view is never cloned
-    because its state is maintained by the component that this is the prototype
-    of.</p>
+    when the <code>View</code> children of <em>V</em> will be cloned. Lastly,
+    the component of the top-level view is never cloned because its state is
+    maintained by the component that this is the prototype of: it has inherited
+    all of its properties and behavior.</p>
     <pre class="code">clone-component(View V) =
   let C’ = create(V.component)
     in
       V.component &lt;- C’
       C’.view &lt;- V</pre>
 
-    <p>To illustrate the process, consider the following component tree. Black
+    <p>To illustrate the process, consider the following component graph. Black
     arrows point from parent to child, while pink arrows point from component
     to prototype. In this example, a component <em>A</em> has two children
     <em>B<sub>1</sub></em> and <em>B<sub>2</sub></em> which both inherit from
@@ -494,13 +437,14 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
 
     <figure>
       <img src="fig/view-stack-1.svg">
-      <figcaption>Static component tree (before rendering.)</figcaption>
+      <figcaption>Static component graph (before rendering.)</figcaption>
     </figure>
 
     <p>The complete tree of views after the view stacks have been created is
-    shown below. The pink lines indicate views in the same stack. It can be
+    shown below. The black boxes indicate view stacks that have more than one
+    view (views outside of boxes are the only view in their stack.) It can be
     seen that the view of <em>B</em> was cloned twice into <em>B’</em> and
-    <em>B”</em>, for the view stack of <em>B<sub>1</sub></em> and
+    <em>B”</em>, for the view stacks of <em>B<sub>1</sub></em> and
     <em>B<sub>2</sub></em>; and likewise for its children <em>C</em> and
     <em>D</em>.</p>
 
@@ -509,16 +453,13 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
       <figcaption>The rendered view tree of <em>A</em>.</figcaption>
     </figure>
 
-    <p>Finally, the component tree after the view stack was created is shown
+    <p>Finally, the component graph after the view stack was created is shown
     below. Note that while <em>B</em> was not cloned, because it is a top-level
-    component, <em>C</em> and <em>D</em> have both been cloned twice. The dashed
-    arrows indicate that the parent/child relationships are not maintained for
-    copies of component (since B is not copied, the parent of C’ is still B,
-    but B does not have C’ as its child) but this relationship is only pertinent
-    in the static tree.</p>
+    component, <em>C</em> and <em>D</em> have both been cloned twice as they
+    appear as children in two view stacks.</p>
     <figure>
       <img src="fig/view-stack-3.svg">
-      <figcaption>Dynamic component tree (after the view stack was
+      <figcaption>Runtime component graph (after the view stacks were
       created.)</figcaption>
     </figure>
 
@@ -583,7 +524,8 @@ integer next-view-index(View+ S, integer I) =
       append-child(T, N)</pre>
 
     <p><span class="TODO">When the element is the target of an event, a DOM
-    event listener is also added.</span></p>
+      event listener is also added so that the corresponding vertex receives a
+      value from this node when the event occurs.</span></p>
 
     <p>Rendering an <code>Attribute</code> <em>A</em> is setting an attribute on
     the target element with the value resulting from the concatenation of the
@@ -605,120 +547,129 @@ integer next-view-index(View+ S, integer I) =
 
     <h2>Watch Graph Traversal</h2>
 
-    <p><span class="TODO">Set values in the vertices, associated with a
-    context (component+reference component). Values should not be overwritten?
-    That would need reversing the priority of the edges.</span></p>
+    <h3>Input Vertices and Vertex Values</h3>
 
     <p>The watch graph is traversed when one of its <em>input vertices</em>
-    is activated with a value. Edges of the graph are then traversed in the
-    sorted order. Edges have different effects on the application, such as
-    setting property values, generating events, modifying rendered elements,
-    &amp;c. The order of the edges defines the order in which these changes
-    occur. After all edges have been visited, vertex values are cleared until
-    the next traversal.</p>
+    receives an <em>input value</em> from a <em>target</em>. Edges of the graph
+    are then traversed in the sorted order. Edges have different effects on the
+    application, such as setting property values, generating events, modifying
+    rendered elements, &amp;c. The order of the edges defines the order in which
+    these changes occur. After all edges have been visited, vertex values are
+    cleared until the next traversal.</p>
 
-    <h3>Input Vertices and Vertex Values</h3>
-    <p>Both a <code>PropertyVertex</code> and an <code>EventVertex</code> can
-    act as input vertices and be <em>activated</em>. A
-    <code>PropertyVertex</code> is activated when the corresponding property is
-    set to a new value programmatically. An <code>EventVertex</code> is actiaved
-    when the corresponding event notification is received.</p>
-    <p>A vertex represents a <code>Watch</code> or <code>Adapter</code> for a
-    </p>
+    <p>Both a <code>PropertyVertex</code> or an <code>EventVertex</code> can be
+    an input vertex. A <code>PropertyVertex</code> may get an input value when
+    its associated property is set outside of a graph traversal. An
+    <code>EventVertex</code> may get an input value when the corresponding event
+    is caught by an event listener.</p>
 
-    <p><span class="TODO">Replace scope with context</span>.<p>
+    <h3>Vertex Values</h3>
 
     <div class="def" id="VertexValue">
-      <p>A <code>VertexValue</code> is a value associated with a
-      <code>Vertex</code> and a <code>Context</code> during graph traversal. The
-      value itself can be any <code>data</code>.</p>
+      <p>A <code>VertexValue</code> is a value that a <code>Vertex</code> may
+      receive during a traversal. A <code>Vertex</code> may have zero or more
+      values, but only one value per target.</p>
       <div>
-        <pre>VertexValue = (Scope, data)</pre>
+        <pre>VertexValue &lt; Object
+  Node  target
+  data  value</pre>
         <ul>
-          <li>A <code>Vertex</code> in a <code>Graph</code> can have zero or
-          more associated values, which can be retried with the function
-          <code>VertexValue* get-vertex-values(Graph G, Vertex V)</code>.</li>
-          <li>A <code>VertexValue</code> can be set for a <code>Vertex</code> in
-          a <code>Graph</code> with the function <code>set-vertex-value(Graph G,
-            Vertex V, VertexValue W)</code>. Any previous value with the same
-          <code>Scope</code> is replaced with the new value, otherwise a new
-          value is added to the list of values.</li>
-          <li>All vertex values can be cleared from a <code>Graph</code> with
-          the function <code>clear-vertex-values(Graph G)</code>.</li>
+          <li><code>target</code> is the <em>runtime target</em> of the value.
+          A vertex cannot have more that one <code>VertexValue</code> with the
+          same <code>target</code>.</li>
+          <li><code>value</code> is the data associated with the value.</li>
         </ul>
       </div>
     </div>
 
-
     <h3>Edge Traversal</h3>
-    <p>Every edge of the graph is visited in turn.</p>
+    <p>Every edge of the graph is visited in turn. This function is called
+    whenever a <code>Vertex</code> receives a <code>VertexValue</code>. More
+    than one values can be present in the graph at the before traversal begins.
+    This happens at initialization time, when all properties are initialized,
+    and allows updates to be batched and traversal to happen asynchronously.</p>
     <pre class="code">traverse-graph(Graph G) =
   do
     for E in G.edges
       traverse-edge(E)
     clear-vertex-values(G)</pre>
 
-    <p>Traversing and edge means filtering input values (from the source
-    vertex), computing output values, and <em>applying</em> them.</p>
-    <pre class="code">traverse-edge(Edge E) =
-  for (S, V) in get-vertex-values(G, E.source)
-    let S’ = enter-scope(E, S) in
-      if defined S’ and match-edge(E, S’, V)
-        let V’ = apply-edge(E, S’, V) in
-          for S” in exit-scopes(E, S’)
-            set-vertex-value(G, E.dest, (S”, V’))</pre>
+    <p>Remember that a <code>Watch</code> is defined in terms of inputs and
+    outputs. In the graph, a watch is represented by a <code>WatchVertex</code>.
+    This vertex receives input values from its input edge and transmits an
+    output value to its output edges.</p>
 
-    <p>Enter scope: InheritEdge and edges to a watch vertex.</p>
-    <pre class="code">Scope? enter-scope(Edge E, Scope S) =
-  case E of
-    InheritEdge = enter-scope-inherit(E, S)
-    AdapterEdge = case E.dest of
-                    WatchVertex = enter-scope-get(E, S)
-                    otherwise = S
-    otherwise = S</pre>
+    <p>An <em>input edge</em> is defined as an <code>AdapterEdge</code> that has
+    a <code>WatchVertex</code> as its destination; which also means that its
+    <code>adapter</code> is a <code>Get</code>. Conversely, an <em>output
+      edge</em> is defined as an <code>AdapterEdge</code> that has
+    a <code>WatchVertex</code> as its source; which also means that its
+    <code>adapter</code> is a <code>Set</code>. (This leaves
+    <code>InheritEdge</code>s to be handled later.)</p>
 
-    <p><code>enter-scope-inherit</code> handles the case of an
-    <code>InheritEdge</code>.</p>
-    <pre class="code">Scope? enter-scope-inherit(InheritEdge E, Scope S) =
-  find(stack-of(S), λN </pre>
+    <p>Informally, an input edge <em>E</em> gets <code>VertexValue</code>s from
+    its source vertex. For each value <em>V</em>, the target of <em>V</em> is
+    matched against the target of the adapter: <code>V.target</code> must derive
+    from <code>E.adapter.target</code>. If there is a match, the match function
+    of <em>E</em> is called with <em>V</em>. If it returns true, then an output
+    value <em>V’</em> is set on the target watch vertex with the target of V and
+    the output of the value function of the adaptere.</p>
 
-    <p><code>enter-scope-get</code> handles the enter scope for an
-    <code>AdapterEdge</code> </p>
-
-Scope? enter-scope-get(AdapterEdge E, Scope S) =</pre>
-
-    <p>The <code>match-edge</code> function is a predicate used to filter input
-    values for an edge using the <code>match</code> function of the adapter of
-    the edge. Remember that the default value for <code>match</code> is a
-    function that returns true.</p>
-    <pre class="code">boolean match-edge(Edge E, Scope S, data V) = E.adapter.match(V, S)</pre>
-
-    <p>The <code>apply-edge</code> function has two roles:</p>
+    <p>An output edge <em>E</em> gets <code>VertexValue</code>s from its source
+    watch vertex. For each value <em>V</em>, the output target <em>T</em> is
+    determined from the input target <code>V.target</code> and the static output
+    target <code>E.adapter.target</code>. Three cases can arise:</p>
     <ol>
-      <li>compute the input value of the edge from its input value;</li>
-      <li>apply the value according to the type of edge.</li>
+      <li>no such target is found. This may happen for components that have not
+      been rendered;</li>
+      <li>exactly one target is found; this is the runtime target equivalent to
+      the static target of the adapter. As an example, consider watch <span
+        class="watch">5</span> of the <code>Button</code> component: if the
+      <code>frame</code> of the <code>Plus</code> button received a
+      <code>mousedown</code> event, then the runtime target of the output edge
+      matching the static <code>Button</code> component target must be the
+      <code>Plus</code> component;</li>
+      <li>if the static flag is set on the adapter, then <em>all</em> derived
+      nodes become a target. For instance, changing the <code>label</code>
+      property on the <code>Button</code> component statically would set the
+      label property of both <code>Plus</code> and <code>Minus</code>
+      buttons; unless they have a value of their own; which is similar to how
+      Javascript object properties work.</li>
     </ol>
-    <pre class="code">data apply-edge(Edge E, Scope S, data V) =
-  case E of
-    AdapterEdge = apply-edge’(E, S, V)
-    otherwise = V
-data apply-edge’(Edge E, Scope S, data V) =
-  let V’ = E.adapter.value(V, S) in
-    do
-      case E.adapter of
-        SetProperty = apply-property(E.adapter, S, V)
-        SetAttribute = apply-attribute(E.adapter, S, V)
-        SetEvent = apply-event(E.adapter, S, V)
-        otherwise = nothing
-      V’
-    </pre>
+    <p>For every output target found, the match and value functions of the
+    adapter are executed to filter and compute the output value, and the result
+    vertex value is set on the destination vertex. Finally, side effects of the
+    edge are applied (see below.)</p>
 
-    <p>Exit scopes</p>
-    <pre class="code">Scope* exit-scope(Edge E, Scope S) =
-  if E is-a AdapterEdge and E.source is-a WatchVertex
-    then exit-scope’(E, S)
-    else S
-Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
+    <p>An <code>InheritEdge</code> simply passes its value unchanged to its
+    destination vertex.</p>
+
+    <p>When an edge for a <code>Set</code> is traversed, its output value is
+    set on the target vertex, but it is also <code>apply</code> to the target.
+    Different <code>Set</code>s have different effects:</p>
+    <ul>
+      <li>a plain <code>Set</code> has no specific side-effect, besides the
+      side effects of its <code>value</code> function;</li>
+      <li>a <code>SetProperty</code> sets the property <code>property</code>
+      of the target component to the output value <em>silently</em>: setting the
+      value happens independently of the graph traversal, without initiating a
+      new traversal;</li>
+      <li>a <code>SetNodeProperty</code> sets the property of the target node to
+      the output value (<em>e.g.</em>, the <code>text</code> of a
+      <code>Text</code> element, which updates the rendering of the
+      component);</li>
+      <li>a <code>SetAttribute</code> sets an attribute of the target
+      <code>DOMElement</code>
+    </ul>
+
+    <p>Finally, note that a vertex can only have one vertex value for a given
+    target. This means that when setting an output value on a vertex, if a
+    previous value with the same target already existed, the value is
+    <strong>not</strong> updated. This removes ambiguities in case there are
+    several edges reaching a single vertex with the same target. The ordering
+    of the edges implements such conflict resolution in the graph.</p>
+
+    <pre class="code">traverse-edge(Edge E) = <span class="TODO">TODO</span></pre>
 
     <h3>Example</h3>
     <p>Using the example graph shown above, the process of graph traversal is
@@ -731,6 +682,11 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
       <li>The <code>frame</code> of <code>Plus</code> has just received a
       <code>mouseup</code> event.</li>
     </ul>
+
+    <figure>
+      <img src="fig/panel-runtime.svg">
+      <figcaption>The rendered <code>Panel</code>.</figcaption>
+    </figure>
 
     <figure>
       <img src="fig/graph-traverse.svg">
@@ -801,9 +757,14 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
 
 
     <h2>Property Initialization</h2>
-    <p><span class="TODO">Property vertices are initialized with the initial
-    value of the <code>Adapter</code>. Reverse order of priority so that values
-    are never overwritten and store initial values on vertices.</span></p>
+    <p><span class="TODO">Property vertices are initialized with initial values
+      of the properties. The order of rendered edges (note: the priority order
+      should be reversed for the correct behavior) enforces priority of
+      initialization; from parent to child and prototype to component. Once all
+    initial values are set, a graph traversal initializes every rendered
+    component. Finally, a <code>ready</code> event notification is generated for
+    all components so that they can finish any initialization that relies on
+    the propagation of property values.</span></p>
 
     <pre class="code">init-properties(Component C, Graph G) = ...</pre>
 
@@ -817,8 +778,66 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
 
 
     <h2>Component Mutations</h2>
-    <p><span class="TODO">Re-render but keep previous values instead of initial
-      values.</p>
+    <p><span class="TODO">Re-render everything, then reinitializes the graph
+      using all the values from the previous rendering. If nodes have been
+      added, they are initialized normally with their initial value.</span></p>
+
+    <h2>Minimization and Compilation of the Watch Graph</h2>
+    <p>As a possible optimization, the watch graph can be minimized by removing
+    redundant edges and vertices after sorting. The remaining edges are kept in
+    the original order.</p>
+    <ul>
+      <li>An <code>InheritEdge</code> can be removed by merging the source and
+      destination vertices, and removing all copied edges from the destination
+      vertex.</li>
+      <li>A <code>WatchVertex</code> with exactly one incoming edge and one
+      outgoing edge can be removed by creating a new edge between the source
+      vertex of the incoming edge and the destination vertex of the outgoing
+      edge. A new <code>Adapter</code> can be created for this edge by composing
+      the match and value functions. Note that although removing a
+      <code>WatchVertex</code> with two incoming edges and one outgoing edge,
+      or one incoming edge and two outgoing edges would still reduce the number
+      of edges in the graph, the semantics of graph traversal would not be
+      preserved as either the input value or the output value of the
+      <code>WatchVertex</code> would have to be computed twice, which may lead
+      to undesireable side effects. (This would be possible if the absence of
+      side effects were guaranteed.)</p>
+    </ul>
+    <p>After applying these steps whenever possible, the graph only contains
+    <code>AdapterEdge</code>s. Cycles may appear as a result of merging
+    vertices, but this does not result in infinite loops.<span
+      class="TODO"> TODO: actual algorithm, and proof that the order is
+      maintained.</span> For the sake of simplicity, furhter discussion of the
+    watch graph will refer to the unminimized version of the graph.</p>
+
+    <figure>
+      <img src="fig/graph-panel-min.svg">
+      <figcaption>The minimized watch graph for the <code>Panel</code>
+      component.</figcaption>
+    </figure>
+
+    <p>The figure below shows how a watch graph may include a cycle after
+    minimization. On the left is the original graph, and on the right is the
+    minimized graph. The origin of the cycle is that setting a property
+    <em>P</em> on <em>C</em> after it has changed on <em>B</em> (where both
+    <em>B</em> and <em>C</em> inherit from a component <em>A</em>) results in an
+    edge that has its source and destination in different vertices before
+    minimization, but which have been merged in the minimized version.</p>
+    <figure>
+      <img src="fig/graph-min-cycle.svg">
+      <figcaption>Introduction of a cycle in a minimized watch
+      graph.</figcaption>
+    </figure>
+
+    <p>Another optimization consists in <em>compiling</em> the graph into code.
+    A set of functions can be compiled for the input vertices of the graph;
+    instead of setting an initial value on an input vertex <em>V</em> and
+    initiating a traversal of the watch graph, the function
+    <em>F<sub>V</sub></em> compiled from <em>V</em> is called instead. These
+    functions call each other to implement the full graph traversal.<span
+      class="TODO"> This section needs to be developed.</span></p>
+
+
 
   </body>
 </html>

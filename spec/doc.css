@@ -1,3 +1,9 @@
+@media print {
+  body {
+    zoom: 0.75;
+  }
+}
+
 body {
   font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
   max-width: 48rem;

@@ -9,11 +9,11 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 464)">
 <title>tree</title>
 <polygon fill="white" stroke="white" points="-4,4 -4,-464 407,-464 407,4 -4,4"/>
-<g id="clust1" class="cluster"><title>cluster1</title>
-<polygon fill="none" stroke="black" points="83,-116 83,-344 193,-344 193,-116 83,-116"/>
-</g>
 <g id="clust2" class="cluster"><title>cluster2</title>
 <polygon fill="none" stroke="black" points="201,-116 201,-344 311,-344 311,-116 201,-116"/>
+</g>
+<g id="clust1" class="cluster"><title>cluster1</title>
+<polygon fill="none" stroke="black" points="83,-116 83,-344 193,-344 193,-116 83,-116"/>
 </g>
 <!-- VA -->
 <g id="node1" class="node"><title>VA</title>
