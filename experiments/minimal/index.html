@@ -82,9 +82,9 @@ panel.watch(bender.Watch.create()  // 1
         .value(function ($in) { return $in > 0; })));
 
 var graph = bender.WatchGraph.create();
-panel.render_subgraph(graph);
-panel.render_view(document.body);
+button.render_subgraph(graph);
 graph.sort().dump();
+button.render_view(document.body);
 
     </script>
   </body>

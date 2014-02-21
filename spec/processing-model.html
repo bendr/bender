@@ -468,7 +468,7 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     of its prototypes; or the view of a child component. In the former case, the
     child elements of the view are rendered in the target element. In the latter
     case, <code>render-component-view</code> is callled on the child
-    component.</p> 
+    component.</p>
     <pre>render-view(View V, DOM element T, View+ S, integer I) =
   if V = S<sub>I</sub>
     then render-children(V, T, S, I)
@@ -506,6 +506,9 @@ integer next-view-index(View+ S, integer I) =
       render-children(D, N, S, I)
       append-child(T, N)</pre>
 
+    <p><span class="TODO">When the element is the target of an event, a DOM
+    event listener is also added.</span></p>
+
     <p>Rendering an <code>Attribute</code> <em>A</em> is setting an attribute on
     the target element with the value resulting from the concatenation of the
     text value of the child elements of <em>A</em>.</p>
@@ -525,6 +528,11 @@ integer next-view-index(View+ S, integer I) =
 
 
     <h2>Watch Graph Traversal</h2>
+
+    <p><span class="TODO">Set values in the vertices, associated with a
+    context (component+reference component). Values should not be overwritten?
+    That would need reversing the priority of the edges.</span></p>
+
     <p>The watch graph is traversed when one of its <em>input vertices</em>
     is activated with a value. Edges of the graph are then traversed in the
     sorted order. Edges have different effects on the application, such as
@@ -535,10 +543,10 @@ integer next-view-index(View+ S, integer I) =
 
     <h3>Input Vertices and Vertex Values</h3>
     <p>Both a <code>PropertyVertex</code> and an <code>EventVertex</code> can
-    act as input vertices and be <em>activated</em>. A <code>PropertyEdge</code>
-    is activated when the corresponding property is set to a new value
-    externally. An <code>EventVertex</code> is actiaved when the corresponding
-    event notification is received.</p>
+    act as input vertices and be <em>activated</em>. A
+    <code>PropertyVertex</code> is activated when the corresponding property is
+    set to a new value programmatically. An <code>EventVertex</code> is actiaved
+    when the corresponding event notification is received.</p>
     <p>A vertex represents a <code>Watch</code> or <code>Adapter</code> for a
     </p>
 
@@ -718,7 +726,8 @@ Scope exit-scope’(AdapterEdge E, Scope S) =</pre>
 
     <h2>Property Initialization</h2>
     <p><span class="TODO">Property vertices are initialized with the initial
-    value of the <code>Adapter</code>.</span></p>
+    value of the <code>Adapter</code>. Reverse order of priority so that values
+    are never overwritten and store initial values on vertices.</span></p>
 
     <pre class="code">init-properties(Component C, Graph G) = ...</pre>
 

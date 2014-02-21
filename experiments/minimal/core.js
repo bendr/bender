@@ -46,10 +46,7 @@
       }
       child.parent = this;
       this.children.push(child);
-      return child.added();
     },
-
-    added: flexo.self,
 
     child: function (child) {
       return this.add_child(child), this;
@@ -80,7 +77,6 @@
       }
       this.view = view;
       this.view.component = this;
-      this.view.add_child_components();
       this.watches = [];
       this.__render_subgraph = true;
       this.property_vertices = {};
@@ -134,6 +130,13 @@
       if (prototype) {
         this.prototype.render_subgraph(graph);
       }
+      flexo.beach_all(this.view.children, function (element) {
+        if (element.component) {
+          this.children.push(element.component);
+        } else {
+          return element.children;
+        }
+      }, this);
       this.children.forEach(function (child) {
         child.render_subgraph(graph);
       });
@@ -145,6 +148,7 @@
 
     // Render the view of the component in a DOM target.
     render_view: function (target) {
+      console.log("* render_view: %0".fmt(this.name()));
       var fragment = target.ownerDocument.createDocumentFragment();
       this.render_view_stack(this.view_stack(), fragment);
       target.appendChild(fragment);
@@ -164,6 +168,7 @@
         stack.unshift(prototype.view.clone());
       }
       stack.push(this.view);
+      console.log("+ View stack of %0: %1".fmt(this.name(), stack.length));
       return stack;
     }
   });
@@ -194,7 +199,7 @@
   //   View  view
   bender.Element = flexo._ext(bender.Node, {
     clone: function (parent) {
-      var clone = this.create();
+      var clone = Object.create(this);
       clone.parent = parent;
       clone.children = this.children.map(function (child) {
         return child.clone(clone);
@@ -226,38 +231,11 @@
       return bender.Element.init.call(this);
     },
 
-    add_child: function (child) {
-      if (this.default) {
-        console.error("Cannot add children to a default view");
-        return;
-      }
-      if (this.component) {
-        this.add_child_components(child);
-      }
-      return bender.Element.add_child.call(this, child);
-    },
-
-    add_child_components: function (child) {
-      flexo.beach_all(child ? [child] : this.children, function (element) {
-        if (element.component) {
-          this.component.add_child(element.component);
-        } else {
-          return element.children;
-        }
-      }, this);
-    },
-
-    added: function () {
-      var parent_component = this.parent && this.parent.component;
-      if (parent_component) {
-        parent_component.add_child(this.component);
-      }
-      return this;
-    },
-
     clone: function (parent) {
+      console.log("+ Clone view of %0".fmt(this.component.name()));
       var clone = bender.Element.clone.call(this, parent);
       if (parent) {
+        console.log("+ Clone component");
         clone.component = this.component.clone(clone);
       }
       return clone;
@@ -265,8 +243,10 @@
 
     render: function (target, stack, i) {
       if (this == stack[i]) {
+        console.log("+ [%0] View (top component)".fmt(this.component.name()));
         this.render_children(target, stack, i);
       } else {
+        console.log("+ [%0] View (child component)".fmt(this.component.name()));
         this.component.render_view(target);
       }
     }
@@ -281,6 +261,7 @@
   // Content < Element
   bender.Content = flexo._ext(bender.Element, {
     render: function (target, stack, i) {
+      console.log("+ [%0] Content".fmt(this.view.component.name()));
       var j = i + 1;
       var n = stack.length;
       for (; j < n && stack[j].default; ++j) {}
@@ -308,11 +289,13 @@
 
     clone: function (parent) {
       var clone = bender.Element.clone.call(this, parent);
-      clone.event_vertices = {};
+      clone.event_vertices = Object.create(this.event_vertices);
       return clone;
     },
 
     render: function (target, stack, i) {
+      console.log("+ [%0] DOMElement (%1)".fmt(this.view.component.name(),
+          this.local_name), this.event_vertices);
       var element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
       Object.keys(this.attributes, function (ns) {
@@ -357,8 +340,9 @@
     },
 
     render: function (target) {
-      var node = target.ownerDocument.createTextNode();
-      node.textContent = this.text();
+      console.log("+ [%0] Text %1".fmt(this.view.component.name(),
+          flexo.quote(this.text())));
+      var node = target.ownerDocument.createTextNode(this.text());
       target.appendChild(node);
     }
   });
@@ -582,7 +566,7 @@
         return vertex.__out === 0;
       });
       var incoming = function (edge) {
-        console.log("Incoming: v%0 -> v%1"
+        console.log("Incoming edge: v%0 -> v%1"
             .fmt(edge.source.__index, edge.dest.__index));
         if (edge.source.hasOwnProperty("__out")) {
           --edge.source.__out;
@@ -601,9 +585,6 @@
         return b.priority - a.priority;
       }
       while (queue.length > 0) {
-        console.log("Queue:", queue.map(function (v) {
-          return "v%0 (%1)".fmt(v.__index, v.__out);
-        }).join(" "));
         flexo.unshift_all(this.edges, queue.shift().incoming.filter(delayed)
             .map(incoming).sort(prioritize));
       }
