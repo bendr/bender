@@ -123,8 +123,8 @@
         <ul>
           <li><strong>Note</strong>: the <code>Adapter</code> of the vertex
           being either a <code>GetProperty</code> or <code>SetProperty</code>,
-          the property associated with this vertex is accessible through
-          <code>adapter.property</code>.</li>
+          the name of the property associated with this vertex is accessible
+          through <code>adapter.name</code>.</li>
         </ul>
       </div>
     </div>
@@ -263,9 +263,8 @@
     <code>EventVertex</code> (heptagon) for the <code>GetEvent</code>, then two
     <code>AdapterEdge</code>s from the <code>WatchVertex</code> are created for
     the <code>SetProperty</code> to a <code>PropertyVertex</code> (ellipse) for
-    the <code>down</code> <code>Property</code>, and another
-    <code>AdapterEdge</code> for the <code>SetEvent</code> to an
-    <code>EventVertex</code>.</p>
+    the <code>down</code> property, and another <code>AdapterEdge</code> for the
+    <code>SetEvent</code> to an <code>EventVertex</code>.</p>
 
     <pre class="code">&lt;watch&gt; <span class="watch">6</span>
   &lt;get select="frame" event="mouseup"/&gt;
@@ -456,7 +455,10 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     <p>Finally, the component graph after the view stack was created is shown
     below. Note that while <em>B</em> was not cloned, because it is a top-level
     component, <em>C</em> and <em>D</em> have both been cloned twice as they
-    appear as children in two view stacks.</p>
+    appear as children in two view stacks. <span class="TODO">The clone of the
+    children of B are attached to B1 and B2, since B was not cloned. This is
+    used to match static and dynamic targets during edge traversal, but we may
+    need to differentiate static children from runtime children.</span></p>
     <figure>
       <img src="fig/view-stack-3.svg">
       <figcaption>Runtime component graph (after the view stacks were
@@ -836,8 +838,6 @@ integer next-view-index(View+ S, integer I) =
     <em>F<sub>V</sub></em> compiled from <em>V</em> is called instead. These
     functions call each other to implement the full graph traversal.<span
       class="TODO"> This section needs to be developed.</span></p>
-
-
 
   </body>
 </html>

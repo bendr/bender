@@ -15,13 +15,16 @@ digraph tree {
   C -> C_ [color="#f94179", dir=back]
   C__ [label="C”"]
   C -> C__ [color="#f94179", dir=back]
+  B1 -> C_ [style=dashed]
   B1 -> B [color="#f94179"]
+  B1 -> D_ [style=dashed]
 
 
   D_ [label="D’"]
   D -> D_ [color="#f94179", dir=back]
   D__ [label="D”"]
   D -> D__ [color="#f94179", dir=back]
+  B2 -> C__ [style=dashed]
   B2 -> B [color="#f94179"]
-
+  B2 -> D__ [style=dashed]
 }

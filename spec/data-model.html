@@ -68,7 +68,8 @@
         <ul>
           <li><code>parent</code> is the parent <code>Node</code>, if any, of
           the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
-          <li><code>children</code> is the list of child nodes of the node.</li>
+          <li><code>children</code> is the list of child <code>Node</code>s of
+          the node.</li>
         </ul>
       </div>
     </div>
@@ -89,7 +90,6 @@
       <div>
         <pre>Component &lt; Node
   Component?  prototype
-  Property*   property-definitions
   data*       properties
   View        view
   Watch*      watches</pre>
@@ -101,50 +101,19 @@
           chain. The prototype chain must not contain any cycle, <em>i.e.</em>,
           a component cannot inherit from itself either directly or
           indirectly.</li>
-          <li><code>property-definitions</code> is the list of all
-          <code>Property</code> definitions for this component, indexed by their
-          name. This includes the property definitions of the prototype
-          component.<span class="TODO"> This means that all properties of a
-          component are “public”. However, having private properties could be
-          useful; the list of property definitions could be split in two, a list
-          of public properties, and a list of private properties. Only the
-          public property defintions would be inherited.</span></li>
           <li><code>properties</code> is the list of all property values for
-          this component, indexed by their name.</li>
+          this component, indexed by their name.<span class="TODO"> All
+          properties of a component are “public”. However, having private
+          properties would be useful; the list of properties could then be split
+          in two, a list of public properties, and a list of private properties.
+          The list of public properties would be inherited, while the list of
+          private properties would not.</span></li>
           <li><code>view</code> is the root of the view tree of this
           component.</li>
           <li><code>watches</code> is the set of all <code>Watch</code>es of the
           component.</li>
         </ul>
       </div>
-    </div>
-
-
-    <h2>Properties</h2>
-
-    <p>Properties are named values that are used to parametrize both the
-    appearance and behavior of a component. The value of a property may be any
-    <code>data</code>.</p>
-
-    <div class="def" id="Property">
-      <p>A <code>Property</code> is the <em>definition</em> of a property of a
-      Bender component.</p>
-      <div>
-        <pre>Property &lt; Object
-  Component  component
-  string     name</pre>
-      </div>
-      <ul>
-        <li><code>component</code> points back to the owner
-        <code>Component</code>.</li>
-        <li><code>name</code> is the name of the property. The name of a
-        <code>Property</code> must be unique for a <code>Component</code>.
-        This includes properties inherited from the prototype.<span
-          class="TODO"> If properties can be made private, then a component may
-          have its own definition for a property <code>x</code> even if its
-          prototype has a property named <code>x</code> and this property is
-          private.</span></li>
-      </ul>
     </div>
 
 
@@ -339,16 +308,14 @@
       <p>A <code>GetProperty</code> is a property input.</p>
       <div>
         <pre>GetProperty &lt; Get
-  Property  property</pre>
+  string  name</pre>
         <ul>
-          <li><code>property</code> is the <code>Property</code> that is
+          <li><code>name</code> is the name of the property that is
           monitored.</li>
           <li><strong>Note</strong>: the <code>target</code> of a
           <code>GetProperty</code> must be a <code>Component</code> for which
-          <code>property</code> is defined, <em>i.e.</em>, <code>property</code>
-          must be a member of <code>target.property_definitions</code>. Note
-          that <code>property.component</code> is then <code>target</code> or is
-          in the prototype chain of <code>target</code>.</li>
+          the property is defined, <em>i.e.</em>, there must be a entry for
+          <code>name</code> in <code>target.properties</code>.</li>
         </ul>
       </div>
     </div>
@@ -392,15 +359,13 @@
       output.</p>
       <div>
         <pre>SetProperty &lt; Set
-  Property  property</pre>
+  string  name</pre>
         <ul>
-          <li><code>property</code> is the <code>Property</code> to be set.</li>
+          <li><code>name</code> is the name of the property to be set.</li>
           <li><strong>Note</strong>: the <code>target</code> of a
           <code>SetProperty</code> must be a <code>Component</code> for which
-          <code>property</code> is defined, <em>i.e.</em>, <code>property</code>
-          must be a member of <code>target.property_definitions</code>. Note
-          that <code>property.component</code> is then <code>target</code> or is
-          in the prototype chain of <code>target</code>.</li>
+          the property is defined, <em>i.e.</em>, there must be a entry for
+          <code>name</code> in <code>target.properties</code>.</li>
         </ul>
       </div>
     </div>
@@ -481,10 +446,9 @@
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
-          <li><code>Panel</code> has a <code>Property</code> named
-          <code>n</code>, as specified by the <code>name</code> attribute, with
-          an initial value of 0, as specified by the <code>value</code>
-          attribute.</li>
+          <li><code>Panel</code> has a property named <code>n</code>, as
+          specified by the <code>name</code> attribute, with an initial value of
+          0, as specified by the <code>value</code> attribute.</li>
           <li><code>Panel</code> has a <code>View</code> with a
           <code>DOMElement</code> child (a HTML <code>div</code> element), with
           three children. The first is a <code>Text</code> child with the name
@@ -505,10 +469,10 @@
             <code>select</code> attribute. The input is listening to a Bender
             event of type <code>pushed</code>;</li>
             <li>the output is a <code>SetProperty</code>. The target property is
-            the <code>n</code> <code>Property</code> of the <code>Panel</code>
-            component, as specified by the <code>property</code> attribute. The
-            output value is one plus the value of <code>n</code>, as specified
-            by the <code>value</code> element.</li>
+            the <code>n</code> property of the <code>Panel</code> component, as
+            specified by the <code>property</code> attribute. The output value
+            is one plus the value of <code>n</code>, as specified by the
+            <code>value</code> element.</li>
           </ul>
           (The effect of this watch is to increment the value of <code>n</code>
           when the <code>Plus</code> button is pushed.)</li>
@@ -521,12 +485,12 @@
           and two outputs:
           <ul>
             <li>the input is a <code>GetProperty</code>. The target property is
-            the <code>n</code> <code>Property</code> of <code>Panel</code>.</li>
+            the <code>n</code> property of <code>Panel</code>.</li>
             <li>the first output is a <code>SetNodeProperty</code>. The target
             is the <code>text-n</code> <code>Text</code> element; by default,
             the property to set is <code>text</code>;</li>
             <li>the second output is a <code>SetProperty</code>. The target
-            property is the <code>enabled</code> <code>Property</code> of the
+            property is the <code>enabled</code> property of the
             <code>Minus</code> <code>Component</code>. The output value is
             a boolean value that is true if and only if the input value is
             greater than 0. (Because this is XML, the <code>&gt;</code>
@@ -575,14 +539,14 @@
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
-          <li><code>Button</code> has a <code>Property</code> named
-          <code>label</code> with initial value <code>"Label"</code>. The
-          <code>as</code> attribute specifies that the value should be
-          interpreted as a character string.</li>
-          <li><code>Button</code> has a <code>Property</code> named
-          <code>enabled</code> with initial value <code>true</code>.</li>
-          <li><code>Button</code> has a <code>Property</code> named
-          <code>down</code> with initial value <code>false</code>.</li>
+          <li><code>Button</code> has a property named <code>label</code> with
+          initial value <code>"Label"</code>. The <code>as</code> attribute
+          specifies that the value should be interpreted as a character
+          string.</li>
+          <li><code>Button</code> has a property named <code>enabled</code> with
+          initial value <code>true</code>.</li>
+          <li><code>Button</code> has a property named <code>down</code> with
+          initial value <code>false</code>.</li>
           <li><code>Button</code> has a <code>View</code> containing a
             <code>DOMElement</code> (a HTML <code>div</code> element with the
             name <code>frame</code>), containing a <code>Content</code> element,
@@ -611,8 +575,8 @@
             <code>type</code> is <code>mousedown</code>;
             <li>the output is a <code>SetProperty</code>. The target is the
             <code>Button</code> component, and the <code>property</code> is the
-            <code>down</code> <code>Property</code> of <code>Button</code>.
-            The <code>value</code> is a function that returns true. The
+            <code>down</code> property of <code>Button</code>. The
+            <code>value</code> is a function that returns true. The
             <code>match</code> function returns true if and only if the
             <code>enabled</code> property of the <code>target</code> is
             true.</li>
@@ -634,8 +598,8 @@
             <code>target</code> is true;</li>
             <li>the second output is a <code>SetProperty</code>. The target is
             the <code>Button</code> component, and the <code>property</code> is
-            the <code>down</code> <code>Property</code> of <code>Button</code>.
-            The <code>value</code> is a function that returns false.</li>
+            the <code>down</code> property of <code>Button</code>. The
+            <code>value</code> is a function that returns false.</li>
           </ul>
           The effect of this watch is to set the <code>down</code> property of
           the button back to false when the mouse button is released, and
@@ -647,8 +611,7 @@
           <ul>
             <li>the input is a <code>GetProperty</code>. The <code>target</code>
             is a the <code>Button</code> <code>Component</code>, and the
-            <code>property</code> is the <code>down</code>
-            <code>Property</code>;</li>
+            <code>property</code> is the <code>down</code> property;</li>
             <li>the output is a <code>SetAttribute</code>. The
             <code>target</code> is the <code>frame</code>
             <code>DOMElement</code>, the attribute to set has no namespace and
@@ -666,8 +629,7 @@
           <ul>
             <li>the input is a <code>GetProperty</code>. The <code>target</code>
             is a the <code>Button</code> <code>Component</code>, and the
-            <code>property</code> is the <code>enabled</code>
-            <code>Property</code>;</li>
+            <code>property</code> is the <code>enabled</code> property;</li>
             <li>the output is a <code>SetAttribute</code>. The
             <code>target</code> is the <code>frame</code>
             <code>DOMElement</code>, the attribute to set has no namespace and
