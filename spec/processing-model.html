@@ -399,6 +399,11 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
                                          then view-stack’(C.prototype)
                                          else []</pre>
 
+    <p><span class="TODO">The <code>stack-order</code> property would be
+    implemented here. If “bottom”, prepend to the prototype stack. If “replace”,
+    return a new stack with just the current view, ignorign the prototype
+    stack.</span></p>
+
     <p>The <code>clone-element(E, P)</code> function creates a copy of a
     <code>Node</code> <em>E</em> and its children and add it as a child of its
     parent <em>P</em>. In the case of a <code>View</code> element, a clone of
@@ -512,6 +517,10 @@ integer next-view-index(View+ S, integer I) =
       then next-view-index(S, I + 1)
       else I
     else I</pre>
+
+    <p><span class="TODO">With a <code>select</code> property, extend
+    <code>next-view-index</code> to find the next view in the stack with
+    appropriate content (<em>i.e.</em>, matching the selector.)</span></p>
 
     <p>Rendering a <code>DOMElement</code> <em>D</em> is adding a new DOM
     element <em>N</em> to <em>T</em>, then rendering the children of <em>D</em>

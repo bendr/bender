@@ -1,6 +1,7 @@
 // Bender core, implementing only the processing model as defined in
 // /spec/data-model.html and /spec/processing-model.html. See runtime.js for
 // the runtime, XML serialization, and other sorts of syntactic sugar.
+// Additional properties are introduced for implementation purposes.
 
 /* global bender, console, exports, flexo, global, require, window */
 
@@ -17,13 +18,14 @@
   bender.version = "0.9";
 
 
-  // Base for all objects
+  // Base for all objects (init and create.)
   bender.Base = {
 
-    // The initializer must return the initialized object
+    // The initializer for a Base object must return the initialized object.
     init: flexo.self,
 
-    // Create a new object and initialize it
+    // A convenience method to create a new object and initialize it by calling
+    // init with the given arguments
     create: function () {
       return this.init.apply(Object.create(this), arguments);
     }
@@ -31,76 +33,101 @@
 
 
   // Node < Object
-  //   Node?  parent
-  //   Node*  children
+  //   Node?   parent
+  //   Node*   children
+  //   string  name
   bender.Node = flexo._ext(bender.Base, {
+
+    // Create a new node with no children and no parent.
     init: function () {
       this.children = [];
       return bender.Base.init.call(this);
     },
 
-    add_child: function (child) {
+    // Insert a child at the end of the list of children and return the added
+    // child, or before the ref node if given.
+    insert_child: function (child, ref) {
       if (child.parent) {
-        console.error("Child already has a parent");
-        return this;
+        throw "Child already has a parent";
       }
+      var index = ref && this.children.indexOf(ref) || this.children.length;
+      if (index < 0) {
+        throw "Reference node wat not found";
+      }
+      this.children.splice(index, 0, child.is_inserted());
       child.parent = this;
-      this.children.push(child);
+      return child.was_inserted();
     },
 
+    // A convenience method to add a child but return the parent (i.e. self)
+    // for easy chaining.
     child: function (child) {
       return this.add_child(child), this;
-    }
+    },
+
+    is_inserted: flexo.self,   // called before insertion
+    was_inserted: flexo.self,  // called after insertion
+
+    // Remove the given child and unset its parent property. Return the removed
+    // child.
+    remove_child: function (child) {
+      if (child.parent !== this ||
+          !flexo.remove_from_array(child.is_removed())) {
+        throw "Not a child node";
+      }
+      delete child.parent;
+      return child.was_removed();
+    },
+
+    // Remove self from parent and return self.
+    remove_self: function () {
+      if (!this.parent) {
+        throw "No parent to remove from";
+      }
+      return this.parent.remove_child(this);
+    },
+
+    is_removed: flexo.self,   // called before removal
+    was_removed: flexo.self,  // called after removal
   });
 
+  // The name accessor gets or set a name for the node. The default name is the
+  // empty string. Return the Node when setting, the name when getting.
   flexo._accessor(bender.Node, "name", flexo.safe_trim);
 
 
   // Component < Node
   //   Component?  prototype
-  //   Property*   property-definitions
   //   data*       properties
   //   View?       view
   //   Watch*      watches
   bender.Component = flexo._ext(bender.Node, {
+
+    // Initialize a component with an optional view (create a new default view
+    // if no view is given) and no watches. The properties are inherited from
+    // the prototype (if any.)
     init: function (view) {
-      this._name = flexo.random_id();
       bender.Node.init.call(this);
-      this.property_definitions = "property_definitions" in this ?
-        Object.create(this.property_definitions) : {};
-      this.properties = {};
+      this.properties = "properties" in this ?
+        Object.create(this.properties) : {};
       if (!view) {
-        view = bender.View.create(true);
-      }
-      if (view.component) {
-        console.error("View already in a component");
+        view = bender.View.default();
+      } else if (view.component) {
+        throw "View already in a component";
       }
       this.view = view;
       this.view.component = this;
       this.watches = [];
-      this.__render_subgraph = true;
-      this.property_vertices = {};
-      this.event_vertices = {};
-      return this;
+      this.__render_subgraph = true;        // delete when rendered
+      this.property_vertices = {};          // property vertices indexed by name
+      this.event_vertices = {};             // event vertices indexed by type
+      return this.name(flexo.random_id());  // set a random name
     },
 
-    // Clone the component for a cloned view
-    clone: function (view) {
-      var clone = this.create();
-      clone.properties = Object.create(this.properties);
-      clone.view = view;
-      return clone;
-    },
-
-    // Add a property to the component and return the component.
-    property: function (property) {
-      if (property in this.properties) {
-        console.error("Property %0 already defined".fmt(property.name));
-        return this;
-      }
-      this.property_definitions[property.name] = property;
-      property.component = this;
-      return this;
+    // Add a property to the component and return the component. An initial
+    // value can also be set.
+    property: function (name, init_value) {
+      return this.properties[name] = init_value, this;
     },
 
     // Add a watch to the component and return the component. If a Watch object
@@ -130,13 +157,6 @@
       if (prototype) {
         this.prototype.render_subgraph(graph);
       }
-      flexo.beach_all(this.view.children, function (element) {
-        if (element.component) {
-          this.children.push(element.component);
-        } else {
-          return element.children;
-        }
-      }, this);
       this.children.forEach(function (child) {
         child.render_subgraph(graph);
       });
@@ -147,50 +167,42 @@
     },
 
     // Render the view of the component in a DOM target.
+    // Create the view stack and render it bottom-up. A fragment is created to
+    // render the tree out of the main tree and add it all at once.
     render_view: function (target) {
-      console.log("* render_view: %0".fmt(this.name()));
       var fragment = target.ownerDocument.createDocumentFragment();
-      this.render_view_stack(this.view_stack(), fragment);
+      var stack = this.view_stack();
+      stack[0].render(target, stack, 0);
       target.appendChild(fragment);
     },
 
-    // Render the view stack of the component from bottom to top.
-    render_view_stack: function (stack, target) {
-      stack[0].render(target, stack, 0);
-    },
-
     // Create the view stack for the component from its prototype and its own
-    // view. The prototype views are cloned.
+    // view. The views of the prototype are cloned.
+    // TODO stack-order property for Views.
     view_stack: function () {
-      var stack = [];
-      for (var prototype = this.prototype; prototype;
-          prototype = prototype.prototype) {
-        stack.unshift(prototype.view.clone());
+      for (var p = this.prototype; p; p = p.prototype) {
+        stack.unshift(p.view.clone());
       }
       stack.push(this.view);
-      console.log("+ View stack of %0: %1".fmt(this.name(), stack.length));
       return stack;
     }
   });
 
+  // Return the prototype component of the component, or undefined.
+  // Because we use prototype inheritance, a component with no component
+  // prototype still has bender.Component as its object prototype. Moreover, a
+  // clone component inherits from the component its is cloned from, so its
+  // component prototype is the object prototype of its object prototype.
   Object.defineProperty(bender.Component, "prototype", {
     enumerable: true,
     get: function () {
-      var prototype = Object.getPrototypeOf(this);
-      if (prototype !== bender.Component) {
-        return prototype;
+      var p = Object.getPrototypeOf(this);
+      if (p !== bender.Component) {
+        if (!p.hasOwnProperty("watches")) {
+          return Object.getPrototypeOf(p);
+        }
+        return p;
       }
-    }
-  });
-
-
-  // Property < Base
-  //   Component  component
-  //   string     name
-  bender.Property = flexo._ext(bender.Base, {
-    init: function (name) {
-      this.name = name;
-      return bender.Base.init.call(this);
     }
   });
 
@@ -226,9 +238,10 @@
   // View < Element
   //   Component  component
   bender.View = flexo._ext(bender.Element, {
-    init: function (_default) {
-      this.default = !!_default;
-      return bender.Element.init.call(this);
+    default: function () {
+      var view = this.create();
+      view.default = true;
+      return view;
     },
 
     clone: function (parent) {
@@ -356,7 +369,7 @@
     init: function () {
       this.gets = [];
       this.sets = [];
-      return this;
+      return bender.Base.init.call(this);
     },
 
     adapter: function (adapter, list) {

@@ -159,6 +159,13 @@
       </div>
     </div>
 
+    <p><span class="TODO">The view stack order can be modified with the addition
+      of a <code>stack-order</code> property, with the possible values
+      <code>top</code> (put the view on top of the stack, which is the default),
+      <code>bottom</code> (put the view at the bottom of the stack), and
+      <code>replace</code> (replace all views within the stack with this
+      view.)</span></p>
+
     <div class="def" id="Content">
       <p>The <code>Content</code> element provides an extension point for the
       view of derived components. Its children define default content.</p>
@@ -166,6 +173,13 @@
         <pre>Content &lt; Element</pre>
       </div>
     </div>
+
+    <p>A component may have at most one <code>Content</code> element in its
+    view.<span class="TODO"> Multiple <code>Content</code> elements can be
+    supported with the addition of a <code>select</code> property. This
+    property would allow to select specific nodes in the <code>View</code>
+    of a derived component, instead of the whole view (which would still
+    be the default.)</span></p>
 
     <div class="def" id="DOMElement">
       <p>The <code>DOMElement</code> element represents a foreign element
