@@ -45,6 +45,7 @@
       return bender.Base.init.call(this);
     },
 
+    // Id number for nodes (used for debugging)
     __id: 0,
 
     // Insert a child at the end of the list of children and return the added
@@ -119,6 +120,15 @@
       this.property_vertices = {};          // property vertices indexed by name
       this.event_vertices = {};             // event vertices indexed by type
       return this.name(flexo.random_id());  // set a random name
+    },
+
+    // Shallow clone of a component with its own children, properties, and view.
+    clone: function (view) {
+      var c = Object.create(this);
+      c.properties = Object.create(this.proprties);
+      c.set_view(view);
+      c.__id = "%0(%1)".fmt(bender.Node.__id++, this.__id);
+      return c;
     },
 
     // Set the view of the component, and add the child components from the
@@ -207,12 +217,12 @@
     // component.
     // TODO stack-order property for Views.
     view_stack: function () {
+      var stack = [this.view];
       for (var p = this.prototype; p; p = p.prototype) {
         var v = p.view.clone();
         v.component = this;
         stack.unshift(v);
       }
-      stack.push(this.view);
       return stack;
     },
 
@@ -252,6 +262,7 @@
       e.children = this.children.map(function (child) {
         return child.clone(e);
       });
+      e.__id = "%0(%1)".fmt(bender.Node.__id++, this.__id);
       return e;
     },
 
@@ -369,6 +380,20 @@
         });
       });
       this.render_children(element, stack, i);
+      Object.keys(this.event_vertices).forEach(function (type) {
+        var vertex = this.event_vertices[type];
+        vertex.outgoing.forEach(function (edge) {
+          element.addEventListener(type, function (e) {
+            if (edge.adapter.prevent_default) {
+              e.preventDefault();
+            }
+            if (edge.adapter.stop_propagation) {
+              e.stopPropagation();
+            }
+            edge.dest.value(stack[i].component, e);
+          });
+        });
+      }, this);
       target.appendChild(element);
     }
   });
@@ -378,12 +403,14 @@
   //   string  namespace-uri
   //   string  local-name
   bender.Attribute = flexo._ext(bender.Element, {
+
     init: function (ns, name) {
       this.namespace_uri = ns;
       this.local_name = name;
       return bender.Element.init.call(this);
     },
 
+    // Call render when one of the children changes.
     render: function (target) {
       target.setAttributeNS(this.namespace_uri, this.local_name,
         this.children.reduce(function (text, child) {
@@ -396,6 +423,8 @@
   // Text < Element
   //   string  text
   bender.Text = flexo._ext(bender.Element, {
+
+    // Get or set the text content of the element.
     text: function (text) {
       if (arguments.length === 0) {
         return this._text || "";
@@ -417,12 +446,15 @@
   //   Get*       gets
   //   Set*       sets
   bender.Watch = flexo._ext(bender.Base, {
+
+    // Initialize an empty watch.
     init: function () {
       this.gets = [];
       this.sets = [];
       return bender.Base.init.call(this);
     },
 
+    // Add a new adapter (get or set) to the corresponding list.
     adapter: function (adapter, list) {
       if (adapter.watch) {
         console.error("Adapter already in a watch.");
@@ -433,17 +465,22 @@
       return this;
     },
 
+    // Add a new get to this watch.
     get: function (get) {
       return this.adapter(get, this.gets);
     },
 
+    // Add a new set to this watch.
     set: function (set) {
       return this.adapter(set, this.sets);
     },
 
     // Render the subgraph for this watch by in the given WatchGraph.?
     render_subgraph: function (graph) {
-      var vertex = graph.vertex(bender.WatchVertex.create(this));
+      if (this.gets.length === 0 && this.sets.length === 0) {
+        return;
+      }
+      var vertex = graph.vertex(bender.WatchVertex.create(this, graph));
       this.gets.forEach(function (get) {
         graph.edge(bender.AdapterEdge.create(get.vertex(graph), vertex, get));
       });
@@ -470,7 +507,7 @@
     vertex: function (graph, name, vertices_name, prototype) {
       var vertices = this.target[vertices_name];
       if (!vertices.hasOwnProperty(name)) {
-        vertices[name] = graph.vertex(prototype.create(this));
+        vertices[name] = graph.vertex(prototype.create(this, graph));
         var prototype = Object.getPrototypeOf(this.target);
         if (vertices_name in prototype) {
           var protovertex = prototype[vertices_name][name];
@@ -592,9 +629,10 @@
   //   Vertex   vortex
   //   Edges*   edges
   bender.WatchGraph = flexo._ext(bender.Base, {
+
     init: function () {
       this.vertices = [];
-      this.vortex = this.vertex(bender.Vertex.create());
+      this.vortex = this.vertex(bender.Vertex.create(this));
       return bender.Base.init.call(this);
     },
 
@@ -659,6 +697,24 @@
         delete vertex.__out;
       });
       return this;
+    },
+
+    // Schedule a new graph traversal after a value was set on a vertex. If a
+    // traversal was already scheduled, just return. Values are cleared after
+    // the traversal finishes.
+    traverse: function () {
+      if (this.__scheduled) {
+        return;
+      }
+      this.__scheduled = flexo.asap(function () {
+        delete this.__scheduled;
+        this.edges.forEach(function (edge) {
+          edge.traverse();
+        });
+        this.vertices.forEach(function (vertex) {
+          vertex.clear_values();
+        });
+      }.bind(this));
     }
   });
 
@@ -667,10 +723,25 @@
   //   Edge*  incoming
   //   Edge*  outgoing
   bender.Vertex = flexo._ext(bender.Base, {
-    init: function () {
+
+    init: function (graph) {
+      this.graph = graph;
       this.incoming = [];
       this.outgoing = [];
+      this.values = {};
       return bender.Base.init.call(this);
+    },
+
+    value: function (target, value) {
+      if (target.__id in this.values) {
+        return;
+      }
+      this.values[target.__id] = [target, value];
+      graph.traverse();
+    },
+
+    clear_values: function () {
+      this.values = {};
     }
   });
 
@@ -715,7 +786,15 @@
       return bender.Base.init.call(this);
     },
 
-    priority: 0
+    priority: 0,
+
+    // TODO
+    traverse: function () {
+      Object.keys(this.source.values).forEach(function (id) {
+        var vv = this.source.values[id];
+        this.dest.values(vv[0], vv[1]);
+      }, this);
+    }
   });
 
   // InheritEdge < Edge
