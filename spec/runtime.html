@@ -9,7 +9,7 @@
     <h1>The Bender HTML Runtime</h1>
     <p>Version 0.9, February 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and
-    <a href="processing-mode.html">the Bender Processing Model</a> for
+    <a href="processing-model.html">the Bender Processing Model</a> for
     reference.</p>
 
 
@@ -26,9 +26,125 @@
     Javascript.</p>
 
     <h2 id="s11n">XML Serialization of Bender Components</h2>
-    <p><span class="TODO">Describe XML grammar and how it maps to the data
-      model. File-centric attributes: links, inline style and script, name
-    and render-name properties, &amp;c.</span></p>
+
+    <h3>Common attributes</h3>
+    <ul>
+      <li><span class="TODO">The <code>name</code> attribute. Two namespaces:
+      one for properties, and one for nodes (components and view elements.)
+      Scope for property names is the parent component; scope for nodes is the
+      top-level component tree.</span></li>
+    </ul>
+
+    <h3>The <code>component</code> element</h3>
+    <p>The <code>component</code> element describes a component. It can occur
+    as the root of an XML document (it is then the top-level component) or
+    as the descendant of another component.<span class="TODO"> Also in a
+      <code>lib</code> element or some other group container?</span></p>
+    <p>The <code>component</code> element has the following attributes:</p>
+    <ul>
+      <li><code>name</code> (optional)</li>
+      <li><code>href</code> (optional): this attribute points to the prototype
+      component. The value of <code>href</code> must be a URI that identifies a
+      Bender component.</li>
+      <li><span class="TODO">on-* attributes: see runtime.</span></li>
+      <li>any other attribute is interpreted as the name of a property. The
+      value of the attribute is used as the initial value of this property for
+      this component.</li>
+    </ul>
+    <p>The <code>component</code> element has the following children, which
+    can appear in any order:</p>
+    <ul>
+      <li><code>property</code> (zero or more): the properties of the
+      component.</li>
+      <li><span class="TODO"><code>component</code> (zero or more): child
+        components that are not rendered.</span></li>
+      <li><code>view</code> (optional): the view of the component.</li>
+      <li><code>watch</code> (zero or more): the watches of the component.</li>
+      <li><code>link</code> (zero or more): links to external resources
+      (scripts, stylesheets, components.)</li>
+      <li><code>script</code> (zero or more): inline scripts.</li>
+      <li><code>style</code> (zero or more): inline style.</li>
+    </ul>
+
+    <h3>The <code>property</code> element</h3>
+    <p>The <code>property</code> element describes a property of the parent
+    component, and how it is initialized or bound to other properties. It can
+    occur only as the child of a <code>component</code> element.</p>
+
+    <h3>The <code>view</code> element</h3>
+    <p>The <code>view</code> element is the container for the view of its parent
+    component. A <code>component</code> with no <code>view</code> child has a
+    default view.</p>
+
+    <h3>The <code>content</code> element</h3>
+
+    <h3>Foreign view elements and custom elements</h3>
+
+    <h3>The <code>attribute</code> element</h3>
+
+    <h3>The <code>text</code> element</h3>
+    <p>The <code>text</code> element</p>
+
+    <h3>The <code>watch</code> element</h3>
+    <p>The <code>watch</code> element</p> describes a watch in a component. It
+    can occur in a <code>component</code> element. It has no attribute. It has
+    the following children in any order:</p>
+    <ul>
+      <li><code>get</code> (zero or more)</li>
+      <li><code>set</code> (zero or more)</li>
+    </ul>
+
+    <h3>The <code>get</code> element</h3>
+    <h3>The <code>set</code> element</h3>
+
+    <h3>The <code>link</code> element</h3>
+    <p>The <code>link</code> element associates an external resource with the
+    parent. It can occur as a child of a <code>component</code> element. It is
+    modeled after the HTML <code>link</code> element.</p>
+    <p>The attributes of the <code>link</code> element are:</p>
+    <ul>
+      <li><code>rel</code>: describe the relationship between the component and
+      the external resource. Three values are supported: <code>script</code>,
+      <code>stylesheet</code>, and <code>component</code>.</li>
+      <li><code>href</code>: the URI of the external resource.</li>
+      <li><code>name</code>: if the value of the <code>rel</code> attribute
+      is <code>component</code>, then this attribute must be present; otherwise,
+      it must not be present.</li>
+    </ul>
+    <p>The <code>link</code> element has no content.</p>
+    <p><span class="TODO">Script and stylesheet links allow inclusion of
+      external scripts and stylesheets. A component link brings a static
+      reference to the linked component in the current scope.</p>
+
+    <h3>The <code>script</code> element</h3>
+    <p>The <code>script</code> element is a convenience element to include
+    Javascript code with its parent component. It is modeled after the HTML
+    <code>script</code> element. It can occur as a child of a
+    <code>component</code> element. It has no attribute<span class="TODO">
+      (although it could have a <code>type</code> attribute for clients that
+      support other languages than Javascript, and an <code>async</code>
+      attribute that would allow asynchronous exection when possible. Also
+      <code>src</code> attribute?)</span> and text content. It gets rendered as
+    a <code>script</code> element in the <code>head</code> of the owner document
+    of the target of the first render of the component; as such, it blocks
+    rendering until completely executed. The <code>script</code> children are
+    rendered in document order.</p>
+
+    <h3>The <code>style</code> element</h3>
+    <p>The <code>style</code> element is a convenience element to include style
+    information with its parent component. It is modeled after the HTML
+    <code>style</code> element. It can occur as a child of a
+    <code>component</code> element. It has no attribute and only text content.
+    It gets rendered as a <code>style</code> element in the <code>head</code> of
+    the owner document of the target of the first render of the component.</p>
+
+    <h3>The <code>lib</code> element</h3>
+    <p><span class="TODO">The <code>lib</code> element (the name is not final)
+      would be used to group several top-level components into a single file so
+      that related components could be grouped together. Reference to a
+      component inside a lib could be made by a fragment reference.</span></p>
+
+    <h3>Loading and Deserialization</h3>
 
     <h2 id="api">The Bender Javascript API</h2>
     <p><span class="TODO">Custom elements (mapping namespace URI + local name to
