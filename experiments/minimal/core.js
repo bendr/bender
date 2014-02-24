@@ -40,9 +40,12 @@
 
     // Create a new node with no children and no parent.
     init: function () {
+      this.__id = (bender.Node.__id++).toString(36).toUpperCase();
       this.children = [];
       return bender.Base.init.call(this);
     },
+
+    __id: 0,
 
     // Insert a child at the end of the list of children and return the added
     // child, or before the ref node if given.
@@ -62,7 +65,7 @@
     // A convenience method to add a child but return the parent (i.e. self)
     // for easy chaining.
     child: function (child) {
-      return this.add_child(child), this;
+      return this.insert_child(child), this;
     },
 
     is_inserted: flexo.self,   // called before insertion
@@ -110,18 +113,40 @@
       bender.Node.init.call(this);
       this.properties = "properties" in this ?
         Object.create(this.properties) : {};
+      this.watches = [];
+      this.set_view(view);
+      this.__render_subgraph = true;        // delete when rendered
+      this.property_vertices = {};          // property vertices indexed by name
+      this.event_vertices = {};             // event vertices indexed by type
+      return this.name(flexo.random_id());  // set a random name
+    },
+
+    // Set the view of the component, and add the child components from the
+    // view descendants of the new view.
+    set_view: function (view) {
       if (!view) {
-        view = bender.View.default();
+        view = bender.View.create();
+        view.default = true;
       } else if (view.component) {
         throw "View already in a component";
       }
       this.view = view;
       this.view.component = this;
-      this.watches = [];
-      this.__render_subgraph = true;        // delete when rendered
-      this.property_vertices = {};          // property vertices indexed by name
-      this.event_vertices = {};             // event vertices indexed by type
-      return this.name(flexo.random_id());  // set a random name
+      flexo.beach_all(view.children, function (element) {
+        if (element.component) {
+          this.insert_child(element.component);
+          return;
+        }
+        return element.children;
+      }, this);
+    },
+
+    // Render the complete component graph in the target and a new graph
+    render: function (target) {
+      var graph = this.render_subgraph(bender.WatchGraph.create()).sort();
+      this.render_view(document.body);
+      this.init_properties();
+      return graph;
     },
 
     // Add a property to the component and return the component. An initial
@@ -148,9 +173,10 @@
     // of the watches, then the subgraph of the children.
     // The component keeps track of the vertices that target it so that they can
     // easily be found when rendering the watches.
+    // Return the graph.
     render_subgraph: function (graph) {
       if (!this.__render_subgraph) {
-        return;
+        return graph;
       }
       delete this.__render_subgraph;
       var prototype = this.prototype;
@@ -163,7 +189,7 @@
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
-      return this;
+      return graph;
     },
 
     // Render the view of the component in a DOM target.
@@ -177,14 +203,22 @@
     },
 
     // Create the view stack for the component from its prototype and its own
-    // view. The views of the prototype are cloned.
+    // view. The views of the prototype are cloned and are now owned by this
+    // component.
     // TODO stack-order property for Views.
     view_stack: function () {
       for (var p = this.prototype; p; p = p.prototype) {
-        stack.unshift(p.view.clone());
+        var v = p.view.clone();
+        v.component = this;
+        stack.unshift(v);
       }
       stack.push(this.view);
       return stack;
+    },
+
+    // Initialize properties of the component, its prototype and its children.
+    // Set the property with the highest priority first.
+    init_properties: function () {
     }
   });
 
@@ -210,15 +244,19 @@
   // Element < Node
   //   View  view
   bender.Element = flexo._ext(bender.Node, {
+
+    // Deep clone of the element, attached to the cloned parent.
     clone: function (parent) {
-      var clone = Object.create(this);
-      clone.parent = parent;
-      clone.children = this.children.map(function (child) {
-        return child.clone(clone);
+      var e = Object.create(this);
+      e.parent = parent;
+      e.children = this.children.map(function (child) {
+        return child.clone(e);
       });
-      return clone;
+      return e;
     },
 
+    // Render the children of this node to the target, passing the target and
+    // index along.
     render_children: function (target, stack, i) {
       this.children.forEach(function (child) {
         child.render(target, stack, i);
@@ -226,6 +264,7 @@
     }
   });
 
+  // The view of an element is the view of its parent.
   Object.defineProperty(bender.Element, "view", {
     enumerable: true,
     configurable: true,
@@ -238,33 +277,41 @@
   // View < Element
   //   Component  component
   bender.View = flexo._ext(bender.Element, {
-    default: function () {
-      var view = this.create();
-      view.default = true;
-      return view;
-    },
 
-    clone: function (parent) {
-      console.log("+ Clone view of %0".fmt(this.component.name()));
-      var clone = bender.Element.clone.call(this, parent);
-      if (parent) {
-        console.log("+ Clone component");
-        clone.component = this.component.clone(clone);
+    // Add the component of the view to the component of the parent.
+    was_inserted: function () {
+      if (this.component) {
+        var parent_component = this.parent.component;
+        if (parent_component) {
+          parent_component.insert_child(this.component);
+        }
       }
-      return clone;
+      return this;
     },
 
+    // Clone the view, and if not the view of a top-level component (i.e. this
+    // node is the root of its tree), then clone the component as well. The
+    // clone of the component becomes a child of the parent component.
+    clone: function (parent) {
+      var v = bender.Element.clone.call(this, parent);
+      if (parent) {
+        v.component = parent.component.insert_child(this.component.clone(v));
+      }
+      return v;
+    },
+
+    // Render the child elements when at the root of the tree, and the view of
+    // component otherwise (this is a placeholder for that component.)
     render: function (target, stack, i) {
-      if (this == stack[i]) {
-        console.log("+ [%0] View (top component)".fmt(this.component.name()));
+      if (this === stack[i]) {
         this.render_children(target, stack, i);
       } else {
-        console.log("+ [%0] View (child component)".fmt(this.component.name()));
         this.component.render_view(target);
       }
     }
   });
 
+  // The view of the view is itself and cannot be anything else.
   Object.defineProperty(bender.View, "view", {
     enumerable: true,
     get: flexo.self
@@ -273,8 +320,11 @@
 
   // Content < Element
   bender.Content = flexo._ext(bender.Element, {
+
+    // Find the next view in the stack that is not a default view and render it.
+    // Otherwise, render the contents as default.
+    // TODO selector in the next view.
     render: function (target, stack, i) {
-      console.log("+ [%0] Content".fmt(this.view.component.name()));
       var j = i + 1;
       var n = stack.length;
       for (; j < n && stack[j].default; ++j) {}
@@ -292,6 +342,8 @@
   //   string  local-name
   //   data*   attributess
   bender.DOMElement = flexo._ext(bender.Element, {
+
+    // Attributes are index by namespace URI, then by local name.
     init: function (ns, name, attributes) {
       this.namespace_uri = ns;
       this.local_name = name;
@@ -300,15 +352,15 @@
       return bender.Element.init.call(this);
     },
 
+    // Keep track of the original set of vertices when cloned.
     clone: function (parent) {
       var clone = bender.Element.clone.call(this, parent);
       clone.event_vertices = Object.create(this.event_vertices);
       return clone;
     },
 
+    // Render in the target element.
     render: function (target, stack, i) {
-      console.log("+ [%0] DOMElement (%1)".fmt(this.view.component.name(),
-          this.local_name), this.event_vertices);
       var element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
       Object.keys(this.attributes, function (ns) {
@@ -352,11 +404,10 @@
       return this;
     },
 
+    // Keep track of the node for updates.
     render: function (target) {
-      console.log("+ [%0] Text %1".fmt(this.view.component.name(),
-          flexo.quote(this.text())));
-      var node = target.ownerDocument.createTextNode(this.text());
-      target.appendChild(node);
+      this.node = target.ownerDocument.createTextNode(this.text());
+      target.appendChild(this.node);
     }
   });
 
