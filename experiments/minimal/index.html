@@ -21,6 +21,31 @@ a {
     <script>
 "use strict";
 
+var D = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "h3")
+      .child(bender.Text.create().text("D"))))
+  .name("D");
+var C = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "h3")
+      .child(bender.Text.create().text("C"))))
+  .name("C");
+var B = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "h2")
+      .child(bender.Text.create().text("B")))
+    .child(C.view)
+    .child(D.view))
+  .name("B");
+var B1 = B.create().name("B1");
+var B2 = B.create().name("B2");
+var A = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "h1")
+      .child(bender.Text.create().text("A")))
+    .child(B1.view)
+    .child(B2.view))
+  .name(A);
+
+A.render();
+
 var hello = bender.Component.create(bender.View.create()
     .child(bender.DOMElement.create(flexo.ns.html, "p")
       .child(bender.Text.create().text("Hello, world!"))))

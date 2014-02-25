@@ -133,9 +133,12 @@
     // Shallow clone of a component with its own children, properties, and view.
     clone: function (view) {
       var c = Object.create(this);
-      c.properties = Object.create(this.proprties);
+      c.__id = "%0(%1)"
+        .fmt((bender.Node.__id++).toString(36).toUpperCase(), this.__id);
+      c.parent = null;
+      c.children = [];
+      c.properties = Object.create(this.properties);
       c.set_view(view);
-      c.__id = "%0(%1)".fmt(bender.Node.__id++, this.__id);
       return c;
     },
 
@@ -145,11 +148,17 @@
       if (!view) {
         view = bender.View.create();
         view.default = true;
-      } else if (view.component) {
+      } else if (view.hasOwnProperty("component") && view.component) {
         throw "View already in a component";
       }
       this.view = view;
       this.view.component = this;
+      this.add_child_components(view);
+    },
+
+    // Add the child components from going down the view tree and adding the
+    // components of View elements found along the way.
+    add_child_components: function (view) {
       flexo.beach_all(view.children, function (element) {
         if (element.component) {
           this.insert_child(element.component);
@@ -229,7 +238,9 @@
       var stack = [this.view];
       for (var p = this.prototype; p; p = p.prototype) {
         var v = p.view.clone();
-        v.component = this;
+        if (p.children.length > 0) {
+          this.add_child_components(v);
+        }
         stack.unshift(v);
       }
       return stack;
@@ -267,11 +278,12 @@
     // Deep clone of the element, attached to the cloned parent.
     clone: function (parent) {
       var e = Object.create(this);
+      e.__id = "%0(%1)"
+        .fmt((bender.Node.__id++).toString(36).toUpperCase(), this.__id);
       e.parent = parent;
       e.children = this.children.map(function (child) {
         return child.clone(e);
       });
-      e.__id = "%0(%1)".fmt(bender.Node.__id++, this.__id);
       return e;
     },
 
@@ -315,7 +327,7 @@
     clone: function (parent) {
       var v = bender.Element.clone.call(this, parent);
       if (parent) {
-        v.component = parent.component.insert_child(this.component.clone(v));
+        this.component.clone(v);
       }
       return v;
     },
@@ -439,6 +451,9 @@
         return this._text || "";
       }
       this._text = flexo.safe_string(text);
+      if (this.node) {
+        this.node.textContent = this._text;
+      }
       return this;
     },
 

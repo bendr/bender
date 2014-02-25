@@ -65,9 +65,14 @@ bender.Text.html = function () {
 
 // TODO Attribute
 
-var hello = bender.Component.create(
-    bender.View.create(bender.DOMElement.create(flexo.ns.html, "p",
-        bender.Text.create("Hello, world!")))
-  ).name("hello");
+var hello = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "p")
+      .child(bender.Text.create().text("Hello, world!"))))
+  .name("Hello");
 
-process.stdout.write(html_top({ title: "Bender" }), hello.html());
+process.stdout
+  .write(html_top({ title: "Bender" },
+        flexo.$script({ src: "flexo.js" }) +
+        flexo.$script({ src: "bender.js" })) +
+      hello.html() +
+      "</body></html>\n");

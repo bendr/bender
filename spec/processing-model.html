@@ -394,15 +394,34 @@
     stack has a length of 1 (for components with no prototype) or more (for
     components with a prototype.)</p>
     <pre class="code">View+ view-stack(Component C) = bottom-view-stack(C) : C.view
-View+ view-stack’(Component C) = bottom-view-stack(C) : clone-element(C.view)
+View+ view-stack’(Component C) =
+  let V’ = clone-element(C.view) in
+    do
+      add-child-components(C, V’)
+      bottom-view-stack(C) : V’
 View+ bottom-view-stack(Component C) = if defined C.prototype
                                          then view-stack’(C.prototype)
                                          else []</pre>
 
     <p><span class="TODO">The <code>stack-order</code> property would be
     implemented here. If “bottom”, prepend to the prototype stack. If “replace”,
-    return a new stack with just the current view, ignorign the prototype
+    return a new stack with just the current view, ignoring the prototype
     stack.</span></p>
+
+    <p>When the view of a <code>Component</code> <em>C</em> is cloned to be
+    added to the view stack, the child components of <em>C</em> are cloned as
+    well (as seen below.) The parent component itself is not cloned, so these
+    cloned children are added as children of the component for which the stack
+    is built.</p>
+    <pre class="code">add-child-components(Component C, View V) =
+  for E in V.children
+    add-child-component’(C, E)
+add-child-component’(Component C, Element E) =
+  if E is-a View
+    then C.children &lt;- C.children : E.component
+    else
+      for E’ in E.children
+        add-child-component’(C, E’)</pre>
 
     <p>The <code>clone-element(E, P)</code> function creates a copy of a
     <code>Node</code> <em>E</em> and its children and add it as a child of its
@@ -463,10 +482,10 @@ View+ bottom-view-stack(Component C) = if defined C.prototype
     <p>Finally, the component graph after the view stack was created is shown
     below. Note that while <em>B</em> was not cloned, because it is a top-level
     component, <em>C</em> and <em>D</em> have both been cloned twice as they
-    appear as children in two view stacks. <span class="TODO">The clone of the
-    children of B are attached to B1 and B2, since B was not cloned. This is
-    used to match static and dynamic targets during edge traversal, but we may
-    need to differentiate static children from runtime children.</span></p>
+    appear as children in two view stacks. The clones of the children of B are
+    attached to B1 and B2, since B was not cloned (see
+    <code>add-child-components</code> above.) This is used to match static and
+    dynamic targets during edge traversal.</p>
     <figure>
       <img src="fig/view-stack-3.svg">
       <figcaption>Runtime component graph (after the view stacks were
