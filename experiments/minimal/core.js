@@ -3,6 +3,14 @@
 // the runtime, XML serialization, and other sorts of syntactic sugar.
 // Additional properties are introduced for implementation purposes.
 
+// TODO
+// [ ] stack-order for View
+// [ ] select for Content
+// [ ] component.notify()/.message()
+// [ ] minimize graph
+// [ ] compile graph to Javascript
+// [ ] pure property on adapters (no side effect); help minimization/compilation
+
 /* global bender, console, exports, flexo, global, require, window */
 
 (function () {
@@ -151,23 +159,15 @@
       }, this);
     },
 
-    // Render the complete component graph in the target and a new graph
-    render: function (target) {
-      var graph = this.render_subgraph(bender.WatchGraph.create()).sort();
-      this.render_view(document.body);
-      this.init_properties();
-      return graph;
-    },
-
     // Add a property to the component and return the component. An initial
     // value can also be set.
     property: function (name, init_value) {
       return this.properties[name] = init_value, this;
     },
 
-    // Add a watch to the component and return the component. If a Watch object
-    // is passed as the first argument, add this watch; otherwise, create a new
-    // watch with the contents passed as arguments.
+    // Add a watch to the component and return the component.
+    // TODO pass the contents of the watch as arguments and create a new watch
+    // instead of the watch.
     watch: function (watch) {
       if (watch.component) {
         console.error("Watch already in a component");
@@ -178,12 +178,21 @@
       return this;
     },
 
+    // Render the complete component graph in the target and a new graph. Return
+    // the graph that was created. This is called for the “application”
+    // component only.
+    render: function (target) {
+      var graph = this.render_subgraph(bender.WatchGraph.create()).sort();
+      this.render_view(target || window.document.body);
+      this.init_properties();
+      return graph;
+    },
+
     // If not already rendered, render the subgraph for this component in the
     // given WatchGraph. Render the subgraph of the prototype, then the subgraph
-    // of the watches, then the subgraph of the children.
+    // of the watches, then the subgraph of the children. Return the graph.
     // The component keeps track of the vertices that target it so that they can
     // easily be found when rendering the watches.
-    // Return the graph.
     render_subgraph: function (graph) {
       if (!this.__render_subgraph) {
         return graph;
@@ -208,7 +217,7 @@
     render_view: function (target) {
       var fragment = target.ownerDocument.createDocumentFragment();
       var stack = this.view_stack();
-      stack[0].render(target, stack, 0);
+      stack[0].render(fragment, stack, 0);
       target.appendChild(fragment);
     },
 
@@ -528,8 +537,6 @@
       }
       return vertices[name];
     },
-
-    static: false
   });
 
   flexo._accessor(bender.Adapter, "value", flexo.id, true);
@@ -646,30 +653,27 @@
       return edge;
     },
 
+    // Sort the edges for deterministic graph traversal. Delayed edges come
+    // last, then edges to sink states, and so on. Outgoing edges from a vertex
+    // are sorted using their priority (the priorities in increasing order are
+    // InheritEdge, AdapterEdge, cloned edge.)
     sort: function () {
       if (!this.__unsorted) {
-        return;
+        return this;
       }
       delete this.__unsorted;
       this.edges = [];
-      this.vertices.forEach(function (v, i) {
-        v.__index = i;
-        // flexo.push_all(this.edges, v.outgoing);
-      }, this);
-      // return this;
       var queue = this.vertices.filter(function (vertex) {
         vertex.__out = vertex.outgoing.filter(function (edge) {
           if (edge.delay >= 0) {
-            edges.push(edge);
+            this.edges.push(edge);
             return false;
           }
           return true;
-        }).length;
+        }, this).length;
         return vertex.__out === 0;
-      });
+      }, this);
       var incoming = function (edge) {
-        console.log("Incoming edge: v%0 -> v%1"
-            .fmt(edge.source.__index, edge.dest.__index));
         if (edge.source.hasOwnProperty("__out")) {
           --edge.source.__out;
         } else {
@@ -681,21 +685,27 @@
         return edge;
       };
       var delayed = function (edge) {
+        // This matches edges that have no delay
+        // jshint -W018
         return !(edge.delay >= 0);
       };
       var prioritize = function (a, b) {
         return b.priority - a.priority;
-      }
+      };
       while (queue.length > 0) {
         flexo.unshift_all(this.edges, queue.shift().incoming.filter(delayed)
             .map(incoming).sort(prioritize));
       }
+      var remaining = [];
       this.vertices.forEach(function (vertex) {
         if (vertex.__out !== 0) {
-          console.error("sort_edges: unqueued vertex", vertex.__index);
+          remaining.push(vertex);
         }
         delete vertex.__out;
       });
+      if (remaining.length > 0) {
+        console.error("sort_edges: remaining vertices", remaining);
+      }
       return this;
     },
 
@@ -737,7 +747,7 @@
         return;
       }
       this.values[target.__id] = [target, value];
-      graph.traverse();
+      this.graph.traverse();
     },
 
     clear_values: function () {
@@ -778,6 +788,9 @@
   //   Vertex  source
   //   Vertex  dest
   bender.Edge = flexo._ext(bender.Base, {
+
+    // Initialize the edge with both source and destination, and add the edge to
+    // the incoming and outoing list of source and dest.
     init: function (source, dest) {
       this.source = source;
       this.dest = dest;
@@ -786,6 +799,7 @@
       return bender.Base.init.call(this);
     },
 
+    // InheritEdge have a lower priority, while
     priority: 0,
 
     // TODO

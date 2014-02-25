@@ -21,6 +21,14 @@ a {
     <script>
 "use strict";
 
+var hello = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "p")
+      .child(bender.Text.create().text("Hello, world!"))))
+  .name("Hello");
+
+hello.render();
+
+/*
 var text_label = bender.Text.create().name("text-label");
 var frame = bender.DOMElement.create(flexo.ns.html, "div")
   .name("frame")
@@ -41,6 +49,7 @@ var panel = bender.Component.create(bender.View.create()
       .child(minus.view)))
   .name("Panel")
   .property("n");
+  */
 
 /*
 button.watch(bender.Watch.create()  // 4

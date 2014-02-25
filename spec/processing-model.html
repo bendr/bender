@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>The Bender Processing Model (v0.9, February 2014)</title>
+    <title>The Bender Processing Model</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="doc.css">
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, February 2014</p>
+    <p>Version 0.9, Tue 25 Feb 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -779,6 +779,9 @@ integer next-view-index(View+ S, integer I) =
     component. Finally, a <code>ready</code> event notification is generated for
     all components so that they can finish any initialization that relies on
     the propagation of property values.</span></p>
+    <p><span class="TODO">Issue: a child component has its own initial value for
+      a property, but the parent component should set it from the first
+      traversal. More fine-grained priorities are probably necessary.</span></p>
 
     <pre class="code">init-properties(Component C, Graph G) = ...</pre>
 

@@ -1,5 +1,10 @@
 // HTML runtime for Bender, based on the functional core.
 
+// TODO 
+// [ ] select="*" for GetEvent: listen to notifications from anyone. Create an
+//       EventVertex that anyone can inherit from.
+// [ ] message="foo" for GetEvent, same as event="foo" delay="0"
+
 (function (bender) {
   "use strict";
 

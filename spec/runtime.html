@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>The Bender HTML Runtime(v0.9, February 2014)</title>
+    <title>The Bender HTML Runtime</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="doc.css">
   </head>
   <body>
     <h1>The Bender HTML Runtime</h1>
-    <p>Version 0.9, February 2014</p>
+    <p>Version 0.9, Tue 25 Feb 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and
     <a href="processing-model.html">the Bender Processing Model</a> for
     reference.</p>
@@ -121,10 +121,11 @@
     Javascript code with its parent component. It is modeled after the HTML
     <code>script</code> element. It can occur as a child of a
     <code>component</code> element. It has no attribute<span class="TODO">
-      (although it could have a <code>type</code> attribute for clients that
-      support other languages than Javascript, and an <code>async</code>
-      attribute that would allow asynchronous exection when possible. Also
-      <code>src</code> attribute?)</span> and text content. It gets rendered as
+      (although it could have a <code>type</code> attribute for runtimes or
+      renderers that support other languages than Javascript, and an
+      <code>async</code> attribute that would allow asynchronous exection when
+      possible. Or any other attribute that is then passed back to the renderer,
+      such as <code>src</code>)</span> and text content. It gets rendered as
     a <code>script</code> element in the <code>head</code> of the owner document
     of the target of the first render of the component; as such, it blocks
     rendering until completely executed. The <code>script</code> children are
