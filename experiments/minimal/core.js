@@ -120,8 +120,7 @@
     // the prototype (if any.)
     init: function (view) {
       bender.Node.init.call(this);
-      this.properties = "properties" in this ?
-        Object.create(this.properties) : {};
+      this.properties = this.create_properties();
       this.watches = [];
       this.set_view(view);
       this.__render_subgraph = true;        // delete when rendered
@@ -137,9 +136,20 @@
         .fmt((bender.Node.__id++).toString(36).toUpperCase(), this.__id);
       c.parent = null;
       c.children = [];
-      c.properties = Object.create(this.properties);
+      c.properties = c.create_properties();
       c.set_view(view);
       return c;
+    },
+
+    // Create the properties object for the component, which maps property names
+    // to their runtime value. The object keeps a hidden back-pointer to its
+    // owner component in the “hidden” (i.e., non-enumerable) "" property (which
+    // is not a valid property name.)
+    create_properties: function () {
+      var properties = "properties" in this ?
+        Object.create(this.properties) : {};
+      return Object.defineProperty(properties, "",
+          { value: this, configurable: true });
     },
 
     // Set the view of the component, and add the child components from the
@@ -171,7 +181,32 @@
     // Add a property to the component and return the component. An initial
     // value can also be set.
     property: function (name, init_value) {
-      return this.properties[name] = init_value, this;
+      return this.property_js(name, init_value);
+    },
+
+    // Define a Javascript property to store the value of a property in the
+    // component’s properties object. Setting a property triggers a visit of the
+    // corresponding vertex in the graph; however, a “silent” flag can be set to
+    // prevent this, which is used during the graph traversal.
+    property_js: function (name, value) {
+      Object.defineProperty(this.properties, name, {
+        enumerable: true,
+        configurable: true,
+        get: function () {
+          return value;
+        },
+        set: function (v, silent) {
+          if (this.hasOwnProperty(name)) {
+            value = v;
+          } else {
+            this[""].property_js(name, v);
+          }
+          if (!silent && name in this[""].property_vertices) {
+            this.property_vertices[name].value(this[""], value, true);
+          }
+        }
+      });
+      return this;
     },
 
     // Add a watch to the component and return the component.
@@ -199,9 +234,7 @@
 
     // If not already rendered, render the subgraph for this component in the
     // given WatchGraph. Render the subgraph of the prototype, then the subgraph
-    // of the watches, then the subgraph of the children. Return the graph.
-    // The component keeps track of the vertices that target it so that they can
-    // easily be found when rendering the watches.
+    // of the children, then the subgraph of the watches. Return the graph.
     render_subgraph: function (graph) {
       if (!this.__render_subgraph) {
         return graph;
@@ -499,7 +532,7 @@
       return this.adapter(set, this.sets);
     },
 
-    // Render the subgraph for this watch by in the given WatchGraph.?
+    // Render the subgraph for this watch by in the given WatchGraph.
     render_subgraph: function (graph) {
       if (this.gets.length === 0 && this.sets.length === 0) {
         return;
@@ -528,10 +561,10 @@
       return bender.Base.init.call(this);
     },
 
-    vertex: function (graph, name, vertices_name, prototype) {
+    vertex: function (graph, name, vertices_name, prototype_vertex) {
       var vertices = this.target[vertices_name];
       if (!vertices.hasOwnProperty(name)) {
-        vertices[name] = graph.vertex(prototype.create(this, graph));
+        vertices[name] = graph.vertex(prototype_vertex.create(this, graph));
         var prototype = Object.getPrototypeOf(this.target);
         if (vertices_name in prototype) {
           var protovertex = prototype[vertices_name][name];
@@ -565,13 +598,13 @@
   // GetProperty < Get
   //   Property  property
   bender.GetProperty = flexo._ext(bender.Get, {
-    init: function (target, property) {
-      this.property = property;
+    init: function (target, name) {
+      this.name = name;
       return bender.Get.init.call(this, target);
     },
 
     vertex: function (graph) {
-      return bender.Adapter.vertex.call(this, graph, this.property.name,
+      return bender.Adapter.vertex.call(this, graph, this.name,
         "property_vertices", bender.PropertyVertex);
     }
   });
@@ -603,8 +636,8 @@
   // SetProperty < Set
   //   Property  property
   bender.SetProperty = flexo._ext(bender.Set, {
-    init: function (target, property) {
-      this.property = property;
+    init: function (target, name) {
+      this.name = name;
       return bender.Set.init.call(this, target);
     },
 
@@ -727,7 +760,7 @@
     // Schedule a new graph traversal after a value was set on a vertex. If a
     // traversal was already scheduled, just return. Values are cleared after
     // the traversal finishes.
-    traverse: function () {
+    flush: function () {
       if (this.__scheduled) {
         return;
       }
@@ -757,12 +790,16 @@
       return bender.Base.init.call(this);
     },
 
-    value: function (target, value) {
+    // Set a value for a target. If the flush flag is set, schedule a graph
+    // flush as well.
+    value: function (target, value, flush) {
       if (target.__id in this.values) {
         return;
       }
       this.values[target.__id] = [target, value];
-      this.graph.traverse();
+      if (flush) {
+        this.graph.flush();
+      }
     },
 
     clear_values: function () {
@@ -821,6 +858,7 @@
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         var vv = this.source.values[id];
+        console.log("Traverse edge: %0 %1".fmt(vv[0].name, vv[1]));
         this.dest.values(vv[0], vv[1]);
       }, this);
     }

@@ -4,53 +4,37 @@ digraph bender {
 
   t [label="", shape=triangle, fixedsize=true, width=0.5];
 
-  ppushed [label="pushed (Plus)", shape=septagon];
-  w1 [label="1", shape=square, fixedsize=true, width=0.3];
-  ppushed -> w1 [style="dashed"];
-  w1 -> n [style="dashed"];
-
-  mpushed [label="pushed (Minus)", shape=septagon];
-  w2 [label="2", shape=square, fixedsize=true, width=0.3];
-  mpushed -> w2 [style=dashed];
-  w2 -> n [style=dashed];
-
+  init_n [label="n (Panel)", color="#774f38", fontcolor="#774f38"];
+  init_n -> n [color="#774f38", fontcolor="#774f38", label="Panel, 0"];
   n [label="n (Panel)"];
   w3 [label="3", shape=square, fixedsize=true, width=0.3];
   menabled [label="enabled (Minus)"];
   n -> w3 [label="Panel, 0"];
-  w3 -> t [label="Panel, \"0\""];
+  w3 -> t [label="text-n/Panel, \"0\""];
   w3 -> menabled [label="Minus, false"];
 
+  init_mlabel [label="label (Minus)", color="#774f38", fontcolor="#774f38"];
+  init_plabel [label="label (Plus)", color="#774f38", fontcolor="#774f38"];
+  init_mlabel -> label [color="#774f38", fontcolor="#774f38", label="Minus, \"—\""];
+  init_plabel -> label [color="#774f38", fontcolor="#774f38", label="Plus, \"+\""];
   label [label="label (Button)"];
   w4 [label="4", shape=square, fixedsize=true, width=0.3];
   label -> w4 [label="Plus, \"+\"\nMinus, \"—\""];
-  w4 -> t [label="Button/Plus, \"+\"\nButton/Minus, \"—\""];
+  w4 -> t [label="text-label/Plus, \"+\"\ntext-label/Minus, \"—\""];
 
-  mousedown [label="mousedown (frame)", shape=septagon];
-  w5 [label="5", shape=square, fixedsize=true, width=0.3];
+  init_down [label="down (Button)", color="#774f38", fontcolor="#774f38"];
+  init_down -> down [color="#774f38", fontcolor="#774f38", label="Plus, false\nMinus, false"];
   down [label="down (Button)"];
-  mousedown -> w5 [style=dashed];
-  w5 -> down [style=dashed];
-
-  mouseup [label="mouseup (frame)", shape=septagon];
-  w6 [label="6", shape=square, fixedsize=true, width=0.3];
-  mouseup -> w6 [style=dashed];
-  w6 -> down [style="dashed"];
-  w6 -> pushed [style="dashed"];
-
-  pushed [label="pushed (Button)", shape=septagon];
-  pushed -> ppushed [style=dashed, color="#f94179"];
-  pushed -> mpushed [style=dashed, color="#f94179"];
 
   w7 [label="7", shape=square, fixedsize=true, width=0.3];
   down -> w7 [label="Plus, false\nMinus, false"];
-  w7 -> t [label="Button/Plus, \"\"\nButton/Minus, \"\""];
 
-  w8 [label="8", shape=square, fixedsize=true, width=0.3];
-  enabled -> w8 [label="Plus, true\nMinus, true"];
+  enabled -> w7 [label="Plus, true\nMinus, true"];
   enabled -> menabled [label="Minus, true", color="#f94179"];
+  init_enabled [label="down (Button)", color="#774f38", fontcolor="#774f38"];
+  init_enabled -> enabled [color="#774f38", fontcolor="#774f38", label="Plus, true\nMinus, true"];
   enabled [label="enabled (Button)"];
-  menabled -> w8 [label="Minus, false", color="#f8ca00"];
-  w8 -> t [label="Button/Plus, \"\"\nButton/Minus, \"disabled\""];
+  menabled -> w7 [label="Minus, false", color="#f8ca00"];
+  w7 -> t [label="frame/Plus, \"\"\nframe/Minus, \"disabled\""];
 
 }

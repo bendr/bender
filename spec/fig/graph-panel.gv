@@ -43,15 +43,13 @@ digraph bender {
   pushed -> ppushed [color="#f94179"];
   pushed -> mpushed [color="#f94179"];
 
+  enabled [label="enabled (Button)"];
   w7 [label="7", shape=square, fixedsize=true, width=0.3];
   down -> w7;
+  enabled -> w7;
+  menabled -> w7 [color="#f8ca00"];
+  enabled -> menabled [color="#f94179"];
   w7 -> t;
 
-  w8 [label="8", shape=square, fixedsize=true, width=0.3];
-  enabled -> w8;
-  enabled -> menabled [color="#f94179"];
-  enabled [label="enabled (Button)"];
-  menabled -> w8 [color="#f8ca00"];
-  w8 -> t;
 
 }

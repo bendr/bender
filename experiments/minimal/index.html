@@ -21,6 +21,20 @@ a {
     <script>
 "use strict";
 
+var text_roman = bender.Text.create();
+var roman = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "p")
+      .child(bender.Text.create().text("n = "))
+      .child(text_roman)))
+  .name("Roman")
+  .property("n", 123);
+roman.watch(bender.Watch.create()
+    .get(bender.GetProperty.create(roman, "n"))
+    .set(bender.SetNodeProperty.create(text_roman, "text")));
+
+var graph = roman.render();
+
+/*
 var D = bender.Component.create(bender.View.create()
     .child(bender.DOMElement.create(flexo.ns.html, "h3")
       .child(bender.Text.create().text("D"))))
@@ -53,7 +67,6 @@ var hello = bender.Component.create(bender.View.create()
 
 hello.render();
 
-/*
 var text_label = bender.Text.create().name("text-label");
 var frame = bender.DOMElement.create(flexo.ns.html, "div")
   .name("frame")
@@ -74,9 +87,7 @@ var panel = bender.Component.create(bender.View.create()
       .child(minus.view)))
   .name("Panel")
   .property("n");
-  */
 
-/*
 button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, label))
       .set(bender.SetNodeProperty.create(text_label, "text")))

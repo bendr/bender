@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Tue 25 Feb 2014</p>
+    <p>Version 0.9, Wed 26 Feb 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for
     reference.</p>
@@ -103,12 +103,15 @@
           indirectly.<span class="TODO"> Do <code>Component</code>s explicitely
             inherit from a fundamental component by default?</span></li>
           <li><code>properties</code> is the list of all property values for
-          this component, indexed by their name.<span class="TODO"> All
-          properties of a component are “public”. However, having private
-          properties would be useful; the list of properties could then be split
-          in two, a list of public properties, and a list of private properties.
-          The list of public properties would be inherited, while the list of
-          private properties would not.</span></li>
+          this component, indexed by their name. From this list, the set of
+          <em>defined properties</em> can be derived, and is the same of
+          property names for the component. A property name can be any non-empty
+          string.<span class="TODO"> All properties of a component are
+            “public”. However, having private properties would be useful; the
+            set of properties could then be split in two, a list of public
+            properties, and a list of private properties. The list of public
+            properties would be inherited, while the list of private properties
+            would not.</span></li>
           <li><code>view</code> is the root of the view tree of this
           component.</li>
           <li><code>watches</code> is the set of all <code>Watch</code>es of the
@@ -447,17 +450,17 @@
     &lt;/html:div&gt;
   &lt;/view&gt;
   &lt;watch&gt; <span class="watch">1</span>
-    &lt;get select="Plus" event="pushed"/&gt;
+    &lt;get select="@Plus" event="pushed"/&gt;
     &lt;set property="n" value="`n + 1"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">2</span>
-    &lt;get select="Minus" event="pushed"/&gt;
+    &lt;get select="@Minus" event="pushed"/&gt;
     &lt;set property="n" value="`n - 1"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">3</span>
     &lt;get property="n"/&gt;
-    &lt;set select="text-n"/&gt;
-    &lt;set select="Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
+    &lt;set select="@text-n"/&gt;
+    &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
@@ -521,7 +524,7 @@
       <code>Plus</code> and <code>Minus</code> buttons above.</p>
       <div>
         <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
-  &lt;property name="label" as="string" value="Label"&gt;
+  &lt;property name="label" as="string" value="OK"&gt;
   &lt;property name="enabled" value="true"&gt;
   &lt;property name="down" value="false"&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
@@ -533,24 +536,23 @@
   &lt;/view&gt;
   &lt;watch&gt; <span class="watch">4</span>
     &lt;get property="label"/&gt;
-    &lt;set select="text-label"/&gt;
+    &lt;set select="@text-label"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">5</span>
-    &lt;get select="frame" event="mousedown"/&gt;
+    &lt;get select="@frame" event="mousedown"/&gt;
     &lt;set property="down" match="`enabled" value="true"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">6</span>
-    &lt;get select="frame" event="mouseup"/&gt;
+    &lt;get select="@frame" event="mouseup"/&gt;
     &lt;set event="pushed" match="`down"/&gt;
     &lt;set property="down" value="false"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">7</span>
     &lt;get property="down"/&gt;
-    &lt;set select="frame" attribute="class" value="$in ? 'down' : ''/&gt;
-  &lt;/watch&gt;
-  &lt;watch&gt; <span class="watch">8</span>
     &lt;get property="enabled"/&gt;
-    &lt;set select="frame" attribute="class" value="$in ? '' : 'disabled'/&gt;
+    &lt;set select="@frame" attribute="class"&gt;
+      return "%0 %1".fmt(`down ? "down" : "", `enabled: "" : "disabled");
+    &lt;/set
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
@@ -621,42 +623,27 @@
           dispatch a pushed event if the <code>down</code> property was indeed
           true (<em>i.e.</em> the mouse was pressed inside the button.)</li>
           </li>
-          <li>The <code>Watch</code> <span class="watch">7</span> has one input
+          <li>The <code>Watch</code> <span class="watch">7</span> has two inputs
           and one output:
           <ul>
-            <li>the input is a <code>GetProperty</code>. The <code>target</code>
-            is a the <code>Button</code> <code>Component</code>, and the
-            <code>property</code> is the <code>down</code> property;</li>
+            <li>the first input is a <code>GetProperty</code>. The
+            <code>target</code> is the <code>Button</code>
+            <code>Component</code>, and the <code>property</code> is the
+            <code>down</code> property;</li>
+            <li>the second input is a <code>GetProperty</code>. The
+            <code>target</code> is the <code>Button</code>
+            <code>Component</code>, and the <code>property</code> is the
+            <code>enabled</code> property;</li>
             <li>the output is a <code>SetAttribute</code>. The
             <code>target</code> is the <code>frame</code>
             <code>DOMElement</code>, the attribute to set has no namespace and
             the <code>class</code> name (<em>i.e.</em>, the HTML
             <code>class</code> attribute of the HTML <code>div</code> element),
-            and the value is a function that returns the string
-            <code>"down"</code> if its input is true, and the empty string
-            otherwise.</li>
+            and the value is a function that returns a class value containing
+            the class <code>down</code> if the <code>down</code> property is
+            true, and the class <code>disabled</code> if the
+            <code>enabled</code> property is false.</li>
           </ul>
-          The effect of this watch is to set the class of the frame element to
-          <code>down</code> if and only if the button is down.
-          </li>
-          <li>The <code>Watch</code> <span class="watch">8</span> has one input
-          and one output:
-          <ul>
-            <li>the input is a <code>GetProperty</code>. The <code>target</code>
-            is a the <code>Button</code> <code>Component</code>, and the
-            <code>property</code> is the <code>enabled</code> property;</li>
-            <li>the output is a <code>SetAttribute</code>. The
-            <code>target</code> is the <code>frame</code>
-            <code>DOMElement</code>, the attribute to set has no namespace and
-            the <code>class</code> name (<em>i.e.</em>, the HTML
-            <code>class</code> attribute of the HTML <code>div</code> element),
-            and the value is a function that returns the string
-            <code>"disabled"</code> if its input is false, and the empty string
-            otherwise.</li>
-          </ul>
-          The effect of this watch is to set the class of the frame element to
-          <code>disabled</code> if and only if the button is <em>not</em>
-          enabled.
           </li>
         </ul>
       </div>
@@ -667,7 +654,8 @@
     Blue arrows point from a <code>Component</code> to its <code>View</code>.
     <code>Component</code> nodes are shown as ellipses, while view
     <code>Element</code>s are shown as boxes. The graph of a top-level component
-    is enclosed within a green box.</p>
+    is enclosed within a green box. Watches and properties do not appear in this
+    graph.</p>
 
     <figure>
       <img src="fig/panel.svg">

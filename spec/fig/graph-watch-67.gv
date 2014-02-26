@@ -4,6 +4,7 @@ digraph bender {
 
   mouseup [label="mouseup (frame)", shape=septagon];
   down [label="down (Button)"];
+  enabled [label="enabled (Button)"];
   pushed [label="push (Button)", shape=septagon];
   w6 [label="6", shape=square, fixedsize=true, width=0.3];
   mouseup -> w6;
@@ -12,6 +13,7 @@ digraph bender {
 
   w7 [label="7", shape=square, fixedsize=true, width=0.3];
   t [label="", shape=triangle, fixedsize=true, width=0.5];
+  enabled -> w7;
   down -> w7;
   w7 -> t;
 

@@ -5,6 +5,8 @@
 //       EventVertex that anyone can inherit from.
 // [ ] message="foo" for GetEvent, same as event="foo" delay="0"
 
+/* global console, flexo */
+
 (function (bender) {
   "use strict";
 
@@ -33,7 +35,7 @@
 
   bender.PropertyVertex.desc = function () {
     return "v%0 [%1`%2]".fmt(this.__index, this.adapter.target.name(),
-        this.adapter.property.name);
+        this.adapter.name);
   };
 
   bender.EventVertex.desc = function () {

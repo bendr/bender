@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Tue 25 Feb 2014</p>
+    <p>Version 0.9, Wed 26 Feb 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -267,7 +267,7 @@
     <code>SetEvent</code> to an <code>EventVertex</code>.</p>
 
     <pre class="code">&lt;watch&gt; <span class="watch">6</span>
-  &lt;get select="frame" event="mouseup"/&gt;
+  &lt;get select="@frame" event="mouseup"/&gt;
   &lt;set event="pushed" match="`down"/&gt;
   &lt;set property="down" value="false"/&gt;
 &lt;/watch&gt;</pre>
@@ -282,14 +282,18 @@
     class="watch">7</span>. A new <code>WatchVertex</code> is added, then a new
     <code>AdapterEdge</code> for the <code>GetProperty</code>, reusing the
     <code>PropertyVertex</code> of <code>down</code> as the source vertex.
+    A second <code>AdapterEdge</code> for the <code>GetProperty</code>
+    corresponding to the <code>enabled</code> property is added as well.
     Finally, the <code>SetAttribute</code> is rendered as an
     <code>AdapterEdge</code> to the vortex (triangle.)</p>
 
     <pre class="code">&lt;watch&gt; <span class="watch">7</span>
   &lt;get property="down"/&gt;
-  &lt;set select="frame" attribute="class" value="$in ? 'down' : ''/&gt;
-&lt;/watch&gt;
-    </pre>
+  &lt;get property="enabled"/&gt;
+  &lt;set select="@frame" attribute="class"&gt;
+    return "%0 %1".fmt(`down ? "down" : "", `enabled: "" : "disabled");
+  &lt;/set
+&lt;/watch&gt;</pre>
 
     <figure>
       <img src="fig/graph-watch-67.svg">
@@ -362,7 +366,7 @@
     by arrows between the vertices; <code>InheritEdges</code> are pink while
     yellow edges are edges that were copied from the prototype vertex. In this
     case, there is an edge from the <code>enabled</code> property vertex of
-    <code>Button</code> to <span class="watch">8</span>, which is copied to the
+    <code>Button</code> to <span class="watch">7</span>, which is copied to the
     <code>enabled</code> property vertex of <code>Minus</code>.<span
       class="TODO"> Number the edges from the sort order.</span></p>
 
@@ -582,13 +586,13 @@ integer next-view-index(View+ S, integer I) =
 
     <h3>Input Vertices and Vertex Values</h3>
 
-    <p>The watch graph is traversed when one of its <em>input vertices</em>
-    receives an <em>input value</em> from a <em>target</em>. Edges of the graph
-    are then traversed in the sorted order. Edges have different effects on the
-    application, such as setting property values, generating events, modifying
-    rendered elements, &amp;c. The order of the edges defines the order in which
-    these changes occur. After all edges have been visited, vertex values are
-    cleared until the next traversal.</p>
+    <p>The watch graph is traversed when one or more of its <em>input
+      vertices</em> receives an <em>input value</em> from a <em>target</em>.
+    Edges of the graph are then traversed in the sorted order. Edges have
+    different effects on the application, such as setting property values,
+    generating events, modifying rendered elements, &amp;c. The order of the
+    edges defines the order in which these changes occur. After all edges have
+    been visited, vertex values are cleared until the next traversal.</p>
 
     <p>Both a <code>PropertyVertex</code> or an <code>EventVertex</code> can be
     an input vertex. A <code>PropertyVertex</code> may get an input value when
@@ -790,21 +794,38 @@ integer next-view-index(View+ S, integer I) =
 
 
     <h2>Property Initialization</h2>
-    <p><span class="TODO">Property vertices are initialized with initial values
-      of the properties. The order of rendered edges (note: the priority order
-      should be reversed for the correct behavior) enforces priority of
-      initialization; from parent to child and prototype to component. Once all
-    initial values are set, a graph traversal initializes every rendered
-    component. Finally, a <code>ready</code> event notification is generated for
-    all components so that they can finish any initialization that relies on
-    the propagation of property values.</span></p>
-    <p><span class="TODO">Issue: a child component has its own initial value for
-      a property, but the parent component should set it from the first
-      traversal. More fine-grained priorities are probably necessary.</span></p>
+    <p><span class="TODO">After rendering the view of all components, initial
+      values are set and the watch graph is flushed. For every property vertex
+      <em>V</em> in the graph, a new vertex <em>I</em> is added, with a single
+      outgoing edge <em>E</em> to <em>V</em>. Since the graph was sorted,
+      <em>E</em> can be inserted after all regular incoming edges of <em>V</em>,
+      but before any <code>InheritEdge</code> (i.e. <em>E</em> is considered to
+      have a <code>priority</code> in the range ]-1, 0[.) If <em>V</em> has no
+      incoming edge, <em>E</em> can safely be inserted at the head of the list
+      of edges. The graph is then traversed normally. The vertices and edges
+      added at this step can be removed, although they do not interfere in
+      further traversals.</span></p>
+
+    <p><span class="TODO">Finally, a <code>ready</code> event notification is
+      generated for all components so that they can finish any initialization
+      that relies on the propagation of property values.</span></p>
 
     <pre class="code">init-properties(Component C, Graph G) = ...</pre>
 
     <h3>Example</h3>
+    <p>The figure below shows the addition of the initialization vertices and
+    edges (in brown) in the watch graph of the <code>Panel</code> component. The
+    event vertices have been omitted for clarity.<span class="TODO"> Add numbers
+      on the edges to understand the order of initialization better.</span></p>
+    <p>In this example, the <code>enabled</code> property of <code>Minus</code>
+    receives two conflicting values: <code>true</code> (from the default value
+    of <code>Button</code>) and <code>false</code> (because the <code>n</code>
+    property of the <code>Panel</code> component was set to 0); the regular
+    edge having precedence over the <code>InheritEdge</code>, the final
+    value is <code>false</code>. Note also the initialization of
+    <code>label</code>: because both <code>Plus</code> and <code>Minus</code>
+    have a value for this property, the value for <code>Button</code> is not
+    used here.</p>
 
     <figure>
       <img src="fig/graph-init.svg">
