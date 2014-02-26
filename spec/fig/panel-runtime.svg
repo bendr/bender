@@ -52,7 +52,7 @@
 </g>
 <!-- div1 -->
 <g id="node5" class="node"><title>div1</title>
-<polygon fill="none" stroke="black" points="169.455,-424 102.545,-424 102.545,-388 169.455,-388 169.455,-424"/>
+<polygon fill="none" stroke="#5eb26b" points="169.455,-424 102.545,-424 102.545,-388 169.455,-388 169.455,-424"/>
 <text text-anchor="middle" x="136" y="-403.474" font-family="Avenir Next" font-size="14.00">html:div</text>
 </g>
 <!-- vpanel&#45;&gt;div1 -->
@@ -76,7 +76,7 @@
 <text text-anchor="middle" x="407" y="-323.474" font-family="Avenir Next" font-size="14.00">Button</text>
 </g>
 <!-- Plus&#45;&gt;Button -->
-<g id="edge23" class="edge"><title>Plus&#45;&gt;Button</title>
+<g id="edge19" class="edge"><title>Plus&#45;&gt;Button</title>
 <path fill="none" stroke="#f94179" d="M240.704,-391.729C245.953,-388.956 251.589,-386.208 257,-384 298.545,-367.045 312.513,-373.095 354,-356 359.855,-353.587 365.896,-350.7 371.71,-347.696"/>
 <polygon fill="#f94179" stroke="#f94179" points="373.44,-350.739 380.6,-342.93 370.133,-344.57 373.44,-350.739"/>
 </g>
@@ -91,7 +91,7 @@
 <polygon fill="#4dbce9" stroke="#4dbce9" points="284.699,-351.961 277.494,-344.193 278.282,-354.758 284.699,-351.961"/>
 </g>
 <!-- Minus&#45;&gt;Button -->
-<g id="edge22" class="edge"><title>Minus&#45;&gt;Button</title>
+<g id="edge18" class="edge"><title>Minus&#45;&gt;Button</title>
 <path fill="none" stroke="#f94179" d="M326.349,-388.075C340.86,-377.087 359.974,-362.612 375.952,-350.512"/>
 <polygon fill="#f94179" stroke="#f94179" points="378.122,-353.259 383.981,-344.432 373.896,-347.679 378.122,-353.259"/>
 </g>
@@ -107,7 +107,7 @@
 </g>
 <!-- textn -->
 <g id="node16" class="node"><title>textn</title>
-<polygon fill="none" stroke="black" points="103.252,-344 16.7483,-344 16.7483,-308 103.252,-308 103.252,-344"/>
+<polygon fill="none" stroke="#5eb26b" points="103.252,-344 16.7483,-344 16.7483,-308 103.252,-308 103.252,-344"/>
 <text text-anchor="middle" x="60" y="-323.474" font-family="Avenir Next" font-size="14.00">text (text&#45;n)</text>
 </g>
 <!-- div1&#45;&gt;textn -->
@@ -117,8 +117,8 @@
 </g>
 <!-- vbutton__ -->
 <g id="node12" class="node"><title>vbutton__</title>
-<polygon fill="none" stroke="black" points="334.382,-268 197.618,-268 197.618,-232 334.382,-232 334.382,-268"/>
-<text text-anchor="middle" x="266" y="-247.474" font-family="Avenir Next" font-size="14.00">view (Button) clone</text>
+<polygon fill="none" stroke="black" points="315.338,-268 216.662,-268 216.662,-232 315.338,-232 315.338,-268"/>
+<text text-anchor="middle" x="266" y="-247.474" font-family="Avenir Next" font-size="14.00">view (Button)</text>
 </g>
 <!-- vminus&#45;&gt;vbutton__ -->
 <g id="edge14" class="edge"><title>vminus&#45;&gt;vbutton__</title>
@@ -126,22 +126,22 @@
 </g>
 <!-- vbutton_ -->
 <g id="node8" class="node"><title>vbutton_</title>
-<polygon fill="none" stroke="black" points="167.222,-268 36.7778,-268 36.7778,-232 167.222,-232 167.222,-268"/>
-<text text-anchor="middle" x="102" y="-247.474" font-family="Avenir Next" font-size="14.00">view (Button/Plus)</text>
+<polygon fill="none" stroke="black" points="168.338,-268 69.6618,-268 69.6618,-232 168.338,-232 168.338,-268"/>
+<text text-anchor="middle" x="119" y="-247.474" font-family="Avenir Next" font-size="14.00">view (Button)</text>
 </g>
 <!-- vplus&#45;&gt;vbutton_ -->
 <g id="edge10" class="edge"><title>vplus&#45;&gt;vbutton_</title>
-<path fill="none" stroke="#f94179" d="M148.852,-307.837C138.997,-295.882 125.909,-280.004 116.071,-268.07"/>
+<path fill="none" stroke="#f94179" d="M152.795,-307.837C145.687,-295.882 136.246,-280.004 129.15,-268.07"/>
 </g>
 <!-- frame_ -->
 <g id="node9" class="node"><title>frame_</title>
-<polygon fill="none" stroke="black" points="163.4,-196 16.6,-196 16.6,-160 163.4,-160 163.4,-196"/>
+<polygon fill="none" stroke="#5eb26b" points="163.4,-196 16.6,-196 16.6,-160 163.4,-160 163.4,-196"/>
 <text text-anchor="middle" x="90" y="-175.474" font-family="Avenir Next" font-size="14.00">html:div (frame/Plus)</text>
 </g>
 <!-- vbutton_&#45;&gt;frame_ -->
 <g id="edge11" class="edge"><title>vbutton_&#45;&gt;frame_</title>
-<path fill="none" stroke="black" d="M99.0337,-231.697C97.7113,-223.983 96.1221,-214.712 94.6478,-206.112"/>
-<polygon fill="black" stroke="black" points="98.0716,-205.369 92.9322,-196.104 91.1722,-206.552 98.0716,-205.369"/>
+<path fill="none" stroke="black" d="M111.831,-231.697C108.565,-223.813 104.626,-214.304 100.998,-205.546"/>
+<polygon fill="black" stroke="black" points="104.147,-204.003 97.0861,-196.104 97.68,-206.683 104.147,-204.003"/>
 </g>
 <!-- content_ -->
 <g id="node10" class="node"><title>content_</title>
@@ -155,7 +155,7 @@
 </g>
 <!-- textlabel_ -->
 <g id="node11" class="node"><title>textlabel_</title>
-<polygon fill="none" stroke="black" points="161.126,-52 18.874,-52 18.874,-16 161.126,-16 161.126,-52"/>
+<polygon fill="none" stroke="#5eb26b" points="161.126,-52 18.874,-52 18.874,-16 161.126,-16 161.126,-52"/>
 <text text-anchor="middle" x="90" y="-31.4744" font-family="Avenir Next" font-size="14.00">text (text&#45;label/Plus)</text>
 </g>
 <!-- content_&#45;&gt;textlabel_ -->
@@ -165,7 +165,7 @@
 </g>
 <!-- frame__ -->
 <g id="node13" class="node"><title>frame__</title>
-<polygon fill="none" stroke="black" points="342.192,-196 181.808,-196 181.808,-160 342.192,-160 342.192,-196"/>
+<polygon fill="none" stroke="#5eb26b" points="342.192,-196 181.808,-196 181.808,-160 342.192,-160 342.192,-196"/>
 <text text-anchor="middle" x="262" y="-175.474" font-family="Avenir Next" font-size="14.00">html:div (frame/Minus)</text>
 </g>
 <!-- vbutton__&#45;&gt;frame__ -->
@@ -185,7 +185,7 @@
 </g>
 <!-- textlabel__ -->
 <g id="node15" class="node"><title>textlabel__</title>
-<polygon fill="none" stroke="black" points="338.92,-52 185.08,-52 185.08,-16 338.92,-16 338.92,-52"/>
+<polygon fill="none" stroke="#5eb26b" points="338.92,-52 185.08,-52 185.08,-16 338.92,-16 338.92,-52"/>
 <text text-anchor="middle" x="262" y="-31.4744" font-family="Avenir Next" font-size="14.00">text (text&#45;label/Minus)</text>
 </g>
 <!-- content__&#45;&gt;textlabel__ -->
@@ -199,7 +199,7 @@
 <text text-anchor="middle" x="420" y="-247.474" font-family="Avenir Next" font-size="14.00">view (Button)</text>
 </g>
 <!-- Button&#45;&gt;vbutton -->
-<g id="edge18" class="edge"><title>Button&#45;&gt;vbutton</title>
+<g id="edge20" class="edge"><title>Button&#45;&gt;vbutton</title>
 <path fill="none" stroke="#4dbce9" d="M410.691,-303.993C412.099,-295.973 413.726,-286.712 415.222,-278.197"/>
 <polygon fill="#4dbce9" stroke="#4dbce9" points="418.675,-278.769 416.958,-268.315 411.781,-277.558 418.675,-278.769"/>
 </g>
@@ -209,7 +209,7 @@
 <text text-anchor="middle" x="424" y="-175.474" font-family="Avenir Next" font-size="14.00">html:div (frame)</text>
 </g>
 <!-- vbutton&#45;&gt;frame -->
-<g id="edge19" class="edge"><title>vbutton&#45;&gt;frame</title>
+<g id="edge21" class="edge"><title>vbutton&#45;&gt;frame</title>
 <path fill="none" stroke="black" d="M420.989,-231.697C421.43,-223.983 421.959,-214.712 422.451,-206.112"/>
 <polygon fill="black" stroke="black" points="425.946,-206.288 423.023,-196.104 418.958,-205.888 425.946,-206.288"/>
 </g>
@@ -219,7 +219,7 @@
 <text text-anchor="middle" x="424" y="-103.474" font-family="Avenir Next" font-size="14.00">content</text>
 </g>
 <!-- frame&#45;&gt;content -->
-<g id="edge20" class="edge"><title>frame&#45;&gt;content</title>
+<g id="edge22" class="edge"><title>frame&#45;&gt;content</title>
 <path fill="none" stroke="black" d="M424,-159.697C424,-151.983 424,-142.712 424,-134.112"/>
 <polygon fill="black" stroke="black" points="427.5,-134.104 424,-124.104 420.5,-134.104 427.5,-134.104"/>
 </g>
@@ -229,7 +229,7 @@
 <text text-anchor="middle" x="424" y="-31.4744" font-family="Avenir Next" font-size="14.00">text (text&#45;label)</text>
 </g>
 <!-- content&#45;&gt;textlabel -->
-<g id="edge21" class="edge"><title>content&#45;&gt;textlabel</title>
+<g id="edge23" class="edge"><title>content&#45;&gt;textlabel</title>
 <path fill="none" stroke="black" d="M424,-87.6966C424,-79.9827 424,-70.7125 424,-62.1124"/>
 <polygon fill="black" stroke="black" points="427.5,-62.1043 424,-52.1043 420.5,-62.1044 427.5,-62.1043"/>
 </g>

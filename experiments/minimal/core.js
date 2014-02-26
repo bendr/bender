@@ -202,7 +202,7 @@
             this[""].property_js(name, v);
           }
           if (!silent && name in this[""].property_vertices) {
-            this.property_vertices[name].value(this[""], value, true);
+            this[""].property_vertices[name].value(this[""], value, true);
           }
         }
       });
@@ -821,9 +821,9 @@
   // AdapterVertex < Vertex
   //   Adapter  adapter
   bender.AdapterVertex = flexo._ext(bender.Vertex, {
-    init: function (adapter) {
+    init: function (adapter, graph) {
       this.adapter = adapter;
-      return bender.Vertex.init.call(this);
+      return bender.Vertex.init.call(this, graph);
     }
   });
 
@@ -858,8 +858,7 @@
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         var vv = this.source.values[id];
-        console.log("Traverse edge: %0 %1".fmt(vv[0].name, vv[1]));
-        this.dest.values(vv[0], vv[1]);
+        this.dest.value(vv[0], vv[1]);
       }, this);
     }
   });
@@ -874,6 +873,12 @@
     init: function (source, dest, adapter) {
       this.adapter = adapter;
       return bender.Edge.init.call(this, source, dest);
+    },
+
+    traverse: function () {
+      // TODO find dynamic target from input target (vv[0]) and static target
+      // (adapter.target)
+      bender.Edge.traverse.call(this);
     }
   });
 

@@ -27,8 +27,10 @@ digraph bender {
   w6 -> pushed;
 
   pushed [label="pushed\n(Button, Plus, Minus)", shape=septagon];
-  down -> t;
+  w7 [label="7", shape=square, fixedsize=true, width=0.3];
+  enabled -> w7; 
+  down -> w7;
 
-  enabled -> t;
+  w7 -> t;
 
 }
