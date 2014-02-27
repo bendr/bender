@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Wed 26 Feb 2014</p>
+    <p>Version 0.9, Thu 27 Feb 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for
     reference.</p>
@@ -24,11 +24,10 @@
       <code>Object</code>, or the undefined value.</li>
       <li>The binary operator <code>is-a</code> checks if the Object on the
       left-hand side was created from the object on the right-hand side.</li>
-      <li>A <em>Function</em> is a callable <code>Object</code>. We use lambda
-      notation for anonymous functions. The pseudo-code used is a simple
-      expression-based language with a liberal syntax that allows side
-      effects (functions may not return any value) and mutation of data
-      structures.</li>
+      <li>A function is described by its name, formal parameters, and an
+      optional return type. The pseudo-code used is a simple expression-based
+      language with a liberal syntax that allows side effects, namely the
+      mutation of object properties, and may not return any value.</li>
       <li><em>O</em> <code>&lt;</code> <em>P</em> means that the object
       <em>O</em> is <em>created</em> from the object <em>P</em>. <em>O</em>
       inherits all of the properties of <em>P</em>, along with their values.
@@ -280,8 +279,8 @@
   Watch     watch
   Node      target
   boolean   static = false
-  Function  value = λx x
-  Function  match = λx true
+  boolean   match(Node T, data V) = true
+  data      value(Node T, data V) = V
   number?   delay</pre>
         <ul>
           <li><code>watch</code> is the owner <code>Watch</code> of the
@@ -293,14 +292,17 @@
           <code>Adapter</code> applies to a static target (when set) or a
           <em>runtime target</em> (otherwise), meaning any <code>Node</code>
           that is, or derives from, the static target <code>Node</code>.</li>
-          <li><code>value</code> is a function transforming an input value into
-          an output value. The default is the identity function, which returns
-          its input. It may return any <code>data</code>.</li>
-          <li><code>match</code> is a predicate that takes an input value and
-          returns a boolean value that is true if and only if the input is
-          <em>valid</em> for this adapter. If an input is invalid, no value is
-          output by the adapter. The default is a function that returns true for
-          any input, treating any input value as valid.</li>
+          <li><code>match</code> is a predicate that takes a <code>Node</code>
+          (the <em>runtime target</em>) and <code>data</code> (the <em>input
+            value</em>) as input and returns a boolean value that is true if and
+          only if the input value is considered <em>valid</em> for the target.
+          If an input is considered invalid, no value is output by the adapter.
+          The default is a function that returns true for any input, treating
+          any input value as valid.</li>
+          <li><code>value</code> is a predicate that takes a <code>Node</code>
+          (the runtime target) and <code>data</code> (the input value) as input
+          and returns an output value, which can be any <code>data</code>. The
+          default is to return the input value unchanged.</li>
           <li><code>delay</code> is the delay before an output value is
           returned. When <code>delay</code> is undefined, there is no delay, and
           the output value is returned synchronously. When <code>delay</code> is
@@ -551,13 +553,13 @@
     &lt;get property="down"/&gt;
     &lt;get property="enabled"/&gt;
     &lt;set select="@frame" attribute="class"&gt;
-      return "%0 %1".fmt(`down ? "down" : "", `enabled: "" : "disabled");
+      return "%0 %1".fmt(`down ? "down" : "", `enabled ? "" : "disabled");
     &lt;/set
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
         <ul>
           <li><code>Button</code> has a property named <code>label</code> with
-          initial value <code>"Label"</code>. The <code>as</code> attribute
+          initial value <code>"OK"</code>. The <code>as</code> attribute
           specifies that the value should be interpreted as a character
           string.</li>
           <li><code>Button</code> has a property named <code>enabled</code> with
@@ -653,9 +655,8 @@
     arrows are parent/child relationships. Pink arrows point to a prototype.
     Blue arrows point from a <code>Component</code> to its <code>View</code>.
     <code>Component</code> nodes are shown as ellipses, while view
-    <code>Element</code>s are shown as boxes. The graph of a top-level component
-    is enclosed within a green box. Watches and properties do not appear in this
-    graph.</p>
+    <code>Element</code>s are shown as boxes. Watches and properties do not
+    appear in this graph.</p>
 
     <figure>
       <img src="fig/panel.svg">

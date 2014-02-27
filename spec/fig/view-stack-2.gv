@@ -2,15 +2,18 @@ digraph tree {
   node [fontname="Avenir Next"];
   edge [fontname="Avenir Next"];
 
-  VA [label="A" shape=triangle]
-  VB1 [label="B1" shape=triangle]
-  VB2 [label="B2" shape=triangle]
-  VB_ [label="B’" shape=triangle]
-  VC_ [label="C’" shape=triangle]
-  VD_ [label="D’" shape=triangle]
-  VB__ [label="B”" shape=triangle]
-  VC__ [label="C”" shape=triangle]
-  VD__ [label="D”" shape=triangle]
+  VA [label="A" shape=box]
+  VB1 [label="B1" shape=box]
+  VB2 [label="B2" shape=box]
+  VB [label="B" shape=box]
+  VC [label="C" shape=box]
+  VD [label="D" shape=box]
+  VB_ [label="B’" shape=box]
+  VC_ [label="C’" shape=box]
+  VD_ [label="D’" shape=box]
+  VB__ [label="B”" shape=box]
+  VC__ [label="C”" shape=box]
+  VD__ [label="D”" shape=box]
 
   VA -> VB1
   VA -> VB2
@@ -21,7 +24,15 @@ digraph tree {
   VB__ -> VC__
   VB__ -> VD__
 
-  subgraph cluster1 { VB1; VB_ }
-  subgraph cluster2 { VB2; VB__ }
+  VB -> VC
+  VB -> VD
+
+  subgraph cluster0 { color="#f94179"; VA }
+  subgraph cluster1 { color="#f94179"; VB1; VB_ }
+  subgraph cluster2 { color="#f94179"; VB2; VB__ }
+  subgraph cluster3 { color="#f94179"; VC_ }
+  subgraph cluster4 { color="#f94179"; VD_ }
+  subgraph cluster5 { color="#f94179"; VC__ }
+  subgraph cluster6 { color="#f94179"; VD__ }
 
 }

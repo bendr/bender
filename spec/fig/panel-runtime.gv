@@ -11,6 +11,10 @@ digraph panel {
 
     subgraph { rank=same; Plus; Minus }
 
+    subgraph cluster_panel_stack { color="#f94179"; vpanel; }
+    subgraph cluster_plus_stack { color="#f94179"; vplus; vbutton_; }
+    subgraph cluster_minus_stack { color="#f94179"; vminus; vbutton__; }
+
     div1 [label="html:div", shape=box, color="#5eb26b"]
     vpanel [label="view (Panel)", shape=box]
     vminus [label="view (Minus)", shape=box]
@@ -24,7 +28,7 @@ digraph panel {
     content__ [label="content", shape=box]
     textlabel__ [label="text (text-label/Minus)", shape=box, color="#5eb26b"]
 
-    textn [label="text (text-n)", shape=box, color="#5eb26b"]
+    textn [label="text (text-n/Panel)", shape=box, color="#5eb26b"]
     vpanel -> div1
     div1 -> textn
     div1 -> vminus
@@ -32,6 +36,7 @@ digraph panel {
 
     Plus -> vplus [color="#4dbce9"]
     Minus -> vminus [color="#4dbce9"]
+
 
     vplus -> vbutton_ [dir=none, color="#f94179"]
     vbutton_ -> frame_
@@ -43,27 +48,26 @@ digraph panel {
     frame__ -> content__
     content__ -> textlabel__
 
-    // div1 -> frame_ [color="#5eb26b"]
-    // frame_ -> textlabel_ [color="#5eb26b"]
-    // div1 -> frame__ [color="#5eb26b"]
-    // frame__ -> textlabel__ [color="#5eb26b"]
-
   }
 
   Minus -> Button [color="#f94179"]
   Plus -> Button [color="#f94179"]
 
   subgraph cluster_button {
-    color="gray";
-
+    color=white;
     Button -> vbutton [color="#4dbce9"]
-    vbutton [label="view (Button)", shape=box]
-    frame [label="html:div (frame)", shape=box]
-    content [shape=box]
-    textlabel [label="text (text-label)", shape=box]
-    vbutton -> frame
-    frame -> content
-    content -> textlabel
+
+    subgraph cluster_unrendered {
+      color="gray";
+
+      vbutton [label="view (Button)", shape=box]
+      frame [label="html:div (frame)", shape=box]
+      content [shape=box]
+      textlabel [label="text (text-label)", shape=box]
+      vbutton -> frame
+      frame -> content
+      content -> textlabel
+    }
 
   }
 

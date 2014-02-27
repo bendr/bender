@@ -4,37 +4,37 @@ digraph bender {
 
   t [label="", shape=triangle, fixedsize=true, width=0.5];
 
-  init_n [label="n (Panel)", color="#774f38", fontcolor="#774f38"];
-  init_n -> n [color="#774f38", fontcolor="#774f38", label="Panel, 0"];
+  init_n [label="n (Panel)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_n -> n [color="#ff6a4d", fontcolor="#ff6a4d", label=" Panel, 0"];
   n [label="n (Panel)"];
   w3 [label="3", shape=square, fixedsize=true, width=0.3];
   menabled [label="enabled (Minus)"];
-  n -> w3 [label="Panel, 0"];
-  w3 -> t [label="text-n/Panel, \"0\""];
-  w3 -> menabled [label="Minus, false"];
+  n -> w3 [label=" Panel, 0"];
+  w3 -> t [label=" text-n/Panel, \"0\""];
+  w3 -> menabled [label=" Minus, false"];
 
-  init_mlabel [label="label (Minus)", color="#774f38", fontcolor="#774f38"];
-  init_plabel [label="label (Plus)", color="#774f38", fontcolor="#774f38"];
-  init_mlabel -> label [color="#774f38", fontcolor="#774f38", label="Minus, \"—\""];
-  init_plabel -> label [color="#774f38", fontcolor="#774f38", label="Plus, \"+\""];
+  init_mlabel [label="label (Minus)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_plabel [label="label (Plus)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_mlabel -> label [color="#ff6a4d", fontcolor="#ff6a4d", label=" Minus, \"—\""];
+  init_plabel -> label [color="#ff6a4d", fontcolor="#ff6a4d", label=" Plus, \"+\""];
   label [label="label (Button)"];
   w4 [label="4", shape=square, fixedsize=true, width=0.3];
-  label -> w4 [label="Plus, \"+\"\nMinus, \"—\""];
-  w4 -> t [label="text-label/Plus, \"+\"\ntext-label/Minus, \"—\""];
+  label -> w4 [label=" Plus, \"+\"\n Minus, \"—\""];
+  w4 -> t [label=" text-label/Plus, \"+\"\n text-label/Minus, \"—\""];
 
-  init_down [label="down (Button)", color="#774f38", fontcolor="#774f38"];
-  init_down -> down [color="#774f38", fontcolor="#774f38", label="Plus, false\nMinus, false"];
+  init_down [label="down (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_down -> down [color="#ff6a4d", fontcolor="#ff6a4d", label=" Plus, false\n Minus, false"];
   down [label="down (Button)"];
 
   w7 [label="7", shape=square, fixedsize=true, width=0.3];
-  down -> w7 [label="Plus, false\nMinus, false"];
+  down -> w7 [label=" Plus, false\n Minus, false"];
 
-  enabled -> w7 [label="Plus, true\nMinus, true"];
-  enabled -> menabled [label="Minus, true", color="#f94179"];
-  init_enabled [label="down (Button)", color="#774f38", fontcolor="#774f38"];
-  init_enabled -> enabled [color="#774f38", fontcolor="#774f38", label="Plus, true\nMinus, true"];
+  enabled -> w7 [label=" Plus, true\n Minus, true"];
+  enabled -> menabled [label=" Minus, true", color="#f94179"];
+  init_enabled [label="down (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_enabled -> enabled [color="#ff6a4d", fontcolor="#ff6a4d", label=" Plus, true\n Minus, true"];
   enabled [label="enabled (Button)"];
-  menabled -> w7 [label="Minus, false", color="#f8ca00"];
-  w7 -> t [label="frame/Plus, \"\"\nframe/Minus, \"disabled\""];
+  menabled -> w7 [label=" Minus, false", color="#f8ca00"];
+  w7 -> t [label=" frame/Plus, \"\"\n frame/Minus, \"disabled\""];
 
 }

@@ -2,32 +2,29 @@ digraph panel {
   node [fontname="Avenir Next"];
   edge [fontname="Avenir Next"];
 
-  subgraph cluster_panel {
-    color="#5eb26b";
-    Panel [ordering=out]
-    Panel -> vpanel [color="#4dbce9"]
-    Panel -> Plus
-    Panel -> Minus
+  Panel [ordering=out]
+  Panel -> vpanel [color="#4dbce9"]
+  Panel -> Plus
+  Panel -> Minus
 
-    subgraph { rank=same; Plus; Minus }
+  subgraph { rank=same; Plus; Minus }
 
-    div1 [label="html:div", shape=box]
-    vpanel [label="view (Panel)", shape=box]
-    vminus [label="view (Minus)", shape=box]
-    vplus [label="view (Plus)", shape=box]
+  div1 [label="html:div", shape=box]
+  vpanel [label="view (Panel)", shape=box]
+  vminus [label="view (Minus)", shape=box]
+  vplus [label="view (Plus)", shape=box]
 
-    textn [label="text (text-n)", shape=box]
-    vpanel -> div1
-    div1 -> textn
-    div1 -> vminus
-    div1 -> vplus
+  textn [label="text (text-n)", shape=box]
+  vpanel -> div1
+  div1 -> textn
+  div1 -> vminus
+  div1 -> vplus
 
-    Plus -> vplus [color="#4dbce9"]
-    Minus -> vminus [color="#4dbce9"]
-  }
+  Plus -> vplus [color="#4dbce9"]
+  Minus -> vminus [color="#4dbce9"]
 
   subgraph cluster_button {
-    color="#5eb26b";
+    color=white
 
     Button -> vbutton [color="#4dbce9"]
     vbutton [label="view (Button)", shape=box]

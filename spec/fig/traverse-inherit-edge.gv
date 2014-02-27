@@ -1,0 +1,16 @@
+digraph bender {
+  node [fontname="Avenir Next"];
+  edge [fontname="Avenir Next"];
+
+  w6 [label="6", shape=square, fixedsize=true, width=0.3];
+  w6 -> pushed [label=" Plus, event"];
+
+  ppushed [label="pushed (Plus)", shape=septagon];
+  mpushed [label="pushed (Minus)", shape=septagon];
+
+  pushed [label="pushed (Button)", shape=septagon];
+  pushed -> ppushed [color="#f94179", label=" Plus, event"];
+  pushed -> mpushed [color="#f94179", style=dashed, label=" (no value)"];
+
+
+}

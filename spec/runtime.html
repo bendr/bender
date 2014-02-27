@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender HTML Runtime</h1>
-    <p>Version 0.9, Wed 26 Feb 2014</p>
+    <p>Version 0.9, Thu 27 Feb 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and
     <a href="processing-model.html">the Bender Processing Model</a> for
     reference.</p>
@@ -33,6 +33,8 @@
       one for properties, and one for nodes (components and view elements.)
       Scope for property names is the parent component; scope for nodes is the
       top-level component tree.</span></li>
+      <li><span class="TODO">The <code>render-name</code> attribute. Where does
+        it go exactly?</span></li>
     </ul>
 
     <h3>The <code>component</code> element</h3>
@@ -147,11 +149,66 @@
 
     <h3>Loading and Deserialization</h3>
 
+    <h3>Scopes and Bender Selectors</h3>
+    <p><span class="TODO">Values for the <code>select</code>
+      attribute.</span></p>
+
     <h2 id="api">The Bender Javascript API</h2>
-    <p><span class="TODO">Custom elements (mapping namespace URI + local name to
-      components); bindings (auto-generating watches for property, text nodes
-      and attributes); Javascript API (match and value attributes, syntactic
-      sugar); &amp;c.</span></p> 
+
+    <h3>Enriched Javascript Syntax</h3>
+    <p><span class="TODO">Javascript is used in Bender documents in the
+      <code>match</code> and <code>value</code> attributes, and the text content
+      of <code>value</code> elements. The enriched syntax introduces three new
+      symbols, <code>`</code> (for component properties), <code>@</code> (for
+      runtime component IDs), and <code>#</code> (for static component
+      IDs.)</span></p>
+    <p><span class="TODO">Functions are then textually transformed, compiled to
+      Javascript, then called with <code>this</code> as the runtime target, and
+      <code>$in</code> as the input value. We probably also want to have another
+      parameter for the previous value of a property. May rename 
+      <code>$in</code> as well.</span></code>
+
+    <h3>Property Bindings and Initial Values</h3>
+    <p><span class="TODO">The <code>property</code> element can have
+      <code>value</code> and <code>match</code> attributes like <code>get</code>
+      and <code>set</code>. This can be used to set an initial literal value,
+      a computed value, or as shorthand syntax for a watch. Dynamic and text
+      bindings; <code>as</code> attribute.</span></p>
+    <p><span class="TODO">Bindings may appear in text elements and attributes as
+      well, as a shorthand for watches. Text bindings only.</p>
+
+    <h3>Custom Elements</h3>
+    <p><span class="TODO">Register custom elements by mapping namespace URIs to
+      actual URIs (which may be local or remote but must point to actual
+      component or library files.) Then use the namespace URI and a local name
+      in a Bender document to construct the actual URI of the required component
+      (the local name part can map to a file or a fragment locator), then the
+      element is replaced with a <code>component</code> elements with the
+      constructed href and the same attributes and the content of the custom
+      element as the <code>view</code>. Custom elements cannot add any non-view
+      content. Custom elements do not introduce a new scope, if we go this
+      way.</p>
+    <pre class="code">&lt;component xmlns="http://bender.igel.co.jp"&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml" xmlns:lib="http://..."&gt;
+    &lt;lib:button label="OK" name="ok-button"/&gt;
+    &lt;lib:button name="cancel-button"&gt;
+      &lt;html:span class="cancel"/&gt;Cancel&lt;/html:span&gt;
+    &lt;/lib:button&gt;
+  &lt;/view&gt;
+&lt;/component&gt;</pre>
+    <p>Is the same as:</p>
+    <pre class="code">&lt;component xmlns="http://bender.igel.co.jp"&gt;
+  &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
+    &lt;component href="http://.../button.xml" label="OK" name="ok-button"/&gt;
+    &lt;component href="http://.../button.xml" name="cancel-button"&gt;
+      &lt;view&gt;
+        &lt;html:span class="cancel"/&gt;Cancel&lt;/html:span&gt;
+      &lt;/view&gt;
+    &lt;/component&gt;
+  &lt;/view&gt;
+&lt;/component&gt;</pre>
+
+    <h3>Javascript API for the Data Model</h3>
 
   </body>
 </html>

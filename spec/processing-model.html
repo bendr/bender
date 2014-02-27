@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Wed 26 Feb 2014</p>
+    <p>Version 0.9, Thu 27 Feb 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -291,7 +291,7 @@
   &lt;get property="down"/&gt;
   &lt;get property="enabled"/&gt;
   &lt;set select="@frame" attribute="class"&gt;
-    return "%0 %1".fmt(`down ? "down" : "", `enabled: "" : "disabled");
+    return "%0 %1".fmt(`down ? "down" : "", `enabled ? "" : "disabled");
   &lt;/set
 &lt;/watch&gt;</pre>
 
@@ -470,13 +470,12 @@ add-child-component’(Component C, Element E) =
       <figcaption>Static component graph (before rendering.)</figcaption>
     </figure>
 
-    <p>The complete tree of views after the view stacks have been created is
-    shown below. The black boxes indicate view stacks that have more than one
-    view (views outside of boxes are the only view in their stack.) It can be
-    seen that the view of <em>B</em> was cloned twice into <em>B’</em> and
-    <em>B”</em>, for the view stacks of <em>B<sub>1</sub></em> and
-    <em>B<sub>2</sub></em>; and likewise for its children <em>C</em> and
-    <em>D</em>.</p>
+    <p>The complete graph of views after the view stacks have been created is
+    shown below. The pink boxes indicate view stacks, while black boxes show the
+    views for their corresponding component. It can be seen that the view of
+    <em>B</em> was cloned twice into <em>B’</em> and <em>B”</em>, for the view
+    stacks of <em>B<sub>1</sub></em> and <em>B<sub>2</sub></em>; and likewise
+    for its children <em>C</em> and <em>D</em>.</p>
 
     <figure>
       <img src="fig/view-stack-2.svg">
@@ -581,6 +580,20 @@ integer next-view-index(View+ S, integer I) =
       N.text-content &lt;- E.text
       append-child(T, N)</pre>
 
+    <p>The figure belows shows a rendering of the <code>Panel</code> component
+    in a DOM target element (not shown.) The pink boxes show the view stacks for
+    the <code>Panel</code>, <code>Plus</code> and <code>Minus</code> components.
+    The view tree of the <code>Button</code> component graph is enclosed in a
+    gray box showing that it does <em>not</em> get rendered; instead, it is
+    cloned twice, once in the view stack of <code>Plus</code>, and once in the
+    view stack of <code>Minus</code>. Finally, the <code>Element</code>s that
+    are actually rendered to DOM elements in the output target are shown in
+    green.</p>
+    <figure>
+      <img src="fig/panel-runtime.svg">
+      <figcaption>The rendered <code>Panel</code>.</figcaption>
+    </figure>
+
 
     <h2>Watch Graph Traversal</h2>
 
@@ -619,6 +632,14 @@ integer next-view-index(View+ S, integer I) =
       </div>
     </div>
 
+    <p><span class="TODO">Getting and setting vertex values. A vertex can only
+      have one vertex value for a given target. This means that when setting an
+      output value on a vertex, if a previous value with the same target already
+      existed, the value is <strong>not</strong> updated. This removes
+      ambiguities in case there are several edges reaching a single vertex with
+      the same target. The ordering of the edges implements such conflict
+      resolution in the graph.</span></p>
+
     <h3>Edge Traversal</h3>
     <p>Every edge of the graph is visited in turn. This function is called
     whenever a <code>Vertex</code> receives a <code>VertexValue</code>. More
@@ -629,64 +650,69 @@ integer next-view-index(View+ S, integer I) =
   do
     for E in G.edges
       traverse-edge(E)
-    clear-vertex-values(G)</pre>
+    for V in G.vertices
+      clear-values(V)</pre>
 
-    <p>Remember that a <code>Watch</code> is defined in terms of inputs and
-    outputs. In the graph, a watch is represented by a <code>WatchVertex</code>.
-    This vertex receives input values from its input edge and transmits an
-    output value to its output edges.</p>
+    <p>The purpose of the <code>traverse-edge</code> function is to filter and
+    transform the input values of the source vertex of the edge, and set the
+    corresponding output values on the destination vertex. The watch graph
+    contains <code>InheritEdge</code>s and <code>AdapterEdge</code>s, which are
+    handled in a different manner.</p>
+    <pre class="code">traverse-edge(Edge E) =
+  case E of
+    InheritEdge = traverse-inherit-edge(E)
+    AdapterEdge = traverse-adapter-edge(E)</pre>
 
-    <p>An <em>input edge</em> is defined as an <code>AdapterEdge</code> that has
-    a <code>WatchVertex</code> as its destination; which also means that its
-    <code>adapter</code> is a <code>Get</code>. Conversely, an <em>output
-      edge</em> is defined as an <code>AdapterEdge</code> that has
-    a <code>WatchVertex</code> as its source; which also means that its
-    <code>adapter</code> is a <code>Set</code>. (This leaves
-    <code>InheritEdge</code>s to be handled later.)</p>
+    <p>An <code>InheritEdge</code> only filters its input values. The input
+    vertex value is passed unchanged to the destination vertex if and only if
+    the static target of the destination vertex is a prototype of the input
+    value target <span class="TODO">(better specify this
+      relationship.)</span></p>
+    <pre class="code">traverse-inherit-edge(InheritEdge E) =
+  for W in vertex-values(E.source)
+    if target-of(E.dest) is-prototype-of W.target
+      set-vertex-value(E.dest, W)</pre>
 
-    <p>Informally, an input edge <em>E</em> gets <code>VertexValue</code>s from
-    its source vertex. For each value <em>V</em>, the target of <em>V</em> is
-    matched against the target of the adapter: <code>V.target</code> must derive
-    from <code>E.adapter.target</code>. If there is a match, the match function
-    of <em>E</em> is called with <em>V</em>. If it returns true, then an output
-    value <em>V’</em> is set on the target watch vertex with the target of V and
-    the output of the value function of the adaptere.</p>
+    <p><code>target-of()</code> returns the static target of a vertex. In the
+    case of an <code>InheritEdge</code>, the destination vertex is always an
+    <code>AdapterVertex</code>, but this function is also used below where the
+    destination vertex may also be a <code>WatchVertex</code>.</p>
+    <pre class="code">Node target-of(Vertex V) = case V of
+                             AdapterVertex = V.adapter.target
+                             WatchVertex = V.watch.component</pre>
 
-    <p>An output edge <em>E</em> gets <code>VertexValue</code>s from its source
-    watch vertex. For each value <em>V</em>, the output target <em>T</em> is
-    determined from the input target <code>V.target</code> and the static output
-    target <code>E.adapter.target</code>. Three cases can arise:</p>
-    <ol>
-      <li>no such target is found. This may happen for components that have not
-      been rendered;</li>
-      <li>exactly one target is found; this is the runtime target equivalent to
-      the static target of the adapter. As an example, consider watch <span
-        class="watch">5</span> of the <code>Button</code> component: if the
-      <code>frame</code> of the <code>Plus</code> button received a
-      <code>mousedown</code> event, then the runtime target of the output edge
-      matching the static <code>Button</code> component target must be the
-      <code>Plus</code> component;</li>
-      <li>if the static flag is set on the adapter, then <em>all</em> derived
-      nodes become a target. For instance, changing the <code>label</code>
-      property on the <code>Button</code> component statically would set the
-      label property of both <code>Plus</code> and <code>Minus</code>
-      buttons; unless they have a value of their own; which is similar to how
-      Javascript object properties work.</li>
-    </ol>
-    <p>For every output target found, the match and value functions of the
-    adapter are executed to filter and compute the output value, and the result
-    vertex value is set on the destination vertex. Finally, side effects of the
-    edge are applied (see below.)</p>
+    <p>The figure below illustrates the traversal of <code>InheritEdge</code>s.
+    The <code>EventVertex</code> labeled “pushed (Button)” has received a value
+    with target Plus and an event object value. Its two outgoing
+    <code>InheritEdge</code>s are traversed: the edge to the
+    <code>EventVertex</code> for Plus is followed, setting the same value on the
+    destination vertex, because the static target matches the runtime target.
+    The edge to the <code>EventVertex</code> for Minus is not followed (and is
+    represented as a dashed edge) because Minus is not a prototype of Plus.</p>
+    <figure>
+      <img src="fig/traverse-inherit-edge.svg">
+      <figcaption>Traversing an <code>InheritEdge</code><figcaption>
+    </figure>
 
-    <p>An <code>InheritEdge</code> simply passes its value unchanged to its
-    destination vertex.</p>
+    <p>An <code>AdapterEdge</code> filters and transforms its input value.
+    Moreover, it must also determine the right runtime target for its output
+    based on the static target of its adapter and its input runtime target.</p>
+    <pre class="code">traverse-adapter-edge(AdapterEdge E) =
+  for W in vertex-values(E.source)
+    for T in runtime-targets(target-of(E.dest), W.target)
+      if E.adapter.match(W.value, T)
+        apply-value(E, T, E.adapter.value(W.value, T))</pre>
 
-    <p>When an edge for a <code>Set</code> is traversed, its output value is
-    set on the target vertex, but it is also <code>apply</code> to the target.
+    <p><span class="TODO">Find the runtime targets for static target node
+      <em>S</em> in the context of the input runtime target <em>T</em>. There
+      can be zero or more such targets (depending on the static
+      flag.)</span></p>
+    <pre class="code">Node* runtime-targets(Node S, Node T) = ...</pre>
+
+    <p>When an edge for a <code>Set</code> is traversed, its output value is set
+    on the target vertex, but it is also <code>apply</code> to the target.
     Different <code>Set</code>s have different effects:</p>
     <ul>
-      <li>a plain <code>Set</code> has no specific side-effect, besides the
-      side effects of its <code>value</code> function;</li>
       <li>a <code>SetProperty</code> sets the property <code>property</code>
       of the target component to the output value <em>silently</em>: setting the
       value happens independently of the graph traversal, without initiating a
@@ -696,17 +722,20 @@ integer next-view-index(View+ S, integer I) =
       <code>Text</code> element, which updates the rendering of the
       component);</li>
       <li>a <code>SetAttribute</code> sets an attribute of the target
-      <code>DOMElement</code>
+      <code>DOMElement</code>;</li>
+      <li>a <code>SetEvent</code> synthesizes a new DOM event if the target is
+      a <code>DOMElement</code>;</li>
+      <li>otherwise, there is no side effect other than the side effects of the
+      <code>match</code> and <code>value</code> functions.</li>
     </ul>
-
-    <p>Finally, note that a vertex can only have one vertex value for a given
-    target. This means that when setting an output value on a vertex, if a
-    previous value with the same target already existed, the value is
-    <strong>not</strong> updated. This removes ambiguities in case there are
-    several edges reaching a single vertex with the same target. The ordering
-    of the edges implements such conflict resolution in the graph.</p>
-
-    <pre class="code">traverse-edge(Edge E) = <span class="TODO">TODO</span></pre>
+    <pre class="code">apply-value(Edge E, Node T, data V) =
+  do
+    case E.adapter of
+      SetProperty = set-property(E.adapter.name, T, V)
+      SetNodeProperty = set-node-property(E.adapter.name, T, V)
+      SetAttribute = set-attribute(E.adapter.ns, E.adapter.name, T, V)
+      SetEvent = set-event(E.adapter.type, T, V)
+    set-vertex-value(E.dest, T, V)</pre>
 
     <h3>Example</h3>
     <p>Using the example graph shown above, the process of graph traversal is
@@ -719,11 +748,6 @@ integer next-view-index(View+ S, integer I) =
       <li>The <code>frame</code> of <code>Plus</code> has just received a
       <code>mouseup</code> event.</li>
     </ul>
-
-    <figure>
-      <img src="fig/panel-runtime.svg">
-      <figcaption>The rendered <code>Panel</code>.</figcaption>
-    </figure>
 
     <figure>
       <img src="fig/graph-traverse.svg">
@@ -814,9 +838,10 @@ integer next-view-index(View+ S, integer I) =
 
     <h3>Example</h3>
     <p>The figure below shows the addition of the initialization vertices and
-    edges (in brown) in the watch graph of the <code>Panel</code> component. The
-    event vertices have been omitted for clarity.<span class="TODO"> Add numbers
-      on the edges to understand the order of initialization better.</span></p>
+    edges (in orange) in the watch graph of the <code>Panel</code> component.
+    The event vertices have been omitted for clarity.<span class="TODO"> Add
+      numbers on the edges to understand the order of initialization
+      better.</span></p>
     <p>In this example, the <code>enabled</code> property of <code>Minus</code>
     receives two conflicting values: <code>true</code> (from the default value
     of <code>Button</code>) and <code>false</code> (because the <code>n</code>
@@ -864,7 +889,9 @@ integer next-view-index(View+ S, integer I) =
     <code>AdapterEdge</code>s. Cycles may appear as a result of merging
     vertices, but this does not result in infinite loops.<span
       class="TODO"> TODO: actual algorithm, and proof that the order is
-      maintained.</span> For the sake of simplicity, furhter discussion of the
+      maintained. Also, a <code>pure</code> flag for functions could allow more
+    aggressive optimizations if the author is sure that no unwanted side effects
+    can happen.</span> For the sake of simplicity, furhter discussion of the
     watch graph will refer to the unminimized version of the graph.</p>
 
     <figure>
