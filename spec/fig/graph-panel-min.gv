@@ -3,15 +3,14 @@ digraph bender {
   edge [fontname="Avenir Next"];
 
   t [label="", shape=triangle, fixedsize=true, width=0.5];
-
-  pushed -> n;
-
   n [label="n (Panel)"];
   w3 [label="3", shape=square, fixedsize=true, width=0.3];
-  n -> w3
-  w3 -> t
   enabled [label="enabled\n(Button, Minus)"]
-  w3 -> enabled
+
+  pushed -> n [label=" 8"];
+  n -> w3 [label=" 9"];
+  w3 -> t [label=" 21"];
+  w3 -> enabled [label=" 11"];
 
   label [label="label (Button)"];
   label -> t;

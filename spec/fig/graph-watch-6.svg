@@ -44,5 +44,9 @@
 <path fill="none" stroke="black" d="M172.019,-87.1345C182.999,-78.2999 200.394,-64.304 215.771,-51.9318"/>
 <polygon fill="black" stroke="black" points="217.986,-54.6416 223.583,-45.6459 213.598,-49.1877 217.986,-54.6416"/>
 </g>
+<!-- t -->
+<g id="node5" class="node"><title>t</title>
+<polygon fill="none" stroke="black" points="295,-187 277,-160 313,-160 295,-187"/>
+</g>
 </g>
 </svg>

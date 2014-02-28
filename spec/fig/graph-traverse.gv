@@ -3,54 +3,44 @@ digraph bender {
   edge [fontname="Avenir Next"];
 
   t [label="", shape=triangle, fixedsize=true, width=0.5];
-
-  ppushed [label="pushed (Plus)", shape=septagon];
+  w4 [label="4", shape=square, fixedsize=true, width=0.3];
+  label [label="label (Button)"];
+  w5 [label="5", shape=square, fixedsize=true, width=0.3];
+  mousedown [label="mousedown (frame)", shape=septagon];
+  down [label="down (Button)"];
+  w6 [label="6", shape=square, fixedsize=true, width=0.3];
+  mouseup [label="mouseup (frame)", shape=septagon];
+  pushed [label="pushed (Button)", shape=septagon];
+  w7 [label="7", shape=square, fixedsize=true, width=0.3];
+  enabled [label="enabled (Button)"];
   w1 [label="1", shape=square, fixedsize=true, width=0.3];
-  ppushed -> w1 [label="8. Plus, event"];
-  w1 -> n [label="9. Panel, 3"];
-
-  mpushed [label="pushed (Minus)", shape=septagon];
-  w2 [label="2", shape=square, fixedsize=true, width=0.3];
-  mpushed -> w2 [style=dashed];
-  w2 -> n [style=dashed];
-
+  ppushed [label="pushed (Plus)", shape=septagon];
   n [label="n (Panel)"];
+  w2 [label="2", shape=square, fixedsize=true, width=0.3];
+  mpushed [label="pushed (Minus)", shape=septagon];
   w3 [label="3", shape=square, fixedsize=true, width=0.3];
   menabled [label="enabled (Minus)"];
-  n -> w3 [label="10. Panel, 3"];
-  w3 -> t [label="13. Panel, \"3\""];
-  w3 -> menabled [label="11. Minus, true"];
 
-  label [label="label (Button)"];
-  w4 [label="4", shape=square, fixedsize=true, width=0.3];
-  label -> w4 [style=dashed];
-  w4 -> t [style=dashed];
-
-  mousedown [label="mousedown (frame)", shape=septagon];
-  w5 [label="5", shape=square, fixedsize=true, width=0.3];
-  down [label="down (Button)"];
-  mousedown -> w5 [style=dashed];
-  w5 -> down [style=dashed];
-
-  mouseup [label="mouseup (frame)", shape=septagon];
-  w6 [label="6", shape=square, fixedsize=true, width=0.3];
-  mouseup -> w6 [label="1. Button/Plus, event"];
-  w6 -> down [label="2. Plus, false"];
-  w6 -> pushed [label="5. Plus, false"];
-
-  pushed [label="pushed (Button)", shape=septagon];
-  pushed -> ppushed [label="7. Plus, event", color="#f94179"];
-  pushed -> mpushed [label="6. No match", style=dashed, color="#f94179"];
-
-  w7 [label="7", shape=square, fixedsize=true, width=0.3];
-  down -> w7 [label="3. Plus, false"];
-  w7 -> t [label="4. Button/Plus, \"\""];
-
-  w8 [label="8", shape=square, fixedsize=true, width=0.3];
-  enabled -> w8 [style=dashed];
-  enabled -> menabled [style=dashed, color="#f94179"];
-  enabled [label="enabled (Button)"];
-  menabled -> w8 [label="12. Minus, true", color="#f8ca00"];
-  w8 -> t [label="14. Button/Minus, \"\""];
+  mouseup -> w6 [label=" 1 frame/Plus, mouseup event"];
+  w6 -> pushed [label=" 2 Plus, pushed event"];
+  pushed -> mpushed [label=" 3", color="#f94179", style=dashed];
+  pushed -> ppushed [label=" 4 Plus, pushed event", color="#f94179"];
+  mpushed -> w2 [label=" 5", style=dashed];
+  ppushed -> w1 [label=" 6 Plus, pushed event"];
+  w1 -> n [label=" 7 Panel, 3"];
+  w2 -> n [label=" 8", style=dashed];
+  n -> w3 [label=" 9 Panel, 3"];
+  mousedown -> w5 [label=" 10", style=dashed];
+  w3 -> menabled [label=" 11 Minus, true"];
+  enabled -> menabled [label=" 12", color="#f94179", style=dashed];
+  w5 -> down [label=" 13", style=dashed];
+  w6 -> down [label=" 14 Plus, false"];
+  menabled -> w7 [label=" 15 Minus, true", color="#f8ca00"];
+  down -> w7 [label=" 16 Plus, false"];
+  enabled -> w7 [label=" 17", style=dashed];
+  label -> w4 [label=" 18", style=dashed];
+  w4 -> t [label=" 19", style=dashed];
+  w7 -> t [label=" 20 frame/Plus, \"\";\n frame/Minus, \"\""];
+  w3 -> t [label=" 21 text-n/Panel, \"3\""];
 
 }

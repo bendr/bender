@@ -3,53 +3,44 @@ digraph bender {
   edge [fontname="Avenir Next"];
 
   t [label="", shape=triangle, fixedsize=true, width=0.5];
-
-  ppushed [label="pushed (Plus)", shape=septagon];
+  w4 [label="4", shape=square, fixedsize=true, width=0.3];
+  label [label="label (Button)"];
+  w5 [label="5", shape=square, fixedsize=true, width=0.3];
+  mousedown [label="mousedown (frame)", shape=septagon];
+  down [label="down (Button)"];
+  w6 [label="6", shape=square, fixedsize=true, width=0.3];
+  mouseup [label="mouseup (frame)", shape=septagon];
+  pushed [label="pushed (Button)", shape=septagon];
+  w7 [label="7", shape=square, fixedsize=true, width=0.3];
+  enabled [label="enabled (Button)"];
   w1 [label="1", shape=square, fixedsize=true, width=0.3];
-  ppushed -> w1;
-  w1 -> n;
-
-  mpushed [label="pushed (Minus)", shape=septagon];
-  w2 [label="2", shape=square, fixedsize=true, width=0.3];
-  mpushed -> w2;
-  w2 -> n;
-
+  ppushed [label="pushed (Plus)", shape=septagon];
   n [label="n (Panel)"];
+  w2 [label="2", shape=square, fixedsize=true, width=0.3];
+  mpushed [label="pushed (Minus)", shape=septagon];
   w3 [label="3", shape=square, fixedsize=true, width=0.3];
   menabled [label="enabled (Minus)"];
-  n -> w3
-  w3 -> t
-  w3 -> menabled
 
-
-  label [label="label (Button)"];
-  w4 [label="4", shape=square, fixedsize=true, width=0.3];
-  label -> w4;
-  w4 -> t;
-
-  mousedown [label="mousedown (frame)", shape=septagon];
-  w5 [label="5", shape=square, fixedsize=true, width=0.3];
-  down [label="down (Button)"];
-  mousedown -> w5;
-  w5 -> down;
-
-  mouseup [label="mouseup (frame)", shape=septagon];
-  w6 [label="6", shape=square, fixedsize=true, width=0.3];
-  mouseup -> w6;
-  w6 -> down;
-  w6 -> pushed;
-
-  pushed [label="pushed (Button)", shape=septagon];
-  pushed -> ppushed [color="#f94179"];
-  pushed -> mpushed [color="#f94179"];
-
-  enabled [label="enabled (Button)"];
-  w7 [label="7", shape=square, fixedsize=true, width=0.3];
-  down -> w7;
-  enabled -> w7;
-  menabled -> w7 [color="#f8ca00"];
-  enabled -> menabled [color="#f94179"];
-  w7 -> t;
-
+  mouseup -> w6 [label=" 1"];
+  w6 -> pushed [label=" 2"];
+  pushed -> mpushed [label=" 3", color="#f94179"];
+  pushed -> ppushed [label=" 4", color="#f94179"];
+  mpushed -> w2 [label=" 5"];
+  ppushed -> w1 [label=" 6"];
+  w1 -> n [label=" 7"];
+  w2 -> n [label=" 8"];
+  n -> w3 [label=" 9"];
+  mousedown -> w5 [label=" 10"];
+  w3 -> menabled [label=" 11"];
+  enabled -> menabled [label=" 12", color="#f94179"];
+  w5 -> down [label=" 13"];
+  w6 -> down [label=" 14"];
+  menabled -> w7 [label=" 15", color="#f8ca00"];
+  down -> w7 [label=" 16"];
+  enabled -> w7 [label=" 17"];
+  label -> w4 [label=" 18"];
+  w4 -> t [label=" 19"];
+  w7 -> t [label=" 20"];
+  w3 -> t [label=" 21"];
 
 }

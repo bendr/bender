@@ -551,9 +551,9 @@
   // Adapter < Object
   //   Watch     watch
   //   Node      target
-  //   boolean   static
-  //   Function  value = λx x
-  //   Function  match = λx true
+  //   boolean   static = false
+  //   boolean   match(Node T, data V) = true
+  //   data      value(Node T, data V) = V
   //   number?   delay
   bender.Adapter = flexo._ext(bender.Base, {
     init: function (target) {
@@ -576,7 +576,7 @@
                 edge_.source = vertices[name];
                 vertices[name].outgoing.push(edge_);
                 edge_.dest.incoming.push(edge_);
-                edge_.priority = -1;
+                edge_.priority = 1;
                 graph.edge(edge_);
               }
             });
@@ -780,6 +780,7 @@
   // Vertex < Object
   //   Edge*  incoming
   //   Edge*  outgoing
+  //   data*  values
   bender.Vertex = flexo._ext(bender.Base, {
 
     init: function (graph) {
@@ -864,7 +865,7 @@
   });
 
   // InheritEdge < Edge
-  bender.InheritEdge = flexo._ext(bender.Edge, { priority: 1 });
+  bender.InheritEdge = flexo._ext(bender.Edge, { priority: -1 });
 
 
   // AdapterEdge < Object:

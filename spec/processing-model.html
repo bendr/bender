@@ -13,34 +13,40 @@
 
 
     <h2>Overview</h2>
-    <p>A Bender application is defined by a component, its children, and their
-    prototype. The graph of all components that are part of the definition of an
-    application is called the <em>component graph</em> of the application.
-    At runtime, the component graph is augmented with copies of views and
-    components; the result is the <em>runtime graph</em>.</p>
-    <p>Copies of nodes are necessary in when several components have a common
+    <p>A Bender application is defined by a top-level component, its children,
+    and their prototype. The graph of all components that are part of the
+    definition of an application is called the <em>application graph</em> and is
+    the union of all the component graphs of the of the components and their
+    prototypes. At runtime, the application graph is augmented with copies of
+    views and components; the result is the <em>runtime graph</em>.</p>
+    <p>Copies of nodes are necessary when several components have a common
     prototype, as child components of a shared prototype component need copying
-    in order to maintain their own state independently of each other. The views
-    of the runtime graph are then rendered by the user agent, and a <em>watch
-      graph</em> is also constructed.</p>
-    <p>The watch graph is a compilation of all the watches in the component
-    graph. The main idea behind the watch graph is to create edges between
-    vertices, where a vertex represents the value of a property or the
-    occurrence of an event, and edges the changes that happen in between. When
-    a value changes or an event occurs, that value is propagated through the
-    edges and vertices of the graph, having effects on the running
-    application.</p>
+    in order to maintain their own state independently of each other. When the
+    runtime graph is constructed, the view elements in the graph are
+    <em>rendered</em> by the user agent.</p>
+    <p>The behavior of watches is defined below in terms of a <em>watch
+      graph</em> that is constructed in parallel to the runtime graph. The watch
+    graph is a compilation of all the watches in the component graph. The main
+    idea behind the watch graph is to represent the value of a property or the
+    occurrence of an event with a <em>vertex</em>, and the changes that happen
+    in between with <em>edges</em> between these vertices. When a value changes
+    or an event occurs, that value is propagated through the edges and vertices
+    of the graph, having effects on the running application.</p>
+    <p><strong>Note</strong>: although the watch graph may be viewed as an
+    implementation artifact, it is nevertheless used here to help formalize the
+    definition of the processing model of Bender.</p>
 
 
     <h2>Running a Bender Application in a User Agent</h2>
     <p>Running a Bender application in a user agent, such as a Web browser, is
-    rendering the <code>Component</code> in a target DOM element.</p>
+    rendering the top-level <code>Component</code> defining the application in a
+    target DOM element and a newly created watch graph.</p>
     <pre class="code">render-component(Component C, DOM element T) =
   let G = new WatchGraph in
     do
       render-subgraph(C, G)
-      render-component-view(C, T)
       sort-watch-graph(G)
+      render-component-view(C, T)
       init-properties(C, G)</pre>
 
 
@@ -50,23 +56,25 @@
       <p>The <code>WatchGraph</code> is defined as a list of directed
       <em>edges</em> between <em>vertices</em>. Edges are eventually sorted in
       <em>topological order</em> so that data flow is consistent and
-      predictable. This also means that the graph should be acyclic; however,
-      through the use of <em>delayed</em> edges (see below), cycles may be
-      introduced under certain conditions.</p>
+      predictable. This also means that the watch graph should be acyclic;
+      however, through the use of <em>delayed</em> edges (see below), cycles may
+      be tolerated under certain conditions.</p>
       <div>
         <pre>WatchGraph &lt; Object
   Vertex+  vertices
   Vertex   vortex
   Edges*   edges</pre>
         <ul>
-          <li><code>vertices</code> is the set of list of vertices that are
-          the source or destination of the <code>Edge</code>s. It always
-          contains at least one <code>Vertex</code> (the
-          <code>vortex</code>.)</li>
+          <li><code>vertices</code> is the set of vertices that are the source
+          or destination of the <code>Edge</code>s. It always contains at least
+          one <code>Vertex</code>, namely the <code>vortex</code>.</li>
           <li><code>vortex</code> is a <em>sink state</em> in the watch graph.
-          It has no outgoing edge and is a member of <code>vertices</code>.</li>
+          It has no outgoing edge and is a member of <code>vertices</code>.
+          There can be other vertices with no outgoing edge in the graph, but
+          this one is guaranteed to exist.</li>
           <li><code>edges</code> is the list of edges between vertices in the
-          graph.</li>
+          graph. It is unsorted during construction, then sorted when the
+          graph is complete.</li>
         </ul>
       </div>
     </div>
@@ -79,12 +87,15 @@
       <div>
         <pre>Vertex &lt; Object
   Edge*  incoming
-  Edge*  outgoing</pre>
+  Edge*  outgoing
+  data*  values</pre>
         <ul>
           <li><code>incoming</code> is the set of incoming <code>Edge</code>s,
           <em>i.e.</em> edges that have this vertex as destination.</li>
           <li><code>outgoing</code> is the set of outgoing <code>Edge</code>s,
           <em>i.e.</em> edges that have this vertex as source.</li>
+          <li><code>values</code> is the list of values associated with the
+          vertex during graph traversal, indexed by <code>Node</code>s.</li>
         </ul>
       </div>
     </div>
@@ -159,28 +170,36 @@
           <li><code>dest</code> is the destination <code>Vertex</code> of the
           edge.</li>
           <li><code>priority</code> is a number that is used to sort the
-          incoming edges of a <code>Vertex</code>. The lower the number,
-          the higher the priority.</li>
+          incoming edges of a <code>Vertex</code>. A higher number indicates a
+          higher priority: low-priority edges have a negative value, while
+          high-priority edges have a positive value.</li>
         </ul>
       </div>
     </div>
 
     <div class="def" id="InheritEdge">
       <p>An <code>InheritEdge</code> is an edge between two vertices
-      representing the same property or event. The source of the
-      <code>Edge</code> is the <em>prototype vertex</em> of the destination
-      <code>Vertex</code>, and is a vertex for a <code>Component</code> that is
-      in the prototype chain of the component of the destination
-      <code>Vertex</code>. The purpose of <code>InheritEdge</code>s is to make
-      components inherit the behavior of their prototype, while adding behavior
-      of their own. Another benefit of these edges is to avoid situations that
-      may lead to spurious cycles in the graph.</p>
+      representing the same property or event, but with a different target
+      component. Let <em>C<sub>S</sub></em> be the component of the source
+      vertex, and <em>C<sub>D</sub></em> be the component of the destination
+      vertex. An <code>InheritEdge</code> may exist between
+      <em>C<sub>S</sub></em> and <em>C<sub>D</sub></em> if and only if
+      <em>C<sub>S</sub></em> and <em>C<sub>D</sub></em> are distinct components,
+      and <em>C<sub>D</sub></em> conforms to the prototype of
+      <em>C<sub>S</sub></em>. The source of the <code>Edge</code> is called the
+      <em>prototype vertex</em> of the destination <code>Vertex</code> (since
+      <em>C<sub>S</sub></em> is in the prototype chain of
+      <em>C<sub>D</sub></em>.) The purpose of <code>InheritEdge</code>s is to
+      make components inherit the behavior of their prototype, while adding
+      behavior of their own. Another benefit of these edges is to avoid
+      situations that may lead to spurious cycles in the graph, keeping edge
+      sorting simple.</p>
       <div>
         <pre>InheritEdge &lt; Edge
-  number  priority = 1</pre>
+  number  priority = -1</pre>
         <ul>
-          <li><code>priority</code> is set to 1 so that these edges have a lower
-          priority during sorting.</li>
+          <li><code>priority</code> is set to -1 so that these edges have a
+          lower priority during sorting.</li>
         </ul>
       </div>
     </div>
@@ -226,31 +245,36 @@
   let V = new WatchVertex(W) in
     do
       G.vertices &lt;- G.vertices : V
-      for H in W.gets
-        let V’ = find-adapter-vertex(H, G) in
-          G.edges &lt;- G.edges : new AdapterEdge(V’, V, H)
-      for S in W.sets
-        let V’ = find-adapter-vertex(S, G) in
-          G.edges &lt;- G.edges : new AdapterEdge(V, V’, S)</pre>
+      for A in W.gets
+        let V’ = find-vertex(A, G) in
+          G.edges &lt;- G.edges : new AdapterEdge(V’, V, A)
+      for A in W.sets
+        let V’ = find-vertex(A, G) in
+          G.edges &lt;- G.edges : new AdapterEdge(V, V’, A)</pre>
 
-
-    <p>The source or destination vertex of an <code>AdapterEdge</code> to or
-    from a <code>WatchVertex</code> is a <code>PropertyVertex</code>,
-    <code>EventVertex</code> or <code>DOMEventVertex</code>, depending on the
-    adapter. A vertex may be the source and destination of several edges, so
-    it is created the first time that it is needed and added to the graph.
-    Subsequent calls to <code>find-adapter-vertex(A, G)</code> will return the
-    already created vertex.</p>
-    <pre class="code">AdapterVertex find-adapter-vertex(Adapter A, Graph G) =
-  let V = find(G.vertices, λV V is-a AdapterVertex and V.adapter = A) in
-    if defined V
-      then V
-      else
-        let V’ = new AdapterVertex(A) in
-          do
-            G.vertices &lt;- G.vertices : V’
-            add-inherit-edge(V’, G)
-            V’</pre>
+    <p>A vertex may be the source and destination of several edges, so it is
+    created and added to the graph only the first time that it is needed;
+    subsequent calls to <code>find-vertex</code> will return the already created
+    vertex. When the adapter is a plain <code>Set</code>, a
+    <code>SetNodeProperty</code>, <code>SetAttribute</code> or
+    <code>SetEvent</code> to an <code>Element</code> target (versus a
+    <code>Component</code> target), then use the vortex since there is no
+    relevant <code>AdapterVertex</code> destination for these outputs.</p>
+    <pre class="code">Vertex find-vertex(Adapter A, Graph G) =
+  if A is-a Get or
+    A is-a SetProperty or
+    A is-a SetEvent and A.target is-a Component
+    then
+      let V = find(G.vertices, λV V is-a AdapterVertex and V.adapter = A) in
+        if defined V
+          then V
+          else
+            let V’ = new AdapterVertex(A) in
+              do
+                G.vertices &lt;- G.vertices : V’
+                add-inherit-edge(V’, G)
+                V’
+    else G.vortex</pre>
 
     <p>To illustrate the rendering of the watch graph, review the
     <code>Panel</code> component from the <a href="data-model.html#example">Data
@@ -264,7 +288,8 @@
     <code>AdapterEdge</code>s from the <code>WatchVertex</code> are created for
     the <code>SetProperty</code> to a <code>PropertyVertex</code> (ellipse) for
     the <code>down</code> property, and another <code>AdapterEdge</code> for the
-    <code>SetEvent</code> to an <code>EventVertex</code>.</p>
+    <code>SetEvent</code> to an <code>EventVertex</code>. The vortex is shown
+    as a triangle, with no incoming edge yet.</p>
 
     <pre class="code">&lt;watch&gt; <span class="watch">6</span>
   &lt;get select="@frame" event="mouseup"/&gt;
@@ -285,7 +310,7 @@
     A second <code>AdapterEdge</code> for the <code>GetProperty</code>
     corresponding to the <code>enabled</code> property is added as well.
     Finally, the <code>SetAttribute</code> is rendered as an
-    <code>AdapterEdge</code> to the vortex (triangle.)</p>
+    <code>AdapterEdge</code> to the vortex.</p>
 
     <pre class="code">&lt;watch&gt; <span class="watch">7</span>
   &lt;get property="down"/&gt;
@@ -301,11 +326,14 @@
       and <span class="watch">7</span> of the <code>Button</code>.</figcaption>
     </figure>
 
-    <p>If there exists a prototype vertex <em>V’</em> for a vertex <em>V</em>
-    (see below), then a new <code>InheritEdge</code> is added between
-    <em>V’</em> and <em>V</em>. The outgoing edges of <em>V’</em> are also
-    copied to <em>V</em> and given a higher priority so that they come later in
-    a sort.</p>
+    <p>When a new vertex is created, a new <code>InheritEdge</code> may need to
+    be added to the graph as well. If there exists a prototype vertex
+    <em>V’</em> for a new vertex <em>V</em> (see below), then a new
+    <code>InheritEdge</code> is added between <em>V’</em> and <em>V</em>. The
+    outgoing edges of <em>V’</em> are also copied to <em>V</em> and given a
+    higher priority than regular edges. Note that since the subgraph for the
+    prototype of the current component was rendered, <em>V’</em> (if it exists)
+    is always created before <em>V</em>.</p>
     <pre class="code">add-inherit-edge(AdapterVertex V, Graph G) =
   let V’ = find-prototype-vertex(V, G) in
     if defined V’ then
@@ -315,14 +343,34 @@
           let E’ = create(E) in
             do
               E’.source &lt;- V
-              E’.priority &lt;- -1
+              E’.priority &lt;- 1
+              V.incoming &lt;- V.incoming : E’
               G.edges &lt;- G.edges : E’</pre>
 
-    <p><span class="TODO"><code>Vertex? find-prototype-vertex(Graph G,
-    Vertex V)</code> finds the prototype vertex <em>V’</em> in <em>G</em> such
-    that <em>V</em> and <em>V’</em> share the same property or event, and the
-    component of <em>V’</em> is the closes component in the prototype chain of
-    <em>V</em> that has such a vertex, if it exists.</p>
+    <p>Finding the prototype vertex of <em>V</em> requires going through the
+    component chain of the component of V, and finding a vertex with a matching
+    adapter in the graph, or reaching the end of the prototype chain.</p>
+    <pre class="code">AdapterVertex? find-prototype-vertex(AdapterVertex V, WatchGraph G) =
+  find-prototype-vertex’(V.adapter, V.adapter.target.prototype, G)
+AdapterVertex? find-prototype-vertex’(Adapter A, Component? C, WatchGraph G) =
+  if defined C
+    then let V = find(G.vertices, λV V is-a AdapterVertex and V.target = C and
+                                       match-adapters(A, V.adapter)) in
+      if defined V
+        then V
+        else find-prototype-vertex’(A, C.prototype, G)</pre>
+
+    <p>Matching <code>Adapter</code>s means matching two adapters related to a
+    same property (with the same <code>name</code>) or to a same event (with the
+    same <code>type</code>.) When this function is called, the targets have
+    already been matched.</p>
+    <pre class="code">boolean match-adapters(Adapter A, Adapter B) =
+  ((A is-a GetPropertyVertex or A is-a SetPropertyVertext) and
+   (B is-a GetPropertyVertex or B is-a SetPropertyVertext) and
+   A.name = B.name) or
+  ((A is-a GetEventVertex or A is-a SetEventVertext) and
+   (B is-a GetEventVertex or B is-a SetEventVertext) and
+   A.type = B.type)</pre>
 
     <p>Continuing the previous example, adding watch <span
       class="watch">1</span> to the graph introduces a new vertex for the
@@ -347,28 +395,27 @@
     <h3>Edge Sorting</h3>
     <p>Once the graph <em>G</em> is built, its <code>edges</code> are sorted in
     topological order. Starting from vertices that have no outgoing edge (there
-    is always at least one such vertex, the <code>vortex</code>), incoming edges
-    are inserted at the beginning of the sorted list of edges in order of
-    priority (the relative order of edges with the same priority is irrelevant)
-    and removed from the list of outgoing edges their source vertex.</p>
-    <p>The process repeats with the vertices which do not have any outgoing edge
-    anymore. If there were no cycles in the graph, all edges and vertices are
-    processed, otherwise an error is raised (although cycles may be broken when
-    they include <em>delayed edges</em> as detailed below.)</p>
+    is always at least one such vertex, the <code>vortex</code>, and possibly
+    more), incoming edges are inserted at the beginning of the sorted list of
+    edges in order of decreasing priority (the relative order of edges with the
+    same priority is not pertinent), and marked as processed in the list of
+    outgoing edges of their source vertex.</p>
+    <p>The process repeats with the vertices which do not have any unprocessed
+    outgoing edge anymore. If there were no cycles in the graph, all edges and
+    vertices are processed, otherwise an error is raised (although cycles may be
+    broken when they include <em>delayed edges</em> as detailed below.)</p>
     <pre class="code">sort-watch-graph(WatchGraph G) = G.edges &lt;- sort-edges(G.edges)
 <span class="TODO">Edge* sort-edges(Edge* E) = ...</span></pre>
 
 
     <h3>Example</h3>
-    <p>The figure below shows the rendered graph for <code>Panel</code>.
+    <p>The figure below shows the sorted watch graph for <code>Panel</code>.
     Vertices are represented by ovals (properties), heptagons (events),
     squares (watches), and a triangle for the vortex. Edges are represented
-    by arrows between the vertices; <code>InheritEdges</code> are pink while
-    yellow edges are edges that were copied from the prototype vertex. In this
-    case, there is an edge from the <code>enabled</code> property vertex of
-    <code>Button</code> to <span class="watch">7</span>, which is copied to the
-    <code>enabled</code> property vertex of <code>Minus</code>.<span
-      class="TODO"> Number the edges from the sort order.</span></p>
+    by arrows between the vertices and numbered with their traversal order,
+    starting from 1; <code>InheritEdges</code> (3, 4, and 12) are pink while
+    yellow edges are edges that were copied from the prototype vertex (15,
+    which is a copy of 17.)</p>
 
     <figure>
       <img src="fig/graph-panel.svg">
@@ -761,34 +808,48 @@ integer next-view-index(View+ S, integer I) =
     as they have no input value and are omitted for brevity), with the following
     effects:
     <ol>
-      <li>A DOM event is received from the <code>frame</code> DOM element of the
-      clone of the view of <code>Button</code> for the <code>Plus</code>
-      component (abbreviated <code>Button/Plus</code>.)</li>
-      <li>The <code>down</code> property of <code>Plus</code> is set to
+      <li>A DOM <code>mouseup</code> event is received from the
+      <code>frame</code> DOM element of the clone of the view of
+      <code>Button</code> for the <code>Plus</code> component (shown as
+      <code>frame/Plus</code>.)</li>
+      <li>A new event is generated for <code>Plus</code>, which is the runtime
+      target matching the static target <code>Button</code> of the adapter for
+      this edge (since the input target was the <code>frame</code> element of
+      <code>Plus</code>.)</li>
+      <li><code>Minus</code> does not conform to the prototype of
+      <code>Plus</code> so this edge is not followed.</li>
+      <li><code>Plus</code> conforms to the prototype of <code>Plus</code>, so
+      this edge is followed. The target and value are left unchanged.</li>
+      <li>This edge has no input value.</li>
+      <li>The pushed event of <code>Plus</code> is passed to watch <span
+        class="watch">6</span>.</li>
+      <li>The value of <code>n</code> for <code>Panel</code> is set to 3.</li>
+      <li>This edge has no input value.</li>
+      <li>The value of <code>n</code> is passed to watch <span
+        class="watch">3</span>.</li>
+      <li>This edge has no input value.</li>
+      <li>The value of <code>enabled</code> for <code>Minus</code> is set to
+      true (since <code>n</code> is greater than 0.)</li>
+      <li>This edge has no input value.</li>
+      <li>This edge has no input value.</li>
+      <li>The value of <code>down</code> for <code>Plus</code> is set to
       false.</li>
-      <li>The <code>down</code> property of <code>Plus</code> is passed to
-      <span class="watch">7</span>.</li>
-      <li>The <code>class</code> of the view <code>Button/Plus</code> is set to
-      "".</li>
-      <li>A <code>pushed</code> event is generated for the <code>Plus</code>
-      component.</li>
-      <li>This <code>InheritEdge</code> cannot be followed because
-      <code>Plus</code> is not in the view stack of <code>Minus</code>.</li>
-      <li>This <code>InheritEdge</code> is followed for <code>Plus</code> with
-      the generated event as the value.</li>
-      <li>The event value from <code>Plus</code> is passed to
-      <span class="watch">1</span>.</li>
-      <li>The property <code>n</code> of <code>Panel</code> is set to 3.</li>
-      <li>The property <code>n</code> of <code>Panel</code> is passed to
-      <span class="watch">3</span>.</li>
-      <li>The property <code>enabled</code> of <code>Minus</code> is set to
-      true.</li>
-      <li>The property <code>enabled</code> of <code>Minus</code> is passed to
-      <span class="watch">8</span>.</li>
-      <li>The DOM text node <code>text-n</code> of <code>Panel</code> is updated
-      to show the text "3".</li>
-      <li>The <code>class</code> attribute of the <code>frame</code> of
-      <code>Button/Minus</code> is set to "".</li>
+      <li>The value of <code>enabled</code> is passed to watch <span
+        class="watch">7</span>.</li>
+      <li>The value of <code>down</code> is passed to watch <span
+        class="watch">7</span>. Note that the watch has a value for the target
+      <code>Minus</code>, so a new value for the target <code>Plus</code> can be
+      set.</li>
+      <li>This edge has no input value.</li>
+      <li>This edge has no input value.</li>
+      <li>This edge has no input value.</li>
+      <li>There are two values, so the edge is traversed twice. First, the
+      <code>class</code> attribute of the DOM element for <code>frame</code> in
+      <code>Plus</code> is set to the empty string, then the <code>class</code>
+      attribute of the DOM element for <code>frame</code> in <code>Minus</code>
+      is set to the empty string.</li>
+      <li>The text content of the text node for <code>text-n</code> in
+      <code>Panel</code> is set to the string "3".</li>
     </ol>
 
     <h3>Delayed edge traversal</h3>
@@ -839,9 +900,7 @@ integer next-view-index(View+ S, integer I) =
     <h3>Example</h3>
     <p>The figure below shows the addition of the initialization vertices and
     edges (in orange) in the watch graph of the <code>Panel</code> component.
-    The event vertices have been omitted for clarity.<span class="TODO"> Add
-      numbers on the edges to understand the order of initialization
-      better.</span></p>
+    The event vertices have been omitted for clarity.</p>
     <p>In this example, the <code>enabled</code> property of <code>Minus</code>
     receives two conflicting values: <code>true</code> (from the default value
     of <code>Button</code>) and <code>false</code> (because the <code>n</code>

@@ -10,4 +10,6 @@ digraph bender {
   w6 -> down;
   w6 -> pushed;
 
+  t [label="", shape=triangle, fixedsize=true, width=0.5];
+
 }

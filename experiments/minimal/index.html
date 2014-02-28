@@ -21,6 +21,7 @@ a {
     <script>
 "use strict";
 
+/*
 var text_roman = bender.Text.create();
 var roman = bender.Component.create(bender.View.create()
     .child(bender.DOMElement.create(flexo.ns.html, "p")
@@ -33,6 +34,7 @@ roman.watch(bender.Watch.create()
     .set(bender.SetNodeProperty.create(text_roman, "text")));
 
 var graph = roman.render();
+*/
 
 /*
 var D = bender.Component.create(bender.View.create()
@@ -67,6 +69,8 @@ var hello = bender.Component.create(bender.View.create()
 
 hello.render();
 
+*/
+
 var text_label = bender.Text.create().name("text-label");
 var frame = bender.DOMElement.create(flexo.ns.html, "div")
   .name("frame")
@@ -89,44 +93,43 @@ var panel = bender.Component.create(bender.View.create()
   .property("n");
 
 button.watch(bender.Watch.create()  // 4
-      .get(bender.GetProperty.create(button, label))
+      .get(bender.GetProperty.create(button, "label"))
       .set(bender.SetNodeProperty.create(text_label, "text")))
   .watch(bender.Watch.create()  // 5
       .get(bender.GetEvent.create(frame, "mousedown"))
-      .set(bender.SetProperty.create(button, down)
+      .set(bender.SetProperty.create(button, "down")
         .match(function () { return this.properties.enabled; })
         .value(flexo.funcify(true))))
   .watch(bender.Watch.create()  // 6
       .get(bender.GetEvent.create(frame, "mouseup"))
       .set(bender.SetEvent.create(button, "pushed")
         .match(function () { return this.properties.down; }))
-      .set(bender.SetProperty.create(button, down)
+      .set(bender.SetProperty.create(button, "down")
         .value(flexo.funcify(false))))
   .watch(bender.Watch.create()  // 7
-      .get(bender.GetProperty.create(button, down))
+      .get(bender.GetProperty.create(button, "down"))
+      .get(bender.GetProperty.create(button, "enabled"))
       .set(bender.SetAttribute.create(frame, "", "class")
-        .value(function ($in) { return $in ? "down" : ""; })))
-  .watch(bender.Watch.create()  // 8
-      .get(bender.GetProperty.create(button, enabled))
-      .set(bender.SetAttribute.create(frame, "", "class")
-        .value(function ($in) { return $in ? "" : "disabled"; })))
+        .value(function () {
+            return "%0 %1".fmt(this.properties.down ? "down" : "",
+              this.properties.enabled ? "" : "disabled");
+          })));
 
 panel.watch(bender.Watch.create()  // 1
       .get(bender.GetEvent.create(plus, "pushed"))
-      .set(bender.SetProperty.create(panel, n)
+      .set(bender.SetProperty.create(panel, "n")
         .value(function () { return this.properties.n + 1; })))
   .watch(bender.Watch.create()  // 2
       .get(bender.GetEvent.create(minus, "pushed"))
-      .set(bender.SetProperty.create(panel, n)
+      .set(bender.SetProperty.create(panel, "n")
         .value(function () { return this.properties.n - 1; })))
   .watch(bender.Watch.create()  // 3
-      .get(bender.GetProperty.create(panel, n))
+      .get(bender.GetProperty.create(panel, "n"))
       .set(bender.SetNodeProperty.create(text_n, "text"))
-      .set(bender.SetProperty.create(minus, enabled)
+      .set(bender.SetProperty.create(minus, "enabled")
         .value(function ($in) { return $in > 0; })));
 
-button.render().dump();
-*/
+panel.render().dump();
 
     </script>
   </body>
