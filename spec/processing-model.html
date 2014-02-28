@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Thu 27 Feb 2014</p>
+    <p>Version 0.9, Fri 28 Feb 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -883,7 +883,10 @@ integer next-view-index(View+ S, integer I) =
       preserved as either the input value or the output value of the
       <code>WatchVertex</code> would have to be computed twice, which may lead
       to undesireable side effects. (This would be possible if the absence of
-      side effects were guaranteed.)</p>
+      side effects were guaranteed.)</li>
+      <li>Two watch vertices could be merged if it could be determined that they
+      either have the same inputs or outputs. The redundant set of incoming or
+      outgoing edges could then be removed from the graph.</li>
     </ul>
     <p>After applying these steps whenever possible, the graph only contains
     <code>AdapterEdge</code>s. Cycles may appear as a result of merging
