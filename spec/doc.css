@@ -7,8 +7,7 @@
 }
 
 body {
-  font-family: Univers, "Avenir Next", Avenir, "Helvetica Neue", Helvetica,
-    sans-serif;
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
   max-width: 48rem;
   padding: 0 2rem;
   margin: 4rem auto;

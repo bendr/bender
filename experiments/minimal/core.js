@@ -41,9 +41,9 @@
 
 
   // Node < Object
-  //   Node?   parent
-  //   Node*   children
-  //   string  name
+  //   Node?    parent
+  //   Node*    children
+  //   string?  name
   bender.Node = flexo._ext(bender.Base, {
 
     // Create a new node with no children and no parent.
@@ -124,6 +124,7 @@
       this.watches = [];
       this.set_view(view);
       this.__render_subgraph = true;        // delete when rendered
+      this.__init_properties = true;        // delete when initialized
       this.property_vertices = {};          // property vertices indexed by name
       this.event_vertices = {};             // event vertices indexed by type
       return this.name(flexo.random_id());  // set a random name
@@ -223,12 +224,12 @@
     },
 
     // Render the complete component graph in the target and a new graph. Return
-    // the graph that was created. This is called for the “application”
-    // component only.
+    // the graph that was created. This is called for the main component only.
     render: function (target) {
-      var graph = this.render_subgraph(bender.WatchGraph.create()).sort();
+      var graph = this.render_subgraph(bender.WatchGraph.create())
+        .sort().minimize();
       this.render_view(target || window.document.body);
-      this.init_properties();
+      this.init_properties(graph);
       return graph;
     },
 
@@ -281,7 +282,24 @@
 
     // Initialize properties of the component, its prototype and its children.
     // Set the property with the highest priority first.
-    init_properties: function () {
+    init_properties: function (graph) {
+      if (!this.__init_properties) {
+        return;
+      }
+      delete this.__init_properties;
+      var prototype = this.prototype;
+      if (prototype) {
+        prototype.init_properties(graph);
+      }
+      this.children.forEach(function (child) {
+        child.init_properties(graph);
+      });
+      // var init_vertices = [];
+      Object.keys(this.properties).forEach(function (property) {
+        console.log("Init %0`%1 = %2"
+          .fmt(this.name(), property, this.properties[property]));
+      }, this);
+      // init_vertices.forEach(graph.remove_vertex.bind(graph));
     }
   });
 
@@ -428,11 +446,11 @@
     render: function (target, stack, i) {
       var element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
-      Object.keys(this.attributes, function (ns) {
-        Object.keys(this.attributes[ns], function (name) {
+      Object.keys(this.attributes).forEach(function (ns) {
+        Object.keys(this.attributes[ns]).forEach(function (name) {
           element.setAttributeNS(ns, name, this.attributes[ns][name]);
-        });
-      });
+        }, this);
+      }, this);
       this.render_children(element, stack, i);
       Object.keys(this.event_vertices).forEach(function (type) {
         var vertex = this.event_vertices[type];
@@ -701,6 +719,10 @@
       return edge;
     },
 
+    // Remove a vertex and its edges from the graph.
+    remove_vertex: function (vertex) {
+    },
+
     // Sort the edges for deterministic graph traversal. Delayed edges come
     // last, then edges to sink states, and so on. Outgoing edges from a vertex
     // are sorted using their priority (the priorities in increasing order are
@@ -756,6 +778,11 @@
       }
       return this;
     },
+
+    // Minimize the watch graph by removing InheritEdges and copy edges and
+    // merging the corresponding vertices, and removing watch vertices when
+    // possible. Return the graph after it was minimized.
+    minimize: flexo.self,
 
     // Schedule a new graph traversal after a value was set on a vertex. If a
     // traversal was already scheduled, just return. Values are cleared after

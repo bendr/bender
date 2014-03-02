@@ -5,34 +5,24 @@ digraph bender {
   t [label="", shape=triangle, fixedsize=true, width=0.5];
   w4 [label="4", shape=square, fixedsize=true, width=0.3];
   label [label="label (Button)"];
-  w5 [label="5", shape=square, fixedsize=true, width=0.3];
-  w6 [label="6", shape=square, fixedsize=true, width=0.3];
   down [label="down (Button)"];
   w7 [label="7", shape=square, fixedsize=true, width=0.3];
   enabled [label="enabled (Button)"];
-  w1 [label="1", shape=square, fixedsize=true, width=0.3];
   n [label="n (Panel)"];
-  w2 [label="2", shape=square, fixedsize=true, width=0.3];
   w3 [label="3", shape=square, fixedsize=true, width=0.3];
   menabled [label="enabled (Minus)"];
 
-  init_plabel [label="label (Plus)", color="#ff6a4d", fontcolor="#ff6a4d"];
-  init_mlabel [label="label (Minus)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_label [label="label (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
   init_enabled [label="enabled (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
   init_n [label="n (Panel)", color="#ff6a4d", fontcolor="#ff6a4d"];
   init_down [label="down (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
 
-  init_enabled -> enabled [label=" 0.125 Plus, true;\n Minus, true", color="#ff6a4d", fontcolor="#ff6a4d"]
-  init_mlabel -> label [color="#ff6a4d", fontcolor="#ff6a4d", label=" 0.25 Minus, \"—\""];
-  init_plabel -> label [label=" 0.5 Plus, \"+\"", color="#ff6a4d", fontcolor="#ff6a4d"]
-  w1 -> n [label=" 7", style=dashed];
-  w2 -> n [label=" 8", style=dashed];
+  init_enabled -> enabled [label=" 0.25 Plus, true;\n Minus, true", color="#ff6a4d", fontcolor="#ff6a4d"]
+  init_label -> label [color="#ff6a4d", fontcolor="#ff6a4d", label=" 0.5 Plus, \"+\";\n Minus, \"—\""];
   init_n -> n [color="#ff6a4d", fontcolor="#ff6a4d", label=" 8.5 Panel, 0"];
   n -> w3 [label=" 9 Panel, 0"];
   w3 -> menabled [label=" 11 Minus, false"];
   enabled -> menabled [label=" 12 Minus, true", color="#f94179"];
-  w5 -> down [label=" 13", style=dashed];
-  w6 -> down [label=" 14", style=dashed];
   init_down -> down [label=" 14.5 Plus, false;\n Minus, false", color="#ff6a4d", fontcolor="#ff6a4d"]
   menabled -> w7 [label=" 15 Minus, false", color="#f8ca00"];
   down -> w7 [label=" 16 Plus, false;\n Minus, false"];

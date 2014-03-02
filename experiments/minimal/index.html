@@ -72,7 +72,8 @@ hello.render();
 */
 
 var text_label = bender.Text.create().name("text-label");
-var frame = bender.DOMElement.create(flexo.ns.html, "div")
+var frame = bender.DOMElement.create(flexo.ns.html, "div",
+    { "": { "class": "button" } })
   .name("frame")
   .child(bender.Content.create().child(text_label));
 var button = bender.Component.create(bender.View.create().child(frame))
@@ -82,15 +83,15 @@ var button = bender.Component.create(bender.View.create().child(frame))
   .property("down", false);
 
 var text_n = bender.Text.create().name("text-n");
-var plus = button.create().name("Plus");
-var minus = button.create().name("Minus");
+var plus = button.create().name("Plus").property("label", "+");
+var minus = button.create().name("Minus").property("label", "—");
 var panel = bender.Component.create(bender.View.create()
     .child(bender.DOMElement.create(flexo.ns.html, "div")
       .child(text_n)
       .child(plus.view)
       .child(minus.view)))
   .name("Panel")
-  .property("n");
+  .property("n", 0);
 
 button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, "label"))

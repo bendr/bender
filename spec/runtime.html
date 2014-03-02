@@ -153,6 +153,29 @@
     <p><span class="TODO">Values for the <code>select</code>
       attribute.</span></p>
 
+<!--
+
+Select:
+
+B inherits from A, has two children C and D, but does not specify where that
+content goes.
+
+<component name="B" href="#A">
+  <component name="C"/>
+  <component name="D"/>
+</component>
+
+<component name="A">
+  <view>
+    <ul>
+      <li><content select="@this[0]"/></li>
+      <li><content select="@this[1]"/></li>
+    </ul>
+  </view>
+</component>
+
+-->
+
     <h2 id="api">The Bender Javascript API</h2>
 
     <h3>Enriched Javascript Syntax</h3>

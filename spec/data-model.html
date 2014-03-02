@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Fri 28 Feb 2014</p>
+    <p>Version 0.9, Mon 03 Mar 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for
     reference.</p>
@@ -50,6 +50,9 @@
       <li><code>=</code> is used for binding (in definitions and
       <code>let</code> forms) or equality testing.</li>
     </ul>
+    <p>Bender is a work in progress so some issues may be left unsolved, or
+    foreseeable extensions already planned. <span class="TODO">Highlighted
+      sections indicate open issues and questions.</span>
 
 
     <h2>Nodes</h2>
@@ -62,13 +65,17 @@
         graph</em>. Both trees are defined by tree <code>Node</code>s.</p>
       <div>
         <pre>Node &lt; Object
-  Node?  parent
-  Node*  children</pre>
+  Node?    parent
+  Node*    children
+  string?  name</pre>
         <ul>
           <li><code>parent</code> is the parent <code>Node</code>, if any, of
           the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
           <li><code>children</code> is the list of child <code>Node</code>s of
           the node.</li>
+          <li><code>name</code> is an optional name for the node, than can be
+          used in a <code>selector</code> to designate it. It can be any
+          non-empty string.</li>
         </ul>
       </div>
     </div>
@@ -115,7 +122,10 @@
             not.</span></li>
           <li><code>view</code> is the root of the view tree of this
           component. A component always has a view, but it may be a default
-          view.</li>
+          view. <span class="TODO">We may allow components to not have a view;
+            then they are still part of the component tree, but not the view
+            tree and are not rendered but still cloned when the component is
+            rendered.</span></li>
           <li><code>watches</code> is the set of the <code>Watch</code>es of the
           component.</li>
         </ul>
@@ -127,7 +137,7 @@
     prototype of <em>P</em>.</p>
 
 
-    <h2>View and elements</h2>
+    <h2>View and Elements</h2>
 
     <p>The <em>view</em> of a <code>Component</code> describes its contents and
     layout as a tree of <code>Element</code>s. These elements describe how a
@@ -332,6 +342,9 @@
       </div>
     </div>
 
+    <p><span class="TODO">With extended selectors, we can have zero or more
+      targets for a single adapter.</span></p>
+
     <h3>Get</h3>
 
     <div class="def" id="Get">
@@ -457,7 +470,7 @@
     </div>
 
     <h3 id="example">Example</h3>
-    <p>Consider a non-trivial component (called <em>Panel</em>) <a
+    <p>Consider a non-trivial component (named <em>Panel</em>) <a
       href="runtime.html#s11n">defined in XML</a> as follows:</p>
 
     <div class="def" id="Panel">
@@ -494,15 +507,19 @@
           three children. The first is a <code>Text</code> child with the name
           <code>text-n</code>, as specified by the <code>name</code>
           attribute.</li>
-          <li><code>Panel</code> also has two child components with the names
-          <code>Plus</code> and <code>Minus</code>, both inheriting from the
-          <code>Button</code> component shown below (as specified by the
-          <code>href</code> attribute), with a different initial value for the
-          <code>label</code> property (as specified by the <code>label</code>
-          attribute), and a default view, since they have no <code>view</code>
-          child element. The second and third children of the view of
-          <code>Panel</code> are the views of <code>Plus</code> and
-          <code>Minus</code>.</li>
+          <li>The <code>component</code> element inside a
+          <code>view</code> element has two roles: set the component as a child
+          component of the component for which this is the view of, and set the
+          view of the component as a child of the parent element. The two
+          <code>component</code> elements here mean that <code>Panel</code> has
+          two child components with the names <code>Plus</code> and
+          <code>Minus</code>, both inheriting from the <code>Button</code>
+          component shown below (as specified by the <code>href</code>
+          attribute), with a different initial value for the <code>label</code>
+          property (as specified by the <code>label</code> attribute), and a
+          default view, since they have no <code>view</code> child element.
+          These views are alos the second and third children of the
+          <code>div</code> DOM element in the view of <code>Panel</code>.</li>
           <li>The <code>Watch</code> <span class="watch">1</span> has one
           input and one output:
           <ul>
@@ -689,7 +706,8 @@
 
     <figure>
       <img src="fig/panel.svg">
-      <figcaption>Component and view tree of <code>Panel</code>.</figcaption>
+      <figcaption>Component graphs of <code>Panel</code> and
+      <code>Button</code>.</figcaption>
     </figure>
 
     <p>This example is used again to illustrate <a

@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Fri 28 Feb 2014</p>
+    <p>Version 0.9, Mon 03 Mar 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -34,7 +34,9 @@
     of the graph, having effects on the running application.</p>
     <p><strong>Note</strong>: although the watch graph may be viewed as an
     implementation artifact, it is nevertheless used here to help formalize the
-    definition of the processing model of Bender.</p>
+    definition of the processing model of Bender. <span class="TODO">Is it
+    worth formalizing without the watch graph, then moving the watch graph to
+    an implementation note?</span></p>
 
 
     <h2>Running a Bender Application in a User Agent</h2>
@@ -276,6 +278,11 @@
                 V’
     else G.vortex</pre>
 
+    <p><span class="TODO">With the current single target system, the static
+    target of an adapter is always defined. With the possibility of multiple
+    static targets, a single adapter may produce zero or more
+    edges.</span><p>
+
     <p>To illustrate the rendering of the watch graph, review the
     <code>Panel</code> component from the <a href="data-model.html#example">Data
     Model</a> description.</p>
@@ -365,11 +372,11 @@ AdapterVertex? find-prototype-vertex’(Adapter A, Component? C, WatchGraph G) =
     same <code>type</code>.) When this function is called, the targets have
     already been matched.</p>
     <pre class="code">boolean match-adapters(Adapter A, Adapter B) =
-  ((A is-a GetPropertyVertex or A is-a SetPropertyVertext) and
-   (B is-a GetPropertyVertex or B is-a SetPropertyVertext) and
+  ((A is-a GetPropertyVertex or A is-a SetPropertyVertex) and
+   (B is-a GetPropertyVertex or B is-a SetPropertyVertex) and
    A.name = B.name) or
-  ((A is-a GetEventVertex or A is-a SetEventVertext) and
-   (B is-a GetEventVertex or B is-a SetEventVertext) and
+  ((A is-a GetEventVertex or A is-a SetEventVertex) and
+   (B is-a GetEventVertex or B is-a SetEventVertex) and
    A.type = B.type)</pre>
 
     <p>Continuing the previous example, adding watch <span
@@ -644,15 +651,13 @@ integer next-view-index(View+ S, integer I) =
 
     <h2>Watch Graph Traversal</h2>
 
-    <h3>Input Vertices and Vertex Values</h3>
-
     <p>The watch graph is traversed when one or more of its <em>input
       vertices</em> receives an <em>input value</em> from a <em>target</em>.
     Edges of the graph are then traversed in the sorted order. Edges have
     different effects on the application, such as setting property values,
     generating events, modifying rendered elements, &amp;c. The order of the
     edges defines the order in which these changes occur. After all edges have
-    been visited, vertex values are cleared until the next traversal.</p>
+    been visited, values in vertices are cleared until the next traversal.</p>
 
     <p>Both a <code>PropertyVertex</code> or an <code>EventVertex</code> can be
     an input vertex. A <code>PropertyVertex</code> may get an input value when
@@ -660,45 +665,19 @@ integer next-view-index(View+ S, integer I) =
     <code>EventVertex</code> may get an input value when the corresponding event
     is caught by an event listener.</p>
 
-    <h3>Vertex Values</h3>
-
-    <div class="def" id="VertexValue">
-      <p>A <code>VertexValue</code> is a value that a <code>Vertex</code> may
-      receive during a traversal. A <code>Vertex</code> may have zero or more
-      values, but only one value per target.</p>
-      <div>
-        <pre>VertexValue &lt; Object
-  Node  target
-  data  value</pre>
-        <ul>
-          <li><code>target</code> is the <em>runtime target</em> of the value.
-          A vertex cannot have more that one <code>VertexValue</code> with the
-          same <code>target</code>.</li>
-          <li><code>value</code> is the data associated with the value.</li>
-        </ul>
-      </div>
-    </div>
-
-    <p><span class="TODO">Getting and setting vertex values. A vertex can only
-      have one vertex value for a given target. This means that when setting an
-      output value on a vertex, if a previous value with the same target already
-      existed, the value is <strong>not</strong> updated. This removes
-      ambiguities in case there are several edges reaching a single vertex with
-      the same target. The ordering of the edges implements such conflict
-      resolution in the graph.</span></p>
-
     <h3>Edge Traversal</h3>
     <p>Every edge of the graph is visited in turn. This function is called
-    whenever a <code>Vertex</code> receives a <code>VertexValue</code>. More
-    than one values can be present in the graph at the before traversal begins.
-    This happens at initialization time, when all properties are initialized,
-    and allows updates to be batched and traversal to happen asynchronously.</p>
+    whenever a <code>Vertex</code> receives a value. More than one values can be
+    present in the graph before a traversal begins, which simulates the
+    simultaneous propagation of the values. This happens for instnce at
+    initialization time, when all properties are initialized, and allows updates
+    to be batched while traversal happens asynchronously.</p>
     <pre class="code">traverse-graph(Graph G) =
   do
     for E in G.edges
       traverse-edge(E)
     for V in G.vertices
-      clear-values(V)</pre>
+      V.values &lt;- []</pre>
 
     <p>The purpose of the <code>traverse-edge</code> function is to filter and
     transform the input values of the source vertex of the edge, and set the
@@ -711,7 +690,7 @@ integer next-view-index(View+ S, integer I) =
     AdapterEdge = traverse-adapter-edge(E)</pre>
 
     <p>An <code>InheritEdge</code> only filters its input values. The input
-    vertex value is passed unchanged to the destination vertex if and only if
+    value is passed unchanged to the destination vertex if and only if
     the static target of the destination vertex is a prototype of the input
     value target <span class="TODO">(better specify this
       relationship.)</span></p>
@@ -735,7 +714,8 @@ integer next-view-index(View+ S, integer I) =
     <code>EventVertex</code> for Plus is followed, setting the same value on the
     destination vertex, because the static target matches the runtime target.
     The edge to the <code>EventVertex</code> for Minus is not followed (and is
-    represented as a dashed edge) because Minus is not a prototype of Plus.</p>
+    represented as a dashed edge) because <code>Plus</code> does not conform to
+    the prototype of <code>Minus</code>.</p>
     <figure>
       <img src="fig/traverse-inherit-edge.svg">
       <figcaption>Traversing an <code>InheritEdge</code><figcaption>
@@ -754,10 +734,15 @@ integer next-view-index(View+ S, integer I) =
       <em>S</em> in the context of the input runtime target <em>T</em>. There
       can be zero or more such targets (depending on the static
       flag.)</span></p>
-    <pre class="code">Node* runtime-targets(Node S, Node T) = ...</pre>
+    <pre class="code">Node* runtime-targets(Node S, Node T) =
+ let V = find(view-stack-of(S), λV S.view = V)
+   in let T’ = runtime-target(T, V) in
+     if defined T’
+       then [T’]
+       else []</pre>
 
     <p>When an edge for a <code>Set</code> is traversed, its output value is set
-    on the target vertex, but it is also <code>apply</code> to the target.
+    on the target vertex, but it is also <em>applied</em> to the target.
     Different <code>Set</code>s have different effects:</p>
     <ul>
       <li>a <code>SetProperty</code> sets the property <code>property</code>
@@ -913,15 +898,15 @@ integer next-view-index(View+ S, integer I) =
 
     <figure>
       <img src="fig/graph-init.svg">
-      <figcaption>Initialization of the graph of the <code>Panel</code>
-      component.</figcaption>
+      <figcaption>Initialization of the watch graph</figcaption>
     </figure>
 
 
     <h2>Component Mutations</h2>
-    <p><span class="TODO">Re-render everything, then reinitializes the graph
-      using all the values from the previous rendering. If nodes have been
-      added, they are initialized normally with their initial value.</span></p>
+    <p><span class="TODO">Render new graph and view, then reinitialize the graph
+      using all the values from the previous rendering directly in the vertices.
+      If nodes have been added, they are initialized normally with their initial
+      value.</span></p>
 
     <h2>Minimization and Compilation of the Watch Graph</h2>
     <p>As a possible optimization, the watch graph can be minimized by removing
@@ -948,13 +933,19 @@ integer next-view-index(View+ S, integer I) =
       outgoing edges could then be removed from the graph.</li>
     </ul>
     <p>After applying these steps whenever possible, the graph only contains
-    <code>AdapterEdge</code>s. Cycles may appear as a result of merging
-    vertices, but this does not result in infinite loops.<span
-      class="TODO"> TODO: actual algorithm, and proof that the order is
-      maintained. Also, a <code>pure</code> flag for functions could allow more
-    aggressive optimizations if the author is sure that no unwanted side effects
-    can happen.</span> For the sake of simplicity, furhter discussion of the
-    watch graph will refer to the unminimized version of the graph.</p>
+    <code>AdapterEdge</code>s. When two edges are merged, in order to preserve
+    traversal order, merging two edges replaces the last one (<em>i.e.</em>, the
+    one which comes latest in the sorted order.) Initialization edges should be
+    added <em>after</em> the minimization step as their order may also change:
+    in the example below, the initialization edge for the <code>enabled</code>
+    property changes order after minimization. Cycles may appear as a result of
+    merging vertices, but this does not result in infinite loops.<span
+      class="TODO"> TODO: actual algorithm. Also, a <code>pure</code> flag for
+      functions could allow more aggressive optimizations if the author is sure
+      that no unwanted side effects can happen; especially for one
+      <code>Get</code>/multiple <code>Set</code>s. When there are multiple
+      <code>Get</code>s, all input values may be necessary for the
+      <code>Set</code>s and the watch vertex should be kept.</span></p>
 
     <figure>
       <img src="fig/graph-panel-min.svg">
