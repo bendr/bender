@@ -9,473 +9,514 @@
     <h1>The Bender Data Model</h1>
     <p>Version 0.9, Mon 03 Mar 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
-    and <a href="runtime.html">the Bender Runtime</a> for
-    reference.</p>
+    and <a href="runtime.html">the Bender Runtime</a> for reference.</p>
 
-    <h2>Preliminaries</h2>
-    <p>We use a loose notation to describe the data and processing model of
-    Bender in terms of objects and prototype, and an implied standard library
-    for processing lists, managing DOM elements, &amp;c.</p>
-    <ul>
-      <li>The data model is defined in terms of <em>Objects</em> and
-      <em>data</em>. <code>Object</code>s are defined by their
-      <em>properties</em>. A property has a name and a value, which may be any
-      <code>data</code>: a boolean, a number, a string, a number, an
-      <code>Object</code>, or the undefined value.</li>
-      <li>The binary operator <code>is-a</code> checks if the Object on the
-      left-hand side was created from the object on the right-hand side.</li>
-      <li>A function is described by its name, formal parameters, and an
-      optional return type. The pseudo-code used is a simple expression-based
-      language with a liberal syntax that allows side effects, namely the
-      mutation of object properties, and may not return any value.</li>
-      <li><em>O</em> <code>&lt;</code> <em>P</em> means that the object
-      <em>O</em> is <em>created</em> from the object <em>P</em>. <em>O</em>
-      inherits all of the properties of <em>P</em>, along with their values.
-      <em>O</em> may have additional properties, and may override any property
-      of <em>P</em>.</li>
-      <li><em>O</em><code>.</code><em>x</em> means the property <em>x</em> of
-      object <em>O</em>.</li>
-      <li><code>?</code> means that the property may be undefined.
-      The operator <code>defined</code> checks if a value is defined.</li>
-      <li><code>*</code> means a list or set of zero or more objects.</li>
-      <li><code>+</code> means a list or set of one or more objects.</li>
-      <li><code>[]</code> means an empty list.</li>
-      <li><code>"..."</code> means a string (which can be considered as a list
-      of characters.)</li>
-      <li><em>L</em> <code>:</code> <em>x</em> means appending <em>x</em> to the
-      list <em>L</em>.</li>
-      <li><code>::</code> is the concatenation of two lists.</li>
-      <li><code>&lt;-</code> means setting a property of an object on the
-      left-hand side to the value on the right-hand side.</li>
-      <li><code>=</code> is used for binding (in definitions and
-      <code>let</code> forms) or equality testing.</li>
-    </ul>
-    <p>Bender is a work in progress so some issues may be left unsolved, or
-    foreseeable extensions already planned. <span class="TODO">Highlighted
-      sections indicate open issues and questions.</span>
+    <nav data-title="Contents" data-figures="Figures" data-figure-prefix="Fig"
+      id="toc"></nav>
 
+    <section id="preliminaries">
+      <h2>Preliminaries</h2>
+      <p>We use a loose notation to describe the data and processing model of
+      Bender in terms of objects and prototype, and an implied standard library
+      for processing lists, managing DOM elements, &amp;c.</p>
+      <ul>
+        <li>The data model is defined in terms of <em>Objects</em> and
+        <em>data</em>. <code>Object</code>s are defined by their
+        <em>properties</em>. A property has a name and a value, which may be any
+        <code>data</code>: a boolean, a number, a string, a number, an
+        <code>Object</code>, or the undefined value.</li>
+        <li>The binary operator <code>is-a</code> checks if the Object on the
+        left-hand side was created from the object on the right-hand side.</li>
+        <li>A function is described by its name, formal parameters, and an
+        optional return type. The pseudo-code used is a simple expression-based
+        language with a liberal syntax that allows side effects, namely the
+        mutation of object properties, and may not return any value.</li>
+        <li><em>O</em> <code>&lt;</code> <em>P</em> means that the object
+        <em>O</em> is <em>created</em> from the object <em>P</em>. <em>O</em>
+        inherits all of the properties of <em>P</em>, along with their values.
+        <em>O</em> may have additional properties, and may override any property
+        of <em>P</em>.</li>
+        <li><em>O</em><code>.</code><em>x</em> means the property <em>x</em> of
+        object <em>O</em>.</li>
+        <li><code>?</code> means that the property may be undefined.
+        The operator <code>defined</code> checks if a value is defined.</li>
+        <li><code>*</code> means a list or set of zero or more objects.</li>
+        <li><code>+</code> means a list or set of one or more objects.</li>
+        <li><code>[]</code> means an empty list.</li>
+        <li><code>"..."</code> means a string (which can be considered as a list
+        of characters.)</li>
+        <li><em>L</em> <code>:</code> <em>x</em> means appending <em>x</em> to
+        the list <em>L</em>.</li>
+        <li><code>::</code> is the concatenation of two lists.</li>
+        <li><code>&lt;-</code> means setting a property of an object on the
+        left-hand side to the value on the right-hand side.</li>
+        <li><code>=</code> is used for binding (in definitions and
+        <code>let</code> forms) or equality testing.</li>
+      </ul>
+      <p>Bender is a work in progress so some issues may be left unsolved, or
+      foreseeable extensions already planned. <span class="TODO">Highlighted
+        sections indicate open issues and questions.</span>
+    </section>
 
-    <h2>Nodes</h2>
+    <section id="nodes">
+      <h2>Nodes</h2>
 
-    <div class="def" id="Node">
-      <p>The Bender data model deals with two kinds of tree structures: trees
-      of <em>components</em>, defining the high-level structure of a Bender
-      application; and trees of <em>elements</em>, defining the contents and
-      layout of a given component. Together, these trees define a <em>component
-        graph</em>. Both trees are defined by tree <code>Node</code>s.</p>
-      <div>
-        <pre>Node &lt; Object
+      <div class="def" id="Node">
+        <p>The Bender data model deals with two kinds of tree structures: trees
+        of <em>components</em>, defining the high-level structure of a Bender
+        application; and trees of <em>elements</em>, defining the contents and
+        layout of a given component. Together, these trees define a
+        <em>component graph</em>. Both trees are defined by tree
+        <code>Node</code>s.</p>
+        <div>
+          <pre>Node &lt; Object
   Node?    parent
   Node*    children
   string?  name</pre>
-        <ul>
-          <li><code>parent</code> is the parent <code>Node</code>, if any, of
-          the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
-          <li><code>children</code> is the list of child <code>Node</code>s of
-          the node.</li>
-          <li><code>name</code> is an optional name for the node, than can be
-          used in a <code>selector</code> to designate it. It can be any
-          non-empty string.</li>
-        </ul>
+          <ul>
+            <li><code>parent</code> is the parent <code>Node</code>, if any, of
+            the node. The <em>root</em> of a tree has no <code>parent</code>.</li>
+            <li><code>children</code> is the list of child <code>Node</code>s of
+            the node.</li>
+            <li><code>name</code> is an optional name for the node, than can be
+            used in a <em>selector</em> to designate it. It can be any non-empty
+            string.</li>
+          </ul>
+        </div>
       </div>
-    </div>
+    </section>
 
 
-    <h2>Components</h2>
-
-    <div class="def" id="Component">
-      <p>The <code>Component</code> is the basic unit of functionality in
-      Bender. Components are defined in terms of other components, both through
-      <em>composition</em> (a component may contain child components) and
-      <em>inheritance</em> (a component may inherit from a prototype
-      component.) A <em>component tree</em> is a tree of <code>Component</code>
-      nodes, the root of which is a <em>top-level component</em>. A
-      <em>component graph</em> is a graph of nodes including the top-level
-      component tree and its view tree (see below.) The component graph does
-      not include nodes from the prototype of the component, or the prototypes
-      of any of its children.</p>
-      <div>
-        <pre>Component &lt; Node
+    <section id="components">
+      <h2>Components</h2>
+      <div class="def" id="Component">
+        <p>The <code>Component</code> is the basic unit of functionality in
+        Bender. Components are defined in terms of other components, both
+        through <em>composition</em> (a component may contain child components)
+        and <em>inheritance</em> (a component may inherit from a prototype
+        component.) A <em>component tree</em> is a tree of
+        <code>Component</code> nodes, the root of which is a <em>root
+        component</em>. A <em>component graph</em> is a graph of nodes including
+        the root component tree and its view tree (see below.) The component
+        graph does not include nodes from the prototype of the component, or the
+        prototypes of any of its children.</p>
+        <div>
+          <pre>Component &lt; Node
   Component?  prototype
   data*       properties
   View        view
   Watch*      watches</pre>
-        <ul>
-          <li><code>prototype</code> is the <code>Component</code> that this
-          component inherits from, if any. The prototype component must be a
-          top-level component, <em>i.e.</em>, it must not have a
-          <code>parent</code>. The <em>prototype chain</em> is the sequence of
-          <code>Component</code>s formed by the prototype and its prototype
-          chain. The prototype chain must not contain any cycle, <em>i.e.</em>,
-          a component cannot inherit from itself either directly or
-          indirectly.<span class="TODO"> Do <code>Component</code>s inherit from
-            a fundamental component by default?</span></li>
-          <li><code>properties</code> is the list of all property values for
-          this component, indexed by their name. From this list, the set of
-          <em>defined properties</em> can be derived, and is the set of property
-          names for the component. A property name can be any non-empty string.
-          <span class="TODO">All properties of a component are “public”.
-            However, having private properties would be useful; the set of
-            properties could then be split in two, a set of public properties,
-            and a set of private properties. The set of public properties would
-            be inherited, while the set of private properties would
-            not.</span></li>
-          <li><code>view</code> is the root of the view tree of this
-          component. A component always has a view, but it may be a default
-          view. <span class="TODO">We may allow components to not have a view;
-            then they are still part of the component tree, but not the view
-            tree and are not rendered but still cloned when the component is
-            rendered.</span></li>
-          <li><code>watches</code> is the set of the <code>Watch</code>es of the
-          component.</li>
-        </ul>
+          <ul>
+            <li><code>prototype</code> is the <code>Component</code> that this
+            component inherits from, if any. The prototype component must be a
+            root component, <em>i.e.</em>, it must not have a
+            <code>parent</code>. The <em>prototype chain</em> is the sequence of
+            <code>Component</code>s formed by the prototype and its prototype
+            chain. The prototype chain must not contain any cycle,
+            <em>i.e.</em>, a component cannot inherit from itself either
+            directly or indirectly. <span class="TODO">Do
+              <code>Component</code>s inherit from a fundamental component by
+              default?</span></li>
+            <li><code>properties</code> is the list of all property values for
+            this component, indexed by their name. From this list, the set of
+            <em>defined properties</em> can be derived, and is the set of
+            property names for the component. A property name can be any
+            non-empty string. <span class="TODO">All properties of a component
+              are “public”. However, having private properties would be useful;
+              the set of properties could then be split in two, a set of public
+              properties, and a set of private properties. The set of public
+              properties would be inherited, while the set of private properties
+              would not be inherited.</span></li>
+            <li><code>view</code> is the root of the view tree of this
+            component. A component always has a view, but it may be a default
+            view. <span class="TODO">We may allow components to not have a view;
+              then they are still part of the component tree, but not the view
+              tree and are not rendered but still cloned when the component is
+              rendered.</span></li>
+            <li><code>watches</code> is the set of the <code>Watch</code>es of
+            the component.</li>
+          </ul>
+        </div>
       </div>
-    </div>
-    <p>A <code>Component</code> <em>C</em> is said to <em>conform to the
-      prototype</em> of another component <em>P</em> if and only if <em>C</em>
-    is <em>P</em>, or the prototype <em>C’</em> of <em>C</em> conforms to the
-    prototype of <em>P</em>.</p>
+      <p>A <code>Component</code> <em>C</em> is said to <em>conform to the
+        prototype</em> of another component <em>P</em> if and only if <em>C</em>
+      is <em>P</em>, or the prototype <em>C’</em> of <em>C</em> conforms to the
+      prototype of <em>P</em>.</p>
+    </section>
 
+    <section id="view-elements">
+      <h2>View Elements</h2>
+      <p>The <em>view</em> of a <code>Component</code> describes its contents
+      and layout as a tree of <code>Element</code>s. These elements describe how
+      a component is rendered and which other <code>Component</code>s it
+      contains. The view tree of a component <em>C</em> is the tree rooted at a
+      <code>View</code> element <em>V</em> such that <code>C.view</code> is
+      <em>V</em>.</p>
 
-    <h2>View and Elements</h2>
-
-    <p>The <em>view</em> of a <code>Component</code> describes its contents and
-    layout as a tree of <code>Element</code>s. These elements describe how a
-    component is rendered and which other <code>Component</code>s it
-    contains. The view tree of a component <em>C</em> is the tree rooted at a
-    <code>View</code> element <em>V</em> such that <code>C.view</code> is
-    <em>V</em>.</p>
-
-    <div class="def" id="Element">
-      <p><code>Element</code>s are <code>Node</code>s describing the view of a
-      <code>Component</code>.</p>
-      <div>
-        <pre>Element &lt; Node
+      <div class="def" id="Element">
+        <p><code>Element</code>s are <code>Node</code>s describing the view of a
+        <code>Component</code>.</p>
+        <div>
+          <pre>Element &lt; Node
   View  view</pre>
-        <ul>
-          <li><code>view</code> is the closest <code>View</code> ancestor
-          element of the <code>Element</code>.</li>
-        </ul>
+          <ul>
+            <li><code>view</code> is the closest <code>View</code> ancestor
+            element of the <code>Element</code>.</li>
+          </ul>
+        </div>
       </div>
-    </div>
 
-    <div class="def" id="View">
-      <p>The <code>View</code> element is a container for the view of a
-      component.</p>
-      <div>
-        <pre>View &lt; Element
+      <section id="view">
+        <h3>View</h3>
+        <div class="def" id="View">
+          <p>The <code>View</code> element is a container for the view of a
+          component.</p>
+          <div>
+            <pre>View &lt; Element
   Component  component
   boolean    default</pre>
-        <ul>
-          <li><code>component</code> is the <code>Component</code> that this is
-          the view of.</li>
-          <li><code>default</code> is a flag that distinguishes the absence of
-          content from an <em>empty view</em>. If this flag is set, then there
-          must be no <code>children</code>. On the other hand, an empty view is
-          a view with zero <code>children</code> but with the
-          <code>default</code> flag unset. <span class="TODO">Instead of a flag,
-            a <code>DefaultView</code> could be used instead?</span></li>
-          <li><strong>Note</strong>: for a <code>View</code>, the value of the
-          <code>view</code> property is itself.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>component</code> is the <code>Component</code> that this
+              is the view of.</li>
+              <li><code>default</code> is a flag that distinguishes the absence
+              of content from an <em>empty view</em>. If this flag is set, then
+              there must be no <code>children</code>. On the other hand, an
+              empty view is a view with zero <code>children</code> but with the
+              <code>default</code> flag unset. <span class="TODO">Instead of a
+                flag, a <code>DefaultView</code> could be used
+                instead?</span></li>
+              <li><strong>Note</strong>: for a <code>View</code>, the value of
+              the <code>view</code> property is itself.</li>
+            </ul>
+          </div>
+        </div>
+        <p><span class="TODO">The view stack order can be modified with the
+          addition of a <code>stack-order</code> property, with the possible
+          values <code>top</code> (put the view on top of the stack, which is
+          the default), <code>bottom</code> (put the view at the bottom of the
+          stack), and <code>replace</code> (replace all views within the stack
+          with this view.)</span></p>
+        <p><span class="TODO">A <code>View</code> element can appear as a
+          descendant of another view element if it is the view of a descendant
+          of the component of the ancestor view. A <code>target</code> attribute
+          matches the view with its component.</span></p>
+      </section>
 
-    <p><span class="TODO">The view stack order can be modified with the addition
-      of a <code>stack-order</code> property, with the possible values
-      <code>top</code> (put the view on top of the stack, which is the default),
-      <code>bottom</code> (put the view at the bottom of the stack), and
-      <code>replace</code> (replace all views within the stack with this
-      view.)</span></p>
+      <section id="content">
+        <h3>Content</h3>
+        <div class="def" id="Content">
+          <p>The <code>Content</code> element provides an extension point for
+          the view of derived components. Its children define default content to
+          be used in the stead of a default view.</p>
+          <div>
+            <pre>Content &lt; Element</pre>
+          </div>
+        </div>
+        <p>A component may have at most one <code>Content</code> element within
+        its view, <em>i.e.</em>, there cannot exist two <code>Content</code>
+        elements <em>C<sub>1</sub></em> and <em>C<sub>2</sub></em> such that
+        <code>C<sub>1</sub>.view</code> is the same <code>View</code> element as
+        <code>C<sub>2</sub>.view</code>. <span class="TODO">Multiple
+          <code>Content</code> elements can be supported with the addition of a
+          <code>select</code> property. This property would allow to select
+          specific nodes in the <code>View</code> of a derived component,
+          instead of the whole view (which would still be the default.) A query
+          language beyond that used for watches must also be defined.</span></p>
+      </section>
 
-    <div class="def" id="Content">
-      <p>The <code>Content</code> element provides an extension point for the
-      view of derived components. Its children define default content to be
-      used in the stead of a default view.</p>
-      <div>
-        <pre>Content &lt; Element</pre>
-      </div>
-    </div>
-
-    <p>A component may have at most one <code>Content</code> element within its
-    view, <em>i.e.</em>, there cannot exist two <code>Content</code> elements
-    <em>C<sub>1</sub></em> and <em>C<sub>2</sub></em> such that
-    <code>C<sub>1</sub>.view</code> is the same <code>View</code> element as
-    <code>C<sub>2</sub>.view</code>. <span class="TODO">Multiple
-      <code>Content</code> elements can be supported with the addition of a
-      <code>select</code> property. This property would allow to select specific
-      nodes in the <code>View</code> of a derived component, instead of the
-      whole view (which would still be the default.) A query language beyond
-      that used for watches must also be defined.</span></p>
-
-    <div class="def" id="DOMElement">
-      <p>The <code>DOMElement</code> element represents a foreign element
-      (<em>i.e.</em>, not a Bender element.) Its properties map to properties of
-      DOM elements.</p>
-      <div>
-        <pre>DOMElement &lt; Element
+      <section id="dom-element">
+        <h3>DOMElement</h3>
+        <div class="def" id="DOMElement">
+          <p>The <code>DOMElement</code> element represents a foreign element
+          (<em>i.e.</em>, not a Bender element.) Its properties map to
+          properties of DOM elements.</p>
+          <div>
+            <pre>DOMElement &lt; Element
   string  namespace-uri
   string  local-name
   data*   attributes</pre>
-        <ul>
-          <li><code>namespace-uri</code> is the namespace URI of the DOM
-          element.</li>
-          <li><code>local-name</code> is the local name of the DOM element.</li>
-          <li><code>attributes</code> is a list of attribute values of the DOM
-          element, indexed first by namespace URI, then by local name.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>namespace-uri</code> is the namespace URI of the DOM
+              element.</li>
+              <li><code>local-name</code> is the local name of the DOM
+              element.</li>
+              <li><code>attributes</code> is a list of attribute values of the
+              DOM element, indexed first by namespace URI, then by local
+              name.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-    <div class="def" id="Attribute">
-      <p>The <code>Attribute</code> element represents an attribute of its
-      parent element, similarly to a DOM attribute node.</p>
-      <div>
-        <pre>Attribute &lt; Element
+      <section id="attribute">
+        <h3>Attribute</h3>
+        <div class="def" id="Attribute">
+          <p>The <code>Attribute</code> element represents an attribute of its
+          parent element, similarly to a DOM attribute node.</p>
+          <div>
+            <pre>Attribute &lt; Element
   string  namespace-uri
   string  local-name</pre>
-        <ul>
-          <li><code>namespace-uri</code> is the namespace URI of the
-          attribute.</li>
-          <li><code>local-name</code> is the local name of the attribute.</li>
-          <li><strong>Note</strong>: the value of the attribute is defined by
-          the concatenation of the <code>text</code> of its <code>Text</code>
-          child elements; so an <code>Attribute</code> node should only have
-          <code>Text</code> child nodes.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>namespace-uri</code> is the namespace URI of the
+              attribute.</li>
+              <li><code>local-name</code> is the local name of the
+              attribute.</li>
+              <li><strong>Note</strong>: the value of the attribute is defined
+              by the concatenation of the <code>text</code> of its
+              <code>Text</code> child elements; so an <code>Attribute</code>
+              node should only have <code>Text</code> child nodes.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-    <div class="def" id="Text">
-      <p>The <code>Text</code> element represents a text node, similarly to a
-      DOM text node or CDATA section.</p>
-      <div>
-        <pre>Text &lt; Element
+      <section id="text">
+        <h3>Text</h3>
+        <div class="def" id="Text">
+          <p>The <code>Text</code> element represents a text node, similarly to
+          a DOM text node or CDATA section.</p>
+          <div>
+            <pre>Text &lt; Element
   string  text</pre>
-        <ul>
-          <li><code>text</code> is the text content of the element.</li>
-          <li><strong>Note</strong>: a <code>Text</code> element should not
-          have children.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>text</code> is the text content of the element.</li>
+              <li><strong>Note</strong>: a <code>Text</code> element should not
+              have children.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </section>
 
+    <section id="watches">
+      <h2>Watches</h2>
+      <p>Watches describe the behavior of a component. A <em>watch</em>
+      generalizes the concept of the <em>event listener</em> by allowing
+      components to listen to event notifications from rendered elements
+      (<em>e.g.</em>, DOM events), and event notifications and property changes
+      from <code>Component</code>s; and associating these occurrences with
+      corresponding actions, such as generating new event notifications, setting
+      new values for properties, or mutating a component.</p>
 
-    <h2>Watches</h2>
-    <p>Watches describe the behavior of a component. A <em>watch</em>
-    generalizes the concept of the <em>event listener</em> by allowing
-    components to listen to event notifications from rendered elements
-    (<em>e.g.</em>, DOM events), and event notifications and property changes
-    from <code>Component</code>s; and associating these occurrences with
-    corresponding actions, such as generating new event notifications, setting
-    new values for properties, or mutating a component.</p>
-
-    <h3>Watch</h3>
-
-    <div class="def" id="Watch">
-      <p>A <code>Watch</code> has <em>inputs</em> (incoming event notifications
-      or property changes) and <em>outputs</em> (outgoing event notifications,
-      property changes, or mutations.)</p>
-      <div>
-        <pre>Watch &lt; Object
+      <section id="watch">
+        <h3>Watch</h3>
+        <div class="def" id="Watch">
+          <p>A <code>Watch</code> has <em>inputs</em> (incoming event
+          notifications or property changes) and <em>outputs</em> (outgoing
+          event notifications, property changes, or mutations.)</p>
+          <div>
+            <pre>Watch &lt; Object
   Component  component
   Get+       gets
   Set*       sets</pre>
-        <ul>
-          <li><code>component</code> is the owner <code>Component</code> of
-          this watch.</li>
-          <li><code>gets</code> is the set of <code>Get</code>s (inputs) of this
-          watch. A <code>Watch</code> must have at least one input.</li>
-          <li><code>sets</code> is the set of <code>Set</code>s (outputs) of
-          this watch.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>component</code> is the owner <code>Component</code> of
+              this watch.</li>
+              <li><code>gets</code> is the set of <code>Get</code>s (inputs) of
+              this watch. A <code>Watch</code> must have at least one
+              input.</li>
+              <li><code>sets</code> is the set of <code>Set</code>s (outputs) of
+              this watch.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-
-    <h3>Adapters</h3>
-
-    <div class="def" id="Adapter">
-      <p>An <code>Adapter</code> filters and transforms an input value into an
-      output value, with an optional delay, in the context of a <em>target</em>
-      <code>Node</code>.</p>
-      <div>
-        <pre>Adapter &lt; Object
+      <section id="adapters">
+        <h3>Adapters</h3>
+        <div class="def" id="Adapter">
+          <p>An <code>Adapter</code> filters and transforms an input value into
+          an output value, with an optional delay, in the context of a
+          <em>target</em> <code>Node</code>.</p>
+          <div>
+            <pre>Adapter &lt; Object
   Watch     watch
   Node      target
   boolean   static = false
   boolean   match(Node T, data V) = true
   data      value(Node T, data V) = V
   number?   delay</pre>
-        <ul>
-          <li><code>watch</code> is the owner <code>Watch</code> of the
-          adapter.</li>
-          <li><code>target</code> is the <em>static target</em> of this adapter.
-          The target must be a node within the component graph of the owner
-          component of the watch for this adapter. The role of the target
-          depends on the specific <code>Adapter</code>.</li>
-          <li><code>static</code> is a flag that defines whether the
-          <code>Adapter</code> applies to a static target (when set) or a
-          <em>runtime target</em> (otherwise), meaning any <code>Node</code>
-          that is, or <em>derives</em> from, the static target
-          <code>Node</code>. A <code>Component</code> node derives from any
-          component in its prototype chain; an <code>Element</code> node derives
-          from another node if it was cloned from this node.</li>
-          <li><code>match</code> is a predicate that takes a <code>Node</code>
-          (the input target) and <code>data</code> (the <em>input value</em>) as
-          input and returns a boolean value that is true if and only if the
-          input value is considered <em>valid</em> for the input target. If an
-          input is considered invalid, no value is output by the adapter. The
-          default is a function that returns true for any input.</li>
-          <li><code>value</code> is a function that takes a <code>Node</code>
-          (the input target) and <code>data</code> (the input value) as input
-          and returns an output value, which can be any <code>data</code>. The
-          default is to return the input value unchanged.</li>
-          <li><code>delay</code> is the delay before an output value is
-          returned. When <code>delay</code> is undefined, there is no delay, and
-          the output value is returned synchronously. When <code>delay</code> is
-          0, then the output value is returned as soon as possible, but
-          asynchronously. When <code>delay</code> is larger than 0, then this is
-          the delay in milliseconds before which an output value is
-          returned.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>watch</code> is the owner <code>Watch</code> of the
+              adapter.</li>
+              <li><code>target</code> is the <em>static target</em> of this
+              adapter. The target must be a node within the component graph of
+              the owner component of the watch for this adapter. The role of the
+              target depends on the specific <code>Adapter</code>.</li>
+              <li><code>static</code> is a flag that defines whether the
+              <code>Adapter</code> applies to a static target (when set) or a
+              <em>runtime target</em> (otherwise), meaning any <code>Node</code>
+              that is, or <em>derives</em> from, the static target
+              <code>Node</code>. A <code>Component</code> node derives from any
+              component in its prototype chain; an <code>Element</code> node
+              derives from another node if it was cloned from this node.</li>
+              <li><code>match</code> is a predicate that takes a
+              <code>Node</code> (the input target) and <code>data</code> (the
+              <em>input value</em>) as input and returns a boolean value that is
+              true if and only if the input value is considered <em>valid</em>
+              for the input target. If an input is considered invalid, no value
+              is output by the adapter. The default is a function that returns
+              true for any input.</li>
+              <li><code>value</code> is a function that takes a
+              <code>Node</code> (the input target) and <code>data</code> (the
+              input value) as input and returns an output value, which can be
+              any <code>data</code>. The default is to return the input value
+              unchanged.</li>
+              <li><code>delay</code> is the delay before an output value is
+              returned. When <code>delay</code> is undefined, there is no delay,
+              and the output value is returned synchronously. When
+              <code>delay</code> is 0, then the output value is returned as soon
+              as possible, but asynchronously. When <code>delay</code> is larger
+              than 0, then this is the delay in milliseconds before which an
+              output value is returned.</li>
+            </ul>
+          </div>
+        </div>
+        <p><span class="TODO">With extended selectors, we can have zero or more
+          targets for a single adapter.</span></p>
+      </section>
 
-    <p><span class="TODO">With extended selectors, we can have zero or more
-      targets for a single adapter.</span></p>
+      <section id="gets">
+        <h3>Gets</h3>
 
-    <h3>Get</h3>
+        <div class="def" id="Get">
+          <p>A <code>Get</code> is a watch input adapter. There are two
+          different kinds of input: a <em>property input</em>, or an <em>event
+            input</em>.</p>
+          <div>
+            <pre>Get &lt; Adapter</pre>
+          </div>
+        </div>
 
-    <div class="def" id="Get">
-      <p>A <code>Get</code> is a watch input adapter. There are two different
-      kinds of input: a <em>property input</em>, or an <em>event input</em>.</p>
-      <div>
-        <pre>Get &lt; Adapter</pre>
-      </div>
-    </div>
-
-    <div class="def" id="GetProperty">
-      <p>A <code>GetProperty</code> is a property input.</p>
-      <div>
-        <pre>GetProperty &lt; Get
+        <div class="def" id="GetProperty">
+          <p>A <code>GetProperty</code> is a property input.</p>
+          <div>
+            <pre>GetProperty &lt; Get
   string  name</pre>
-        <ul>
-          <li><code>name</code> is the name of the property that is
-          monitored.</li>
-          <li><strong>Note</strong>: the <code>target</code> of a
-          <code>GetProperty</code> must be a <code>Component</code> for which
-          the property is defined, <em>i.e.</em>, there must be a entry for
-          <code>name</code> in <code>target.properties</code>.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>name</code> is the name of the property that is
+              monitored.</li>
+              <li><strong>Note</strong>: the <code>target</code> of a
+              <code>GetProperty</code> must be a <code>Component</code> for
+              which the property is defined, <em>i.e.</em>, there must be a
+              entry for <code>name</code> in
+              <code>target.properties</code>.</li>
+            </ul>
+          </div>
+        </div>
 
-    <div class="def" id="GetEvent">
-      <p>A <code>GetEvent</code> is an event input.</p>
-      <div>
-        <pre>GetEvent &lt; Get
+        <div class="def" id="GetEvent">
+          <p>A <code>GetEvent</code> is an event input.</p>
+          <div>
+            <pre>GetEvent &lt; Get
   string  type</pre>
-        <ul>
-          <li><code>type</code> is the type of the event that is being listened
-          to.</li>
-          <li><strong>Note</strong>: the <code>target</code> of a
-          <code>GetEvent</code> must be a <code>Component</code> or a
-          <code>DOMElement</code>. <code>type</code> is then interpreted as the
-          type of a Bender or DOM event (respectively.)</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>type</code> is the type of the event that is being
+              listened to.</li>
+              <li><strong>Note</strong>: the <code>target</code> of a
+              <code>GetEvent</code> must be a <code>Component</code> or a
+              <code>DOMElement</code>. <code>type</code> is then interpreted as
+              the type of a Bender or DOM event (respectively.)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
+      <section id="sets">
+        <h3>Sets</h3>
 
-    <h3>Set</h3>
+        <div class="def" id="Set">
+          <p>A <code>Set</code> is a watch output. There are five different
+          kinds of output: a <em>plain output</em>, a <em>component property
+            output</em>, a <em>node proprety output</em>, an <em>attribute
+            output</em>, or an <em>event output</em>.</p>
+          <div>
+            <pre>Set &lt; Adapter</pre>
+            <ul>
+              <li><strong>Note</strong>: this is a plain output and is used for
+              side effects only, such as mutating the contents of a component,
+              or having effects outside of the scope of Bender. The
+              <code>target</code> of a plain output is irrelevant and defaults
+              to the owner component of the watch.</li>
+            </ul>
+          </div>
+        </div>
 
-    <div class="def" id="Set">
-      <p>A <code>Set</code> is a watch output. There are five different kinds
-      of output: a <em>plain output</em>, a <em>component property output</em>,
-      a <em>node proprety output</em>, an <em>attribute output</em>, or an
-      <em>event output</em>.</p>
-      <div>
-        <pre>Set &lt; Adapter</pre>
-        <ul>
-          <li><strong>Note</strong>: this is a plain output and is used for side
-          effects only, such as mutating the contents of a component, or having
-          effects outside of the scope of Bender. The <code>target</code> of a
-          plain output is irrelevant and defaults to the owner component of the
-          watch.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="def" id="SetProperty">
-      <p>A <code>SetProperty</code> is a <code>Component</code> property
-      output.</p>
-      <div>
-        <pre>SetProperty &lt; Set
+        <div class="def" id="SetProperty">
+          <p>A <code>SetProperty</code> is a <code>Component</code> property
+          output.</p>
+          <div>
+            <pre>SetProperty &lt; Set
   string  name</pre>
-        <ul>
-          <li><code>name</code> is the name of the property to be set.</li>
-          <li><strong>Note</strong>: the <code>target</code> of a
-          <code>SetProperty</code> must be a <code>Component</code> for which
-          the property is defined, <em>i.e.</em>, there must be a entry for
-          <code>name</code> in <code>target.properties</code>.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>name</code> is the name of the property to be set.</li>
+              <li><strong>Note</strong>: the <code>target</code> of a
+              <code>SetProperty</code> must be a <code>Component</code> for
+              which the property is defined, <em>i.e.</em>, there must be a
+              entry for <code>name</code> in
+              <code>target.properties</code>.</li>
+            </ul>
+          </div>
+        </div>
 
-    <div class="def" id="SetNodeProperty">
-      <p>A <code>SetNodeProperty</code> is a <code>Node</code> property
-      output.</p>
-      <div>
-        <pre>SetNodeProperty &lt; Set
+        <div class="def" id="SetNodeProperty">
+          <p>A <code>SetNodeProperty</code> is a <code>Node</code> property
+          output.</p>
+          <div>
+            <pre>SetNodeProperty &lt; Set
   string  name</pre>
-        <ul>
-          <li><code>name</code> is the name of the property to be set on the
-          target <code>Node</code>.
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>name</code> is the name of the property to be set on the
+              target <code>Node</code>.
+            </ul>
+          </div>
+        </div>
 
-    <div class="def" id="SetAttribute">
-      <p>A <code>SetAttribute</code> is an attribute output.</p>
-      <div>
-        <pre>SetAttribute &lt; Set
+        <div class="def" id="SetAttribute">
+          <p>A <code>SetAttribute</code> is an attribute output.</p>
+          <div>
+            <pre>SetAttribute &lt; Set
   string  ns
   string  name</pre>
-        <ul>
-          <li><code>ns</code> is the namespace URI of the attribute to
-          set.</li>
-          <li><code>name</code> is the local name of the attribute to set.</li>
-          <li><strong>Note</strong>: the <code>target</code> must be a
-          <code>DOMElement</code>.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>ns</code> is the namespace URI of the attribute to
+              set.</li>
+              <li><code>name</code> is the local name of the attribute to
+              set.</li>
+              <li><strong>Note</strong>: the <code>target</code> must be a
+              <code>DOMElement</code>.</li>
+            </ul>
+          </div>
+        </div>
 
-    <div class="def" id="SetEvent">
-      <p>A <code>SetEvent</code> is an event output.</p>
-      <div>
-        <pre>SetEvent &lt; Set
+        <div class="def" id="SetEvent">
+          <p>A <code>SetEvent</code> is an event output.</p>
+          <div>
+            <pre>SetEvent &lt; Set
   string  type</pre>
-        <ul>
-          <li><code>type</code> is the type of the event to generate:
-          <ul>
-            <li>if the <code>target</code> is a <code>DOMElement</code>, then a
-            DOM event is synthesized;
-            <li>otherwise, the <code>target</code> must be a
-            <code>Component</code>, and a Bender event notification is
-            generated.</li>
-        </ul>
-      </div>
-    </div>
+            <ul>
+              <li><code>type</code> is the type of the event to generate:
+              <ul>
+                <li>if the <code>target</code> is a <code>DOMElement</code>,
+                then a DOM event is synthesized;</li>
+                <li>otherwise, the <code>target</code> must be a
+                <code>Component</code>, and a Bender event notification is
+                generated.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </section>
 
-    <h3 id="example">Example</h3>
-    <p>Consider a non-trivial component (named <em>Panel</em>) <a
-      href="runtime.html#s11n">defined in XML</a> as follows:</p>
+    <section id="example">
+      <h2>Example</h3>
+      <p>Consider a non-trivial component (named <em>Panel</em>) <a
+        href="runtime.html#s11n">defined in XML</a> as follows:</p>
 
-    <div class="def" id="Panel">
-      <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Panel"&gt;
+      <div class="def" id="Panel">
+        <div>
+          <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Panel"&gt;
   &lt;property name="n" value="0"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div&gt;
@@ -498,77 +539,79 @@
     &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
-        <ul>
-          <li><code>Panel</code> has a property named <code>n</code>, as
-          specified by the <code>name</code> attribute, with an initial value of
-          0, as specified by the <code>value</code> attribute.</li>
-          <li><code>Panel</code> has a <code>View</code> with a
-          <code>DOMElement</code> child (a HTML <code>div</code> element), with
-          three children. The first is a <code>Text</code> child with the name
-          <code>text-n</code>, as specified by the <code>name</code>
-          attribute.</li>
-          <li>The <code>component</code> element inside a
-          <code>view</code> element has two roles: set the component as a child
-          component of the component for which this is the view of, and set the
-          view of the component as a child of the parent element. The two
-          <code>component</code> elements here mean that <code>Panel</code> has
-          two child components with the names <code>Plus</code> and
-          <code>Minus</code>, both inheriting from the <code>Button</code>
-          component shown below (as specified by the <code>href</code>
-          attribute), with a different initial value for the <code>label</code>
-          property (as specified by the <code>label</code> attribute), and a
-          default view, since they have no <code>view</code> child element.
-          These views are alos the second and third children of the
-          <code>div</code> DOM element in the view of <code>Panel</code>.</li>
-          <li>The <code>Watch</code> <span class="watch">1</span> has one
-          input and one output:
           <ul>
-            <li>the input is a <code>GetEvent</code>. The <code>target</code> is
-            the <code>Plus</code> component, as specified by the
-            <code>select</code> attribute. The watch is listening to a Bender
-            event of type <code>pushed</code>;</li>
-            <li>the output is a <code>SetProperty</code>. The target property is
-            the <code>n</code> property of the <code>Panel</code> component, as
-            specified by the <code>property</code> attribute. The output value
-            is one plus the value of <code>n</code>, as specified by the
-            <code>value</code> element. <span class="TODO">Rewrite this with a
-              parameter for <code>n</code>.</span></li>
+            <li><code>Panel</code> has a property named <code>n</code>, as
+            specified by the <code>name</code> attribute, with an initial value
+            of 0, as specified by the <code>value</code> attribute.</li>
+            <li><code>Panel</code> has a <code>View</code> with a
+            <code>DOMElement</code> child (a HTML <code>div</code> element),
+            with three children. The first is a <code>Text</code> child with the
+            name <code>text-n</code>, as specified by the <code>name</code>
+            attribute.</li>
+            <li>The <code>component</code> element inside a
+            <code>view</code> element has two roles: set the component as a
+            child component of the component for which this is the view of, and
+            set the view of the component as a child of the parent element. The
+            two <code>component</code> elements here mean that
+            <code>Panel</code> has two child components with the names
+            <code>Plus</code> and <code>Minus</code>, both inheriting from the
+            <code>Button</code> component shown below (as specified by the
+            <code>href</code> attribute), with a different initial value for the
+            <code>label</code> property (as specified by the <code>label</code>
+            attribute), and a default view, since they have no <code>view</code>
+            child element.  These views are alos the second and third children
+            of the <code>div</code> DOM element in the view of
+            <code>Panel</code>.</li>
+            <li>The <code>Watch</code> <span class="watch">1</span> has one
+            input and one output:
+            <ul>
+              <li>the input is a <code>GetEvent</code>. The <code>target</code>
+              is the <code>Plus</code> component, as specified by the
+              <code>select</code> attribute. The watch is listening to a Bender
+              event of type <code>pushed</code>;</li>
+              <li>the output is a <code>SetProperty</code>. The target property
+              is the <code>n</code> property of the <code>Panel</code>
+              component, as specified by the <code>property</code> attribute.
+              The output value is one plus the value of <code>n</code>, as
+              specified by the <code>value</code> element. <span
+                class="TODO">Rewrite this with a parameter for
+                <code>n</code>.</span></li>
+            </ul>
+            The effect of this watch is to increment the value of <code>n</code>
+            when the <code>Plus</code> button is pushed.</li>
+            <li>The <code>Watch</code> <span class="watch">2</span> is similar,
+            with the input target being the <code>Minus</code> component, and
+            the output value being 1 minus the value of <code>n</code>. The
+            effect of this watch is to decrement the value of <code>n</code>
+            when the <code>Plus</code> button is pushed.</li>
+            <li>The <code>Watch</code> <span class="watch">3</span> has one
+            input and two outputs:
+            <ul>
+              <li>the input is a <code>GetProperty</code>. The target property
+              is the <code>n</code> property of <code>Panel</code>.</li>
+              <li>the first output is a <code>SetNodeProperty</code>. The target
+              is the <code>text-n</code> <code>Text</code> element; by default,
+              the property to set is <code>text</code>;</li>
+              <li>the second output is a <code>SetProperty</code>. The target
+              property is the <code>enabled</code> property of the
+              <code>Minus</code> <code>Component</code>. The output value is
+              a boolean value that is true if and only if the input value is
+              greater than 0. (Because this is XML, the <code>&gt;</code>
+              character must be escaped.)</li>
+            </ul>
+            The effect of this watch is two-fold. First, update the display of
+            the component to show the current value of <code>n</code>. Second,
+            update the enabled status of the <code>Minus</code> button so that
+            the value of n cannot be decreased further than 0.</li>
           </ul>
-          The effect of this watch is to increment the value of <code>n</code>
-          when the <code>Plus</code> button is pushed.</li>
-          <li>The <code>Watch</code> <span class="watch">2</span> is similar,
-          with the input target being the <code>Minus</code> component, and the
-          output value being 1 minus the value of <code>n</code>. The effect of
-          this watch is to decrement the value of <code>n</code> when the
-          <code>Plus</code> button is pushed.</li>
-          <li>The <code>Watch</code> <span class="watch">3</span> has one input
-          and two outputs:
-          <ul>
-            <li>the input is a <code>GetProperty</code>. The target property is
-            the <code>n</code> property of <code>Panel</code>.</li>
-            <li>the first output is a <code>SetNodeProperty</code>. The target
-            is the <code>text-n</code> <code>Text</code> element; by default,
-            the property to set is <code>text</code>;</li>
-            <li>the second output is a <code>SetProperty</code>. The target
-            property is the <code>enabled</code> property of the
-            <code>Minus</code> <code>Component</code>. The output value is
-            a boolean value that is true if and only if the input value is
-            greater than 0. (Because this is XML, the <code>&gt;</code>
-            character must be escaped.)</li>
-          </ul>
-          The effect of this watch is two-fold. First, update the display of the
-          component to show the current value of <code>n</code>. Second, update
-          the enabled status of the <code>Minus</code> button so that the
-          value of n cannot be decreased further than 0.</li>
-        </ul>
+        </div>
       </div>
-    </div>
 
-    <div class="def" id="Button">
-      <p>This second component is the <code>Button</code> prototype of both
-      <code>Plus</code> and <code>Minus</code> buttons above.</p>
-      <div>
-        <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
+      <div class="def" id="Button">
+        <p>This second component is the <code>Button</code> prototype of both
+        <code>Plus</code> and <code>Minus</code> buttons above.</p>
+        <div>
+          <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
   &lt;property name="label" as="string" value="OK"&gt;
   &lt;property name="enabled" value="true"&gt;
   &lt;property name="down" value="false"&gt;
@@ -600,118 +643,123 @@
     &lt;/set
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
-        <ul>
-          <li><code>Button</code> has a property named <code>label</code> with
-          initial value <code>"OK"</code>. The <code>as</code> attribute
-          specifies that the value should be interpreted as a character
-          string.</li>
-          <li><code>Button</code> has a property named <code>enabled</code> with
-          initial value <code>true</code>.</li>
-          <li><code>Button</code> has a property named <code>down</code> with
-          initial value <code>false</code>. <span class="TODO">If properties
-            can be made private, this is an example of a property that would
-            be.</span></li>
-          <li><code>Button</code> has a <code>View</code> containing a
-            <code>DOMElement</code> (a HTML <code>div</code> element with the
-            name <code>frame</code>), containing a <code>Content</code> element,
-            containing a <code>Text</code> element with the name
-            <code>text-label</code>.</li>
-          <li><code>Button</code> has no child <code>Component</code>.</li>
-          <li>The <code>Watch</code> <span class="watch">4</span> has one
-          input and one output:
           <ul>
-            <li>the input is a <code>GetProperty</code>. The <code>target</code>
-            is the <code>Button</code> component, and the <code>property</code>
-            is the <code>label</code> property of <code>Button</code>;</li>
-            <li>the output is a <code>SetNodeProperty</code>. The target
-            <code>Node</code> is the <code>text-label</code> text element, and
-            the property to set defaults to <code>text</code> in the absence of
-            a <code>property</code> attribute.</li>
-          </ul>
-          The effect of this watch is to display the value of the
-          <code>label</code> string in the button.</li>
-          <li>The <code>Watch</code> <span class="watch">5</span> has one
-          input and one output:
-          <ul>
-            <li>the input is a <code>GetEvent</code>. The <code>target</code>
-            is the <code>frame</code> <code>DOMElement</code>, and the event
-            <code>type</code> is <code>mousedown</code>;</li>
-            <li>the output is a <code>SetProperty</code>. The target is the
-            <code>Button</code> component, and the <code>property</code> is the
-            <code>down</code> property of <code>Button</code>. The
-            <code>value</code> is a function that returns true. The
-            <code>match</code> function returns true if and only if the
-            <code>enabled</code> property of the <code>target</code> is
-            true.</li>
-          </ul>
-          The effect of this watch is to set the <code>down</code> property of
-          the button to true when the mouse button is pressed, but only when
-          the button is enabled.</li>
-          <li>The <code>Watch</code> <span class="watch">6</span> has one input
-          and two outputs:
-          <ul>
-            <li>the input is a <code>GetEvent</code>. The <code>target</code>
-            is the <code>frame</code> <code>DOMElement</code>, and the event
-            <code>type</code> is <code>mouseup</code>;</li>
-            <li>the first output is a <code>SetEvent</code>. The target is
-            the <code>Button</code> <code>Component</code>, and the
-            <code>type</code> of the event is <code>pushed</code>. The
-            <code>match</code> function of the output is a function that returns
-            true if and only if <code>down</code> property of the
-            <code>target</code> is true;</li>
-            <li>the second output is a <code>SetProperty</code>. The target is
-            the <code>Button</code> component, and the <code>property</code> is
-            the <code>down</code> property of <code>Button</code>. The
-            <code>value</code> is a function that returns false.</li>
-          </ul>
-          The effect of this watch is to set the <code>down</code> property of
-          the button back to false when the mouse button is released, and
-          dispatch a pushed event if the <code>down</code> property was indeed
-          true (<em>i.e.</em> the mouse was pressed inside the button.)</li>
-          </li>
-          <li>The <code>Watch</code> <span class="watch">7</span> has two inputs
-          and one output:
-          <ul>
-            <li>the first input is a <code>GetProperty</code>. The
-            <code>target</code> is the <code>Button</code> component, and the
-            <code>property</code> is the <code>down</code> property;</li>
-            <li>the second input is a <code>GetProperty</code>. The
-            <code>target</code> is the <code>Button</code> component, and the
-            <code>property</code> is the <code>enabled</code> property;</li>
-            <li>the output is a <code>SetAttribute</code>. The
-            <code>target</code> is the <code>frame</code>
-            <code>DOMElement</code>, the attribute to set has no namespace and
-            the <code>class</code> name (<em>i.e.</em>, the HTML
-            <code>class</code> attribute of the HTML <code>div</code> element),
-            and the value is a function that returns a class value containing
-            the class <code>down</code> if the <code>down</code> property is
-            true, and the class <code>disabled</code> if the
+            <li><code>Button</code> has a property named <code>label</code> with
+            initial value <code>"OK"</code>. The <code>as</code> attribute
+            specifies that the value should be interpreted as a character
+            string.</li>
+            <li><code>Button</code> has a property named <code>enabled</code>
+            with initial value <code>true</code>.</li>
+            <li><code>Button</code> has a property named <code>down</code> with
+            initial value <code>false</code>. <span class="TODO">If properties
+              can be made private, this is an example of a property that would
+              be.</span></li>
+            <li><code>Button</code> has a <code>View</code> containing a
+              <code>DOMElement</code> (a HTML <code>div</code> element with the
+              name <code>frame</code>), containing a <code>Content</code>
+              element, containing a <code>Text</code> element with the name
+              <code>text-label</code>.</li>
+            <li><code>Button</code> has no child <code>Component</code>.</li>
+            <li>The <code>Watch</code> <span class="watch">4</span> has one
+            input and one output:
+            <ul>
+              <li>the input is a <code>GetProperty</code>. The
+              <code>target</code> is the <code>Button</code> component, and the
+              <code>property</code> is the <code>label</code> property of
+              <code>Button</code>;</li> <li>the output is a
+              <code>SetNodeProperty</code>. The target <code>Node</code> is the
+              <code>text-label</code> text element, and the property to set
+              defaults to <code>text</code> in the absence of a
+              <code>property</code> attribute.</li>
+            </ul>
+            The effect of this watch is to display the value of the
+            <code>label</code> string in the button.</li>
+            <li>The <code>Watch</code> <span class="watch">5</span> has one
+            input and one output:
+            <ul>
+              <li>the input is a <code>GetEvent</code>. The <code>target</code>
+              is the <code>frame</code> <code>DOMElement</code>, and the event
+              <code>type</code> is <code>mousedown</code>;</li>
+              <li>the output is a <code>SetProperty</code>. The target is the
+              <code>Button</code> component, and the <code>property</code> is
+              the <code>down</code> property of <code>Button</code>. The
+              <code>value</code> is a function that returns true. The
+              <code>match</code> function returns true if and only if the
+              <code>enabled</code> property of the <code>target</code> is
+              true.</li>
+            </ul>
+            The effect of this watch is to set the <code>down</code> property of
+            the button to true when the mouse button is pressed, but only when
+            the button is enabled.</li>
+            <li>The <code>Watch</code> <span class="watch">6</span> has one
+            input and two outputs:
+            <ul>
+              <li>the input is a <code>GetEvent</code>. The <code>target</code>
+              is the <code>frame</code> <code>DOMElement</code>, and the event
+              <code>type</code> is <code>mouseup</code>;</li>
+              <li>the first output is a <code>SetEvent</code>. The target is
+              the <code>Button</code> <code>Component</code>, and the
+              <code>type</code> of the event is <code>pushed</code>. The
+              <code>match</code> function of the output is a function that
+              returns true if and only if <code>down</code> property of the
+              <code>target</code> is true;</li>
+              <li>the second output is a <code>SetProperty</code>. The target is
+              the <code>Button</code> component, and the <code>property</code>
+              is the <code>down</code> property of <code>Button</code>. The
+              <code>value</code> is a function that returns false.</li>
+            </ul>
+            The effect of this watch is to set the <code>down</code> property of
+            the button back to false when the mouse button is released, and
+            dispatch a pushed event if the <code>down</code> property was indeed
+            true (<em>i.e.</em> the mouse was pressed inside the button.)</li>
+            </li>
+            <li>The <code>Watch</code> <span class="watch">7</span> has two
+            inputs and one output:
+            <ul>
+              <li>the first input is a <code>GetProperty</code>. The
+              <code>target</code> is the <code>Button</code> component, and the
+              <code>property</code> is the <code>down</code> property;</li>
+              <li>the second input is a <code>GetProperty</code>. The
+              <code>target</code> is the <code>Button</code> component, and the
+              <code>property</code> is the <code>enabled</code> property;</li>
+              <li>the output is a <code>SetAttribute</code>. The
+              <code>target</code> is the <code>frame</code>
+              <code>DOMElement</code>, the attribute to set has no namespace and
+              the <code>class</code> name (<em>i.e.</em>, the HTML
+              <code>class</code> attribute of the HTML <code>div</code>
+              element), and the value is a function that returns a class value
+              containing the class <code>down</code> if the <code>down</code>
+              property is true, and the class <code>disabled</code> if the
+              <code>enabled</code> property is false.</li>
+            </ul>
+            The effect of this watch is to update the <code>class</code>
+            attribute of the HTML <code>div</code> element for the
+            <code>frame</code> node; it gets set to a combination of
+            <code>down</code> if and only if the <code>down</code> property is
+            true, and <code>disabled</code> if and only if the
             <code>enabled</code> property is false.</li>
           </ul>
-          The effect of this watch is to update the <code>class</code> attribute
-          of the HTML <code>div</code> element for the <code>frame</code> node;
-          it gets set to a combination of <code>down</code> if and only if the
-          <code>down</code> property is true, and <code>disabled</code> if and
-          only if the <code>enabled</code> property is false.</li>
-        </ul>
+        </div>
       </div>
-    </div>
 
-    <p>The figure below shows the component graphs of <code>Panel</code> and
-    <code>Button</code>, enclosed in large boxes. Black arrows are parent/child
-    relationships. Pink arrows point to a prototype. Blue arrows point from a
-    <code>Component</code> to its <code>View</code>. <code>Component</code>
-    nodes are shown as ellipses, while view <code>Element</code>s are shown as
-    small boxes. Watches and properties do not appear in this graph.</p>
+      <p>The figure below shows the component graphs of <code>Panel</code> and
+      <code>Button</code>, enclosed in large boxes. Black arrows are
+      parent/child relationships. Pink arrows point to a prototype. Blue arrows
+      point from a <code>Component</code> to its <code>View</code>.
+      <code>Component</code> nodes are shown as ellipses, while view
+      <code>Element</code>s are shown as small boxes. Watches and properties do
+      not appear in this graph.</p>
 
-    <figure>
-      <img src="fig/panel.svg">
-      <figcaption>Component graphs of <code>Panel</code> and
-      <code>Button</code>.</figcaption>
-    </figure>
+      <figure id="fig-component-graphs">
+        <img src="fig/panel.svg">
+        <figcaption>Component graphs of <code>Panel</code> and
+        <code>Button</code>.</figcaption>
+      </figure>
 
-    <p>This example is used again to illustrate <a
-      href="processing-model.html">the processing model of Bender</a>.</p>
+      <p>This example is used again to illustrate <a
+        href="processing-model.html">the processing model of Bender</a>.</p>
+    </section>
 
+    <script src="doc.js"></script>
   </body>
 </html>

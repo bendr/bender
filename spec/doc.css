@@ -13,6 +13,10 @@ body {
   margin: 4rem auto;
 }
 
+nav ul {
+  list-style-type: none;
+}
+
 div.def > div {
   border-top: solid medium black;
   border-bottom: solid thin black;
