@@ -5,8 +5,8 @@
 
 // TODO
 // [ ] stack-order for View
-// [ ] select for Content
-// [ ] component.notify()/.message()
+// [ ] advance selectors
+// [ ] component.notify()/.message(); node.notify() too?
 // [ ] minimize graph
 // [ ] compile graph to Javascript
 // [ ] pure property on adapters (no side effect); help minimization/compilation
@@ -120,13 +120,11 @@
     // the prototype (if any.)
     init: function (view) {
       bender.Node.init.call(this);
-      this.properties = this.create_properties();
+      this.create_properties();
       this.watches = [];
       this.set_view(view);
       this.__render_subgraph = true;        // delete when rendered
       this.__init_properties = true;        // delete when initialized
-      this.property_vertices = {};          // property vertices indexed by name
-      this.event_vertices = {};             // event vertices indexed by type
       return this.name(flexo.random_id());  // set a random name
     },
 
@@ -147,10 +145,14 @@
     // owner component in the “hidden” (i.e., non-enumerable) "" property (which
     // is not a valid property name.)
     create_properties: function () {
-      var properties = "properties" in this ?
+      this.properties = "properties" in this ?
         Object.create(this.properties) : {};
-      return Object.defineProperty(properties, "",
+      Object.defineProperty(this.properties, "",
           { value: this, configurable: true });
+      this.property_vertices = "property_vertices" in this ?
+        Object.create(this.property_vertices) : {};
+      this.event_vertices = "event_vertices" in this ?
+        Object.create(this.event_vertices) : {};
     },
 
     // Set the view of the component, and add the child components from the
@@ -200,7 +202,9 @@
           if (this.hasOwnProperty(name)) {
             value = v;
           } else {
-            this[""].property_js(name, v);
+            this[""].property_js(name);
+            Object.getOwnPropertyDescriptor(this, name).set.call(this, v,
+              silent);
           }
           if (!silent && name in this[""].property_vertices) {
             this[""].property_vertices[name].value(this[""], value, true);
@@ -269,19 +273,19 @@
     // component.
     // TODO stack-order property for Views.
     view_stack: function () {
-      var stack = [this.view];
+      this.view.stack = [this.view];
       for (var p = this.prototype; p; p = p.prototype) {
         var v = p.view.clone();
         if (p.children.length > 0) {
           this.add_child_components(v);
         }
-        stack.unshift(v);
+        v.stack = this.view.stack;
+        this.view.stack.unshift(v);
       }
-      return stack;
+      return this.view.stack;
     },
 
     // Initialize properties of the component, its prototype and its children.
-    // Set the property with the highest priority first.
     init_properties: function (graph) {
       if (!this.__init_properties) {
         return;
@@ -294,12 +298,26 @@
       this.children.forEach(function (child) {
         child.init_properties(graph);
       });
-      // var init_vertices = [];
       Object.keys(this.properties).forEach(function (property) {
+        var vertex = this.property_vertices[property];
+        if (!vertex) {
+          return;
+        }
+        if (!vertex.__init_vertex) {
+          console.log("New init vertex for %0".fmt(property));
+          vertex.__init_vertex = graph.vertex(bender.Vertex.create());
+          var n = vertex.incoming.length - 1;
+          for (; n >= 0 && vertex.incoming[n].priority < 0; --n) {}
+          var edge = bender.Edge.create(vertex.__init_vertex, vertex);
+          edge.graph = graph;
+          edge.priority = -0.5;
+          graph.edges.splice(Math.max(0,
+              graph.edges.indexOf(vertex.incoming[n])), 0, edge);
+        }
         console.log("Init %0`%1 = %2"
           .fmt(this.name(), property, this.properties[property]));
+        vertex.__init_vertex.value(this, this.properties[property], true);
       }, this);
-      // init_vertices.forEach(graph.remove_vertex.bind(graph));
     }
   });
 
@@ -711,11 +729,13 @@
 
     vertex: function (vertex) {
       this.vertices.push(vertex);
+      vertex.graph = this;
       return vertex;
     },
 
     edge: function (edge) {
       this.__unsorted = true;
+      edge.graph = this;
       return edge;
     },
 
@@ -824,7 +844,7 @@
       if (target.__id in this.values) {
         return;
       }
-      this.values[target.__id] = [target, value];
+      this.values[target.__id] = value;
       if (flush) {
         this.graph.flush();
       }
@@ -885,8 +905,8 @@
     // TODO
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
-        var vv = this.source.values[id];
-        this.dest.value(vv[0], vv[1]);
+        var i = this.graph.edges.indexOf(this) + 1;
+        console.log("Traverse edge #%0 %1=%2".fmt(i, id, this.source.values[id]));
       }, this);
     }
   });
