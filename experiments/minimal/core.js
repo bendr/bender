@@ -124,7 +124,6 @@
       this.watches = [];
       this.set_view(view);
       this.__render_subgraph = true;        // delete when rendered
-      this.__init_properties = true;        // delete when initialized
       return this.name(flexo.random_id());  // set a random name
     },
 
@@ -138,6 +137,13 @@
       c.properties = c.create_properties();
       c.set_view(view);
       return c;
+    },
+
+    // Return true iff the component argument conforms to the prototype of this
+    // component.
+    conforms: function (component) {
+      return component &&
+        (component === this || this.conforms(component.prototype));
     },
 
     // Create the properties object for the component, which maps property names
@@ -255,7 +261,23 @@
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
+      this.init_properties(graph);
       return graph;
+    },
+
+    // Initialize properties of the component, its prototype and its children.
+    init_properties: function (graph) {
+      Object.keys(this.properties).forEach(function (property) {
+        var vertex = this.property_vertices[property];
+        if (!vertex) {
+          return;
+        }
+        if (!vertex.__init_vertex) {
+          vertex.__init_vertex = graph.vertex(bender.Vertex.create());
+          graph.edge(bender.InitEdge.create(vertex.__init_vertex, vertex));
+        }
+        vertex.__init_vertex.value(this, this.properties[property], true);
+      }, this);
     },
 
     // Render the view of the component in a DOM target.
@@ -284,41 +306,6 @@
       }
       return this.view.stack;
     },
-
-    // Initialize properties of the component, its prototype and its children.
-    init_properties: function (graph) {
-      if (!this.__init_properties) {
-        return;
-      }
-      delete this.__init_properties;
-      var prototype = this.prototype;
-      if (prototype) {
-        prototype.init_properties(graph);
-      }
-      this.children.forEach(function (child) {
-        child.init_properties(graph);
-      });
-      Object.keys(this.properties).forEach(function (property) {
-        var vertex = this.property_vertices[property];
-        if (!vertex) {
-          return;
-        }
-        if (!vertex.__init_vertex) {
-          console.log("New init vertex for %0".fmt(property));
-          vertex.__init_vertex = graph.vertex(bender.Vertex.create());
-          var n = vertex.incoming.length - 1;
-          for (; n >= 0 && vertex.incoming[n].priority < 0; --n) {}
-          var edge = bender.Edge.create(vertex.__init_vertex, vertex);
-          edge.graph = graph;
-          edge.priority = -0.5;
-          graph.edges.splice(Math.max(0,
-              graph.edges.indexOf(vertex.incoming[n])), 0, edge);
-        }
-        console.log("Init %0`%1 = %2"
-          .fmt(this.name(), property, this.properties[property]));
-        vertex.__init_vertex.value(this, this.properties[property], true);
-      }, this);
-    }
   });
 
   // Return the prototype component of the component, or undefined.
@@ -844,7 +831,7 @@
       if (target.__id in this.values) {
         return;
       }
-      this.values[target.__id] = value;
+      this.values[target.__id] = [target, value];
       if (flush) {
         this.graph.flush();
       }
@@ -905,14 +892,30 @@
     // TODO
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
-        var i = this.graph.edges.indexOf(this) + 1;
-        console.log("Traverse edge #%0 %1=%2".fmt(i, id, this.source.values[id]));
+        this.dest.value.apply(this.dest, this.source.values[id]);
       }, this);
     }
   });
 
   // InheritEdge < Edge
-  bender.InheritEdge = flexo._ext(bender.Edge, { priority: -1 });
+  bender.InheritEdge = flexo._ext(bender.Edge, {
+    // Give low priority during edge sort
+    priority: -1,
+
+    // Filter out input targets that do not conform to the target of the
+    // destination vertex.
+    traverse: function () {
+      Object.keys(this.source.values).forEach(function (id) {
+        var w = this.source.values[id];
+        if (this.dest.adapter.target.conforms(w[0])) {
+          this.dest.value.apply(this.dest, w);
+        }
+      }, this);
+    }
+  });
+
+  // InitEdge < Edge
+  bender.InitEdge = flexo._ext(bender.Edge, { priority: -0.5 });
 
 
   // AdapterEdge < Object:
@@ -924,9 +927,17 @@
     },
 
     traverse: function () {
-      // TODO find dynamic target from input target (vv[0]) and static target
-      // (adapter.target)
-      bender.Edge.traverse.call(this);
+      var index = 1 + this.graph.edges.indexOf(this);
+      Object.keys(this.source.values).forEach(function (id) {
+        var w = this.source.values[id];
+        var target = this.dest.adapter ?
+          this.dest.adapter.target :
+          this.dest.watch ?
+            this.dest.watch.component : w[0];
+        console.log("AdapterEdge #%0: %1 -> %2 = %3"
+          .fmt(index, w[0].name(), target.name(), w[1]));
+        this.dest.value.apply(this.dest, w);
+      }, this);
     }
   });
 
