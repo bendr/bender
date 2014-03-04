@@ -12,6 +12,25 @@ a {
   text-decoration: none;
   color: #ff4040;
 }
+
+.button {
+  display: inline-block;
+  margin: 0 0.5rem;
+  min-width: 4rem;
+  text-align: center;
+  background-color: #ff4040;
+  color: #f8f9f0;
+  padding: 0.2rem;
+  cursor: default;
+}
+
+.button.down {
+  opacity: 0.5;
+}
+
+.button.disabled {
+  background-color: #888 !important;
+}
     </style>
     <script src="flexo.js"></script>
     <script src="core.js"></script>
@@ -95,9 +114,10 @@ var panel = bender.Component.create(bender.View.create()
 
 button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, "label"))
-      .set(bender.SetNodeProperty.create(text_label, "text")))
+      .set(bender.SetNodeProperty.create(text_label, "textContent")))
   .watch(bender.Watch.create()  // 5
-      .get(bender.GetEvent.create(frame, "mousedown"))
+      .get(bender.GetEvent.create(frame, "mousedown")
+        .prevent_default(true))
       .set(bender.SetProperty.create(button, "down")
         .match(function () { return this.properties.enabled; })
         .value(flexo.funcify(true))))
@@ -126,11 +146,19 @@ panel.watch(bender.Watch.create()  // 1
         .value(function () { return this.properties.n - 1; })))
   .watch(bender.Watch.create()  // 3
       .get(bender.GetProperty.create(panel, "n"))
-      .set(bender.SetNodeProperty.create(text_n, "text"))
+      .set(bender.SetNodeProperty.create(text_n, "textContent"))
       .set(bender.SetProperty.create(minus, "enabled")
         .value(function ($in) { return $in > 0; })));
 
 panel.render().dump();
+
+/*
+var p1 = panel.create().name("p1");
+var p2 = panel.create().name("p2");
+bender.Component.create(bender.View.create()
+    .child(p1.view)
+    .child(p2.view)).render();
+    */
 
     </script>
   </body>

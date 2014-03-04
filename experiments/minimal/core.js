@@ -107,6 +107,10 @@
   // empty string. Return the Node when setting, the name when getting.
   flexo._accessor(bender.Node, "name", flexo.safe_trim);
 
+  flexo.make_readonly(bender.Node, "root", function () {
+    return this.parent ? this.parent.root : this;
+  });
+
 
   // Component < Node
   //   Component?  prototype
@@ -120,7 +124,7 @@
     // the prototype (if any.)
     init: function (view) {
       bender.Node.init.call(this);
-      this.create_properties();
+      this.create_objects();
       this.watches = [];
       this.set_view(view);
       this.__render_subgraph = true;        // delete when rendered
@@ -134,7 +138,7 @@
         .fmt((bender.Node.__id++).toString(36).toUpperCase(), this.__id);
       c.parent = null;
       c.children = [];
-      c.properties = c.create_properties();
+      c.properties = c.create_objects();
       c.set_view(view);
       return c;
     },
@@ -150,7 +154,7 @@
     // to their runtime value. The object keeps a hidden back-pointer to its
     // owner component in the “hidden” (i.e., non-enumerable) "" property (which
     // is not a valid property name.)
-    create_properties: function () {
+    create_objects: function () {
       this.properties = "properties" in this ?
         Object.create(this.properties) : {};
       Object.defineProperty(this.properties, "",
@@ -296,6 +300,7 @@
     // TODO stack-order property for Views.
     view_stack: function () {
       this.view.stack = [this.view];
+      this.view.stack.component = this;
       for (var p = this.prototype; p; p = p.prototype) {
         var v = p.view.clone();
         if (p.children.length > 0) {
@@ -457,20 +462,20 @@
         }, this);
       }, this);
       this.render_children(element, stack, i);
-      Object.keys(this.event_vertices).forEach(function (type) {
+      for (var type in this.event_vertices) {
         var vertex = this.event_vertices[type];
         vertex.outgoing.forEach(function (edge) {
           element.addEventListener(type, function (e) {
-            if (edge.adapter.prevent_default) {
+            if (edge.adapter.prevent_default()) {
               e.preventDefault();
             }
-            if (edge.adapter.stop_propagation) {
+            if (edge.adapter.stop_propagation()) {
               e.stopPropagation();
             }
-            edge.dest.value(stack[i].component, e);
+            edge.dest.value(stack.component, e, true);
           });
         });
-      }, this);
+      }
       target.appendChild(element);
     }
   });
@@ -518,6 +523,12 @@
       this.node = target.ownerDocument.createTextNode(this.text());
       target.appendChild(this.node);
     }
+  });
+
+  Object.defineProperty(bender.Text, "textContent", {
+    enumerable: true,
+    get: bender.Text.text,
+    set: bender.Text.text
   });
 
 
@@ -608,6 +619,8 @@
       }
       return vertices[name];
     },
+
+    apply_value: flexo.nop
   });
 
   flexo._accessor(bender.Adapter, "value", flexo.id, true);
@@ -647,6 +660,13 @@
     }
   });
 
+  flexo._accessor(bender.GetEvent, "prevent_default", normalize_boolean);
+  flexo._accessor(bender.GetEvent, "stop_propagation", normalize_boolean);
+
+  function normalize_boolean(b) {
+    return b === true;
+  }
+
 
   // Set < Adapter
   bender.Set = flexo._ext(bender.Adapter, {
@@ -664,7 +684,18 @@
       return bender.Set.init.call(this, target);
     },
 
-    vertex: bender.GetProperty.vertex
+    vertex: bender.GetProperty.vertex,
+
+    apply_value: function (target, value) {
+      console.log("Set %0`%1=%2".fmt(target.name(), this.name, value));
+      var descriptor;
+      for (var p = target.properties,
+        descriptor = Object.getOwnPropertyDescriptor(p, this.name);
+        p && !descriptor;
+        p = Object.getPrototypeOf(p),
+        descriptor = Object.getOwnPropertyDescriptor(p, this.name)) {}
+      descriptor.set.call(target.properties, value, true);
+    }
   });
 
 
@@ -674,6 +705,11 @@
     init: function (target, name) {
       this.name = name;
       return bender.Set.init.call(this, target);
+    },
+
+    apply_value: function (target, value) {
+      console.log("(Set %0.%1=%2)".fmt(target.name(), this.name, value));
+      target[this.name] = value;
     }
   });
 
@@ -686,6 +722,11 @@
       this.ns = ns;
       this.name = name;
       return bender.Set.init.call(this, target);
+    },
+
+    apply_value: function (target, value) {
+      console.log("Set %0|%1:%2=%3".fmt(target.name(), this.ns, this.name,
+          value));
     }
   });
 
@@ -930,13 +971,40 @@
       var index = 1 + this.graph.edges.indexOf(this);
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
-        var target = this.dest.adapter ?
-          this.dest.adapter.target :
-          this.dest.watch ?
-            this.dest.watch.component : w[0];
-        console.log("AdapterEdge #%0: %1 -> %2 = %3"
-          .fmt(index, w[0].name(), target.name(), w[1]));
-        this.dest.value.apply(this.dest, w);
+        var component = this.adapter.watch.component;
+        var view;
+        if (w[0].view.stack) {
+          var i;
+          for (i = w[0].view.stack.length - 1;
+            i >= 0 && w[0].view.stack[i].component !== component; --i) {}
+          if (i >= 0) {
+            view = w[0].view.stack[i];
+          }
+        }
+        var that = view && w[0] || component;
+        var target = this.adapter.target;
+        var rtarget = target.watches ?
+          // TODO find the right root component
+          flexo.bfirst(that, function (c) {
+            return target.conforms(c) || c.children;
+          }) :
+          flexo.bfirst(view || that.view, function (element) {
+            return element === target ||
+              Object.getPrototypeOf(element) === target ||
+              element.children;
+          });
+        console.log("AdapterEdge #%0/%1[%2]: (%3, %4) -> %5/%6=%7"
+          .fmt(index, component.name(), that.name(), w[0].name(), w[1],
+            this.adapter.target.name(),
+            rtarget ? rtarget.watches ? rtarget.name() :
+              rtarget.view.component.name() : "???", rtarget.__id));
+        if (that && rtarget && this.adapter.match().call(that, w[1])) {
+          var value = this.adapter.value().call(that, w[1]);
+          this.adapter.apply_value(rtarget, value);
+          this.dest.value(rtarget, value);
+        } else {
+          console.log("  no match.");
+        }
       }, this);
     }
   });
