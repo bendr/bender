@@ -313,6 +313,14 @@
     },
   });
 
+  flexo.make_readonly(bender.Node, "root", function () {
+    if (!this.parent) {
+      return this;
+    }
+    var prototype = this.prototype;
+    return prototype && !prototype.parent ? this : this.parent.root;
+  });
+
   // Return the prototype component of the component, or undefined.
   // Because we use prototype inheritance, a component with no component
   // prototype still has bender.Component as its object prototype. Moreover, a
@@ -454,18 +462,18 @@
 
     // Render in the target element.
     render: function (target, stack, i) {
-      var element = target.ownerDocument.createElementNS(this.namespace_uri,
+      this.element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
       Object.keys(this.attributes).forEach(function (ns) {
         Object.keys(this.attributes[ns]).forEach(function (name) {
-          element.setAttributeNS(ns, name, this.attributes[ns][name]);
+          this.element.setAttributeNS(ns, name, this.attributes[ns][name]);
         }, this);
       }, this);
-      this.render_children(element, stack, i);
+      this.render_children(this.element, stack, i);
       for (var type in this.event_vertices) {
         var vertex = this.event_vertices[type];
         vertex.outgoing.forEach(function (edge) {
-          element.addEventListener(type, function (e) {
+          this.element.addEventListener(type, function (e) {
             if (edge.adapter.prevent_default()) {
               e.preventDefault();
             }
@@ -474,9 +482,27 @@
             }
             edge.dest.value(stack.component, e, true);
           });
-        });
+        }, this);
       }
-      target.appendChild(element);
+      target.appendChild(this.element);
+    },
+
+    // Set an attribute on the target element.
+    set_attribute: function (ns, name, value) {
+      if (!this.attributes[ns]) {
+        this.attributes[ns] = {};
+      }
+      this.attributes[ns][name] = value;
+      if (this.element && typeof this.element.setAttributeNS === "function") {
+        this.element.setAttributeNS(ns, name, value);
+      }
+    },
+
+    // Set a DOM property on the target element.
+    set_property: function (name, value) {
+      if (this.element) {
+        this.element[name] = value;
+      }
     }
   });
 
@@ -522,13 +548,15 @@
     render: function (target) {
       this.node = target.ownerDocument.createTextNode(this.text());
       target.appendChild(this.node);
-    }
-  });
+    },
 
-  Object.defineProperty(bender.Text, "textContent", {
-    enumerable: true,
-    get: bender.Text.text,
-    set: bender.Text.text
+    // Set the text property of the element.
+    set_property: function (name, value) {
+      if (name !== "text") {
+        throw "Unknown property for %0 for Text.".fmt(name);
+      }
+      this.text(value);
+    }
   });
 
 
@@ -709,7 +737,9 @@
 
     apply_value: function (target, value) {
       console.log("(Set %0.%1=%2)".fmt(target.name(), this.name, value));
-      target[this.name] = value;
+      if (typeof target.set_property === "function") {
+        target.set_property(this.name, value);
+      }
     }
   });
 
@@ -727,6 +757,9 @@
     apply_value: function (target, value) {
       console.log("Set %0|%1:%2=%3".fmt(target.name(), this.ns, this.name,
           value));
+      if (typeof target.set_attribute === "function") {
+        target.set_attribute(this.ns, this.name, value);
+      }
     }
   });
 
@@ -984,8 +1017,7 @@
         var that = view && w[0] || component;
         var target = this.adapter.target;
         var rtarget = target.watches ?
-          // TODO find the right root component
-          flexo.bfirst(that, function (c) {
+          flexo.bfirst(that.root, function (c) {
             return target.conforms(c) || c.children;
           }) :
           flexo.bfirst(view || that.view, function (element) {

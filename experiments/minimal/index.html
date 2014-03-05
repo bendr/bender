@@ -114,7 +114,7 @@ var panel = bender.Component.create(bender.View.create()
 
 button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, "label"))
-      .set(bender.SetNodeProperty.create(text_label, "textContent")))
+      .set(bender.SetNodeProperty.create(text_label, "text")))
   .watch(bender.Watch.create()  // 5
       .get(bender.GetEvent.create(frame, "mousedown")
         .prevent_default(true))
@@ -132,7 +132,7 @@ button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, "enabled"))
       .set(bender.SetAttribute.create(frame, "", "class")
         .value(function () {
-            return "%0 %1".fmt(this.properties.down ? "down" : "",
+            return "button %0 %1".fmt(this.properties.down ? "down" : "",
               this.properties.enabled ? "" : "disabled");
           })));
 
@@ -146,7 +146,7 @@ panel.watch(bender.Watch.create()  // 1
         .value(function () { return this.properties.n - 1; })))
   .watch(bender.Watch.create()  // 3
       .get(bender.GetProperty.create(panel, "n"))
-      .set(bender.SetNodeProperty.create(text_n, "textContent"))
+      .set(bender.SetNodeProperty.create(text_n, "text"))
       .set(bender.SetProperty.create(minus, "enabled")
         .value(function ($in) { return $in > 0; })));
 
