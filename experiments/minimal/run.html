@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bender</title>
+    <meta charset="UTF-8">
+    <style>
+body {
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+svg {
+  display: block;
+}
+
+a {
+  text-decoration: none;
+  color: #ff4040;
+}
+    </style>
+    <script src="flexo.js"></script>
+    <script src="core.js"></script>
+    <script src="runtime.js"></script>
+  </head>
+  <body>
+    <script>
+"use strict";
+
+var args = flexo.get_args();
+if (args.href) {
+  bender.load_component(args.href);
+}
+
+    </script>
+  </body>
+</html>

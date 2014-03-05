@@ -177,6 +177,13 @@
     // Set the view of the component, and add the child components from the
     // view descendants of the new view.
     set_view: function (view) {
+      if (view && this.view) {
+        if (this.view.default) {
+          delete this.view.component;
+        } else {
+          throw "Cannot replace non-default view";
+        }
+      }
       if (!view) {
         view = bender.View.create();
         view.default = true;
@@ -330,6 +337,27 @@
       }
       return this.view.stack;
     },
+
+    // Get or set the URL of the component (from the XML file of its
+    // description, or the environment document if created programmatically.)
+    // Return the component for chaining.
+    url: function (url) {
+      if (arguments.length === 0) {
+        if (!this._url) {
+          url = flexo.normalize_uri((this.parent && this.parent.url()) ||
+              (this.scope.document && this.scope.document.location.href));
+          if (this._id) {
+            var u = flexo.split_uri(url);
+            u.fragment = this._id;
+            return flexo.unsplit_uri(u);
+          }
+          this._url = url;
+        }
+        return this._url;
+      }
+      this._url = url;
+      return this;
+    }
   });
 
   flexo.make_readonly(bender.Node, "root", function () {
@@ -507,12 +535,21 @@
       });
     },
 
-    // Set an attribute on the target element.
-    set_attribute: function (ns, name, value) {
+    attr: function (ns, name, value) {
+      if (arguments.lenght === 2) {
+        return this.attributes[ns] && this.attributes[ns][name];
+      }
       if (!this.attributes[ns]) {
         this.attributes[ns] = {};
       }
       this.attributes[ns][name] = value;
+      return this;
+    },
+
+    // Set an attribute on the target element.
+    // Should it be different from attr?
+    set_attribute: function (ns, name, value) {
+      this.attr(ns, name, value);
       if (this.element && typeof this.element.setAttributeNS === "function") {
         this.element.setAttributeNS(ns, name, value);
       }

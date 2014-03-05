@@ -1,3 +1,4 @@
+@import url(http://fonts.googleapis.com/css?family=Karla:400,400italic,700,700italic);
 @import url(http://fonts.googleapis.com/css?family=Inconsolata);
 
 @media print {
@@ -7,7 +8,7 @@
 }
 
 body {
-  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
+  font-family: Karla, sans-serif;
   max-width: 48rem;
   padding: 0 2rem;
   margin: 4rem auto;
