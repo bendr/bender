@@ -48,13 +48,23 @@
 
     // Create a new node with no children and no parent.
     init: function () {
-      this.__id = (bender.Node.__id++).toString(36).toUpperCase();
       this.children = [];
+      this.__set_id();
       return bender.Base.init.call(this);
+    },
+
+    // Set a unique id on the node (for debugging purposes)
+    __set_id: function (protoid) {
+      var id = (bender.Node.__id++).toString(36).toUpperCase();
+      this.__id = protoid ? "%0(%1)".fmt(id, protoid) : id;
+      this.__nodes[id] = this;
     },
 
     // Id number for nodes (used for debugging)
     __id: 0,
+
+    // Find node by ID
+    __nodes: {},
 
     // Insert a child at the end of the list of children and return the added
     // child, or before the ref node if given.
@@ -134,11 +144,10 @@
     // Shallow clone of a component with its own children, properties, and view.
     clone: function (view) {
       var c = Object.create(this);
-      c.__id = "%0(%1)"
-        .fmt((bender.Node.__id++).toString(36).toUpperCase(), this.__id);
+      c.__set_id(this.__id);
       c.parent = null;
       c.children = [];
-      c.properties = c.create_objects();
+      c.create_objects();
       c.set_view(view);
       return c;
     },
@@ -243,7 +252,7 @@
       var graph = this.render_subgraph(bender.WatchGraph.create())
         .sort().minimize();
       this.render_view(target || window.document.body);
-      this.init_properties(graph);
+      this.init_properties();
       return graph;
     },
 
@@ -265,12 +274,6 @@
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
-      this.init_properties(graph);
-      return graph;
-    },
-
-    // Initialize properties of the component, its prototype and its children.
-    init_properties: function (graph) {
       Object.keys(this.properties).forEach(function (property) {
         var vertex = this.property_vertices[property];
         if (!vertex) {
@@ -280,8 +283,24 @@
           vertex.__init_vertex = graph.vertex(bender.Vertex.create());
           graph.edge(bender.InitEdge.create(vertex.__init_vertex, vertex));
         }
-        vertex.__init_vertex.value(this, this.properties[property], true);
       }, this);
+      return graph;
+    },
+
+    // Initialize properties of the component, its prototype and its children.
+    init_properties: function () {
+      console.log("init_properties of %0 (%1)".fmt(this.name(), this.__id));
+      for (var property in this.properties) {
+        console.log("  %0=%1".fmt(property, this.properties[property]));
+        var vertex = this.property_vertices[property];
+        if (!vertex || !vertex.__init_vertex) {
+          return;
+        }
+        vertex.__init_vertex.value(this, this.properties[property], true);
+      }
+      this.children.forEach(function (child) {
+        child.init_properties();
+      });
     },
 
     // Render the view of the component in a DOM target.
@@ -347,8 +366,7 @@
     // Deep clone of the element, attached to the cloned parent.
     clone: function (parent) {
       var e = Object.create(this);
-      e.__id = "%0(%1)"
-        .fmt((bender.Node.__id++).toString(36).toUpperCase(), this.__id);
+      e.__set_id(this.__id);
       e.parent = parent;
       e.children = this.children.map(function (child) {
         return child.clone(e);
@@ -471,20 +489,22 @@
       }, this);
       this.render_children(this.element, stack, i);
       for (var type in this.event_vertices) {
-        var vertex = this.event_vertices[type];
-        vertex.outgoing.forEach(function (edge) {
-          this.element.addEventListener(type, function (e) {
-            if (edge.adapter.prevent_default()) {
-              e.preventDefault();
-            }
-            if (edge.adapter.stop_propagation()) {
-              e.stopPropagation();
-            }
-            edge.dest.value(stack.component, e, true);
-          });
-        }, this);
+        this.event_vertices[type].outgoing
+          .forEach(this.render_event_listener.bind(this, stack, type));
       }
       target.appendChild(this.element);
+    },
+
+    render_event_listener: function (stack, type, edge) {
+      this.element.addEventListener(type, function (e) {
+        if (edge.adapter.prevent_default()) {
+          e.preventDefault();
+        }
+        if (edge.adapter.stop_propagation()) {
+          e.stopPropagation();
+        }
+        edge.dest.value(stack.component, e, true);
+      });
     },
 
     // Set an attribute on the target element.
@@ -632,6 +652,9 @@
           var protovertex = prototype[vertices_name][name];
           if (protovertex) {
             graph.edge(bender.InheritEdge.create(protovertex, vertices[name]));
+            if (protovertex.__init_vertex) {
+              vertices[name].__init_vertex = protovertex.__init_vertex;
+            }
             protovertex.outgoing.forEach(function (edge) {
               if (edge.priority === 0) {
                 var edge_ = Object.create(edge);
@@ -716,8 +739,8 @@
 
     apply_value: function (target, value) {
       console.log("Set %0`%1=%2".fmt(target.name(), this.name, value));
-      var descriptor;
-      for (var p = target.properties,
+      var p, descriptor;
+      for (p = target.properties,
         descriptor = Object.getOwnPropertyDescriptor(p, this.name);
         p && !descriptor;
         p = Object.getPrototypeOf(p),
@@ -798,10 +821,6 @@
       this.__unsorted = true;
       edge.graph = this;
       return edge;
-    },
-
-    // Remove a vertex and its edges from the graph.
-    remove_vertex: function (vertex) {
     },
 
     // Sort the edges for deterministic graph traversal. Delayed edges come

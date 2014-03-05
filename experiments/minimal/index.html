@@ -24,6 +24,13 @@ a {
   cursor: default;
 }
 
+.panel {
+  padding: 1rem;
+  border: solid thin black;
+  margin: 1rem;
+  display: inline-block;
+}
+
 .button.down {
   opacity: 0.5;
 }
@@ -101,17 +108,6 @@ var button = bender.Component.create(bender.View.create().child(frame))
   .property("enabled", true)
   .property("down", false);
 
-var text_n = bender.Text.create().name("text-n");
-var plus = button.create().name("Plus").property("label", "+");
-var minus = button.create().name("Minus").property("label", "—");
-var panel = bender.Component.create(bender.View.create()
-    .child(bender.DOMElement.create(flexo.ns.html, "div")
-      .child(text_n)
-      .child(plus.view)
-      .child(minus.view)))
-  .name("Panel")
-  .property("n", 0);
-
 button.watch(bender.Watch.create()  // 4
       .get(bender.GetProperty.create(button, "label"))
       .set(bender.SetNodeProperty.create(text_label, "text")))
@@ -136,6 +132,18 @@ button.watch(bender.Watch.create()  // 4
               this.properties.enabled ? "" : "disabled");
           })));
 
+var text_n = bender.Text.create().name("text-n");
+var plus = button.create().name("Plus").property("label", "+");
+var minus = button.create().name("Minus").property("label", "—");
+var panel = bender.Component.create(bender.View.create()
+    .child(bender.DOMElement.create(flexo.ns.html, "div",
+        { "": { "class": "panel" } })
+      .child(text_n)
+      .child(plus.view)
+      .child(minus.view)))
+  .name("Panel")
+  .property("n", 0);
+
 panel.watch(bender.Watch.create()  // 1
       .get(bender.GetEvent.create(plus, "pushed"))
       .set(bender.SetProperty.create(panel, "n")
@@ -152,12 +160,12 @@ panel.watch(bender.Watch.create()  // 1
 
 panel.render().dump();
 
-/*
+  /*
 var p1 = panel.create().name("p1");
 var p2 = panel.create().name("p2");
 bender.Component.create(bender.View.create()
     .child(p1.view)
-    .child(p2.view)).render();
+    .child(p2.view)).render().dump();
     */
 
     </script>
