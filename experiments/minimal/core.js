@@ -25,6 +25,25 @@
 
   bender.version = "0.9";
 
+  // Use bender.trace() for conditional trace messages; set bender.TRACE to true
+  // to enable tracing (set to false by default.)
+  var _trace = false;
+  Object.defineProperty(bender, "TRACE", {
+    enumerable: true,
+    get: function () {
+      return _trace && _trace !== flexo.nop;
+    },
+    set: function (p) {
+      _trace = p ? console.log.bind(console) : flexo.nop;
+    }
+  });
+  Object.defineProperty(bender, "trace", {
+    enumerable: true,
+    get: function () {
+      return _trace;
+    }
+  });
+
 
   // Base for all objects (init and create.)
   bender.Base = {
@@ -177,7 +196,7 @@
     // Set the view of the component, and add the child components from the
     // view descendants of the new view.
     set_view: function (view) {
-      if (view && this.view) {
+      if (view && this.hasOwnProperty(view)) {
         if (this.view.default) {
           delete this.view.component;
         } else {
@@ -633,12 +652,12 @@
 
     // Add a new adapter (get or set) to the corresponding list.
     adapter: function (adapter, list) {
-      if (adapter.watch) {
+      if (adapter._watch) {
         console.error("Adapter already in a watch.");
         return this;
       }
       list.push(adapter);
-      adapter.watch = this;
+      adapter._watch = this;
       return this;
     },
 
@@ -978,7 +997,7 @@
   //   Watch  watch
   bender.WatchVertex = flexo._ext(bender.Vertex, {
     init: function (watch) {
-      this.watch = watch;
+      this._watch = watch;
       return bender.Vertex.init.call(this);
     }
   });
@@ -1061,7 +1080,7 @@
       var index = 1 + this.graph.edges.indexOf(this);
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
-        var component = this.adapter.watch.component;
+        var component = this.adapter._watch.component;
         var view;
         if (w[0].view.stack) {
           var i;

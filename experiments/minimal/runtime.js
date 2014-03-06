@@ -11,6 +11,7 @@
   "use strict";
 
   bender.ns = flexo.ns.bender = "http://bender.igel.co.jp";
+  bender.namespaces = {};  // Custom namespace URIs
 
   var urls = {};  // URL map for loaded resources
 
@@ -64,8 +65,8 @@
           console.warn("Unknow element in Bender namespace: “%0” in %1"
               .fmt(node.localName, flexo.base_uri(node)));
         }
-      // } else if (node.namespaceURI in scope.ns) {
-      //   return deserialize_custom(node);
+      } else if (node.namespaceURI in bender.namespaces) {
+        return deserialize_custom(node);
       } else {
         return deserialize_foreign(node);
       }
@@ -104,8 +105,8 @@
   // Load all links for a component.
   function load_links(component) {
     var links = [];
-    for (var p = component; p.links; p = Object.getPrototypeOf(p)) {
-      flexo.unshift_all(links, p.links);
+    for (var p = component; p.__links; p = Object.getPrototypeOf(p)) {
+      flexo.unshift_all(links, p.__links);
     }
     return flexo.collect_promises(links.map(function (link) {
       return link.load();
@@ -116,7 +117,7 @@
   // Deserialize the contents of the component created
   function deserialize_component(elem, component, url) {
     deserialize_component_attributes(elem, component, url);
-    component.links = [];
+    component.__links = [];
     var view;
     flexo.foreach(elem.childNodes, function (ch) {
       if (ch.nodeType !== window.Node.ELEMENT_NODE ||
@@ -149,7 +150,7 @@
         } else if (attr.localName === "name") {
           component.name(attr.value);
         } else if (attr.localName !== "href" || custom) {
-          component.init_values[attr.localName] = attr.value;
+          component.properties[attr.localName] = attr.value;
         }
       } else if (attr.namespaceURI === bender.ns) {
         component.properties[attr.localName] = attr.value;
@@ -189,8 +190,31 @@
       }), elem);
   }
 
+  // Deserialize a custom element by creating a component and adding the
+  // contents to the view (no other customization is possible.)
+  function deserialize_custom(elem) {
+    var base_uri = flexo.base_uri(elem);
+    var url = flexo.normalize_uri(base_uri,
+      "%0/%1.xml".fmt(bender.namespaces[elem.namespaceURI], elem.localName));
+    bender.trace("Custom component: {%0}:%1 -> %2"
+        .fmt(elem.namespaceURI, elem.localName, url));
+    return bender.load_component(url, base_uri)
+      .then(function (prototype) {
+        return deserialize_children(bender.View.create(), elem)
+          .then(function (view) {
+            var component = prototype.create(view);
+            deserialize_component_attributes(elem, component, url, true);
+            return component;
+          });
+      });
+  }
 
-  bender.Component.finalize = flexo.self;
+
+  // Finalize the component after loading is finished
+  bender.Component.finalize = function () {
+    delete this.__links;
+    return this;
+  };
 
 
   bender.WatchGraph.dump = function () {
@@ -211,7 +235,7 @@
   };
 
   bender.WatchVertex.desc = function () {
-    return "v%0 [watch of %1]".fmt(this.__index, this.watch.component.name());
+    return "v%0 [watch of %1]".fmt(this.__index, this._watch.component.name());
   };
 
   bender.PropertyVertex.desc = function () {

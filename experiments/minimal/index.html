@@ -158,15 +158,13 @@ panel.watch(bender.Watch.create()  // 1
       .set(bender.SetProperty.create(minus, "enabled")
         .value(function ($in) { return $in > 0; })));
 
-panel.render().dump();
+// panel.render().dump();
 
-  /*
 var p1 = panel.create().name("p1");
 var p2 = panel.create().name("p2");
 bender.Component.create(bender.View.create()
     .child(p1.view)
     .child(p2.view)).render().dump();
-    */
 
     </script>
   </body>

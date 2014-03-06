@@ -25,11 +25,14 @@ a {
     <script>
 "use strict";
 
+bender.namespaces[bender.ns + "/lib"] = "/lib";
 var args = flexo.get_args();
+bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
     component.render();
   }, function (reason) {
+    alert("Ow!");
     console.error(reason);
   });
 }
