@@ -103,7 +103,6 @@
 
   // Load all links for a component.
   function load_links(component) {
-    return;
     var links = [];
     for (var p = component; p.links; p = Object.getPrototypeOf(p)) {
       flexo.unshift_all(links, p.links);
@@ -117,6 +116,7 @@
   // Deserialize the contents of the component created
   function deserialize_component(elem, component, url) {
     deserialize_component_attributes(elem, component, url);
+    component.links = [];
     var view;
     flexo.foreach(elem.childNodes, function (ch) {
       if (ch.nodeType !== window.Node.ELEMENT_NODE ||
@@ -188,6 +188,9 @@
         return child && this.child(child) || this;
       }), elem);
   }
+
+
+  bender.Component.finalize = flexo.self;
 
 
   bender.WatchGraph.dump = function () {

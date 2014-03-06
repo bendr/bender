@@ -193,6 +193,7 @@
       this.view = view;
       this.view.component = this;
       this.add_child_components(view);
+      return this;
     },
 
     // Add the child components from going down the view tree and adding the

@@ -27,7 +27,11 @@ a {
 
 var args = flexo.get_args();
 if (args.href) {
-  bender.load_component(args.href);
+  bender.load_component(args.href).then(function (component) {
+    component.render();
+  }, function (reason) {
+    console.error(reason);
+  });
 }
 
     </script>
