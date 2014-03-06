@@ -68,6 +68,7 @@
     // Create a new node with no children and no parent.
     init: function () {
       this.children = [];
+      this.__clones = [];
       this.__set_id();
       return bender.Base.init.call(this);
     },
@@ -136,10 +137,6 @@
   // empty string. Return the Node when setting, the name when getting.
   flexo._accessor(bender.Node, "name", flexo.safe_trim);
 
-  flexo.make_readonly(bender.Node, "root", function () {
-    return this.parent ? this.parent.root : this;
-  });
-
 
   // Component < Node
   //   Component?  prototype
@@ -163,6 +160,7 @@
     // Shallow clone of a component with its own children, properties, and view.
     clone: function (view) {
       var c = Object.create(this);
+      this.__clones.push(c);
       c.__set_id(this.__id);
       c.parent = null;
       c.children = [];
@@ -295,9 +293,18 @@
       if (prototype) {
         this.prototype.render_subgraph(graph);
       }
+      if (!this.view.scope) {
+        this.view.scope = {};
+        flexo.beach(this.view, function (elem) {
+          this.view.scope[elem.__id] = elem;
+          return elem.children;
+        }, this);
+      }
+      this.view.scope[this.__id] = this;
       this.children.forEach(function (child) {
+        child.view.scope = this.view.scope;
         child.render_subgraph(graph);
-      });
+      }, this);
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
@@ -348,7 +355,9 @@
       this.view.stack = [this.view];
       this.view.stack.component = this;
       for (var p = this.prototype; p; p = p.prototype) {
-        var v = p.view.clone();
+        var scope = {};
+        scope[p.__id] = this;
+        var v = p.view.clone(scope);
         if (p.children.length > 0) {
           this.add_child_components(v);
         }
@@ -365,7 +374,7 @@
       if (arguments.length === 0) {
         if (!this._url) {
           url = flexo.normalize_uri((this.parent && this.parent.url()) ||
-              (this.scope.document && this.scope.document.location.href));
+              (window.document && window.document.location.href));
           if (this._id) {
             var u = flexo.split_uri(url);
             u.fragment = this._id;
@@ -378,14 +387,6 @@
       this._url = url;
       return this;
     }
-  });
-
-  flexo.make_readonly(bender.Node, "root", function () {
-    if (!this.parent) {
-      return this;
-    }
-    var prototype = this.prototype;
-    return prototype && !prototype.parent ? this : this.parent.root;
   });
 
   // Return the prototype component of the component, or undefined.
@@ -412,12 +413,14 @@
   bender.Element = flexo._ext(bender.Node, {
 
     // Deep clone of the element, attached to the cloned parent.
-    clone: function (parent) {
+    clone: function (scope, parent) {
       var e = Object.create(this);
+      this.__clones.push(e);
+      scope[this.__id] = e;
       e.__set_id(this.__id);
       e.parent = parent;
       e.children = this.children.map(function (child) {
-        return child.clone(e);
+        return child.clone(scope, e);
       });
       return e;
     },
@@ -459,10 +462,12 @@
     // Clone the view, and if not the view of a top-level component (i.e. this
     // node is the root of its tree), then clone the component as well. The
     // clone of the component becomes a child of the parent component.
-    clone: function (parent) {
-      var v = bender.Element.clone.call(this, parent);
+    clone: function (scope, parent) {
+      var v = bender.Element.clone.call(this, scope, parent);
+      v.scope = scope;
       if (parent) {
         this.component.clone(v);
+        scope[this.component.__id] = v.component;
       }
       return v;
     },
@@ -1076,43 +1081,32 @@
       return bender.Edge.init.call(this, source, dest);
     },
 
+    // Find the runtime target of the adapter and the runtime component of its
+    // watch from the input component. If they are found, attempt to match the
+    // input value. If there is a match, get the output value and apply it.
     traverse: function () {
-      var index = 1 + this.graph.edges.indexOf(this);
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
         var component = this.adapter._watch.component;
-        var view;
+        var target = this.adapter.target;
+        var scope = component.scope;
         if (w[0].view.stack) {
           var i;
           for (i = w[0].view.stack.length - 1;
-            i >= 0 && w[0].view.stack[i].component !== component; --i) {}
+            i >= 0 && !(target.__id in w[0].view.stack[i].scope); i--) {}
           if (i >= 0) {
-            view = w[0].view.stack[i];
+            scope = w[0].view.stack[i].scope;
           }
         }
-        var that = view && w[0] || component;
-        var target = this.adapter.target;
-        var rtarget = target.watches ?
-          flexo.bfirst(that.root, function (c) {
-            return target.conforms(c) || c.children;
-          }) :
-          flexo.bfirst(view || that.view, function (element) {
-            return element === target ||
-              Object.getPrototypeOf(element) === target ||
-              element.children;
-          });
-        console.log("AdapterEdge #%0/%1[%2]: (%3, %4) -> %5/%6=%7"
-          .fmt(index, component.name(), that.name(), w[0].name(), w[1],
-            this.adapter.target.name(),
-            rtarget ? rtarget.watches ? rtarget.name() :
-              rtarget.view.component.name() : "???", rtarget.__id));
-        if (that && rtarget && this.adapter.match().call(that, w[1])) {
-          var value = this.adapter.value().call(that, w[1]);
-          this.adapter.apply_value(rtarget, value);
-          this.dest.value(rtarget, value);
-        } else {
-          console.log("  no match.");
-        }
+        var that = scope[component.__id];
+        var rtarget = scope[target.__id];
+        try {
+          if (that && rtarget && this.adapter.match().call(that, w[1])) {
+            var value = this.adapter.value().call(that, w[1]);
+            this.adapter.apply_value(rtarget, value);
+            this.dest.value(rtarget, value);
+          }
+        } catch (_) {}
       }, this);
     }
   });
