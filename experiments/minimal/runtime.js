@@ -102,6 +102,39 @@
     return deserialize_children(bender.View.create(), elem);
   };
 
+  // Deserialize the content element
+  deserialize.content = function (elem) {
+    return deserialize_children(bender.Content.create(), elem);
+  };
+
+  // Deserialize the attribute element
+  deserialize.attribute = function (elem) {
+    return deserialize_children(bender.Attribute
+        .create(elem.getAttribute("ns"), elem.getAttribute("name")), elem);
+  };
+
+  // Deserialize the text element
+  deserialize.text = function (elem) {
+    return bender.Text.create().name(elem.getAttribute("name"))
+      .text(shallow_text(elem));
+  };
+
+  // Return the concatenation of all text children (and only children) of elem.
+  // Any other content (including child elements) is skipped.
+  function shallow_text(elem, strict) {
+    var text = "";
+    var has_text = !strict;
+    for (var ch = elem.firstChild; ch; ch = ch.nextSibling) {
+      if (ch.nodeType === window.Node.TEXT_NODE ||
+          ch.nodeType === window.Node.CDATA_SECTION_NODE) {
+        text += ch.textContent;
+        has_text = true;
+      }
+    }
+    return has_text && text;
+  }
+
+
   // Load all links for a component.
   function load_links(component) {
     var links = [];
@@ -137,6 +170,11 @@
       view.then(component.set_view.bind(component)) :
       new flexo.Promise().fulfill(component);
   }
+
+  // Component title
+  deserialize_component.title = function (component, elem) {
+    return component.title(shallow_text(elem));
+  };
 
   // Deserialize the attributes of the component element
   function deserialize_component_attributes(elem, component, url, custom) {
@@ -216,15 +254,18 @@
     return this;
   };
 
+  // Title is just a string (should be any foreign content later)
+  flexo._accessor(bender.Component, "title", flexo.safe_trim);
+
 
   bender.WatchGraph.dump = function () {
     this.vertices.forEach(function (vertex, i) {
       vertex.__index = i;
     });
-    this.edges.forEach(function (edge, i) {
-      console.log("%0. %1 -> %2 = %3"
-        .fmt(i + 1, edge.source.desc(), edge.dest.desc(), edge.priority));
-    });
+    console.log(this.edges.map(function (edge, i) {
+      return "%0. %1 -> %2 = %3"
+        .fmt(i + 1, edge.source.desc(), edge.dest.desc(), edge.priority);
+    }).join("\n"));
     this.vertices.forEach(function (vertex) {
       delete vertex.__index;
     });

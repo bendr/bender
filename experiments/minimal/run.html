@@ -31,6 +31,10 @@ bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
     component.render();
+    var title = component.title();
+    if (title) {
+      window.document.title = title;
+    }
   }, function (reason) {
     alert("Ow!");
     console.error(reason);

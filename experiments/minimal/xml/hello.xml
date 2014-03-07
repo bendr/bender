@@ -1,4 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" name="hello-world">
+  <title>Hello Bender</title>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>
       Hello, world!

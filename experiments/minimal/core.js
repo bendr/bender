@@ -284,6 +284,8 @@
     // If not already rendered, render the subgraph for this component in the
     // given WatchGraph. Render the subgraph of the prototype, then the subgraph
     // of the children, then the subgraph of the watches. Return the graph.
+    // Note also that this is a place as good as any to build the static scope
+    // of the component (later, we might save the scope on vertices?)
     render_subgraph: function (graph) {
       if (!this.__render_subgraph) {
         return graph;
@@ -323,9 +325,7 @@
 
     // Initialize properties of the component, its prototype and its children.
     init_properties: function () {
-      console.log("init_properties of %0 (%1)".fmt(this.name(), this.__id));
       for (var property in this.properties) {
-        console.log("  %0=%1".fmt(property, this.properties[property]));
         var vertex = this.property_vertices[property];
         if (!vertex || !vertex.__init_vertex) {
           return;
@@ -349,7 +349,7 @@
 
     // Create the view stack for the component from its prototype and its own
     // view. The views of the prototype are cloned and are now owned by this
-    // component.
+    // component. The dynamic scope is created through the clone() calls.
     // TODO stack-order property for Views.
     view_stack: function () {
       this.view.stack = [this.view];
@@ -412,7 +412,8 @@
   //   View  view
   bender.Element = flexo._ext(bender.Node, {
 
-    // Deep clone of the element, attached to the cloned parent.
+    // Deep clone of the element, attached to the cloned parent. Update the
+    // scope as elements are cloned.
     clone: function (scope, parent) {
       var e = Object.create(this);
       this.__clones.push(e);
@@ -800,7 +801,6 @@
     vertex: bender.GetProperty.vertex,
 
     apply_value: function (target, value) {
-      console.log("Set %0`%1=%2".fmt(target.name(), this.name, value));
       var p, descriptor;
       for (p = target.properties,
         descriptor = Object.getOwnPropertyDescriptor(p, this.name);
@@ -821,7 +821,6 @@
     },
 
     apply_value: function (target, value) {
-      console.log("(Set %0.%1=%2)".fmt(target.name(), this.name, value));
       if (typeof target.set_property === "function") {
         target.set_property(this.name, value);
       }
@@ -840,8 +839,6 @@
     },
 
     apply_value: function (target, value) {
-      console.log("Set %0|%1:%2=%3".fmt(target.name(), this.ns, this.name,
-          value));
       if (typeof target.set_attribute === "function") {
         target.set_attribute(this.ns, this.name, value);
       }
@@ -1084,6 +1081,9 @@
     // Find the runtime target of the adapter and the runtime component of its
     // watch from the input component. If they are found, attempt to match the
     // input value. If there is a match, get the output value and apply it.
+    // The runtime target is found by find the static target id in the view
+    // stack. If there is no match, fallback to the static scope of the
+    // component of the watch.
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
