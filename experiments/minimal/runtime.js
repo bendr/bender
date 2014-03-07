@@ -151,6 +151,7 @@
   function deserialize_component(elem, component, url) {
     deserialize_component_attributes(elem, component, url);
     component.__links = [];
+    component.__properties = {};
     var view;
     flexo.foreach(elem.childNodes, function (ch) {
       if (ch.nodeType !== window.Node.ELEMENT_NODE ||
@@ -171,11 +172,6 @@
       new flexo.Promise().fulfill(component);
   }
 
-  // Component title
-  deserialize_component.title = function (component, elem) {
-    return component.title(shallow_text(elem));
-  };
-
   // Deserialize the attributes of the component element
   function deserialize_component_attributes(elem, component, url, custom) {
     component.url(url);
@@ -194,6 +190,54 @@
         component.properties[attr.localName] = attr.value;
       }
     });
+  }
+
+  // Component title
+  deserialize_component.title = function (component, elem) {
+    return component.title(shallow_text(elem));
+  };
+
+  // Deserialize a property element in a component
+  deserialize_component.property = function (component, elem) {
+    var name = elem.getAttribute("name");
+    if (!name) {
+      console.error("Property with no name");
+      return;
+    }
+    var as = normalize_as(elem.getAttribute("as"));
+    var value = elem.hasAttribute("value") ? elem.getAttribute("value") :
+      shallow_text(elem, true);
+    var parse_value = {
+      boolean: flexo.is_true,
+      dynamic: function (v) {
+        if (elem.hasAttribute("value")) {
+          v = "return " + v;
+        }
+        try {
+          return new Function(v);
+        } catch (_) {
+          console.log("Error parsing Javascript function: “%0”".fmt(v));
+        }
+      },
+      json: function (v) {
+        try {
+          return JSON.parse(v);
+        } catch (_) {
+          console.log("Error parsing JSON string: “%0”".fmt(v));
+        }
+      },
+      number: flexo.to_number,
+      string: flexo.id
+    };
+    component.__properties[name] = flexo.funcify(parse_value[as](value));
+  };
+
+  // Normalize the `as` parameter to be one of dynamic (default), boolean,
+  // json, number, or string.
+  function normalize_as(as) {
+    as = flexo.safe_trim(as).toLowerCase();
+    return as === "boolean" || as === "json" || as === "number" ||
+      as === "string" ? as : "dynamic";
   }
 
   // Deserialize a foreign element and its contents (attributes and children),
@@ -251,6 +295,10 @@
   // Finalize the component after loading is finished
   bender.Component.finalize = function () {
     delete this.__links;
+    for (var p in this.__properties) {
+      this.properties[p] = this.__properties[p].call(this);
+    }
+    delete this.__properties;
     return this;
   };
 

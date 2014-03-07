@@ -135,7 +135,7 @@
 
   // The name accessor gets or set a name for the node. The default name is the
   // empty string. Return the Node when setting, the name when getting.
-  flexo._accessor(bender.Node, "name", flexo.safe_trim);
+  flexo._accessor(bender.Node, "name", flexo.safe_string);
 
 
   // Component < Node
