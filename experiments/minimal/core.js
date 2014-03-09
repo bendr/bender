@@ -5,7 +5,7 @@
 
 // TODO
 // [ ] stack-order for View
-// [ ] advance selectors
+// [ ] advanced selectors
 // [ ] component.notify()/.message(); node.notify() too?
 // [ ] minimize graph
 // [ ] compile graph to Javascript
@@ -278,7 +278,28 @@
         .sort().minimize();
       this.render_view(target || window.document.body);
       this.init_properties();
+      this.ready();
       return graph;
+    },
+
+    // Send a ready notification
+    ready: function () {
+      this.notify("ready");
+      this.children.forEach(function (child) {
+        child.ready();
+      });
+    },
+
+    // Send an event notification
+    notify: function (type, args) {
+      if (type in this.event_vertices) {
+        if (typeof args !== "object") {
+          args = {};
+        }
+        args.type = type;
+        args.source = this;
+        this.event_vertices[type].value(this, args);
+      }
     },
 
     // If not already rendered, render the subgraph for this component in the
@@ -867,6 +888,7 @@
     init: function () {
       this.vertices = [];
       this.vortex = this.vertex(bender.Vertex.create(this));
+      this.schedule = { now: false, later: [] };
       return bender.Base.init.call(this);
     },
 
@@ -946,7 +968,7 @@
     // Schedule a new graph traversal after a value was set on a vertex. If a
     // traversal was already scheduled, just return. Values are cleared after
     // the traversal finishes.
-    flush: function () {
+    flush: function (delay) {
       if (this.__scheduled) {
         return;
       }
@@ -1041,7 +1063,7 @@
     // InheritEdge have a lower priority, while
     priority: 0,
 
-    // TODO
+    // TODO: delay
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         this.dest.value.apply(this.dest, this.source.values[id]);
@@ -1084,13 +1106,14 @@
     // The runtime target is found by find the static target id in the view
     // stack. If there is no match, fallback to the static scope of the
     // component of the watch.
+    // TODO test static adapters.
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
         var component = this.adapter._watch.component;
         var target = this.adapter.target;
         var scope = component.scope;
-        if (w[0].view.stack) {
+        if (w[0].view.stack && !this.adapter.static) {
           var i;
           for (i = w[0].view.stack.length - 1;
             i >= 0 && !(target.__id in w[0].view.stack[i].scope); i--) {}
@@ -1105,6 +1128,11 @@
             var value = this.adapter.value().call(that, w[1]);
             this.adapter.apply_value(rtarget, value);
             this.dest.value(rtarget, value);
+            if (this.adapter.static) {
+              target.__clones.forEach(function (clone) {
+                this.dest.value(clone, value);
+              }, this);
+            }
           }
         } catch (_) {}
       }, this);
