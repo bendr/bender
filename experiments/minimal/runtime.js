@@ -311,8 +311,9 @@
       vertex.__index = i;
     });
     console.log(this.edges.map(function (edge, i) {
-      return "%0. %1 -> %2 = %3"
-        .fmt(i + 1, edge.source.desc(), edge.dest.desc(), edge.priority);
+      return "%0. %1 -> %2 = %3 (%4)"
+        .fmt(i + 1, edge.source.desc(), edge.dest.desc(), edge.priority,
+          edge.delay);
     }).join("\n"));
     this.vertices.forEach(function (vertex) {
       delete vertex.__index;

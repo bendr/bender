@@ -760,6 +760,7 @@
 
   flexo._accessor(bender.Adapter, "value", flexo.id, true);
   flexo._accessor(bender.Adapter, "match", flexo.funcify(true), true);
+  flexo._accessor(bender.Adapter, "delay");
 
 
   // Get < Adapter
@@ -888,7 +889,7 @@
     init: function () {
       this.vertices = [];
       this.vortex = this.vertex(bender.Vertex.create(this));
-      this.schedule = { now: false, later: [] };
+      this.schedule = [];
       return bender.Base.init.call(this);
     },
 
@@ -968,9 +969,17 @@
     // Schedule a new graph traversal after a value was set on a vertex. If a
     // traversal was already scheduled, just return. Values are cleared after
     // the traversal finishes.
-    flush: function (delay) {
+    flush: function (queue) {
       if (this.__scheduled) {
+        if (queue) {
+          flexo.asap(this.flush.bind(this, queue));
+        }
         return;
+      }
+      if (queue) {
+        queue.forEach(function (f) {
+          f();
+        });
       }
       this.__scheduled = flexo.asap(function () {
         delete this.__scheduled;
@@ -981,6 +990,34 @@
           vertex.clear_values();
         });
       }.bind(this));
+    },
+
+    // Flush a thunk at a later time.
+    flush_later: function (f, delay) {
+      var t = Date.now() + delay;
+      var q;
+      for (var i = 0, n = this.schedule.length; i < n; ++i) {
+        q = this.schedule[i];
+        if (t < q[0]) {
+          break;
+        }
+        if (t === q[0]) {
+          q.push(f);
+          return;
+        }
+      }
+      q = [t, f];
+      this.schedule.splice(i, 0, q);
+      var flush = function() {
+        flexo.remove_from_array(this.schedule, q);
+        q.shift();
+        this.flush(q);
+      }.bind(this);
+      if (delay === 0) {
+        flexo.asap(flush);
+      } else {
+        window.setTimeout(flush, delay);
+      }
     }
   });
 
@@ -1063,13 +1100,15 @@
     // InheritEdge have a lower priority, while
     priority: 0,
 
-    // TODO: delay
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         this.dest.value.apply(this.dest, this.source.values[id]);
       }, this);
     }
   });
+
+  flexo._get(bender.Edge, "delay", flexo.nop);
+
 
   // InheritEdge < Edge
   bender.InheritEdge = flexo._ext(bender.Edge, {
@@ -1088,8 +1127,17 @@
     }
   });
 
+
   // InitEdge < Edge
-  bender.InitEdge = flexo._ext(bender.Edge, { priority: -0.5 });
+  bender.InitEdge = flexo._ext(bender.Edge, {
+    priority: -0.5
+  });
+
+
+  // An inert edge is just used for sorting and has zero effect.
+  bender.InertEdge = flexo._ext(bender.Edge, {
+    traverse: flexo.nop
+  });
 
 
   // AdapterEdge < Object:
@@ -1125,18 +1173,34 @@
         var rtarget = scope[target.__id];
         try {
           if (that && rtarget && this.adapter.match().call(that, w[1])) {
-            var value = this.adapter.value().call(that, w[1]);
-            this.adapter.apply_value(rtarget, value);
-            this.dest.value(rtarget, value);
-            if (this.adapter.static) {
-              target.__clones.forEach(function (clone) {
-                this.dest.value(clone, value);
-              }, this);
+            if (this.adapter.delay() >= 0) {
+              this.dest.graph.flush_later(function () {
+                this.traverse_matched.bind(this, that, rtarget, w[1]);
+              }, false);
+            } else {
+              this.traverse_matched(that, rtarget, w[1]);
             }
           }
         } catch (_) {}
       }, this);
+    },
+
+    traverse_matched: function (that, target, v) {
+      try {
+        var value = this.adapter.value().call(that, v);
+        this.adapter.apply_value(target, value);
+        this.dest.value(target, value);
+        if (this.adapter.static) {
+          this.adapter.target.__clones.forEach(function (clone) {
+            this.dest.value(clone, value);
+          }, this);
+        }
+      } catch (_) {}
     }
+  });
+
+  flexo._get(bender.AdapterEdge, "delay", function () {
+    return this.adapter.delay();
   });
 
 }());

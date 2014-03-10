@@ -120,6 +120,7 @@ button.watch(bender.Watch.create()  // 4
   .watch(bender.Watch.create()  // 6
       .get(bender.GetEvent.create(frame, "mouseup"))
       .set(bender.SetEvent.create(button, "pushed")
+        // .delay(0)
         .match(function () { return this.properties.down; }))
       .set(bender.SetProperty.create(button, "down")
         .value(flexo.funcify(false))))
