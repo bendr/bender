@@ -1,0 +1,59 @@
+<doc xmlns:h="http://www.w3.org/1999/xhtml">
+
+  <title>Bender Functional Core</title>
+
+  <section>
+    <title>Preliminaries</title>
+    <h:p>We use a loose notation to describe the data and processing model of
+      Bender in terms of objects and prototype, and an implied standard library
+      for processing lists, managing DOM elements, &amp;c.</h:p>
+    <h:ul>
+      <h:li>The data model is defined in terms of <def>Object</def>s and
+        <def>data</def>. Objects are defined by their <def>properties</def>. A
+        property has a name and a value, which may be any <ref>data</ref>: a
+        boolean, a number, a string, a number, an <ref>Object</ref>, or the
+        undefined value.</h:li>
+      <h:li>The binary operator <h:code>is-a</h:code> checks if the
+        <ref>Object</ref> on the left-hand side was created from the
+        <ref>Object</ref> on the right-hand side.</h:li>
+      <h:li>A function is described by its name, formal parameters, and an
+        optional return type. The pseudo-code used is a simple expression-based
+        language with a liberal syntax that allows side effects, namely the
+        mutation of object properties, and may not return any value.</h:li>
+      <h:li><h:em>O</h:em> <h:code>&lt;</h:code> <h:em>P</h:em> means that the
+        object <h:em>O</h:em> is <def>created</def> from the object
+        <h:em>P</h:em>. <h:em>O</h:em> inherits all of the properties of
+        <h:em>P</h:em>, along with their values. <em>O</em> may have additional
+        properties, and may override any property of <em>P</em>.</h:li>
+      <h:li><h:em>O</h:em><h:code>.</h:code><h:em>x</h:em> means the property
+        <h:em>x</h:em> of object <h:em>O</h:em>.</h:li>
+      <h:li><h:code>?</h:code> means that the property may be undefined. The
+        operator <h:code>defined</h:code> checks if a value is defined.</h:li>
+      <h:li><h:code>*</h:code> means a list or set of zero or more
+        objects.</h:li>
+      <h:li><h:code>+</h:code> means a list or set of one or more
+        objects.</h:li>
+      <h:li><h:code>[]</h:code> means an empty list.</h:li>
+      <h:li><h:code>"..."</h:code> means a string (which can be considered as a list
+        of characters.)</h:li>
+      <h:li><h:em>L</h:em> <h:code>:</h:code> <h:em>x</h:em> means appending
+        <h:em>x</h:em> to the list <h:em>L</h:em>.</h:li>
+      <h:li><h:code>::</h:code> is the concatenation of two lists.</h:li>
+      <h:li><h:code>&lt;-</h:code> means setting a property of an object on the
+        left-hand side to the value on the right-hand side.</h:li>
+      <h:li><h:code>=</h:code> is used for binding (in definitions and
+        <h:code>let</h:code> forms) or equality testing.</h:li>
+    </h:ul>
+  </section>
+
+  <section id="nodes">
+    <title>Nodes</title>
+    <h:p>The Bender data model deals with two kinds of tree structures: trees of
+      <def>component</def>s, defining the high-level structure of a Bender
+      application; and trees of <def>element</def>s, defining the contents and
+      layout of a given <ref>component</ref>. Together, these trees define a
+      <def>component graph</def>. Both trees are defined by tree
+      <ref>Node</ref>s.</h:p>
+  </section>
+
+</doc>
