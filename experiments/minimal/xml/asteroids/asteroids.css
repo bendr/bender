@@ -1,0 +1,120 @@
+@font-face {
+  font-family: "Codystar";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Codystar"), url(http://themes.googleusercontent.com/static/fonts/codystar/v1/BraFEMRumMsVbWgqTQIWRHYhjbSpvc47ee6xR_80Hnw.woff) format("woff");
+}
+
+body {
+  color: white;
+  background-color: black;
+  background-image: -moz-linear-gradient(270deg, #000, #272727);
+  background-image: -webkit-linear-gradient(270deg, #000, #272727);
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+.explosion {
+  background-image: -moz-linear-gradient(270deg, #f00, #f44);
+  background-image: -webkit-linear-gradient(270deg, #f00, #f44);
+  color: black;
+}
+
+.hyperspace-0 {
+  background-image: -moz-linear-gradient(270deg, #024, #08f);
+  background-image: -webkit-linear-gradient(270deg, #024, #08f);
+  color: #f80;
+}
+
+.hyperspace-0 #foreground {
+  stroke: #f80;
+}
+
+.hyperspace-1 {
+  background-image: -moz-linear-gradient(270deg, #240, #8f0);
+  background-image: -webkit-linear-gradient(270deg, #240, #8f0);
+  color: #08f;
+}
+
+.hyperspace-1 #foreground {
+  stroke: #08f;
+}
+
+.hyperspace-2 {
+  background-image: -moz-linear-gradient(270deg, #402, #f08);
+  background-image: -webkit-linear-gradient(270deg, #402, #f08);
+  color: #0f8;
+}
+
+.hyperspace-2 #foreground {
+  stroke: #0f8;
+}
+
+.hyperspace-3 {
+  background-image: -moz-linear-gradient(270deg, #204, #80f);
+  background-image: -webkit-linear-gradient(270deg, #204, #80f);
+  color: #8f0;
+}
+
+.hyperspace-3 #foreground {
+  stroke: #8f0;
+}
+
+.hyperspace-4 {
+  background-image: -moz-linear-gradient(270deg, #420, #f80);
+  background-image: -webkit-linear-gradient(270deg, #420, #f80);
+  color: #08f;
+}
+
+.hyperspace-4 #foreground {
+  stroke: #08f;
+}
+
+.hyperspace-5 {
+  background-image: -moz-linear-gradient(270deg, #042, #0f8);
+  background-image: -webkit-linear-gradient(270deg, #042, #0f8);
+  color: #f08;
+}
+
+.hyperspace-5 #foreground {
+  stroke: #f08;
+}
+
+@-webkit-keyframes blink {
+  from { opacity: 1.0; }
+  to { opacity: 0.0; }
+}
+
+@-moz-keyframes blink {
+  from { opacity: 1.0; }
+  to { opacity: 0.0; }
+}
+
+.explosion,
+.hyperspace-0,
+.hyperspace-1,
+.hyperspace-2,
+.hyperspace-3,
+.hyperspace-4,
+.hyperspace-5 {
+  -webkit-animation-name: blink;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-duration: 0.1s;
+  -moz-animation-name: blink;
+  -moz-animation-iteration-count: infinite;
+  -moz-animation-duration: 0.1s;
+}
+
+.roman {
+  font-variant: small-caps;
+}
+
+a {
+  text-decoration: none;
+  color: #ffff00;
+}
+
+footer {
+  padding: 0.5em;
+  font-size: smaller;
+  text-align: center;
+}

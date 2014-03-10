@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp" name="asteroids"
+  xmlns:svg="http://www.w3.org/2000/svg">
+  <title>Asteroids</title>
+  <property name="width" as="number" value="1600"/>
+  <property name="height" as="number" value="1200"/>
+  <link rel="stylesheet" href="asteroids.css"/>
+  <view>
+    <svg:svg name="svg"/>
+  </view>
+  <watch>
+    <get property="width"/>
+    <get property="height"/>
+    <set select="svg" attr="viewBox"
+      value="'0 0 %0 %1'.fmt(this.properties.width, this.properties.height)"/>
+  </watch>
+</component>

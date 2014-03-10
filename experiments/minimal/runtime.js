@@ -164,6 +164,8 @@
         var f = deserialize_component[ch.localName];
         if (typeof f === "function") {
           f(component, ch);
+        } else {
+          console.warn("Unknown component element: %0".fmt(ch.localName));
         }
       }
     });
@@ -191,6 +193,16 @@
       }
     });
   }
+
+  // Link
+  deserialize_component.link = function (component, elem) {
+    if (!elem.hasAttribute("href")) {
+      console.error("Link with no href attribute");
+      return;
+    }
+    component.__links.push(bender.Link.create(elem.getAttribute("rel"),
+          flexo.normalize_uri(component.url(), elem.getAttribute("href"))));
+  };
 
   // Component title
   deserialize_component.title = function (component, elem) {
@@ -231,6 +243,77 @@
     };
     component.__properties[name] = flexo.funcify(parse_value[as](value));
   };
+
+  // Deserialize a watch and its content for a component
+  deserialize_component.watch = function (component, elem) {
+    var watch = bender.Watch.create();
+    flexo.foreach(elem.childNodes, function (ch) {
+      if (ch.namespaceURI === bender.ns) {
+        if (ch.localName === "get") {
+          watch.get(deserialize_get(ch));
+        } else if (ch.localName === "set") {
+          watch.set(deserialize_set(ch));
+        }
+      }
+    });
+    return component.watch(watch);
+  };
+
+  // Deserialize a get element
+  function deserialize_get(elem) {
+    return deserialize_adapter(elem, elem.hasAttribute("event") ?
+      bender.GetEvent.create(elem.getAttribute("event")) :
+      bender.GetProperty.create(elem.getAttribute("property")));
+  }
+
+  // Deserialize a set element
+  function deserialize_set(elem) {
+    return deserialize_adapter(elem, elem.hasAttribute("event") ?
+          bender.SetEvent.create(elem.getAttribute("event")) :
+        elem.hasAttribute("property") ?
+          bender.SetProperty.create(elem.getAttribute("property")) :
+        elem.hasAttribute("attr") ?
+          bender.SetAttribute.create(elem.getAttribute("ns"),
+            elem.getAttribute("attr")) :
+          bender.Set.create());
+  }
+
+  function deserialize_adapter(elem, adapter) {
+    var as = normalize_as(elem.getAttribute("as"));
+    var parse_value = {
+      boolean: flexo.is_true,
+      dynamic: function (v) {
+        if (elem.hasAttribute("value")) {
+          v = "return " + v;
+        }
+        try {
+          return new Function(v);
+        } catch (_) {
+          console.log("Error parsing Javascript function: “%0”".fmt(v));
+        }
+      },
+      json: function (v) {
+        try {
+          return JSON.parse(v);
+        } catch (_) {
+          console.log("Error parsing JSON string: “%0”".fmt(v));
+        }
+      },
+      number: flexo.to_number,
+      string: flexo.id
+    };
+    var value = elem.hasAttribute("value") ? elem.getAttribute("value") :
+      shallow_text(elem, true);
+    if (value) {
+      adapter.value(parse_value[as](value));
+    }
+    if (elem.hasAttribute("match")) {
+      adapter.match(parse_value.dynamic(elem.getAttribute("match")));
+    }
+    adapter.__select = flexo.safe_trim(elem.getAttribute("select"));
+    // return adapter.delay(elem.getAttribute("delay"));
+    return adapter;
+  }
 
   // Normalize the `as` parameter to be one of dynamic (default), boolean,
   // json, number, or string.
@@ -296,7 +379,7 @@
   bender.Component.finalize = function () {
     delete this.__links;
     for (var p in this.__properties) {
-      this.properties[p] = this.__properties[p].call(this);
+      this.property(p, this.__properties[p].call(this));
     }
     delete this.__properties;
     return this;
@@ -304,6 +387,75 @@
 
   // Title is just a string (should be any foreign content later)
   flexo._accessor(bender.Component, "title", flexo.safe_trim);
+
+  (function () {
+    var set_target = function (adapter) {
+      var component = adapter._watch.component;
+      var id = adapter.__select &&
+        flexo.find_first(Object.keys(component.view.scope), function (id) {
+          return component.view.scope[id].name() === adapter.__select;
+        });
+      delete adapter.__select;
+      adapter.target = id && component.view.scope[id] || component;
+    };
+    var $super = bender.Watch.render_subgraph;
+    bender.Watch.render_subgraph = function (graph) {
+      this.gets.forEach(set_target);
+      this.sets.forEach(set_target);
+      return $super.call(this, graph);
+    };
+  }());
+
+
+  bender.Link = flexo._ext(bender.Base, {
+    init: function (rel, href) {
+      this.rel = flexo.safe_trim(rel).toLowerCase();
+      this.href = flexo.safe_trim(href);
+      return this;
+    },
+
+    load: function () {
+      if (urls[this.href]) {
+        return urls[this.href];
+      }
+      var f = this.load[this.rel];
+      if (typeof f === "function") {
+        // jshint -W093
+        return urls[this.href] = f.call(this);
+      }
+      console.warn("Cannot load “%0” link (unsupported value for rel)"
+          .fmt(this.rel));
+    }
+  });
+
+  // Scripts are handled for HTML only by default. Override this method to
+  // handle other types of documents.
+  bender.Link.load.script = function () {
+    if (window.document.documentElement.namespaceURI === flexo.ns.html) {
+      return flexo.promise_script(this.href, window.document.head)
+        .then(function (script) {
+          return this.loaded = script, this;
+        }.bind(this));
+    }
+    console.warn("Cannot render script link for namespace %0"
+        .fmt(window.document.documentElement.namespaceURI));
+  };
+
+  // Stylesheets are handled for HTML only by default. Override this method to
+  // handle other types of documents.
+  bender.Link.load.stylesheet = function () {
+    if (window.document.documentElement.namespaceURI === flexo.ns.html) {
+      var link = document.createElement("link");
+      link.setAttribute("rel", "stylesheet");
+      link.setAttribute("href", this.href);
+      document.head.appendChild(link);
+      this.loaded = link;
+    } else {
+      console.warn("Cannot render stylesheet link for namespace %0"
+          .fmt(window.document.documentElement.namespaceURI));
+    }
+  };
+
 
 
   bender.WatchGraph.dump = function () {

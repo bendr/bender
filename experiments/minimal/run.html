@@ -30,7 +30,7 @@ var args = flexo.get_args();
 bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
-    component.render();
+    component.render().dump();
     var title = component.title();
     if (title) {
       window.document.title = title;

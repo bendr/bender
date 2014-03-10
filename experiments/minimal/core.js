@@ -722,6 +722,8 @@
   //   data      value(Node T, data V) = V
   //   number?   delay
   bender.Adapter = flexo._ext(bender.Base, {
+
+    // Initialize the adapter for the given static target.
     init: function (target) {
       this.target = target;
       return bender.Base.init.call(this);
@@ -770,7 +772,7 @@
   // GetProperty < Get
   //   Property  property
   bender.GetProperty = flexo._ext(bender.Get, {
-    init: function (target, name) {
+    init: function (name, target) {
       this.name = name;
       return bender.Get.init.call(this, target);
     },
@@ -785,7 +787,7 @@
   // GetEvent < Get
   //   string  type
   bender.GetEvent = flexo._ext(bender.Get, {
-    init: function (target, type) {
+    init: function (type, target) {
       this.type = type;
       return bender.Get.init.call(this, target);
     },
@@ -815,7 +817,7 @@
   // SetProperty < Set
   //   Property  property
   bender.SetProperty = flexo._ext(bender.Set, {
-    init: function (target, name) {
+    init: function (name, target) {
       this.name = name;
       return bender.Set.init.call(this, target);
     },
@@ -837,7 +839,7 @@
   // SetNodeProperty < Set
   //   string  name
   bender.SetNodeProperty = flexo._ext(bender.Set, {
-    init: function (target, name) {
+    init: function (name, target) {
       this.name = name;
       return bender.Set.init.call(this, target);
     },
@@ -854,9 +856,9 @@
   //   string?  ns
   //   string   name
   bender.SetAttribute = flexo._ext(bender.Set, {
-    init: function (target, ns, name) {
+    init: function (ns, name, target) {
       this.ns = ns;
-      this.name = name;
+      this.name = flexo.safe_trim(name);
       return bender.Set.init.call(this, target);
     },
 
@@ -871,7 +873,7 @@
   // SetEvent < Set
   //   string  type
   bender.SetEvent = flexo._ext(bender.Set, {
-    init: function (target, type) {
+    init: function (type, target) {
       this.type = type;
       return bender.Set.init.call(this, target);
     },
