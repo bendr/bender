@@ -346,6 +346,7 @@
       return graph;
     },
 
+    // Update the scope (and name map) of the component for the given node.
     update_scope: function (node) {
       var name = node.name();
       if (name) {
@@ -1184,22 +1185,22 @@
         var that = scope[component.__id];
         var rtarget = scope[target.__id];
         try {
-          if (that && rtarget && this.adapter.match().call(that, w[1])) {
+          if (that && rtarget && this.adapter.match().call(that, w[1], scope)) {
             if (this.adapter.delay() >= 0) {
               this.dest.graph.flush_later(function () {
-                this.traverse_matched.bind(this, that, rtarget, w[1]);
+                this.traverse_matched.bind(this, that, rtarget, w[1], scope);
               }, false);
             } else {
-              this.traverse_matched(that, rtarget, w[1]);
+              this.traverse_matched(that, rtarget, w[1], scope);
             }
           }
         } catch (_) {}
       }, this);
     },
 
-    traverse_matched: function (that, target, v) {
+    traverse_matched: function (that, target, v, scope) {
       try {
-        var value = this.adapter.value().call(that, v);
+        var value = this.adapter.value().call(that, v, scope);
         this.adapter.apply_value(target, value);
         this.dest.value(target, value);
         if (this.adapter.static) {

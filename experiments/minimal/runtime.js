@@ -72,7 +72,14 @@
       }
     } else if (node.nodeType === window.Node.TEXT_NODE ||
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      return bender.Text.create().text(node.textContent);
+      var text = bender.Text.create();
+      var chunks = chunk_string(node.textContent);
+      if (typeof chunks === "string") {
+        text.text(chunks);
+      } else {
+        text.__chunks = chunks;
+      }
+      return text;
     }
   }
 
@@ -385,8 +392,48 @@
     return this;
   };
 
+  // Return the targets (with a static flag) for the given selector
+  bender.Component.select = function (select) {
+    select = flexo.safe_trim(select);
+    var target;
+    if (select[0] === "@" || select[0] === "#") {
+      target = this.names[selector.substr(1)];
+    }
+    return [[target || this, select[0] === "#"]];
+  }
+
   // Title is just a string (should be any foreign content later)
   flexo._accessor(bender.Component, "title", flexo.safe_trim);
+
+  // While the scope is updated, also make the watches the bindings
+  (function () {
+    var $super = bender.Component.update_scope;
+    bender.Component.update_scope = function (node) {
+      $super.call(this, node);
+      if (node.__chunks) {
+        var watch = bender.Watch.create();
+        this.watch(watch);
+        var bindings = {};
+        node.__chunks.forEach(function (chunk) {
+          if (Array.isArray(chunk)) {
+            if (!bindings.hasOwnProperty(chunk[0])) {
+              bindings[chunk[0]] = {};
+            }
+            bindings[chunk[0]][chunk[1]] = true;
+          }
+        });
+        var set = watch.set(bender.SetNodeProperty.create("text", node));
+        Object.keys(bindings).forEach(function (select) {
+          Object.keys(bindings[select]).forEach(function (name) {
+            watch.get(bender.GetProperty.create(name)).__select = select;
+          });
+        });
+        watch.__chunks = node.__chunks;
+        delete node.__chunks;
+      }
+    }
+  }());
+
 
   // Overload render_subgraph for watches to get the actual target of adapters
   // from the __select property (i.e., select attribute)
@@ -396,22 +443,27 @@
         return;
       }
       var component = adapter._watch.component;
-      var selector = flexo.safe_trim(adapter.__select);
-      if (selector[0] === "@") {
-        adapter.target = component.names[selector.substr(1)];
-      } else if (selector[0] === "#") {
-        adapter.target = component.names[selector.substr(1)];
-        adapter.static = true;
-      }
-      if (!adapter.target) {
-        adapter.target = component;
-      }
+      var targets = component.select(adapter.__select);
+      adapter.target = targets[0][0];
+      adapter.static = targets[0][1];
       delete adapter.__select;
     };
     var $super = bender.Watch.render_subgraph;
     bender.Watch.render_subgraph = function (graph) {
       this.gets.forEach(set_target);
       this.sets.forEach(set_target);
+      if (this.__chunks) {
+        this.sets[0].value(new Function("_", "$scope",
+          "return " + this.__chunks.map(function (chunk) {
+            if (typeof chunk === "string") {
+              return flexo.quote(chunk);
+            }
+            var id = flexo.quote((chunk[0] ? this.component.names[chunk[0]] :
+              this.component).__id);
+            return "$scope[%0].properties[%1]".fmt(id, flexo.quote(chunk[1]));
+          }, this).join("+")));
+        delete this.__chunks;
+      }
       return $super.call(this, graph);
     };
   }());
@@ -472,6 +524,9 @@
     this.vertices.forEach(function (vertex, i) {
       vertex.__index = i;
     });
+    if (!this.edges) {
+      return;
+    }
     console.log(this.edges.map(function (edge, i) {
       return "%0. %1 -> %2 = %3 (%4)"
         .fmt(i + 1, edge.source.desc(), edge.dest.desc(), edge.priority,
@@ -499,5 +554,207 @@
     return "v%0 [%1!%2]".fmt(this.__index, this.adapter.target.name(),
         this.adapter.type);
   };
+
+
+  // Bindings
+
+  // Chunk a value string into a list of chunks and property, component or
+  // instance references. For instance, this turns “Status: `status” into
+  // ["Status: ", ["", "status"]]. Return a simple string if there are no
+  // bindings in that string.
+  function chunk_string(value) {
+    var state = "";      // Current state of the tokenizer
+    var chunk = "";      // Current chunk
+    var chunks = [];     // List of chunks
+    var escape = false;  // Escape flag (following a \)
+
+    var rx_start = new RegExp("^[$A-Z_a-z\x80-\uffff]$");
+    var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff]$");
+
+    // Change to state s and start a new chunk with `c` (or "")
+    var start = function (s, c) {
+      if (chunk) {
+        chunks.push(chunk);
+      }
+      chunk = c || "";
+      state = s;
+    };
+
+    // Change to state s and end the current chunk with `c` (or "")
+    var end = function (s, c) {
+      if (c) {
+        if (typeof chunk === "string") {
+          chunk += c;
+        } else if (Array.isArray(chunk)) {
+          chunk[chunk.length - 1] += c;
+        }
+      }
+      start(s);
+    };
+
+    var advance = {
+      // Regular code, look for new quoted string, comment, id or property
+      "": function (c, d) {
+        switch (c) {
+          case "'": start("q", c); break;
+          case '"': start("qq", c); break;
+          case "/":
+            switch (d) {
+              case "/": start("comment", c); break;
+              case "*": start("comments", c); break;
+              default: chunk += c;
+            }
+            break;
+          case "@": case "#":
+            if (d === "(") {
+              start("idp", [c]);
+              return 1;
+            } else if (rx_start.test(d)) {
+              start("id", [c + d]);
+              return 1;
+            } else {
+              chunk += c;
+            }
+            break;
+          case "`":
+            if (d === "(") {
+              start("propp", ["", ""]);
+              return 1;
+            } else if (rx_start.test(d)) {
+              start("prop", ["", d]);
+              return 1;
+            } else {
+              chunk += c;
+            }
+            break;
+          default:
+            chunk += c;
+        }
+      },
+
+      // Single-quoted string
+      // It is OK to fall back to default after reading a backslash
+      q: function (c) {
+        switch (c) {
+          case "'": end("", c); break;
+          case "\\": escape = true;  // jshint -W086
+          default: chunk += c;
+        }
+      },
+
+      // Double-quoted string
+      // It is OK to fall back to default after reading a backslash
+      qq: function (c) {
+        switch (c) {
+          case '"': end("", c); break;
+          case "\\": escape = true;  // jshint -W086
+          default: chunk += c;
+        }
+      },
+
+      // Single-line comment
+      comment: function (c) {
+        if (c === "\n") {
+          end("", c);
+        } else {
+          chunk += c;
+        }
+      },
+
+      // Multi-line comment:
+      comments: function (c, d) {
+        if (c === "*" && d === "/") {
+          end("", "*/");
+          return 1;
+        } else {
+          chunk += c;
+        }
+      },
+
+      // Component or instance identifier, starting with # or @
+      id: function (c, d) {
+        if (c === "\\") {
+          escape = true;
+        } else if (c === "`") {
+          if (d === "(") {
+            chunk.push("");
+            state = "propp";
+            return 1;
+          } else if (rx_start.test(d)) {
+            chunk.push(d);
+            state = "prop";
+            return 1;
+          }
+          start("", c);
+        } else if (rx_cont.test(c)) {
+          chunk[0] += c;
+        } else {
+          start("", c);
+        }
+      },
+
+      // Quoted identifier (between parentheses)
+      idp: function (c, d, e) {
+        if (c === "\\") {
+          escape = true;
+        } else if (c === ")") {
+          if (d === "`") {
+            if (e === "(") {
+              chunk.push("");
+              state = "propp";
+              return 2;
+            } else if (rx_start.test(e)) {
+              chunk.push(e);
+              state = "prop";
+              return 2;
+            }
+          }
+          start("", c);
+        } else {
+          chunk[0] += c;
+        }
+      },
+
+      // Property name
+      prop: function (c) {
+        if (c === "\\") {
+          escape = true;
+        } else if (rx_cont.test(c)) {
+          chunk[1] += c;
+        } else {
+          start("", c);
+        }
+      },
+
+      // Quoted property name (between parentheses)
+      propp: function (c) {
+        if (c === "\\") {
+          escape = true;
+        } else if (c === ")") {
+          start("");
+        } else {
+          chunk[1] += c;
+        }
+      }
+    };
+
+    for (var i = 0, n = value.length; i < n; ++i) {
+      if (escape) {
+        escape = false;
+        if (typeof chunk === "string") {
+          chunk += value[i];
+        } else {
+          chunk[chunk.length - 1] += value[i];
+        }
+      } else {
+        i += advance[state](value[i], value[i + 1] || "", value[i + 2] || "") ||
+          0;
+      }
+    }
+    if (chunk) {
+      chunks.push(chunk);
+    }
+    return chunks.length > 1 || Array.isArray(chunks[0]) ? chunks : chunks[0];
+  }
 
 }(this.bender));
