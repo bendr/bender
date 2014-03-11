@@ -317,14 +317,16 @@
         this.prototype.render_subgraph(graph);
       }
       if (!this.view.scope) {
+        this.names = {};
         this.view.scope = {};
         flexo.beach(this.view, function (elem) {
-          this.view.scope[elem.__id] = elem;
+          this.update_scope(elem);
           return elem.children;
         }, this);
       }
-      this.view.scope[this.__id] = this;
+      this.update_scope(this);
       this.children.forEach(function (child) {
+        child.names = this.names;
         child.view.scope = this.view.scope;
         child.render_subgraph(graph);
       }, this);
@@ -342,6 +344,14 @@
         }
       }, this);
       return graph;
+    },
+
+    update_scope: function (node) {
+      var name = node.name();
+      if (name) {
+        this.names[name] = node;
+      }
+      this.view.scope[node.__id] = node;
     },
 
     // Initialize properties of the component, its prototype and its children.

@@ -10,7 +10,7 @@
   <watch>
     <get property="width"/>
     <get property="height"/>
-    <set select="svg" attr="viewBox"
+    <set select="@svg" attr="viewBox"
       value="'0 0 %0 %1'.fmt(this.properties.width, this.properties.height)"/>
   </watch>
 </component>

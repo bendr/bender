@@ -5,7 +5,14 @@
   src: local("Codystar"), url(http://themes.googleusercontent.com/static/fonts/codystar/v1/BraFEMRumMsVbWgqTQIWRHYhjbSpvc47ee6xR_80Hnw.woff) format("woff");
 }
 
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
 body {
+  margin: 0;
+  padding: 0;
   color: white;
   background-color: black;
   background-image: -moz-linear-gradient(270deg, #000, #272727);

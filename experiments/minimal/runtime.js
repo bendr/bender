@@ -388,15 +388,25 @@
   // Title is just a string (should be any foreign content later)
   flexo._accessor(bender.Component, "title", flexo.safe_trim);
 
+  // Overload render_subgraph for watches to get the actual target of adapters
+  // from the __select property (i.e., select attribute)
   (function () {
     var set_target = function (adapter) {
+      if (adapter.target) {
+        return;
+      }
       var component = adapter._watch.component;
-      var id = adapter.__select &&
-        flexo.find_first(Object.keys(component.view.scope), function (id) {
-          return component.view.scope[id].name() === adapter.__select;
-        });
+      var selector = flexo.safe_trim(adapter.__select);
+      if (selector[0] === "@") {
+        adapter.target = component.names[selector.substr(1)];
+      } else if (selector[0] === "#") {
+        adapter.target = component.names[selector.substr(1)];
+        adapter.static = true;
+      }
+      if (!adapter.target) {
+        adapter.target = component;
+      }
       delete adapter.__select;
-      adapter.target = id && component.view.scope[id] || component;
     };
     var $super = bender.Watch.render_subgraph;
     bender.Watch.render_subgraph = function (graph) {
