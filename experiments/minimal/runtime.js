@@ -358,7 +358,8 @@
     return flexo.fold_promises(flexo.map(parent.childNodes, function (child) {
         return deserialize(child);
       }), flexo.call.bind(function (child) {
-        return child && this.child(child) || this;
+        return child &&
+          this.child(child.hasOwnProperty("view") ? child.view : child) || this;
       }), elem);
   }
 
@@ -397,10 +398,10 @@
     select = flexo.safe_trim(select);
     var target;
     if (select[0] === "@" || select[0] === "#") {
-      target = this.names[selector.substr(1)];
+      target = this.names[select.substr(1)];
     }
     return [[target || this, select[0] === "#"]];
-  }
+  };
 
   // Title is just a string (should be any foreign content later)
   flexo._accessor(bender.Component, "title", flexo.safe_trim);
@@ -453,15 +454,27 @@
       this.gets.forEach(set_target);
       this.sets.forEach(set_target);
       if (this.__chunks) {
-        this.sets[0].value(new Function("_", "$scope",
+        /*this.sets[0].value(new Function("_", "$scope",
           "return " + this.__chunks.map(function (chunk) {
             if (typeof chunk === "string") {
               return flexo.quote(chunk);
             }
-            var id = flexo.quote((chunk[0] ? this.component.names[chunk[0]] :
-              this.component).__id);
-            return "$scope[%0].properties[%1]".fmt(id, flexo.quote(chunk[1]));
-          }, this).join("+")));
+            var target = this.component.select(chunk[0])[0];
+            return "%0.properties[%1]"
+              .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
+                .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
+          }, this).join("+")));*/
+        var f = "return " + this.__chunks.map(function (chunk) {
+            if (typeof chunk === "string") {
+              return flexo.quote(chunk);
+            }
+            var target = this.component.select(chunk[0])[0];
+            return "%0.properties[%1]"
+              .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
+                .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
+          }, this).join("+");
+        console.log(f);
+        this.sets[0].value(new Function("_", "$scope", f));
         delete this.__chunks;
       }
       return $super.call(this, graph);
