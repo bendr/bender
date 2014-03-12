@@ -153,6 +153,7 @@
       this.create_objects();
       this.watches = [];
       this.set_view(view);
+      this.__concrete = [];
       this.__render_subgraph = true;        // delete when rendered
       return this.name(flexo.random_id());  // set a random name
     },
@@ -277,6 +278,7 @@
       var graph = this.render_subgraph(bender.WatchGraph.create())
         .sort().minimize();
       this.render_view(target || window.document.body);
+      bender.DocumentElement.render_event_listeners();
       this.init_properties();
       this.ready();
       return graph;
@@ -385,9 +387,13 @@
     // component. The dynamic scope is created through the clone() calls.
     // TODO stack-order property for Views.
     view_stack: function () {
+      console.log("__concrete: %0".fmt(this.name()));
+      this.__concrete.push(this);
       this.view.stack = [this.view];
       this.view.stack.component = this;
       for (var p = this.prototype; p; p = p.prototype) {
+        console.log("__concrete: %0 (%1)".fmt(this.name(), p.name()));
+        p.__concrete.push(this);
         var scope = {};
         scope[p.__id] = this;
         var v = p.view.clone(scope);
@@ -576,13 +582,13 @@
       }, this);
       this.render_children(this.element, stack, i);
       for (var type in this.event_vertices) {
-        this.event_vertices[type].outgoing
-          .forEach(this.render_event_listener.bind(this, stack, type));
+        this.event_vertices[type].outgoing.forEach(this.render_event_listener
+            .bind(this, stack.component, type));
       }
       target.appendChild(this.element);
     },
 
-    render_event_listener: function (stack, type, edge) {
+    render_event_listener: function (component, type, edge) {
       this.element.addEventListener(type, function (e) {
         if (edge.adapter.prevent_default()) {
           e.preventDefault();
@@ -590,7 +596,7 @@
         if (edge.adapter.stop_propagation()) {
           e.stopPropagation();
         }
-        edge.dest.value(stack.component, e, true);
+        edge.dest.value(component, e, true);
       });
     },
 
@@ -625,9 +631,26 @@
 
   // DocumentElement < DOMElement
   bender.DocumentElement = flexo._ext(bender.DOMElement, {
-    element: window.document,
+
+    init: function() {
+      this.element = window.document;
+      return bender.DOMElement.init.call(this, "", ":document");
+    },
+
+    render_event_listeners: function () {
+      for (var type in this.event_vertices) {
+        this.event_vertices[type].outgoing.forEach(function (edge) {
+          edge.adapter._watch.component.__concrete.forEach(function (component) {
+            this.render_event_listener(component, type, edge);
+          }, this);
+        }, this);
+      }
+    },
+
+    // There are no attributes to this node
     attr: flexo.discard(flexo.fail),
-  }).init("", ":document");
+
+  }).init();
 
 
   // Attribute < Element

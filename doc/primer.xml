@@ -31,6 +31,10 @@
 
     <h:p>A Bender component is defined by:</h:p>
     <h:ol>
+      <h:li>its prototype component;</h:li>
+      <h:li>its contents (view and child components);</h:li>
+      <h:li>its properties;</h:li>
+      <h:li>its watches.</h:li>
     </h:ol>
 
     <section>
