@@ -27,7 +27,9 @@
         </p>
         <xsl:call-template name="toc"/>
         <xsl:apply-templates select="*[not(local-name()='title')]"/>
-        <xsl:call-template name="index"/>
+        <xsl:if test="//def">
+          <xsl:call-template name="index"/>
+        </xsl:if>
       </body>
     </html>
   </xsl:template>

@@ -1,0 +1,62 @@
+<doc xmlns:h="http://www.w3.org/1999/xhtml">
+
+  <title>A Bender Primer</title>
+
+  <section>
+    <title>Introduction</title>
+    <h:p>Bender is a declarative language for Web application user interface
+      programming. Its reference implementation uses XML for serialization,
+      HTML5 for rendering, is implemented in Javascript, and runs in any current
+      Web browser. This document gives an informal overview of both the language
+      and its reference implementation.</h:p>
+    <h:p>The basic unit of functionality in Bender is the component. Components
+      are defined in terms of other components, both through composition (a
+      component may contain child components) and inheritance (a component may
+      inherit from a prototype component.) A Bender application is run by
+      rendering its component in a host Web browser.</h:p>
+  </section>
+
+  <section>
+    <title>Bender Components</title>
+
+    <h:p>A Bender component is a self-contained unit of functionality. A
+      component should not make assumptions about the context in which it is
+      used, so that it can be used on its own (as an application), as the
+      prototype of another component (through prototype inheritance), and as a
+      sub-component of a larger component. Example components are graphical
+      user interface widgets, which may be as simple as buttons, check boxes,
+      text fields, or more complex and built out of simpler components, like
+      color choosers, date pickers, tool bars, &amp;c. A component may also be
+      more abstract, such as a timer.</h:p>
+
+    <h:p>A Bender component is defined by:</h:p>
+    <h:ol>
+    </h:ol>
+
+    <section>
+      <title>Component Contents</title>
+    </section>
+
+    <section>
+      <title>Component Properties</title>
+      <h:p>The properties of a component are named values associated with a
+        component to maintain its state.</h:p>
+    </section>
+
+    <section>
+      <title>Component Watches</title>
+    </section>
+
+  </section>
+
+  <section>
+    <title>References</title>
+    <h:ul>
+      <h:li>Source code</h:li>
+      <h:li>Functional Core Specification</h:li>
+      <h:li>Reference Manual</h:li>
+      <h:li>Tutorial</h:li>
+    </h:ul>
+  </section>
+
+</doc>
