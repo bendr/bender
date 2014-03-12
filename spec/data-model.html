@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Mon 03 Mar 2014</p>
+    <p>Version 0.9, Wed 12 Mar 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -228,21 +228,19 @@
         <h3>DOMElement</h3>
         <div class="def" id="DOMElement">
           <p>The <code>DOMElement</code> element represents a foreign element
-          (<em>i.e.</em>, not a Bender element.) Its properties map to
-          properties of DOM elements.</p>
+          (<em>i.e.</em>, not a Bender element.) It has a namespace URI and a
+          local name like a DOM element; its attributes are
+          <code>Attribute</code>s elements, and its contents are any other
+          <code>Element</code>.</p>
           <div>
             <pre>DOMElement &lt; Element
   string  namespace-uri
-  string  local-name
-  data*   attributes</pre>
+  string  local-name</pre>
             <ul>
               <li><code>namespace-uri</code> is the namespace URI of the DOM
               element.</li>
               <li><code>local-name</code> is the local name of the DOM
               element.</li>
-              <li><code>attributes</code> is a list of attribute values of the
-              DOM element, indexed first by namespace URI, then by local
-              name.</li>
             </ul>
           </div>
         </div>
@@ -265,7 +263,9 @@
               <li><strong>Note</strong>: the value of the attribute is defined
               by the concatenation of the <code>text</code> of its
               <code>Text</code> child elements; so an <code>Attribute</code>
-              node should only have <code>Text</code> child nodes.</li>
+              node should only have <code>Text</code> child nodes, and should
+              have at least one such node. An <code>Attribute</code> element
+              should only occur as a child of a <code>DOMElement</code>.</li>
             </ul>
           </div>
         </div>
@@ -427,10 +427,10 @@
         <h3>Sets</h3>
 
         <div class="def" id="Set">
-          <p>A <code>Set</code> is a watch output. There are five different
+          <p>A <code>Set</code> is a watch output. There are four different
           kinds of output: a <em>plain output</em>, a <em>component property
-            output</em>, a <em>node proprety output</em>, an <em>attribute
-            output</em>, or an <em>event output</em>.</p>
+            output</em>, a <em>node property output</em>, or an <em>event
+            output</em>.</p>
           <div>
             <pre>Set &lt; Adapter</pre>
             <ul>
@@ -469,23 +469,6 @@
             <ul>
               <li><code>name</code> is the name of the property to be set on the
               target <code>Node</code>.
-            </ul>
-          </div>
-        </div>
-
-        <div class="def" id="SetAttribute">
-          <p>A <code>SetAttribute</code> is an attribute output.</p>
-          <div>
-            <pre>SetAttribute &lt; Set
-  string  ns
-  string  name</pre>
-            <ul>
-              <li><code>ns</code> is the namespace URI of the attribute to
-              set.</li>
-              <li><code>name</code> is the local name of the attribute to
-              set.</li>
-              <li><strong>Note</strong>: the <code>target</code> must be a
-              <code>DOMElement</code>.</li>
             </ul>
           </div>
         </div>
@@ -617,6 +600,9 @@
   &lt;property name="down" value="false"&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div name="frame"&gt;
+      &lt;attribute name="class"&gt;
+        &lt;text name="text-class"/&gt;
+      &lt;/attribute&gt;
       &lt;content&gt;
         &lt;text name="text-label"/&gt;
       &lt;/content&gt;
@@ -638,7 +624,7 @@
   &lt;watch&gt; <span class="watch">7</span>
     &lt;get property="down"/&gt;
     &lt;get property="enabled"/&gt;
-    &lt;set select="@frame" attribute="class"&gt;
+    &lt;set select="@text-class"&gt;
       return "%0 %1".fmt(`down ? "down" : "", `enabled ? "" : "disabled");
     &lt;/set
   &lt;/watch&gt;
@@ -722,15 +708,14 @@
               <li>the second input is a <code>GetProperty</code>. The
               <code>target</code> is the <code>Button</code> component, and the
               <code>property</code> is the <code>enabled</code> property;</li>
-              <li>the output is a <code>SetAttribute</code>. The
-              <code>target</code> is the <code>frame</code>
-              <code>DOMElement</code>, the attribute to set has no namespace and
-              the <code>class</code> name (<em>i.e.</em>, the HTML
-              <code>class</code> attribute of the HTML <code>div</code>
-              element), and the value is a function that returns a class value
-              containing the class <code>down</code> if the <code>down</code>
-              property is true, and the class <code>disabled</code> if the
-              <code>enabled</code> property is false.</li>
+              <li>the output is a <code>SetNodeProperty</code>, targeting the
+              <code>text-class</code> <code>Text</code> element, which is the
+              child of an <code>Attribute</code> element for the 
+              <code>class</code> attribute of its parent. The value is a
+              function that returns a class value containing the class
+              <code>down</code> if the <code>down</code> property is true, and
+              the class <code>disabled</code> if the <code>enabled</code>
+              property is false.</li>
             </ul>
             The effect of this watch is to update the <code>class</code>
             attribute of the HTML <code>div</code> element for the

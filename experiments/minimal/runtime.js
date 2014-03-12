@@ -72,15 +72,19 @@
       }
     } else if (node.nodeType === window.Node.TEXT_NODE ||
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      var text = bender.Text.create();
-      var chunks = chunk_string(node.textContent);
-      if (typeof chunks === "string") {
-        text.text(chunks);
-      } else {
-        text.__chunks = chunks;
-      }
-      return text;
+      return deserialize_text(node.textContent);
     }
+  }
+
+  function deserialize_text(content) {
+    var text = bender.Text.create();
+    var chunks = chunk_string(content);
+    if (typeof chunks === "string") {
+      text.text(chunks);
+    } else {
+      text.__chunks = chunks;
+    }
+    return text;
   }
 
   // Deserialize a component from an element. If the component element has a
@@ -343,13 +347,18 @@
         // } else if (attr.localName === "render-id") {
         //   e.renderId(attr.value);
         } else {
-          e.attr(ns, attr.localName, attr.value);
+          add_attribute(e, ns, attr.localName, attr.value);
         }
       } else {
-        e.attr(ns, attr.localName, attr.value);
+        add_attribute(e, ns, attr.localName, attr.value);
       }
     }
     return deserialize_children(e, elem);
+  }
+
+  function add_attribute(elem, ns, name, value) {
+    elem.insert_child(bender.Attribute.create(ns, name)
+        .child(deserialize_text(value)));
   }
 
   // Deserialize then add every child of a parent node `parent` in the list of
@@ -461,16 +470,6 @@
       this.gets.forEach(set_target);
       this.sets.forEach(set_target);
       if (this.__chunks) {
-        /*this.sets[0].value(new Function("_", "$scope",
-          "return " + this.__chunks.map(function (chunk) {
-            if (typeof chunk === "string") {
-              return flexo.quote(chunk);
-            }
-            var target = this.component.select(chunk[0])[0];
-            return "%0.properties[%1]"
-              .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
-                .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
-          }, this).join("+")));*/
         var f = "return " + this.__chunks.map(function (chunk) {
             if (typeof chunk === "string") {
               return flexo.quote(chunk);
@@ -480,7 +479,6 @@
               .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
                 .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
           }, this).join("+");
-        console.log(f);
         this.sets[0].value(new Function("_", "$scope", f));
         delete this.__chunks;
       }

@@ -312,7 +312,6 @@
     // Note also that this is a place as good as any to build the static scope
     // of the component (later, we might save the scope on vertices?)
     render_subgraph: function (graph) {
-      console.log("Render subgraph %0".fmt(this.__id));
       if (!this.__render_subgraph) {
         return graph;
       }
@@ -355,7 +354,6 @@
         child.render_subgraph_init(graph);
       }, this);
       Object.keys(this.properties).forEach(function (property) {
-        console.log("Render subgraph %0: property %1".fmt(this.__id, property));
         var vertex = this.property_vertices[property];
         if (!vertex) {
           return;
@@ -569,14 +567,12 @@
   // DOMElement < Element
   //   string  namespace-uri
   //   string  local-name
-  //   data*   attributess
   bender.DOMElement = flexo._ext(bender.Element, {
 
     // Attributes are index by namespace URI, then by local name.
-    init: function (ns, name, attributes) {
+    init: function (ns, name) {
       this.namespace_uri = ns;
       this.local_name = name;
-      this.attributes = attributes || {};
       this.event_vertices = {};
       return bender.Element.init.call(this);
     },
@@ -592,11 +588,6 @@
     render: function (target, stack, i) {
       this.element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
-      Object.keys(this.attributes).forEach(function (ns) {
-        Object.keys(this.attributes[ns]).forEach(function (name) {
-          this.element.setAttributeNS(ns, name, this.attributes[ns][name]);
-        }, this);
-      }, this);
       this.render_children(this.element, stack, i);
       for (var type in this.event_vertices) {
         this.event_vertices[type].outgoing.forEach(this.render_event_listener
@@ -615,26 +606,6 @@
         }
         edge.dest.value(component, e, true);
       });
-    },
-
-    attr: function (ns, name, value) {
-      if (arguments.lenght === 2) {
-        return this.attributes[ns] && this.attributes[ns][name];
-      }
-      if (!this.attributes[ns]) {
-        this.attributes[ns] = {};
-      }
-      this.attributes[ns][name] = value;
-      return this;
-    },
-
-    // Set an attribute on the target element.
-    // Should it be different from attr?
-    set_attribute: function (ns, name, value) {
-      this.attr(ns, name, value);
-      if (this.element && typeof this.element.setAttributeNS === "function") {
-        this.element.setAttributeNS(ns, name, value);
-      }
     },
 
     // Set a DOM property on the target element.
@@ -683,7 +654,13 @@
 
     // Call render when one of the children changes.
     render: function (target) {
-      target.setAttributeNS(this.namespace_uri, this.local_name,
+      this.node = target;
+      this.update_value();
+    },
+
+    // Update the value of the attribute when one of its text node has changed
+    update_value: function () {
+      this.node.setAttributeNS(this.namespace_uri, this.local_name,
         this.children.reduce(function (text, child) {
           return text + (typeof child.text === "function" ? child.text() : "");
         }, ""));
@@ -703,6 +680,8 @@
       this._text = flexo.safe_string(text);
       if (this.node) {
         this.node.textContent = this._text;
+      } else if (this.parent && typeof this.parent.update_value === "function") {
+        this.parent.update_value();
       }
       return this;
     },
@@ -906,24 +885,6 @@
     apply_value: function (target, value) {
       if (typeof target.set_property === "function") {
         target.set_property(this.name, value);
-      }
-    }
-  });
-
-
-  // SetAttribute < Set
-  //   string?  ns
-  //   string   name
-  bender.SetAttribute = flexo._ext(bender.Set, {
-    init: function (ns, name, target) {
-      this.ns = ns;
-      this.name = flexo.safe_trim(name);
-      return bender.Set.init.call(this, target);
-    },
-
-    apply_value: function (target, value) {
-      if (typeof target.set_attribute === "function") {
-        target.set_attribute(this.ns, this.name, value);
       }
     }
   });
@@ -1252,8 +1213,8 @@
         this.adapter.apply_value(target, value);
         this.dest.value(target, value);
         if (this.adapter.static) {
-          this.adapter.target.__clones.forEach(function (clone) {
-            this.dest.value(clone, value);
+          this.adapter.target.__concrete.forEach(function (concrete) {
+            this.dest.value(concrete, value);
           }, this);
         }
       } catch (_) {}

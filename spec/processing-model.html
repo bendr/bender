@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Mon 03 Mar 2014</p>
+    <p>Version 0.9, Wed 12 Mar 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -272,10 +272,10 @@
         created and added to the graph only the first time that it is needed;
         subsequent calls to <code>find-vertex</code> will return the already
         created vertex. When the adapter is a plain <code>Set</code>, a
-        <code>SetNodeProperty</code>, <code>SetAttribute</code> or
-        <code>SetEvent</code> to an <code>Element</code> target (versus a
-        <code>Component</code> target), then use the vortex since there is no
-        relevant <code>AdapterVertex</code> destination for these outputs.</p>
+        <code>SetNodeProperty</code>, or <code>SetEvent</code> to an
+        <code>Element</code> target (versus a <code>Component</code> target),
+        then use the vortex since there is no relevant
+        <code>AdapterVertex</code> destination for these outputs.</p>
         <pre class="code">Vertex find-vertex(Adapter A, Graph G) =
   if A is-a Get or
     A is-a SetProperty or
@@ -331,13 +331,13 @@
         the <code>PropertyVertex</code> of <code>down</code> as the source
         vertex.  A second <code>AdapterEdge</code> for the
         <code>GetProperty</code> corresponding to the <code>enabled</code>
-        property is added as well.  Finally, the <code>SetAttribute</code> is
+        property is added as well.  Finally, the <code>SetNodeProperty</code> is
         rendered as an <code>AdapterEdge</code> to the vortex.</p>
 
         <pre class="code">&lt;watch&gt; <span class="watch">7</span>
   &lt;get property="down"/&gt;
   &lt;get property="enabled"/&gt;
-  &lt;set select="@frame" attribute="class"&gt;
+  &lt;set select="@text-class"
     return "%0 %1".fmt(`down ? "down" : "", `enabled ? "" : "disabled");
   &lt;/set
 &lt;/watch&gt;</pre>
@@ -641,7 +641,6 @@ integer next-view-index(View+ S, integer I) =
     do
       N.namespace-uri &lt;- D.ns
       N.local-name &lt;- D.name
-      N.attributes &lt;- D.attrs
       render-children(D, N, S, I)
       append-child(T, N)</pre>
 
@@ -674,7 +673,9 @@ integer next-view-index(View+ S, integer I) =
         <em>not</em> get rendered; instead, it is cloned twice, once in the view
         stack of <code>Plus</code>, and once in the view stack of
         <code>Minus</code>. Finally, the <code>Element</code>s that are actually
-        rendered to DOM elements in the output target are shown in green.</p>
+        rendered to DOM elements in the output target are shown in green. (The
+        attribute elements and their content are left gray as they are rendered
+        as attributes of the parent element.)</p>
         <figure>
           <img src="fig/panel-runtime.svg">
           <figcaption>The rendered <code>Panel</code>.</figcaption>
@@ -789,10 +790,9 @@ integer next-view-index(View+ S, integer I) =
           <li>a <code>SetNodeProperty</code> sets the property of the target
           node to the output value (<em>e.g.</em>, the <code>text</code> of a
           <code>Text</code> element, which updates the rendering of the
-          component);</li>
-          <li>a <code>SetAttribute</code> sets an attribute of the target
-          <code>DOMElement</code>;</li> <li>a <code>SetEvent</code> synthesizes
-          a new DOM event if the target is a <code>DOMElement</code>;</li>
+          component) <span class="TODO">(also, the value of the attribute is
+            updated if the <code>Text</code> is a child of a
+            <code>Attribute</code> element</span>;</li>
           <li>otherwise, there is no side effect other than the side effects of
           the <code>match</code> and <code>value</code> functions.</li>
         </ul>
@@ -801,7 +801,6 @@ integer next-view-index(View+ S, integer I) =
     case E.adapter of
       SetProperty = set-property(E.adapter.name, T, V)
       SetNodeProperty = set-node-property(E.adapter.name, T, V)
-      SetAttribute = set-attribute(E.adapter.ns, E.adapter.name, T, V)
       SetEvent = set-event(E.adapter.type, T, V)
     set-vertex-value(E.dest, T, V)</pre>
       </section>

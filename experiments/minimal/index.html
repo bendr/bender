@@ -48,9 +48,10 @@ a {
 "use strict";
 
 var text_label = bender.Text.create().name("text-label");
-var frame = bender.DOMElement.create(flexo.ns.html, "div",
-    { "": { "class": "button" } })
+var text_class = bender.Text.create().name("text-class");
+var frame = bender.DOMElement.create(flexo.ns.html, "div")
   .name("frame")
+  .child(bender.Attribute.create("", "class").child(text_class))
   .child(bender.Content.create().child(text_label));
 var button = bender.Component.create(bender.View.create().child(frame))
   .name("Button")
@@ -77,7 +78,7 @@ button.watch(bender.Watch.create()  // 4
   .watch(bender.Watch.create()  // 7
       .get(bender.GetProperty.create("down", button))
       .get(bender.GetProperty.create("enabled", button))
-      .set(bender.SetAttribute.create("", "class", frame)
+      .set(bender.SetNodeProperty.create("text", text_class)
         .value(function () {
             return "button %0 %1".fmt(this.properties.down ? "down" : "",
               this.properties.enabled ? "" : "disabled");
@@ -87,8 +88,9 @@ var text_n = bender.Text.create().name("text-n");
 var plus = button.create().name("Plus").property("label", "+");
 var minus = button.create().name("Minus").property("label", "—");
 var panel = bender.Component.create(bender.View.create()
-    .child(bender.DOMElement.create(flexo.ns.html, "div",
-        { "": { "class": "panel" } })
+    .child(bender.DOMElement.create(flexo.ns.html, "div")
+      .child(bender.Attribute.create("", "class")
+        .child(bender.Text.create().text("panel")))
       .child(text_n)
       .child(plus.view)
       .child(minus.view)))
