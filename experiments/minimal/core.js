@@ -319,6 +319,7 @@
       if (!this.view.scope) {
         this.names = {};
         this.view.scope = {};
+        this.update_scope(bender.DocumentElement);
         flexo.beach(this.view, function (elem) {
           this.update_scope(elem);
           return elem.children;
@@ -620,6 +621,13 @@
       }
     }
   });
+
+
+  // DocumentElement < DOMElement
+  bender.DocumentElement = flexo._ext(bender.DOMElement, {
+    element: window.document,
+    attr: flexo.discard(flexo.fail),
+  }).init("", ":document");
 
 
   // Attribute < Element

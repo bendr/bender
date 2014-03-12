@@ -399,6 +399,8 @@
     var target;
     if (select[0] === "@" || select[0] === "#") {
       target = this.names[select.substr(1)];
+    } else if (select[0] === ":document") {
+      target = bender.DocumentElement;
     }
     return [[target || this, select[0] === "#"]];
   };
@@ -413,7 +415,7 @@
       $super.call(this, node);
       if (node.__chunks) {
         var watch = bender.Watch.create();
-        this.watch(watch);
+        node.view.component.watch(watch);
         var bindings = {};
         node.__chunks.forEach(function (chunk) {
           if (Array.isArray(chunk)) {
