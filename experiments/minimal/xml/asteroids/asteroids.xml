@@ -5,6 +5,8 @@
   <property name="height" as="number" value="1200"/>
   <link rel="stylesheet" href="asteroids.css"/>
   <view>
-    <svg:svg name="svg" viewBox="0 0 `width `height"/>
+    <svg:svg name="svg" viewBox="0 0 `width `height">
+      <component href="asteroid.xml"/>
+    </svg:svg>
   </view>
 </component>

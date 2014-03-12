@@ -1,0 +1,21 @@
+<component xmlns="http://bender.igel.co.jp" name="asteroid"
+  xmlns:svg="http://www.w3.org/2000/svg">
+  <property name="r" as="number" value="60"/>
+  <property name="amp" as="number" value="5"/>
+  <property name="sectors" as="number" value="16"/>
+  <view>
+    <svg:path fill="none" stroke="white">
+      <attribute name="d">{{<![CDATA[
+        var points = [];
+        for (var i = 0; i < `sectors; ++i) {
+          var th = i * (2 * π / sectors);
+          var r = `r + flexo.random_int(-`amp, `amp);
+          points.push([r * Math.cos(th), r * Math.sin(th)]);
+        }
+        return "M{0}Z".fmt(points.map(function (p) {
+          return p.join(",");
+        }).join("L"));
+      ]]>}}</attribute>
+    </svg:path>
+  </view>
+</component>
