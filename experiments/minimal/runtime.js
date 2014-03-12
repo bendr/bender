@@ -385,6 +385,9 @@
 
   // Finalize the component after loading is finished
   bender.Component.finalize = function () {
+    this.children.forEach(function (child) {
+      child.finalize();
+    });
     delete this.__links;
     for (var p in this.__properties) {
       this.property(p, this.__properties[p].call(this));
@@ -428,7 +431,9 @@
         var set = watch.set(bender.SetNodeProperty.create("text", node));
         Object.keys(bindings).forEach(function (select) {
           Object.keys(bindings[select]).forEach(function (name) {
-            watch.get(bender.GetProperty.create(name)).__select = select;
+            var get = bender.GetProperty.create(name);
+            get.__select = select;
+            watch.get(get);
           });
         });
         watch.__chunks = node.__chunks;

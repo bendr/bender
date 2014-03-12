@@ -1,15 +1,16 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" name="parent">
   <title>Text binding in view</title>
   <property name="x" value="7"/>
+  <property name="z" value="71"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Text binding in view</html:p>
-    <html:p>x = `x</html:p>
-    <html:p>y = @child`y</html:p>
+    <html:p>x = `x, y = @child`y, z = `z (not @child`z)</html:p>
     <component name="child">
       <property name="y" value="13"/>
+      <property name="z" value="23"/>
       <view>
-        <html:p>Child</html:p>
-        <html:p>y = `y</html:p>
+        <html:p>Text binding in view</html:p>
+        <html:p>x = @parent`x, y = `y, z = `z (not @parent`z)</html:p>
       </view>
     </component>
   </view>

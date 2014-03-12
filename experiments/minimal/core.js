@@ -155,6 +155,7 @@
       this.set_view(view);
       this.__concrete = [];
       this.__render_subgraph = true;        // delete when rendered
+      this.__render_subgraph_init = true;   // likewise
       return this.name(flexo.random_id());  // set a random name
     },
 
@@ -275,7 +276,8 @@
     // Render the complete component graph in the target and a new graph. Return
     // the graph that was created. This is called for the main component only.
     render: function (target) {
-      var graph = this.render_subgraph(bender.WatchGraph.create())
+      var graph = this
+        .render_subgraph_init(this.render_subgraph(bender.WatchGraph.create()))
         .sort().minimize();
       this.render_view(target || window.document.body);
       bender.DocumentElement.render_event_listeners();
@@ -310,6 +312,7 @@
     // Note also that this is a place as good as any to build the static scope
     // of the component (later, we might save the scope on vertices?)
     render_subgraph: function (graph) {
+      console.log("Render subgraph %0".fmt(this.__id));
       if (!this.__render_subgraph) {
         return graph;
       }
@@ -336,7 +339,23 @@
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
+      return graph;
+    },
+
+    render_subgraph_init: function (graph) {
+      if (!this.__render_subgraph_init) {
+        return graph;
+      }
+      delete this.__render_subgraph_init;
+      var prototype = this.prototype;
+      if (prototype) {
+        this.prototype.render_subgraph_init(graph);
+      }
+      this.children.forEach(function (child) {
+        child.render_subgraph_init(graph);
+      }, this);
       Object.keys(this.properties).forEach(function (property) {
+        console.log("Render subgraph %0: property %1".fmt(this.__id, property));
         var vertex = this.property_vertices[property];
         if (!vertex) {
           return;
@@ -360,6 +379,9 @@
 
     // Initialize properties of the component, its prototype and its children.
     init_properties: function () {
+      this.children.forEach(function (child) {
+        child.init_properties();
+      });
       for (var property in this.properties) {
         var vertex = this.property_vertices[property];
         if (!vertex || !vertex.__init_vertex) {
@@ -367,9 +389,6 @@
         }
         vertex.__init_vertex.value(this, this.properties[property], true);
       }
-      this.children.forEach(function (child) {
-        child.init_properties();
-      });
     },
 
     // Render the view of the component in a DOM target.
@@ -387,12 +406,10 @@
     // component. The dynamic scope is created through the clone() calls.
     // TODO stack-order property for Views.
     view_stack: function () {
-      console.log("__concrete: %0".fmt(this.name()));
       this.__concrete.push(this);
       this.view.stack = [this.view];
       this.view.stack.component = this;
       for (var p = this.prototype; p; p = p.prototype) {
-        console.log("__concrete: %0 (%1)".fmt(this.name(), p.name()));
         p.__concrete.push(this);
         var scope = {};
         scope[p.__id] = this;
