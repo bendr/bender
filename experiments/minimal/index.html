@@ -68,7 +68,7 @@ button.watch(bender.Watch.create()  // 4
         .match(function () { return this.properties.enabled; })
         .value(flexo.funcify(true))))
   .watch(bender.Watch.create()  // 6
-      .get(bender.GetEvent.create("mouseup", frame))
+      .get(bender.GetEvent.create("mouseup", bender.DocumentElement))
       .set(bender.SetEvent.create("pushed", button)
         // .delay(0)
         .match(function () { return this.properties.down; }))

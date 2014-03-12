@@ -319,6 +319,7 @@
       if (!this.view.scope) {
         this.names = {};
         this.view.scope = {};
+        this.update_scope(bender.DocumentElement);
         flexo.beach(this.view, function (elem) {
           this.update_scope(elem);
           return elem.children;
@@ -346,6 +347,7 @@
       return graph;
     },
 
+    // Update the scope (and name map) of the component for the given node.
     update_scope: function (node) {
       var name = node.name();
       if (name) {
@@ -619,6 +621,13 @@
       }
     }
   });
+
+
+  // DocumentElement < DOMElement
+  bender.DocumentElement = flexo._ext(bender.DOMElement, {
+    element: window.document,
+    attr: flexo.discard(flexo.fail),
+  }).init("", ":document");
 
 
   // Attribute < Element
@@ -1184,22 +1193,22 @@
         var that = scope[component.__id];
         var rtarget = scope[target.__id];
         try {
-          if (that && rtarget && this.adapter.match().call(that, w[1])) {
+          if (that && rtarget && this.adapter.match().call(that, w[1], scope)) {
             if (this.adapter.delay() >= 0) {
               this.dest.graph.flush_later(function () {
-                this.traverse_matched.bind(this, that, rtarget, w[1]);
+                this.traverse_matched.bind(this, that, rtarget, w[1], scope);
               }, false);
             } else {
-              this.traverse_matched(that, rtarget, w[1]);
+              this.traverse_matched(that, rtarget, w[1], scope);
             }
           }
         } catch (_) {}
       }, this);
     },
 
-    traverse_matched: function (that, target, v) {
+    traverse_matched: function (that, target, v, scope) {
       try {
-        var value = this.adapter.value().call(that, v);
+        var value = this.adapter.value().call(that, v, scope);
         this.adapter.apply_value(target, value);
         this.dest.value(target, value);
         if (this.adapter.static) {
