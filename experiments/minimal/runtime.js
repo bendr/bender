@@ -588,6 +588,7 @@
     var chunk = "";      // Current chunk
     var chunks = [];     // List of chunks
     var escape = false;  // Escape flag (following a \)
+    var offset = 0;      // Offset from start
 
     var rx_start = new RegExp("^[$A-Z_a-z\x80-\uffff]$");
     var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff]$");
@@ -613,6 +614,23 @@
       start(s);
     };
 
+    // Backtrack after a false start
+    var backtrack = function (c) {
+      if (chunk[0]) {
+        console.log("backtrack (after id): <%0> <%1> <%2>"
+            .fmt(chunk[0], chunk[1], c));
+        chunks.push(chunk);
+        chunk = "";
+      } else {
+        console.log("backtrack: <%0> <%1> <%2>"
+            .fmt(chunk, chunks[chunks.length - 1], c));
+        chunk = chunks.pop() || "";
+      }
+      chunk += c;
+      state = "";
+      return offset;
+    };
+
     var advance = {
       // Regular code, look for new quoted string, comment, id, property, or
       // block
@@ -627,33 +645,14 @@
               default: chunk += c;
             }
             break;
-          case "@": case "#":
-            if (d === "(") {
-              start("idp", [c]);
-              return 1;
-            } else if (d === "\\") {
-              start("id", [c + e]);
-              return 2;
-            } else if (rx_start.test(d)) {
-              start("id", [c + d]);
-              return 1;
-            } else {
-              chunk += c;
-            }
+          case "@":
+          case "#":
+            offset = 0;
+            start("id_start", [c, ""]);
             break;
           case "`":
-            if (d === "(") {
-              start("propp", ["", ""]);
-              return 1;
-            } else if (d === "\\") {
-              start("prop", ["", e]);
-              return 2;
-            } else if (rx_start.test(d)) {
-              start("prop", ["", d]);
-              return 1;
-            } else {
-              chunk += c;
-            }
+            offset = 0;
+            start("prop_start", ["", ""]);
             break;
           case "{":
             if (d === "{") {
@@ -706,25 +705,31 @@
         }
       },
 
+      // Start of an identifier (from @ or #)
+      id_start: function (c) {
+        --offset;
+        if (c === "\\") {
+          escape = true;
+        } else if (c === "@" && chunk[0] === "@") {
+          chunk[0] = "^";
+        } else if (c === "(") {
+          state = "idp";
+        } else if (rx_start.test(c)) {
+          chunk[0] += c;
+          state = "id";
+        } else {
+          return backtrack(chunk[0]);
+        }
+      },
+
       // Component or instance identifier, starting with # or @
       id: function (c, d, e) {
         if (c === "\\") {
           escape = true;
         } else if (c === "`") {
-          if (d === "(") {
-            chunk.push("");
-            state = "propp";
-            return 1;
-          } else if (d === "\\") {
-            chunk.push(e);
-            state = "prop";
-            return 2;
-          } else if (rx_start.test(d)) {
-            chunk.push(d);
-            state = "prop";
-            return 1;
-          }
-          start("", c);
+          offset = 0;
+          chunk.push("");
+          state = "prop_start";
         } else if (rx_cont.test(c)) {
           chunk[0] += c;
         } else {
@@ -738,19 +743,29 @@
           escape = true;
         } else if (c === ")") {
           if (d === "`") {
-            if (e === "(") {
-              chunk.push("");
-              state = "propp";
-              return 2;
-            } else if (rx_start.test(e)) {
-              chunk.push(e);
-              state = "prop";
-              return 2;
-            }
+            offset = 0;
+            chunk.push("");
+            state = "prop_start";
+            return 1;
           }
           start("", c);
         } else {
           chunk[0] += c;
+        }
+      },
+
+      // Look for the start of a property
+      prop_start: function (c) {
+        --offset;
+        if (c === "\\") {
+          escape = true;
+        } else if (c === "(") {
+          state = "propp";
+        } else if (rx_start.test(c)) {
+          chunk[1] += c;
+          state = "prop";
+        } else {
+          return backtrack("`");
         }
       },
 
@@ -791,6 +806,7 @@
     for (var i = 0, n = value.length; i < n; ++i) {
       if (escape) {
         escape = false;
+        state = state.replace(/^_start$/, "");
         if (typeof chunk === "string") {
           chunk += value[i];
         } else {

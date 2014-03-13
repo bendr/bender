@@ -46,14 +46,42 @@
     </h:ul>
   </section>
 
-  <section id="nodes">
+  <section>
     <title>Nodes</title>
-    <h:p>The Bender data model deals with two kinds of tree structures: trees of
-      <def>component</def>s, defining the high-level structure of a Bender
-      application; and trees of <def>element</def>s, defining the contents and
-      layout of a given <ref>component</ref>. Together, these trees define a
-      <def>component graph</def>. Both trees are defined by tree
-      <ref>Node</ref>s.</h:p>
+
+    <object>
+      <h:p>The Bender data model deals with two kinds of tree structures: trees
+        of <def>component</def>s, defining the high-level structure of a Bender
+        application; and trees of <def>element</def>s, defining the contents and
+        layout of a given <ref>component</ref>. Together, these trees define a
+        <def>component graph</def>. Both trees are defined by tree
+        <ref>Node</ref>s.</h:p>
+      <h:div>
+        <h:pre><def>Node</def> &lt; <ref>Object</ref>
+  <ref>Node</ref>?    parent
+  <ref>Node</ref>*    children
+  string?  name</h:pre>
+        <h:ul>
+          <h:li><h:code>parent</h:code> is the parent <ref>Node</ref>, if any,
+            of the node. The <def>root</def> of a tree has no parent.</h:li>
+          <h:li><h:code>children</h:code> is the list of child <ref>Node</ref>s
+            of the node.</h:li>
+          <h:li><h:code>name</h:code> is an optional name for the node, that can
+            be used in a <def>selector</def> to identify it. It can be any
+            non-empty string and must be unique within a <ref>component
+              graph</ref>.</h:li>
+        </h:ul>
+      </h:div>
+    </object>
+
+  </section>
+
+  <section>
+    <title>Components</title>
+  </section>
+
+  <section>
+    <title>View Elements</title>
   </section>
 
 </doc>

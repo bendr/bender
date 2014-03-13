@@ -138,6 +138,12 @@
     </a>
   </xsl:template>
 
+  <xsl:template match="object">
+    <div class="def">
+      <xsl:apply-templates/>
+    </div>
+  </xsl:template>
+
   <xsl:template match="html:*">
     <xsl:element name="{local-name()}">
       <xsl:copy-of select="@*"/>
