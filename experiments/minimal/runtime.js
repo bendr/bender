@@ -76,6 +76,9 @@
     }
   }
 
+  // Deserialize a text string, either from a text node or an element value.
+  // If bindings were found in the string, set the parsed chunks as a temporary
+  // __chunks property on the text element.
   function deserialize_text(content) {
     var text = bender.Text.create();
     var chunks = chunk_string(content);
@@ -576,10 +579,10 @@
 
   // Bindings
 
-  // Chunk a value string into a list of chunks and property, component or
-  // instance references. For instance, this turns “Status: `status” into
-  // ["Status: ", ["", "status"]]. Return a simple string if there are no
-  // bindings in that string.
+  // Chunk a value string into a list of strings, property or component
+  // references, and code blocks (delimited by {{ }}). For instance, this turns
+  // “Status: `status” into ["Status: ", ["", "status"]]. Return a string if
+  // there are no bindings.
   function chunk_string(value) {
     var state = "";      // Current state of the tokenizer
     var chunk = "";      // Current chunk
@@ -611,8 +614,9 @@
     };
 
     var advance = {
-      // Regular code, look for new quoted string, comment, id or property
-      "": function (c, d) {
+      // Regular code, look for new quoted string, comment, id, property, or
+      // block
+      "": function (c, d, e) {
         switch (c) {
           case "'": start("q", c); break;
           case '"': start("qq", c); break;
@@ -627,6 +631,9 @@
             if (d === "(") {
               start("idp", [c]);
               return 1;
+            } else if (d === "\\") {
+              start("id", [c + e]);
+              return 2;
             } else if (rx_start.test(d)) {
               start("id", [c + d]);
               return 1;
@@ -638,12 +645,22 @@
             if (d === "(") {
               start("propp", ["", ""]);
               return 1;
+            } else if (d === "\\") {
+              start("prop", ["", e]);
+              return 2;
             } else if (rx_start.test(d)) {
               start("prop", ["", d]);
               return 1;
             } else {
               chunk += c;
             }
+            break;
+          case "{":
+            if (d === "{") {
+              start("block");
+              return 1;
+            }
+            chunk += c;
             break;
           default:
             chunk += c;
@@ -690,7 +707,7 @@
       },
 
       // Component or instance identifier, starting with # or @
-      id: function (c, d) {
+      id: function (c, d, e) {
         if (c === "\\") {
           escape = true;
         } else if (c === "`") {
@@ -698,6 +715,10 @@
             chunk.push("");
             state = "propp";
             return 1;
+          } else if (d === "\\") {
+            chunk.push(e);
+            state = "prop";
+            return 2;
           } else if (rx_start.test(d)) {
             chunk.push(d);
             state = "prop";
@@ -753,7 +774,18 @@
         } else {
           chunk[1] += c;
         }
-      }
+      },
+
+      // Block delimited by {{ }}: find the end of the block, then parse it.
+      block: function (c, d) {
+        if (c === "}" && d === "}") {
+          chunk = chunk_string(chunk);
+          chunk.block = true;
+          end("");
+          return 1;
+        }
+        chunk += c;
+      },
     };
 
     for (var i = 0, n = value.length; i < n; ++i) {
@@ -774,5 +806,8 @@
     }
     return chunks.length > 1 || Array.isArray(chunks[0]) ? chunks : chunks[0];
   }
+
+  // For testing purposes only
+  bender.__chunk_string = chunk_string;
 
 }(this.bender));
