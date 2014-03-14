@@ -47,20 +47,27 @@
     </nav>
   </xsl:template>
 
+  <xsl:template match="todo">
+    <span class="TODO">
+      <xsl:apply-templates/>
+    </span>
+  </xsl:template>
+
   <xsl:template name="index">
     <nav>
       <h2>Index</h2>
       <p>
         <xsl:for-each select="//def">
-          <xsl:sort select="translate(string(),
+          <xsl:sort select="translate(normalize-space(string()),
             'QWERTYUIOPASDFGHJKLZXCVBNM', 'qwertyuiopasdfghjklzxcvbnm')"/>
-          <xsl:variable name="def" select="string()"/>
-          <xsl:variable name="ref" select="//def[string()=$def]"/>
+          <xsl:variable name="def" select="normalize-space(string())"/>
+          <xsl:variable name="ref"
+            select="//def[normalize-space(string())=$def]"/>
           <li>
             <a href="#{generate-id()}">
               <xsl:apply-templates/>
             </a>
-            <xsl:for-each select="//ref[string()=$def]">
+            <xsl:for-each select="//ref[normalize-space(string())=$def]">
               <xsl:text> </xsl:text>
               <a href="#{generate-id()}">
                 ☞
@@ -128,8 +135,8 @@
 
   <xsl:template match="ref">
     <a class="ref">
-      <xsl:variable name="def" select="string()"/>
-      <xsl:variable name="ref" select="//def[string()=$def]"/>
+      <xsl:variable name="def" select="normalize-space(string())"/>
+      <xsl:variable name="ref" select="//def[normalize-space(string())=$def]"/>
       <xsl:attribute name="href">
         <xsl:value-of select="concat('#', generate-id($ref))"/>
       </xsl:attribute>
@@ -138,10 +145,18 @@
     </a>
   </xsl:template>
 
-  <xsl:template match="object">
+  <xsl:template match="api">
     <div class="def">
       <xsl:apply-templates/>
     </div>
+  </xsl:template>
+
+  <xsl:template match="ie">
+    <em>i.e.</em>,
+  </xsl:template>
+
+  <xsl:template match="eg">
+    <em>e.g.</em>,
   </xsl:template>
 
   <xsl:template match="html:*">

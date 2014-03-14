@@ -4,9 +4,9 @@ var chokidar = require("chokidar");
 
 chokidar.watch(".", { persistent: true }).on("add", make).on("change", make);
 
-function make(path) {
+function make(path, stats) {
   if (path.match(/\.xml$/)) {
-    var d = new Date();
+    var d = stats.mtime;
     var date = util.format("%s %s %s %s",
         ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()],
         d.getDate(),

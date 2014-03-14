@@ -49,7 +49,7 @@
   <section>
     <title>Nodes</title>
 
-    <object>
+    <api>
       <h:p>The Bender data model deals with two kinds of tree structures: trees
         of <def>component</def>s, defining the high-level structure of a Bender
         application; and trees of <def>element</def>s, defining the contents and
@@ -71,13 +71,65 @@
             non-empty string and must be unique within a <ref>component
               graph</ref>.</h:li>
         </h:ul>
+        <h:pre>  <ref>Node</ref>     insert_child(<ref>Node</ref> child)
+  <ref>Node</ref>     remove_child(<ref>Node</ref> child)</h:pre>
+        <h:ul>
+          <h:li><h:code>insert_child</h:code> inserts a new child at the end of
+            the list of children of the node and returns the added child.
+            <todo>Insert before a reference Node, or at a given
+              index.</todo></h:li>
+          <h:li><h:code>remove_child</h:code> removes the child node from the
+            list of children of the node and returns it.</h:li>
+        </h:ul>
       </h:div>
-    </object>
+    </api>
 
   </section>
 
   <section>
     <title>Components</title>
+
+    <api>
+      <h:p>The <def>Component</def> is the basic unit of functionality in
+        Bender. Components are defined in terms of other components, both
+        through <h:em>composition</h:em> (a component may contain child
+        components) and <h:em>inheritance</h:em> (a component may inherit from a
+        prototype component.) A <def>component tree</def> is a tree of
+        Component nodes, the root of which is a <def>root component</def>. A
+        <def>component graph</def> is a graph of nodes including the root
+        component tree and its <ref>view tree</ref>. The component graph does
+        not include nodes from the prototype of the component, or the prototypes
+        of any of its children.</h:p>
+      <h:div>
+        <h:pre><ref>Component</ref> &lt; Node
+  <ref>Component</ref>?  prototype
+  data*       properties
+  <ref>View</ref>        view
+  <ref>Watch</ref>*      watches</h:pre>
+        <h:ul>
+          <h:li><h:code>prototype</h:code> is the <ref>Component</ref> that this
+            component inherits from, if any. The prototype component must be a
+            <ref>root component</ref>, <ie/> it must not have a
+            <h:code>parent</h:code>. The <def>prototype chain</def> is the
+            sequence of <h:code>Component</h:code>s formed by the prototype and
+            its prototype chain. The prototype chain must not contain any cycle,
+            <ie/> a component cannot inherit from itself, either directly or
+            indirectly. <todo>Do <h:code>Component</h:code>s inherit from a
+              fundamental component by default?</todo></h:li>
+          <h:li><h:code>properties</h:code> is the list of all property values
+            for this component, indexed by their name. From this list, the set
+            of <def>defined properties</def> can be derived, and is the set of
+            property names for the component. A property name can be any
+            non-empty string. <todo>All properties of a component are “public”.
+              However, having private properties would be useful; the set of
+              properties could then be split in two, a set of public properties,
+              and a set of private properties. The set of public properties
+              would be inherited, while the set of private properties would not
+              be inherited.</todo></h:li>
+        </h:ul>
+      </h:div>
+
+    </api>
   </section>
 
   <section>
