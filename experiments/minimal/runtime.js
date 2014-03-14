@@ -239,18 +239,15 @@
         if (elem.hasAttribute("value")) {
           v = "return " + v;
         }
+        var chunks = chunk_string(v);
+        if (chunks) {
+          console.log(chunks);
+        }
         try {
           // jshint -W054
           return new Function(v);
         } catch (_) {
           console.log("Error parsing Javascript function: “%0”".fmt(v));
-        }
-      },
-      json: function (v) {
-        try {
-          return JSON.parse(v);
-        } catch (_) {
-          console.log("Error parsing JSON string: “%0”".fmt(v));
         }
       },
       number: flexo.to_number,
@@ -308,19 +305,16 @@
           console.log("Error parsing Javascript function: “%0”".fmt(v));
         }
       },
-      json: function (v) {
-        try {
-          return JSON.parse(v);
-        } catch (_) {
-          console.log("Error parsing JSON string: “%0”".fmt(v));
-        }
-      },
       number: flexo.to_number,
       string: flexo.id
     };
     var value = elem.hasAttribute("value") ? elem.getAttribute("value") :
       shallow_text(elem, true);
     if (value) {
+      var chunks = chunk_string(value);
+      if (typeof chunks !== string) {
+        console.log(chunks);
+      }
       adapter.value(parse_value[as](value));
     }
     if (elem.hasAttribute("match")) {
@@ -332,11 +326,11 @@
   }
 
   // Normalize the `as` parameter to be one of dynamic (default), boolean,
-  // json, number, or string.
+  // number, or string.
   function normalize_as(as) {
     as = flexo.safe_trim(as).toLowerCase();
-    return as === "boolean" || as === "json" || as === "number" ||
-      as === "string" ? as : "dynamic";
+    return as === "boolean" || as === "number" || as === "string" ? as :
+      "dynamic";
   }
 
   // Deserialize a foreign element and its contents (attributes and children),
@@ -416,10 +410,6 @@
     var target;
     if (select[0] === "@" || select[0] === "#") {
       target = this.names[select.substr(1)];
-    } else if (select[0] === "^") {
-      // TODO transform @@ in concrete selector to ^
-      target = this.names[select.substr(1)];
-      target = target && target.element;
     } else if (select[0] === ":document") {
       target = bender.DocumentElement;
     }
@@ -592,14 +582,25 @@
   // there are no bindings.
   function chunk_string(value) {
     try {
-      var chunks = chunk_string__unsafe(value);
+      var chunks = [];
+      chunk_string__unsafe(value).forEach(function (chunk) {
+        if (typeof chunk === "string") {
+          if (typeof chunks[chunks.length - 1] === "string") {
+            chunks[chunks.length - 1] += chunk;
+          } else {
+            chunks.push(chunk);
+          }
+        } else {
+          chunks.push(chunk);
+        }
+      });
       return chunks.length > 1 || Array.isArray(chunks[0]) ? chunks : chunks[0];
     } catch (e) {
       return value;
     }
   }
 
-  function chunk_string__unsafe(value) {
+  function chunk_string__unsafe(value, disallow_block) {
     var state = "";          // Current state of the tokenizer
     var chunk = "";          // Current chunk
     var chunks = [];         // List of chunks
@@ -653,6 +654,7 @@
           case "`": start("prop_start", ["", ""], true); break;
           case "{":
             if (d === "{") {
+              flexo.fail(disallow_block);
               start("block", "", true);
               return 1;
             }
@@ -803,7 +805,7 @@
       // Block delimited by {{ }}: find the end of the block, then parse it.
       block: function (c, d) {
         if (c === "}" && d === "}") {
-          chunk = chunk_string__unsafe(chunk);
+          chunk = chunk_string__unsafe(chunk, true);
           chunk.block = true;
           end("");
           return 1;
