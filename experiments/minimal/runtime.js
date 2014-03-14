@@ -5,7 +5,7 @@
 //       EventVertex that anyone can inherit from.
 // [ ] message="foo" for GetEvent, same as event="foo" delay="0"
 
-/* global console, flexo */
+/* global console, flexo, window */
 
 (function (bender) {
   "use strict";
@@ -158,7 +158,7 @@
     return flexo.collect_promises(links.map(function (link) {
       return link.load();
     })).then(flexo.self.bind(component));
-  };
+  }
     
 
   // Deserialize the contents of the component created
@@ -240,6 +240,7 @@
           v = "return " + v;
         }
         try {
+          // jshint -W054
           return new Function(v);
         } catch (_) {
           console.log("Error parsing Javascript function: “%0”".fmt(v));
@@ -301,6 +302,7 @@
           v = "return " + v;
         }
         try {
+          // jshint -W054
           return new Function(v);
         } catch (_) {
           console.log("Error parsing Javascript function: “%0”".fmt(v));
@@ -414,6 +416,10 @@
     var target;
     if (select[0] === "@" || select[0] === "#") {
       target = this.names[select.substr(1)];
+    } else if (select[0] === "^") {
+      // TODO transform @@ in concrete selector to ^
+      target = this.names[select.substr(1)];
+      target = target && target.element;
     } else if (select[0] === ":document") {
       target = bender.DocumentElement;
     }
@@ -440,7 +446,7 @@
             bindings[chunk[0]][chunk[1]] = true;
           }
         });
-        var set = watch.set(bender.SetNodeProperty.create("text", node));
+        watch.set(bender.SetNodeProperty.create("text", node));
         Object.keys(bindings).forEach(function (select) {
           Object.keys(bindings[select]).forEach(function (name) {
             var get = bender.GetProperty.create(name);
@@ -451,7 +457,7 @@
         watch.__chunks = node.__chunks;
         delete node.__chunks;
       }
-    }
+    };
   }());
 
 
@@ -482,6 +488,7 @@
               .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
                 .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
           }, this).join("+");
+        // jshint -W054
         this.sets[0].value(new Function("_", "$scope", f));
         delete this.__chunks;
       }
@@ -528,10 +535,10 @@
   // handle other types of documents.
   bender.Link.load.stylesheet = function () {
     if (window.document.documentElement.namespaceURI === flexo.ns.html) {
-      var link = document.createElement("link");
+      var link = window.document.createElement("link");
       link.setAttribute("rel", "stylesheet");
       link.setAttribute("href", this.href);
-      document.head.appendChild(link);
+      window.document.head.appendChild(link);
       this.loaded = link;
     } else {
       console.warn("Cannot render stylesheet link for namespace %0"
@@ -584,26 +591,40 @@
   // “Status: `status” into ["Status: ", ["", "status"]]. Return a string if
   // there are no bindings.
   function chunk_string(value) {
-    var state = "";      // Current state of the tokenizer
-    var chunk = "";      // Current chunk
-    var chunks = [];     // List of chunks
-    var escape = false;  // Escape flag (following a \)
-    var offset = 0;      // Offset from start
+    try {
+      var chunks = chunk_string__unsafe(value);
+      return chunks.length > 1 || Array.isArray(chunks[0]) ? chunks : chunks[0];
+    } catch (e) {
+      return value;
+    }
+  }
+
+  function chunk_string__unsafe(value) {
+    var state = "";          // Current state of the tokenizer
+    var chunk = "";          // Current chunk
+    var chunks = [];         // List of chunks
+    var escape = false;      // Escape flag (following a \)
+    var unfinished = false;  // Unfinished chunk
 
     var rx_start = new RegExp("^[$A-Z_a-z\x80-\uffff]$");
     var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff]$");
 
     // Change to state s and start a new chunk with `c` (or "")
-    var start = function (s, c) {
+    var start = function (s, c, set_unfinished) {
       if (chunk) {
         chunks.push(chunk);
+        unfinished = false;
       }
       chunk = c || "";
+      if (set_unfinished) {
+        unfinished = true;
+      }
       state = s;
     };
 
     // Change to state s and end the current chunk with `c` (or "")
     var end = function (s, c) {
+      unfinished = false;
       if (c) {
         if (typeof chunk === "string") {
           chunk += c;
@@ -614,53 +635,31 @@
       start(s);
     };
 
-    // Backtrack after a false start
-    var backtrack = function (c) {
-      if (chunk[0]) {
-        console.log("backtrack (after id): <%0> <%1> <%2>"
-            .fmt(chunk[0], chunk[1], c));
-        chunks.push(chunk);
-        chunk = "";
-      } else {
-        console.log("backtrack: <%0> <%1> <%2>"
-            .fmt(chunk, chunks[chunks.length - 1], c));
-        chunk = chunks.pop() || "";
-      }
-      chunk += c;
-      state = "";
-      return offset;
-    };
-
     var advance = {
       // Regular code, look for new quoted string, comment, id, property, or
       // block
-      "": function (c, d, e) {
+      "": function (c, d) {
         switch (c) {
-          case "'": start("q", c); break;
-          case '"': start("qq", c); break;
+          case "'": start("q", c, true); break;
+          case '"': start("qq", c, true); break;
           case "/":
             switch (d) {
               case "/": start("comment", c); break;
-              case "*": start("comments", c); break;
+              case "*": start("comments", c, true); break;
               default: chunk += c;
             }
             break;
-          case "@":
-          case "#":
-            offset = 0;
-            start("id_start", [c, ""]);
-            break;
-          case "`":
-            offset = 0;
-            start("prop_start", ["", ""]);
-            break;
+          case "@": case "#": start("id_start", [c], true); break;
+          case "`": start("prop_start", ["", ""], true); break;
           case "{":
             if (d === "{") {
-              start("block");
+              start("block", "", true);
               return 1;
             }
             chunk += c;
             break;
+          case "\\":
+            escape = true;  // jshint -W086
           default:
             chunk += c;
         }
@@ -706,66 +705,75 @@
       },
 
       // Start of an identifier (from @ or #)
-      id_start: function (c) {
-        --offset;
+      id_start: function (c, d) {
         if (c === "\\") {
           escape = true;
+          if (d !== "") {
+            unfinished = false;
+          }
         } else if (c === "@" && chunk[0] === "@") {
-          chunk[0] = "^";
+          chunk[0] += c;
+          chunk.concrete = true;
         } else if (c === "(") {
           state = "idp";
         } else if (rx_start.test(c)) {
           chunk[0] += c;
+          unfinished = false;
           state = "id";
         } else {
-          return backtrack(chunk[0]);
+          flexo.fail();
         }
       },
 
       // Component or instance identifier, starting with # or @
-      id: function (c, d, e) {
+      id: function (c) {
         if (c === "\\") {
           escape = true;
         } else if (c === "`") {
-          offset = 0;
           chunk.push("");
+          unfinished = false;
           state = "prop_start";
         } else if (rx_cont.test(c)) {
           chunk[0] += c;
         } else {
-          start("", c);
+          start("");
+          return -1;
         }
       },
 
       // Quoted identifier (between parentheses)
-      idp: function (c, d, e) {
+      idp: function (c, d) {
         if (c === "\\") {
           escape = true;
         } else if (c === ")") {
           if (d === "`") {
-            offset = 0;
             chunk.push("");
+            unfinished = true;
             state = "prop_start";
             return 1;
           }
-          start("", c);
+          start("");
+          return -1;
         } else {
           chunk[0] += c;
         }
       },
 
       // Look for the start of a property
-      prop_start: function (c) {
-        --offset;
+      prop_start: function (c, d) {
         if (c === "\\") {
           escape = true;
+          if (d) {
+            unfinished = false;
+          }
         } else if (c === "(") {
           state = "propp";
         } else if (rx_start.test(c)) {
           chunk[1] += c;
+          unfinished = false;
           state = "prop";
         } else {
-          return backtrack("`");
+          flexo.fail();
         }
       },
 
@@ -776,7 +784,8 @@
         } else if (rx_cont.test(c)) {
           chunk[1] += c;
         } else {
-          start("", c);
+          start("");
+          return -1;
         }
       },
 
@@ -794,7 +803,7 @@
       // Block delimited by {{ }}: find the end of the block, then parse it.
       block: function (c, d) {
         if (c === "}" && d === "}") {
-          chunk = chunk_string(chunk);
+          chunk = chunk_string__unsafe(chunk);
           chunk.block = true;
           end("");
           return 1;
@@ -806,21 +815,21 @@
     for (var i = 0, n = value.length; i < n; ++i) {
       if (escape) {
         escape = false;
-        state = state.replace(/^_start$/, "");
+        state = state.replace(/_start$/, "");
         if (typeof chunk === "string") {
           chunk += value[i];
         } else {
           chunk[chunk.length - 1] += value[i];
         }
       } else {
-        i += advance[state](value[i], value[i + 1] || "", value[i + 2] || "") ||
-          0;
+        i += advance[state](value[i], value[i + 1] || "") || 0;
       }
     }
     if (chunk) {
+      flexo.fail(unfinished);
       chunks.push(chunk);
     }
-    return chunks.length > 1 || Array.isArray(chunks[0]) ? chunks : chunks[0];
+    return chunks;
   }
 
   // For testing purposes only

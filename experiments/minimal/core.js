@@ -627,6 +627,7 @@
 
     render_event_listeners: function () {
       for (var type in this.event_vertices) {
+        // jshint -W083
         this.event_vertices[type].outgoing.forEach(function (edge) {
           edge.adapter._watch.component.__concrete.forEach(function (component) {
             this.render_event_listener(component, type, edge);
