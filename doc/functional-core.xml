@@ -126,14 +126,53 @@
               and a set of private properties. The set of public properties
               would be inherited, while the set of private properties would not
               be inherited.</todo></h:li>
+          <h:li><h:code>view</h:code> is the root of the <def>view tree</def> of
+            this component. A component always has a view, but it may be a
+            default view. <todo>We may allow components to not have a view;
+              then they are still part of the component tree, but not the view
+              tree and are not rendered but still cloned when the component is
+              rendered.</todo></h:li>
+          <h:li><h:code>watches</h:code> is the set of the <ref>Watch</ref>es of
+            the component.</h:li>
         </h:ul>
+        <h:pre>  <ref>Component</ref>   clone(<ref>View</ref> view)
+  boolean     conforms(<ref>Component</ref> component)
+  void        notify(string type, Object args)</h:pre>
       </h:div>
-
     </api>
+    <h:p>A Component <h:em>C</h:em> is said to <def>conform</def> to the
+      prototype of another component <h:em>P</h:em> if and only if
+      <h:em>C</h:em> is <h:em>P</h:em>, or the prototype <h:em>C’</h:em> of
+      <h:em>C</h:em> conforms to the prototype of <h:em>P</h:em>.</h:p>
   </section>
 
   <section>
     <title>View Elements</title>
+
+    <section>
+      <title>View</title>
+    </section>
+
+    <section>
+      <title>Content</title>
+    </section>
+
+    <section>
+      <title>DOMElement</title>
+    </section>
+
+    <section>
+      <title>Attribute</title>
+    </section>
+
+    <section>
+      <title>Text</title>
+    </section>
+
+  </section>
+
+  <section>
+    <title>Watches</title>
   </section>
 
 </doc>
