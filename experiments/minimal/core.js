@@ -273,6 +273,18 @@
       return this;
     },
 
+    // Remove a watch and return the component
+    unwatch: function (watch) {
+      watch = flexo.remove_from_array(this.watches, watch);
+      if (!watch) {
+        console.error("Watch was not removed");
+        return;
+      }
+      delete watch.component;
+      return this;
+      // TODO flush if watch was rendered
+    },
+
     // Render the complete component graph in the target and a new graph. Return
     // the graph that was created. This is called for the main component only.
     render: function (target) {
@@ -809,7 +821,7 @@
 
 
   // GetProperty < Get
-  //   Property  property
+  //   string  name
   bender.GetProperty = flexo._ext(bender.Get, {
     init: function (name, target) {
       this.name = name;
