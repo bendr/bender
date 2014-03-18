@@ -351,7 +351,7 @@
       // through the list backward to avoid terminating too early.
       for (var i = this.watches.length - 1; i >= 0; --i) {
         this.watches[i].render_subgraph(graph);
-      };
+      }
       return graph;
     },
 

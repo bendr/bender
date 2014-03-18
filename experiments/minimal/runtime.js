@@ -485,6 +485,7 @@
       delete adapter.__dynamic;
       delete adapter.__needs_return;
       try {
+        // jshint -W054
         adapter.value(new Function("$in", "$scope", source));
         if (gets) {
           return gets_for_chunks(chunks);
@@ -501,6 +502,7 @@
       var source = "return " + unchunk_dynamic(adapter, adapter.__match);
       delete adapter.__match;
       try {
+        // jshint -W054
         adapter.value(new Function("$in", "$scope", source));
       } catch (e) {
         console.warn("Could not compile “%0” for match".fmt(source));
@@ -510,7 +512,7 @@
 
   function resolve_adapter(adapter, gets) {
     resolve_select(adapter);
-    var gets = resolve_value(adapter, gets);
+    gets = resolve_value(adapter, gets);
     resolve_match(adapter);
     return gets;
   }
@@ -552,9 +554,11 @@
   function gets_for_chunks(chunks) {
     var bindings = {};
     var gets = [];
-    if (Array.isArray(chunks)) {
-      chunks.forEach(function (chunk) {
-        if (Array.isArray(chunk)) {
+    var add_get = function (chunk) {
+      if (Array.isArray(chunk)) {
+        if (chunk.block) {
+          chunk.forEach(add_get);
+        } else {
           if (!bindings.hasOwnProperty(chunk[0])) {
             bindings[chunk[0]] = {};
           }
@@ -563,7 +567,10 @@
           get.__select = chunk[0];
           gets.push(get);
         }
-      });
+      }
+    };
+    if (Array.isArray(chunks)) {
+      chunks.forEach(add_get);
     }
     return gets;
   }
@@ -595,8 +602,8 @@
         this.sets.forEach(resolve__bound);
         if (this.__text) {
           // jshint -W054
-          var f = "return " + unchunk_string(this.sets[0], this.__text);
-          this.sets[0].value(new Function("_", "$scope", f));
+          var source = "return " + unchunk_string(this.sets[0], this.__text);
+          this.sets[0].value(new Function("_", "$scope", source));
           delete this.__text;
         }
       }
@@ -748,15 +755,15 @@
             start("id_start", [c], flags.set_unfinished);
             break;
           case "`": start("prop_start", ["", ""], flags.set_unfinished); break;
+          case "\\":
+            escape = true;
+            break;
           case "{":
             if (d === "{" && !dynamic) {
               start("block", "", flags.set_unfinished);
               return 1;
             }
-            chunk += c;
-            break;
-          case "\\":
-            escape = true;  // jshint -W086
+            // jshint -W086
           default:
             chunk += c;
         }

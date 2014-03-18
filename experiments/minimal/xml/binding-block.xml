@@ -1,0 +1,16 @@
+<component xmlns="http://bender.igel.co.jp">
+  <property name="size" value="100"/>
+  <property name="width" value="flexo.random_int(10, 100)"/>
+  <property name="height" value="flexo.random_int(10, 100)"/>
+  <property name="color" value="flexo.random_element(['red', 'orange', 'yellow',
+    'green', 'blue', 'indigo', 'violet'])"/>
+  <property name="x" value="(`size - `width) / 2"/>
+  <property name="y" value="(`size - `height) / 2"/>
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:svg viewBox="0 0 `size `size">
+      <svg:rect fill="\#aaa" width="`size" height="`size"/>
+      <svg:rect x="`x" y="`y" width="`width" height="`height" fill="`color"/>
+      <svg:text x="`x" y="{{ `y + `height }}">`width x `height</svg:text>
+    </svg:svg>
+  </view>
+</component>
