@@ -1,0 +1,13 @@
+<component xmlns="http://bender.igel.co.jp" name="arrows">
+
+  <view xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:svg viewBox="0 0 40 20" name="svg">
+      <svg:rect width="20" height="20"/>
+      <component href="svg-arrow.xml"/>
+      <svg:g transform="translate(20)">
+        <component href="svg-arrow.xml"/>
+      </svg:g>
+    </svg:svg>
+  </view>
+
+</component>
