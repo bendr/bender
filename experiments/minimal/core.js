@@ -347,12 +347,15 @@
         child.view.scope = this.view.scope;
         child.render_subgraph(graph);
       }, this);
-      this.watches.forEach(function (watch) {
-        watch.render_subgraph(graph);
-      });
+      // Watches may be removed if they turn out to not be necessary, so go
+      // through the list backward to avoid terminating too early.
+      for (var i = this.watches.length - 1; i >= 0; --i) {
+        this.watches[i].render_subgraph(graph);
+      };
       return graph;
     },
 
+    // Add initialization vertices and edges for properties.
     render_subgraph_init: function (graph) {
       if (!this.__render_subgraph_init) {
         return graph;
@@ -813,7 +816,7 @@
 
   flexo._accessor(bender.Adapter, "value", flexo.id, true);
   flexo._accessor(bender.Adapter, "match", flexo.funcify(true), true);
-  flexo._accessor(bender.Adapter, "delay");
+  flexo._accessor(bender.Adapter, "delay", flexo.to_number);
 
 
   // Get < Adapter
@@ -1135,14 +1138,15 @@
     // InheritEdge have a lower priority, while
     priority: 0,
 
+    // Edges not tied to an adapter have no delay
+    delay: NaN,
+
     traverse: function () {
       Object.keys(this.source.values).forEach(function (id) {
         this.dest.value.apply(this.dest, this.source.values[id]);
       }, this);
     }
   });
-
-  flexo._get(bender.Edge, "delay", flexo.nop);
 
 
   // InheritEdge < Edge
@@ -1208,10 +1212,10 @@
         var rtarget = scope[target.__id];
         try {
           if (that && rtarget && this.adapter.match().call(that, w[1], scope)) {
-            if (this.adapter.delay() >= 0) {
+            if (this.adapter.delay >= 0) {
               this.dest.graph.flush_later(function () {
                 this.traverse_matched.bind(this, that, rtarget, w[1], scope);
-              }, false);
+              }.bind(this), false);
             } else {
               this.traverse_matched(that, rtarget, w[1], scope);
             }

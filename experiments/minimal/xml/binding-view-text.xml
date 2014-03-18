@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" name="property-simple">
   <title>Text binding in view</title>
-  <property name="x" value="7"/>
+  <property name="x" as="dynamic" value="7"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:p>Text binding in view</html:p>
     <html:p>x = `x</html:p>

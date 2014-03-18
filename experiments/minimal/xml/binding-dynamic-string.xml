@@ -1,6 +1,6 @@
 <component xmlns="http://bender.igel.co.jp">
   <property name="x" as="number" value="7"/>
-  <property name="y" value="`x + 1"/>
+  <property name="y" as="dynamic-string" value="`x + 1 ({{ `x + 1 }})"/>
   <view>
     x = `x, y = x + 1 = `y
   </view>

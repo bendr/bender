@@ -16,10 +16,10 @@
     </svg:svg>
   </view>
 
-  <!--
   <watch>
-    <get select=":document" dom-event="mousemove"
-      value="flexo.event_svg_point($in, @@svg) || flexo.fail()"/>
+    <get select=":document" event="mousemove">
+      return flexo.event_svg_point($in, @@svg) || flexo.fail();
+    </get>
     <set property="angle">
       return flexo.remap(Math.atan2($in.y, $in.x),
         -Math.PI, Math.PI, -180, 180);
@@ -31,6 +31,5 @@
       return `(white-bg) ? 50 + Math.round(50 * (1 - v)) : Math.round(50 * v);
     </set>
   </watch>
--->
 
 </component>

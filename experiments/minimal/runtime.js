@@ -17,6 +17,8 @@
 
   var flags = {
     dynamic: true,
+    dynamic_string: false,
+    as_is: true,
     gets: true,
     needs_return: true,
     set_unfinished: true
@@ -79,19 +81,19 @@
       }
     } else if (node.nodeType === window.Node.TEXT_NODE ||
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      return deserialize_text(node.textContent, !node.parentNode ||
-          node.parentNode.namespaceURI !== bender.ns ||
-          node.parentNode.localName !== "text");
+      return deserialize_text(node.textContent, node.parentNode &&
+          node.parentNode.namespaceURI === bender.ns &&
+          node.parentNode.localName === "text");
     }
   }
 
   // Deserialize a text string, either from a text node or an element value.
   // If bindings were found in the string, set the parsed chunks as a temporary
-  // __text property on the text element, unless the interpreted flag is
-  // unset (e.g., do not interpret text in <text> nodes.)
-  function deserialize_text(content, interpreted) {
+  // __text property on the text element, unless the as_is flag is set (e.g.,
+  // do not interpret text in <text> nodes.)
+  function deserialize_text(content, as_is) {
     var text = bender.Text.create();
-    var chunks = interpreted ? chunk_string(content) : content;
+    var chunks = as_is ? content : chunk_string(content);
     if (typeof chunks === "string") {
       text.text(chunks);
     } else {
@@ -290,14 +292,10 @@
     var value = elem.hasAttribute("value") ? elem.getAttribute("value") :
       shallow_text(elem, true);
     if (value) {
-      var parsed_value = parse_value[as](value, elem.hasAttribute("value"));
-      if (typeof parsed_value === "function") {
+      var parsed_value = parse_value[as](value, elem.hasAttribute("value"),
+          adapter);
+      if (parsed_value) {
         adapter.value(flexo.funcify(parsed_value));
-      } else {
-        if (Array.isArray(parsed_value)) {
-          parsed_value.__as = as;
-        }
-        adapter.__value = parsed_value;
       }
     }
     if (elem.hasAttribute("match")) {
@@ -321,14 +319,19 @@
       as === "dynamic-string" ? as : "dynamic";
   }
 
-  function parse_value_dynamic(value, needs_return) {
-    var source = needs_return ? "return " + value : value;
-    return chunk_string(source, flags.dynamic);
+  function parse_value_chunks(value, needs_return, adapter, dynamic) {
+    adapter.__value = chunk_string(value, dynamic);
+    adapter.__dynamic = dynamic;
+    adapter.__needs_return = needs_return;
   }
 
-  function parse_value_dynamic_string(value, needs_return) {
-    var source = needs_return ? "return " + value : value;
-    return chunk_string(source);
+  function parse_value_dynamic(value, needs_return, adapter) {
+    return parse_value_chunks(value, needs_return, adapter, flags.dynamic);
+  }
+
+  function parse_value_dynamic_string(value, needs_return, adapter) {
+    return parse_value_chunks(value, needs_return, adapter,
+        flags.dynamic_string);
   }
 
   // Deserialize a foreign element and its contents (attributes and children),
@@ -353,9 +356,11 @@
     return deserialize_children(e, elem);
   }
 
+  // Add an attribute to a foreign element by creating an attribute child
+  // element with a text element with the value of the attribute as text.
   function add_attribute(elem, ns, name, value) {
     elem.insert_child(bender.Attribute.create(ns, name)
-        .child(deserialize_text(value)));
+        .child(deserialize_text(value, !flags.as_is)));
   }
 
   // Deserialize then add every child of a parent node `parent` in the list of
@@ -398,16 +403,22 @@
     return this;
   };
 
-  // Return the targets (with a static flag) for the given selector
+  // Return the targets (with a static flag) for the given selector. At the
+  // moment, only a single target is returned; in the future, there will be zero
+  // or more.
   bender.Component.select = function (select) {
     select = flexo.safe_trim(select);
     var target;
+    var is_dom = false;
     if (select[0] === "@" || select[0] === "#") {
       target = this.names[select.substr(1)];
-    } else if (select[0] === ":document") {
+    } else if (select[0] === "^") {
+      target = this.names[select.substr(1)];
+      is_dom = !!target;
+    } else if (select === ":document") {
       target = bender.DocumentElement;
     }
-    return [[target || this, select[0] === "#"]];
+    return [[target || this, select[0] === "#", is_dom]];
   };
 
   // Title is just a string (should be any foreign content later)
@@ -467,16 +478,19 @@
   function resolve_value(adapter, gets) {
     if (adapter.__value) {
       var chunks = adapter.__value;
-      var source = adapter.__as === "dynamic_string" ?
-        unchunk_string(adapter, chunks) : unchunk_dynamic(adapter, chunks);
+      var source = (adapter.__needs_return ? "return " : "") +
+        (adapter.__dynamic ?
+         unchunk_dynamic(adapter, chunks) : unchunk_string(adapter, chunks));
       delete adapter.__value;
+      delete adapter.__dynamic;
+      delete adapter.__needs_return;
       try {
         adapter.value(new Function("$in", "$scope", source));
         if (gets) {
           return gets_for_chunks(chunks);
         }
       } catch (e) {
-        console.warn("Could not compile “%0” as %1".fmt(source, adapter.__as));
+        console.warn("Could not compile “%0”".fmt(source));
       }
     }
     return [];
@@ -484,7 +498,7 @@
 
   function resolve_match(adapter) {
     if (adapter.__match) {
-      var source = unchunk_dynamic(adapter, adapter.__match);
+      var source = "return " + unchunk_dynamic(adapter, adapter.__match);
       delete adapter.__match;
       try {
         adapter.value(new Function("$in", "$scope", source));
@@ -501,6 +515,19 @@
     return gets;
   }
 
+  function unchunk_idprop(adapter, chunk) {
+    var target = adapter._watch.component.select(chunk[0])[0];
+    var t = (target[1] ? "this.names[%0]" : "$scope[%0]")
+      .fmt(flexo.quote(target[0].__id));
+    if (target[2]) {
+      t += ".element";
+    }
+    if (chunk[1]) {
+      t += ".properties[%0]".fmt(flexo.quote(chunk[1]));
+    }
+    return t;
+  }
+
   function unchunk_string(adapter, value) {
     return (typeof value === "string" ? [value] : value).map(function (chunk) {
       if (typeof chunk === "string") {
@@ -509,10 +536,7 @@
       if (chunk.block) {
         return "(%0)".fmt(unchunk_dynamic(adapter, chunk));
       }
-      var target = adapter._watch.component.select(chunk[0])[0];
-      return "%0.properties[%1]"
-        .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
-          .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
+      return unchunk_idprop(adapter, chunk);
     }).join("+");
   }
 
@@ -521,10 +545,7 @@
       if (typeof chunk === "string") {
         return chunk;
       }
-      var target = adapter._watch.component.select(chunk[0])[0];
-      return "%0.properties[%1]"
-        .fmt((target[1] ? "this.names[%0]" : "$scope[%0]")
-          .fmt(flexo.quote(target[0].__id)), flexo.quote(chunk[1]));
+      return unchunk_idprop(adapter, chunk);
     }).join("");
   }
 
@@ -552,27 +573,31 @@
   (function () {
     var $super = bender.Watch.render_subgraph;
     bender.Watch.render_subgraph = function (graph) {
-      var resolve__bound = resolve_adapter.bind(this);
-      this.gets.forEach(resolve__bound);
-      this.sets.forEach(resolve__bound);
-      if (this.__text) {
-        // jshint -W054
-        var f = "return " + unchunk_string(this.sets[0], this.__text);
-        this.sets[0].value(new Function("_", "$scope", f));
-        delete this.__text;
-      } else if (this.__initializer) {
+      if (this.__initializer) {
         var gets = resolve_adapter(this.__initializer, flags.gets);
         var set = this.__initializer;
         delete this.__initializer;
         if (gets.length > 0) {
           gets.forEach(function (get) {
             this.get(get);
+            resolve_select(get);
           }, this);
+          resolve_select(set);
           this.component.property(set.name);
         } else {
           this.component.property(set.name, set.value().call(this.component))
             .unwatch(this);
           return;
+        }
+      } else {
+        var resolve__bound = resolve_adapter.bind(this);
+        this.gets.forEach(resolve__bound);
+        this.sets.forEach(resolve__bound);
+        if (this.__text) {
+          // jshint -W054
+          var f = "return " + unchunk_string(this.sets[0], this.__text);
+          this.sets[0].value(new Function("_", "$scope", f));
+          delete this.__text;
         }
       }
       return $super.call(this, graph);
@@ -669,15 +694,19 @@
     var rx_start = new RegExp("^[$A-Z_a-z\x80-\uffff]$");
     var rx_cont = new RegExp("^[$0-9A-Z_a-z\x80-\uffff]$");
 
+    function push_chunk() {
+      if (typeof chunk === "string" &&
+          typeof chunks[chunks.length - 1] === "string") {
+        chunks[chunks.length - 1] += chunk;
+      } else {
+        chunks.push(chunk);
+      }
+    }
+
     // Change to state s and start a new chunk with `c` (or "")
     var start = function (s, c, set_unfinished) {
       if (chunk) {
-        if (typeof chunk === "string" &&
-            typeof chunks[chunks.length - 1] === "string") {
-          chunks[chunk.length - 1] += chunk;
-        } else {
-          chunks.push(chunk);
-        }
+        push_chunk();
         unfinished = false;
       }
       chunk = c || "";
@@ -780,8 +809,7 @@
             unfinished = false;
           }
         } else if (c === "@" && chunk[0] === "@") {
-          chunk[0] += c;
-          chunk.concrete = true;
+          chunk[0] = "^";
         } else if (c === "(") {
           state = "idp";
         } else if (rx_start.test(c)) {
@@ -895,7 +923,7 @@
     }
     if (chunk) {
       flexo.fail(unfinished);
-      chunks.push(chunk);
+      push_chunk();
     }
     return chunks;
   }
