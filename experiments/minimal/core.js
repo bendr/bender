@@ -397,10 +397,9 @@
       });
       for (var property in this.properties) {
         var vertex = this.property_vertices[property];
-        if (!vertex || !vertex.__init_vertex) {
-          return;
+        if (vertex && vertex.__init_vertex) {
+          vertex.__init_vertex.value(this, this.properties[property], true);
         }
-        vertex.__init_vertex.value(this, this.properties[property], true);
       }
     },
 
@@ -619,7 +618,7 @@
         if (edge.adapter.stop_propagation()) {
           e.stopPropagation();
         }
-        edge.dest.value(component, e, true);
+        edge.source.value(component, e, true);
       });
     },
 
@@ -637,6 +636,7 @@
 
     init: function() {
       this.element = window.document;
+      this.__concrete = [this];
       return bender.DOMElement.init.call(this, "", ":document");
     },
 
@@ -1195,12 +1195,13 @@
     // component of the watch.
     // TODO test static adapters.
     traverse: function () {
+      var index = this.source.graph.edges.indexOf(this) + 1;
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
         var component = this.adapter._watch.component;
         var target = this.adapter.target;
-        var scope = component.scope;
-        if (w[0].view.stack && !this.adapter.static) {
+        var scope = component.view.scope;
+        if (w[0].view && w[0].view.stack && !this.adapter.static) {
           var i;
           for (i = w[0].view.stack.length - 1;
             i >= 0 && !(target.__id in w[0].view.stack[i].scope); i--) {}

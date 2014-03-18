@@ -409,16 +409,19 @@
   bender.Component.select = function (select) {
     select = flexo.safe_trim(select);
     var target;
+    var static_ = false;
     var is_dom = false;
     if (select[0] === "@" || select[0] === "#") {
       target = this.names[select.substr(1)];
+      static_ = select[0] === "#";
     } else if (select[0] === "^") {
       target = this.names[select.substr(1)];
       is_dom = !!target;
     } else if (select === ":document") {
       target = bender.DocumentElement;
+      static_ = true;
     }
-    return [[target || this, select[0] === "#", is_dom]];
+    return [[target || this, static_, is_dom]];
   };
 
   // Title is just a string (should be any foreign content later)

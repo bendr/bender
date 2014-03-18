@@ -11,19 +11,16 @@
     <svg:svg viewBox="-10 -10 20 20" name="svg">
       <svg:g transform="rotate(`angle)">
         <svg:line x1="-8" x2="4" stroke-linecap="round" stroke="`color"/>
-        <svg:path d="M8,0 L3,-2.5 L3,2.5 Z" stroke="none" fill="`color"/>
+        <svg:polygon points="8,0 3,-2.5 3,2.5" stroke="none" fill="`color"/>
       </svg:g>
     </svg:svg>
   </view>
 
   <watch>
-    <get select=":document" event="mousemove">
-      return flexo.event_svg_point($in, @@svg) || flexo.fail();
-    </get>
-    <set property="angle">
-      return flexo.remap(Math.atan2($in.y, $in.x),
-        -Math.PI, Math.PI, -180, 180);
-    </set>
+    <get select=":document" event="mousemove"
+      value="flexo.event_svg_point($in, @@svg) || flexo.fail()"/>
+    <set property="angle"
+      value="flexo.remap(Math.atan2($in.y, $in.x), -π, π, -180, 180)"/>
     <set property="v">
       var d = Math.sqrt($in.x * $in.x + $in.y * $in.y);
       var diff = `r - d;
