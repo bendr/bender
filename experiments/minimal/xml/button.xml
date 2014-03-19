@@ -1,0 +1,52 @@
+<component xmlns="http://bender.igel.co.jp">
+  <style>
+.button {
+  display: inline-block;
+  margin: 0 0.5rem;
+  min-width: 4rem;
+  text-align: center;
+  background-color: #ff4040;
+  color: #f8f9f0;
+  padding: 0.2rem;
+  cursor: default;
+}
+
+.button.down {
+  opacity: 0.5;
+}
+
+.button.disabled {
+  background-color: #888 !important;
+}
+  </style>
+  <property name="label" as="string" value="OK"/>
+  <property name="enabled" as="boolean" value="true"/>
+  <property name="down" as="boolean" value="false"/>
+  <property name="push-delay" as="number" value="150"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div name="frame"
+      class="button {{ `down ? 'down' : '' }} {{ `enabled ? '' : 'disabled' }}">
+      <content>
+        `label
+      </content>
+    </html:div>
+  </view>
+  <watch>
+    <get event="mousedown" select="@frame" match="`enabled"
+      prevent-default="true"/>
+    <set property="down" value="true"/>
+  </watch>
+  <watch>
+    <get event="mouseup" select=":document" match="`down"/>
+    <set property="down" value="false"/>
+    <set event="pushed"/>
+  </watch>
+  <!--
+  <watch>
+    <get message="push" match="`enabled"/>
+    <set property="down" value="true"/>
+    <set property="down" value="false" delay="`push-delay"/>
+    <set event="pushed" delay="`push-delay"/>
+  </watch>
+  -->
+</component>

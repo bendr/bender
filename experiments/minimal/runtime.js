@@ -227,6 +227,14 @@
           flexo.normalize_uri(component.url(), elem.getAttribute("href"))));
   };
 
+  deserialize_component.style = function (component, elem) {
+    component.__links.push(bender.Style.create(elem));
+  };
+
+  deserialize_component.script = function (component, elem) {
+    component.__links.push(bender.Script.create(elem));
+  };
+
   // Component title
   deserialize_component.title = function (component, elem) {
     return component.title(shallow_text(elem));
@@ -262,9 +270,17 @@
 
   // Deserialize a get element
   function deserialize_get(elem) {
-    return deserialize_adapter(elem, elem.hasAttribute("event") ?
+    var get = elem.hasAttribute("event") ?
       bender.GetEvent.create(elem.getAttribute("event")) :
-      bender.GetProperty.create(elem.getAttribute("property")));
+      bender.GetProperty.create(elem.getAttribute("property"));
+    if (typeof get.prevent_default === "function") {
+      get.prevent_default(flexo.is_true(elem.getAttribute("prevent-default")));
+    }
+    if (typeof get.stop_propagation === "function") {
+      get
+        .stop_propagation(flexo.is_true(elem.getAttribute("stop-propagation")));
+    }
+    return deserialize_adapter(elem, get);
   }
 
   // Deserialize a set element
@@ -299,8 +315,8 @@
       }
     }
     if (elem.hasAttribute("match")) {
-      var match = parse_value.dynamic(elem.getAttribute("match",
-            flags.needs_return));
+      var match = parse_value.dynamic(elem.getAttribute("match"),
+            flags.needs_return, adapter);
       if (typeof match === "function") {
         adapter.match(match);
       } else {
@@ -450,7 +466,7 @@
     init: function (rel, href) {
       this.rel = flexo.safe_trim(rel).toLowerCase();
       this.href = flexo.safe_trim(href);
-      return this;
+      return bender.Base.init.call(this);
     },
 
     load: function () {
@@ -464,6 +480,33 @@
       }
       console.warn("Cannot load “%0” link (unsupported value for rel)"
           .fmt(this.rel));
+    }
+  });
+
+  bender.Inline = flexo._ext(bender.Base, {
+    init: function (elem) {
+      this.elem = elem;
+      this.__unloaded = true;
+      return bender.Base.init.call(this);
+    }
+  });
+
+  bender.Style = flexo._ext(bender.Inline, {
+    load: function () {
+      if (this.__unloaded) {
+        delete this.__unloaded;
+        window.document.head.appendChild(flexo.$style(shallow_text(this.elem)));
+      }
+    }
+  });
+
+  bender.Script = flexo._ext(bender.Inline, {
+    load: function () {
+      if (this.__unloaded) {
+        delete this.__unloaded;
+        window
+          .document.head.appendChild(flexo.$script(shallow_text(this.elem)));
+      }
     }
   });
 

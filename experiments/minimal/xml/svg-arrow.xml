@@ -17,8 +17,11 @@
   </view>
 
   <watch>
-    <get select=":document" event="mousemove"
+    <get select=":document" event="click"
       value="flexo.event_svg_point($in, @@svg) || flexo.fail()"/>
+    <set>
+      console.log("Click: %0, %1".fmt($in.x.toFixed(2), $in.y.toFixed(2)));
+    </set>
     <set property="angle"
       value="flexo.remap(Math.atan2($in.y, $in.x), -π, π, -180, 180)"/>
     <set property="v">
