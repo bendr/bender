@@ -1,10 +1,12 @@
 <component xmlns="http://bender.igel.co.jp" name="property-simple">
   <title>Property (simple)</title>
   <property name="x" value="7"/>
+  <!--
   <property name="foo" as="string" value="bar"/>
   <property name="enabled" as="boolean" value="true"/>
   <property name="values" as="json" value="[1, 2, 3, 4, 5]"/>
   <property name="properties">
     return Object.keys(this.properties).join(", ");
   </property>
+  -->
 </component>

@@ -1,4 +1,4 @@
-<component xmlns="http://bender.igel.co.jp">
+<component xmlns="http://bender.igel.co.jp" name="button">
   <style>
 .button {
   display: inline-block;

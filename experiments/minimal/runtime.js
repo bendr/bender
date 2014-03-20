@@ -310,7 +310,7 @@
     if (value) {
       var parsed_value = parse_value[as](value, elem.hasAttribute("value"),
           adapter);
-      if (parsed_value) {
+      if (parsed_value != null) {
         adapter.value(flexo.funcify(parsed_value));
       }
     }
@@ -434,8 +434,7 @@
       target = this.names[select.substr(1)];
       is_dom = !!target;
     } else if (select === ":document") {
-      target = bender.DocumentElement;
-      static_ = true;
+      target = this.view.document_element();
     }
     return [[target || this, static_, is_dom]];
   };
@@ -460,6 +459,8 @@
       }
     };
   }());
+
+  bender.Component.render_subgraph_init = flexo.id;
 
 
   bender.Link = flexo._ext(bender.Base, {
@@ -629,17 +630,23 @@
       if (this.__initializer) {
         var gets = resolve_adapter(this.__initializer, flags.gets);
         var set = this.__initializer;
+        resolve_select(set);
+        this.component.property(set.name);
         delete this.__initializer;
         if (gets.length > 0) {
           gets.forEach(function (get) {
             this.get(get);
             resolve_select(get);
           }, this);
-          resolve_select(set);
-          this.component.property(set.name);
         } else {
-          this.component.property(set.name, set.value().call(this.component))
-            .unwatch(this);
+          var vertex = set.vertex(graph);
+          if (!vertex.__init_vertex) {
+            vertex.__init_vertex = graph.vertex(bender.Vertex.create());
+          }
+          var edge = bender.AdapterEdge.create(vertex.__init_vertex,
+            vertex, set);
+          edge.priority = bender.InitEdge.priority;
+          graph.edge(edge);
           return;
         }
       } else {

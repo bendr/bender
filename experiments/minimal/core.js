@@ -25,6 +25,11 @@
 
   bender.version = "0.9";
 
+  var flags = {
+    flush: true,
+    silent: true
+  };
+
   // Use bender.trace() for conditional trace messages; set bender.TRACE to true
   // to enable tracing (set to false by default.)
   var _trace = false;
@@ -253,7 +258,8 @@
               silent);
           }
           if (!silent && name in this[""].property_vertices) {
-            this[""].property_vertices[name].value(this[""], value, true);
+            this[""].property_vertices[name]
+              .value(this[""], value, flags.flush);
           }
         }
       });
@@ -292,7 +298,6 @@
         .render_subgraph_init(this.render_subgraph(bender.WatchGraph.create()))
         .sort().minimize();
       this.render_view(target || window.document.body);
-      bender.DocumentElement.render_event_listeners();
       this.init_properties();
       this.ready();
       return graph;
@@ -335,7 +340,6 @@
       if (!this.view.scope) {
         this.names = {};
         this.view.scope = {};
-        this.update_scope(bender.DocumentElement);
         flexo.beach(this.view, function (elem) {
           this.update_scope(elem);
           return elem.children;
@@ -347,11 +351,9 @@
         child.view.scope = this.view.scope;
         child.render_subgraph(graph);
       }, this);
-      // Watches may be removed if they turn out to not be necessary, so go
-      // through the list backward to avoid terminating too early.
-      for (var i = this.watches.length - 1; i >= 0; --i) {
-        this.watches[i].render_subgraph(graph);
-      }
+      this.watches.forEach(function (watch) {
+        watch.render_subgraph(graph);
+      });
       return graph;
     },
 
@@ -398,7 +400,8 @@
       for (var property in this.properties) {
         var vertex = this.property_vertices[property];
         if (vertex && vertex.__init_vertex) {
-          vertex.__init_vertex.value(this, this.properties[property], true);
+          vertex.__init_vertex.value(this, this.properties[property],
+              flags.flush);
         }
       }
     },
@@ -538,12 +541,36 @@
         this.component.clone(v);
         scope[this.component.__id] = v.component;
       }
+      if (this.__document_element) {
+        v.__document_element = this.__document_element.clone(scope);
+        Object.defineProperty(v.__document_element, "view", {
+          enumerable: true,
+          value: v
+        });
+      }
       return v;
+    },
+
+    // Get the document element for this component, creating it if necessary.
+    document_element: function () {
+      if (!this.__document_element) {
+        this.__document_element = bender.DocumentElement.create();
+        Object.defineProperty(this.__document_element, "view", {
+          enumerable: true,
+          configurable: true,
+          value: this
+        });
+        this.scope[this.__document_element.__id] = this.__document_element;
+      }
+      return this.__document_element;
     },
 
     // Render the child elements when at the root of the tree, and the view of
     // component otherwise (this is a placeholder for that component.)
     render: function (target, stack, i) {
+      if (this.__document_element) {
+        this.__document_element.render();
+      }
       if (this === stack[i]) {
         this.render_children(target, stack, i);
       } else {
@@ -618,7 +645,7 @@
         if (edge.adapter.stop_propagation()) {
           e.stopPropagation();
         }
-        edge.source.value(component, e, true);
+        edge.source.value(component, e, flags.flush);
       });
     },
 
@@ -634,27 +661,36 @@
   // DocumentElement < DOMElement
   bender.DocumentElement = flexo._ext(bender.DOMElement, {
 
-    init: function() {
-      this.element = window.document;
-      this.__concrete = [this];
-      return bender.DOMElement.init.call(this, "", ":document");
-    },
+    element: window.document,
 
-    render_event_listeners: function () {
+    // Render the event listeners once, but dispatch a new value for all
+    // concrete renderings.
+    render: function () {
+      if (!this.hasOwnProperty("__clones")) {
+        return Object.getPrototypeOf(this).render();
+      }
       for (var type in this.event_vertices) {
         // jshint -W083
         this.event_vertices[type].outgoing.forEach(function (edge) {
-          edge.adapter._watch.component.__concrete.forEach(function (component) {
-            this.render_event_listener(component, type, edge);
-          }, this);
+          this.element.addEventListener(type, function (e) {
+            if (edge.adapter.prevent_default()) {
+              e.preventDefault();
+            }
+            if (edge.adapter.stop_propagation()) {
+              e.stopPropagation();
+            }
+            edge.source.value(this.view.component, e, flags.flush);
+            this.__clones.forEach(function (clone) {
+              edge.source.value(clone.view.component, e, flags.flush);
+            });
+          }.bind(this));
         }, this);
       }
     },
 
-    // There are no attributes to this node
     attr: flexo.discard(flexo.fail),
 
-  }).init();
+  });
 
 
   // Attribute < Element
@@ -676,10 +712,12 @@
 
     // Update the value of the attribute when one of its text node has changed
     update_value: function () {
-      this.node.setAttributeNS(this.namespace_uri, this.local_name,
-        this.children.reduce(function (text, child) {
-          return text + (typeof child.text === "function" ? child.text() : "");
-        }, ""));
+      if (this.node) {
+        this.node.setAttributeNS(this.namespace_uri, this.local_name,
+          this.children.reduce(function (text, child) {
+            return text + (typeof child.text === "function" ? child.text() : "");
+          }, ""));
+      }
     }
   });
 
@@ -885,7 +923,7 @@
         p && !descriptor;
         p = Object.getPrototypeOf(p),
         descriptor = Object.getOwnPropertyDescriptor(p, this.name)) {}
-      descriptor.set.call(target.properties, value, true);
+      descriptor.set.call(target.properties, value, flags.silent);
     }
   });
 

@@ -7,7 +7,7 @@
   display: inline-block;
 }
   </style>
-  <property name="n" as="number" value="1"/>
+  <property name="n" as="number" value="0"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div render-name="class">
       <component href="button.xml" name="plus" label="+"/>
