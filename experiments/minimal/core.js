@@ -151,6 +151,7 @@
       this.watches = [];
       this.set_view(view);
       this.__concrete = [];
+      delete this._all;
       this.__render_subgraph = true;        // delete when rendered
       this.__render_subgraph_init = true;   // likewise
       return this.name(flexo.random_id());  // set a random name
@@ -158,6 +159,7 @@
 
     // Shallow clone of a component with its own children, properties, and view.
     clone: function (view) {
+      delete this._all;
       var c = Object.create(this);
       this.__clones.push(c);
       c.__set_id(this.__id);
@@ -286,8 +288,7 @@
     // Render the complete component graph in the target and a new graph. Return
     // the graph that was created. This is called for the main component only.
     render: function (target) {
-      var graph = this
-        .render_subgraph_init(this.render_subgraph(bender.WatchGraph.create()))
+      var graph = this.render_subgraph(bender.WatchGraph.create())
         .sort().minimize();
       this.render_view(target || window.document.body);
       this.init_properties();
@@ -346,7 +347,7 @@
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
-      return graph;
+      return this.render_subgraph_init(graph);
     },
 
     // Add initialization vertices and edges for properties.
@@ -368,7 +369,7 @@
           return;
         }
         if (!vertex.__init_vertex) {
-          vertex.__init_vertex = graph.vertex(bender.Vertex.create());
+          vertex.__init_vertex = graph.vertex(bender.InitVertex.create());
           graph.edge(bender.InitEdge.create(vertex.__init_vertex, vertex));
         }
       }, this);
@@ -384,7 +385,6 @@
       this.view.scope[node.__id] = node;
     },
 
-    // Initialize properties of the component, its prototype and its children.
     init_properties: function () {
       this.children.forEach(function (child) {
         child.init_properties();
@@ -413,6 +413,7 @@
     // component. The dynamic scope is created through the clone() calls.
     // TODO stack-order property for Views.
     view_stack: function () {
+      delete this._all;
       this.__concrete.push(this);
       this.view.stack = [this.view];
       this.view.stack.component = this;
@@ -449,6 +450,28 @@
       }
       this._url = url;
       return this;
+    }
+  });
+
+  // All concrete components, including those of clones.
+  Object.defineProperty(bender.Component, "all", {
+    enumerable: true,
+    get: function () {
+      if (!this._all) {
+        var all = [];
+        this.__clones.forEach(function (clone) {
+          flexo.push_all(all, clone.all);
+        }, this);
+        this.__concrete.forEach(function (concrete) {
+          if (concrete !== this) {
+            flexo.push_all(all, concrete.all);
+          } else {
+            all.push(this);
+          }
+        }, this);
+        this._all = all;
+      }
+      return this._all;
     }
   });
 
@@ -1101,6 +1124,7 @@
       this.incoming = [];
       this.outgoing = [];
       this.values = {};
+      this.ordered_values = [];
       return bender.Base.init.call(this);
     },
 
@@ -1110,7 +1134,8 @@
       if (target.__id in this.values) {
         return;
       }
-      this.values[target.__id] = [target, value];
+      this.values[target.__id] = true;
+      this.ordered_values.push([target, value]);
       if (flush) {
         this.graph.flush();
       }
@@ -1118,8 +1143,12 @@
 
     clear_values: function () {
       this.values = {};
+      this.ordered_values = [];
     }
   });
+
+
+  bender.InitVertex = flexo._ext(bender.Vertex);
 
 
   // WatchVertex < Vertex
@@ -1172,8 +1201,8 @@
     delay: NaN,
 
     traverse: function () {
-      Object.keys(this.source.values).forEach(function (id) {
-        this.dest.value.apply(this.dest, this.source.values[id]);
+      this.source.ordered_values.forEach(function (w) {
+        this.dest.value.apply(this.dest, w);
       }, this);
     }
   });
@@ -1181,14 +1210,17 @@
 
   // InheritEdge < Edge
   bender.InheritEdge = flexo._ext(bender.Edge, {
+
     // Give low priority during edge sort
     priority: -1,
+
+    // An edge is static iff it is an adapter edge and its adapter is static
+    static: false,
 
     // Filter out input targets that do not conform to the target of the
     // destination vertex.
     traverse: function () {
-      Object.keys(this.source.values).forEach(function (id) {
-        var w = this.source.values[id];
+      this.source.ordered_values.forEach(function (w) {
         if (this.dest.adapter.target.conforms(w[0])) {
           this.dest.value.apply(this.dest, w);
         }
@@ -1223,10 +1255,8 @@
     // The runtime target is found by find the static target id in the view
     // stack. If there is no match, fallback to the static scope of the
     // component of the watch.
-    // TODO test static adapters.
     traverse: function () {
-      Object.keys(this.source.values).forEach(function (id) {
-        var w = this.source.values[id];
+      this.source.ordered_values.forEach(function (w) {
         var component = this.adapter._watch.component;
         var target = this.adapter.target;
         var scope = component.view.scope;
@@ -1258,9 +1288,10 @@
       try {
         var value = this.adapter.value().call(that, v, scope);
         this.adapter.apply_value(target, value);
-        this.dest.value(target, value);
-        if (this.adapter.static) {
-          this.adapter.target.__concrete.forEach(function (concrete) {
+        if (this.static || !this.adapter.target.all) {
+          this.dest.value(target, value);
+        } else {
+          this.adapter.target.all.forEach(function (concrete) {
             this.dest.value(concrete, value);
           }, this);
         }

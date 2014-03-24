@@ -1,0 +1,7 @@
+<component xmlns="http://bender.igel.co.jp" name="static-properties">
+  <view>
+    <component href="static-property.xml"/>
+    <component href="static-property.xml"/>
+    <component href="static-property.xml"/>
+  </view>
+</component>

@@ -456,8 +456,6 @@
     };
   }());
 
-  bender.Component.render_subgraph_init = flexo.id;
-
 
   bender.Link = flexo._ext(bender.Base, {
     init: function (rel, href) {
@@ -637,7 +635,7 @@
         } else {
           var vertex = set.vertex(graph);
           if (!vertex.__init_vertex) {
-            vertex.__init_vertex = graph.vertex(bender.Vertex.create());
+            vertex.__init_vertex = graph.vertex(bender.InitVertex.create());
           }
           var edge = bender.AdapterEdge.create(vertex.__init_vertex,
             vertex, set);
@@ -709,6 +707,10 @@
 
   bender.Vertex.desc = function () {
     return "v%0".fmt(this.__index);
+  };
+
+  bender.InitVertex.desc = function () {
+    return "v%0 [init]".fmt(this.__index);
   };
 
   bender.WatchVertex.desc = function () {

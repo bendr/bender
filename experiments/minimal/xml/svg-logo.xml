@@ -7,8 +7,6 @@
   <property name="colors" value="`palette.picks(2)"/>
   <property name="bgcolor" value="`colors[0]"/>
   <property name="fgcolor" value="`colors[1]"/>
-  <property name="points"
-    value="flexo.poly_points(`sides, 42, flexo.random_int(0, 360))"/>
   <property name="clickable" as="boolean" value="true"/>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">

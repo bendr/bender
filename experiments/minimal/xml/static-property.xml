@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp" name="static-property">
+  <property name="id" select="#this" value="flexo.random_id()"/>
+  <view>
+    [`id]
+  </view>
+</component>
