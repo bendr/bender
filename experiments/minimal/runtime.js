@@ -1,10 +1,5 @@
 // HTML runtime for Bender, based on the functional core.
 
-// TODO 
-// [ ] select="*" for GetEvent: listen to notifications from anyone. Create an
-//       EventVertex that anyone can inherit from.
-// [ ] message="foo" for GetEvent, same as event="foo" delay="0"
-
 /* global console, flexo, window */
 
 (function (bender) {
@@ -315,12 +310,9 @@
       }
     }
     if (elem.hasAttribute("match")) {
-      var match = parse_value.dynamic(elem.getAttribute("match"),
-            flags.needs_return, adapter);
+      var match = parse_match(elem.getAttribute("match"), adapter);
       if (typeof match === "function") {
         adapter.match(match);
-      } else {
-        adapter.__match = match;
       }
     }
     adapter.__select = flexo.safe_trim(elem.getAttribute("select"));
@@ -348,6 +340,10 @@
   function parse_value_dynamic_string(value, needs_return, adapter) {
     return parse_value_chunks(value, needs_return, adapter,
         flags.dynamic_string);
+  }
+
+  function parse_match(value, adapter) {
+    adapter.__match = chunk_string(value, flags.dynamic);
   }
 
   // Deserialize a foreign element and its contents (attributes and children),
@@ -550,7 +546,7 @@
       delete adapter.__match;
       try {
         // jshint -W054
-        adapter.value(new Function("$in", "$scope", source));
+        adapter.match(new Function("$in", "$scope", source));
       } catch (e) {
         console.warn("Could not compile “%0” for match".fmt(source));
       }

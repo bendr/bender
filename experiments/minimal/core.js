@@ -3,14 +3,6 @@
 // the runtime, XML serialization, and other sorts of syntactic sugar.
 // Additional properties are introduced for implementation purposes.
 
-// TODO
-// [ ] stack-order for View
-// [ ] advanced selectors
-// [ ] component.notify()/.message(); node.notify() too?
-// [ ] minimize graph
-// [ ] compile graph to Javascript
-// [ ] pure property on adapters (no side effect); help minimization/compilation
-
 /* global bender, console, exports, flexo, global, require, window */
 
 (function () {
@@ -1233,7 +1225,6 @@
     // component of the watch.
     // TODO test static adapters.
     traverse: function () {
-      var index = this.source.graph.edges.indexOf(this) + 1;
       Object.keys(this.source.values).forEach(function (id) {
         var w = this.source.values[id];
         var component = this.adapter._watch.component;
