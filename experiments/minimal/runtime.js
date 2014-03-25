@@ -16,7 +16,8 @@
     dynamic_string: false,
     gets: true,
     needs_return: true,
-    set_unfinished: true
+    set_unfinished: true,
+    store_as: true
   };
 
   // Load a component from an URL and return a promise which is fulfilled once
@@ -170,6 +171,7 @@
   function deserialize_component(elem, component, url) {
     deserialize_component_attributes(elem, component, url);
     component.__links = [];
+    component.__as = {};
     var view;
     flexo.foreach(elem.childNodes, function (ch) {
       if (ch.nodeType !== window.Node.ELEMENT_NODE ||
@@ -204,7 +206,9 @@
         } else */ if (attr.localName === "name") {
           component.name(attr.value);
         } else if (attr.localName !== "href" || custom) {
-          component.properties[attr.localName] = attr.value;
+          var set = parse_init_value(component, attr.localName, attr.value);
+          if (set) {
+          }
         }
       } else if (attr.namespaceURI === bender.ns) {
         component.properties[attr.localName] = attr.value;
@@ -244,7 +248,11 @@
     }
     var watch = bender.Watch.create();
     component.watch(watch);
-    var set = deserialize_adapter(elem, bender.SetProperty.create(name));
+    var set = deserialize_adapter(elem, bender.SetProperty.create(name),
+        flags.store_as);
+    component.__as[name] = set.__as;
+    delete set.__as;
+    bender.trace("%0`%1: %2".fmt(component.__id, name, component.__as[name]));
     watch.set(set).__initializer = set;
   };
 
@@ -292,16 +300,18 @@
           bender.Set.create());
   }
 
+  // Functions to parse a value depending on the `as` parameter.
+  var parse_value = {
+    boolean: flexo.is_true,
+    dynamic: parse_value_dynamic,
+    "dynamic-string": parse_value_dynamic_string,
+    number: flexo.to_number,
+    string: flexo.id
+  };
+
   // Deserialize an adapter (get, set, property)
-  function deserialize_adapter(elem, adapter) {
+  function deserialize_adapter(elem, adapter, store_as) {
     var as = normalize_as(elem.getAttribute("as"));
-    var parse_value = {
-      boolean: flexo.is_true,
-      dynamic: parse_value_dynamic,
-      "dynamic-string": parse_value_dynamic_string,
-      number: flexo.to_number,
-      string: flexo.id
-    };
     var value = elem.hasAttribute("value") ? elem.getAttribute("value") :
       shallow_text(elem, true);
     if (value) {
@@ -318,7 +328,27 @@
       }
     }
     adapter.__select = flexo.safe_trim(elem.getAttribute("select"));
+    if (store_as) {
+      adapter.__as = as;
+    }
     return adapter.delay(elem.getAttribute("delay"));
+  }
+
+  // Parse an initial value for a component.
+  function parse_init_value(component, name, value, as) {
+    for (var p = component; p && !as; as = p.__as[name], p = p.prototype) {}
+    if (as) {
+      var set = bender.SetProperty.create(name, component);
+      var parsed_value = parse_value[as](value, true, set);
+      if (parsed_value != null) {
+        set.value(flexo.funcify(parsed_value));
+      }
+      var watch = bender.Watch.create();
+      component.watch(watch);
+      bender.trace("%0`%1: %2 (= %3)".fmt(component.__id, name, as, value));
+      watch.set(set).__initializer = set;
+      return watch;
+    }
   }
 
   // Normalize the `as` parameter to be one of dynamic (default), boolean,
@@ -509,7 +539,7 @@
 
   function resolve_select(adapter) {
     if (adapter.target) {
-      return;
+      return adapter;
     }
     var component = adapter._watch.component;
     var targets = component.select(adapter.__select);
@@ -728,44 +758,77 @@
   };
 
 
-
+  // Dump the graph to Graphviz
   bender.WatchGraph.dump = function () {
-    this.vertices.forEach(function (vertex, i) {
-      vertex.__index = i;
-    });
     if (!this.edges) {
       return;
     }
-    console.log(this.edges.map(function (edge, i) {
-      return "%0. %1 -> %2 = %3 (%4)"
-        .fmt(i + 1, edge.source.desc(), edge.dest.desc(), edge.priority,
-          edge.delay);
-    }).join("\n"));
+    var vertices = this.vertices.map(function (vertex, i) {
+      vertex.__index = i;
+      return vertex.desc();
+    }).join("\n");
+    var edges = this.edges.map(function (edge, i) {
+      var color = edge.priority === bender.InheritEdge.priority ?
+        "#f8ca00" : edge.priority < 0 ? "#ff6a4d" :
+        edge.priority > 0 ? "#f94179" : "#000000";
+      return "v%0 -> v%1 [label=\"%2\", color=\"%3\"]"
+        .fmt(edge.source.__index, edge.dest.__index, i + 1, color);
+    }).join("\n");
+    var components = "";
+    var component_boxes = {};
+    var queue = [bender.Node.__nodes["0"]];
+    while (queue.length > 0) {
+      var q = queue.shift();
+      if (!component_boxes[q.__id]) {
+        component_boxes[q.__id] = "%0[%1]".fmt(q.name(), q.__id);
+        components += "k_%0 [label=\"%1\", shape=box];\n"
+          .fmt(q.__id, component_boxes[q.__id]);
+        var prototype = q.prototype;
+        if (prototype) {
+          components += "k_%0 -> k_%1 [color=\"#f94179\", dir=back]\n"
+            .fmt(prototype.__id, q.__id);
+          queue.push(prototype);
+        }
+        q.children.forEach(function (child) {
+          components += "k_%0 -> k_%1\n".fmt(q.__id, child.__id);
+          queue.push(child);
+        });
+      }
+    }
+    var gv = "digraph bender {\n" +
+      "node [fontname=\"Avenir Next\"]\n" +
+      "edge [fontname=\"Avenir Next\"]\n" +
+      components + "\n" + vertices + "\n" + edges + "\n}";
     this.vertices.forEach(function (vertex) {
       delete vertex.__index;
     });
+    window.open("data:text/vnd.graphviz;base64," +
+        window.btoa(gv), "Graph");
   };
 
   bender.Vertex.desc = function () {
-    return "v%0".fmt(this.__index);
+    return "v%0 [shape=triangle, label=\"%0\"]".fmt(this.__index);
   };
 
   bender.InitVertex.desc = function () {
-    return "v%0 [init]".fmt(this.__index);
+    return "v%0 [shape=point, label=\"\", color=\"#ff6a4d\"]".fmt(this.__index);
   };
 
   bender.WatchVertex.desc = function () {
-    return "v%0 [watch of %1]".fmt(this.__index, this._watch.component.name());
+    return "v%0 [label=\"%1\", shape=square, fixedsize=true, width=0.4]"
+      .fmt(this.__index, this._watch.component.__id);
   };
 
   bender.PropertyVertex.desc = function () {
-    return "v%0 [%1`%2]".fmt(this.__index, this.adapter.target.name(),
-        this.adapter.name);
+    return "v%0 [label=\"%1[%2]`%3\"]"
+      .fmt(this.__index, this.adapter.target.name(), this.adapter.target.__id,
+          this.adapter.name);
   };
 
   bender.EventVertex.desc = function () {
-    return "v%0 [%1!%2]".fmt(this.__index, this.adapter.target.name(),
-        this.adapter.type);
+    return "v%0 [label=\"%1[%2]!%3\", shape=septagon]"
+      .fmt(this.__index, this.adapter.target.name(), this.adapter.target.__id,
+          this.adapter.type);
   };
 
 
