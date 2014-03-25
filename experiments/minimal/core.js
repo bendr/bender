@@ -18,6 +18,7 @@
   bender.version = "0.9";
 
   var flags = {
+    dont_create: true,
     flush: true,
     silent: true
   };
@@ -333,6 +334,10 @@
       if (!this.view.scope) {
         this.names = {};
         this.view.scope = {};
+        var document_element = this.view.document_element(flags.dont_create);
+        if (document_element) {
+          this.view.scope[document_element.__id] = document_element;
+        }
         flexo.beach(this.view, function (elem) {
           this.update_scope(elem);
           return elem.children;
@@ -454,21 +459,27 @@
   });
 
   // All concrete components, including those of clones.
-  Object.defineProperty(bender.Component, "all", {
+  Object.defineProperty(bender.Node, "all", {
     enumerable: true,
     get: function () {
       if (!this._all) {
         var all = [];
-        this.__clones.forEach(function (clone) {
-          flexo.push_all(all, clone.all);
-        }, this);
-        this.__concrete.forEach(function (concrete) {
-          if (concrete !== this) {
-            flexo.push_all(all, concrete.all);
-          } else {
-            all.push(this);
-          }
-        }, this);
+        if (this.hasOwnProperty("__clones")) {
+          this.__clones.forEach(function (clone) {
+            flexo.push_all(all, clone.all);
+          }, this);
+        }
+        if (this.hasOwnProperty("__concrete")) {
+          this.__concrete.forEach(function (concrete) {
+            if (concrete !== this) {
+              flexo.push_all(all, concrete.all);
+            } else {
+              all.push(this);
+            }
+          }, this);
+        } else if (all.length === 0) {
+          all.push(this);
+        }
         this._all = all;
       }
       return this._all;
@@ -567,8 +578,8 @@
     },
 
     // Get the document element for this component, creating it if necessary.
-    document_element: function () {
-      if (!this.__document_element) {
+    document_element: function (dont_create) {
+      if (!this.__document_element && !dont_create) {
         this.__document_element = bender.DocumentElement.create();
         Object.defineProperty(this.__document_element, "view", {
           enumerable: true,

@@ -1,5 +1,6 @@
 <component xmlns="http://bender.igel.co.jp" name="arrow">
 
+  <property name="ev"/>
   <property name="angle" value="flexo.random_int(360)"/>
   <property name="v" value="flexo.random_int(50)"/>
   <property name="r" as="number" value="20"/>
@@ -17,11 +18,17 @@
   </view>
 
   <watch>
-    <get select=":document" event="click"
-      value="flexo.event_svg_point($in, @@svg) || flexo.fail()"/>
-    <set>
-      console.log("Click: %0, %1".fmt($in.x.toFixed(2), $in.y.toFixed(2)));
-    </set>
+    <get select=":document" event="mousemove"/>
+    <set property="ev"/>
+  </watch>
+
+  <watch>
+    <get property="ev">
+      var pt = flexo.event_svg_point($in, @@svg);
+      console.log("Solve ev for %0".fmt(@svg.__id), pt);
+      return pt || flexo.fail();
+      return flexo.event_svg_point($in, @@svg) || flexo.fail();
+    </get>
     <set property="angle"
       value="flexo.remap(Math.atan2($in.y, $in.x), -π, π, -180, 180)"/>
     <set property="v">
