@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Wed 12 Mar 2014</p>
+    <p>Version 0.9, Tue 25 Mar 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -114,9 +114,11 @@
             <code>Component</code>s formed by the prototype and its prototype
             chain. The prototype chain must not contain any cycle,
             <em>i.e.</em>, a component cannot inherit from itself either
-            directly or indirectly. <span class="TODO">Do
-              <code>Component</code>s inherit from a fundamental component by
-              default?</span></li>
+            directly or indirectly. A <code>Component</code> <em>C</em> is said
+            to <em>conform to the prototype</em> of another component <em>P</em>
+            if and only if <em>C</em> is <em>P</em>, or the prototype
+            <em>C’</em> of <em>C</em> conforms to the prototype of
+            <em>P</em>.</li>
             <li><code>properties</code> is the list of all property values for
             this component, indexed by their name. From this list, the set of
             <em>defined properties</em> can be derived, and is the set of
@@ -129,19 +131,13 @@
               would not be inherited.</span></li>
             <li><code>view</code> is the root of the view tree of this
             component. A component always has a view, but it may be a default
-            view. <span class="TODO">We may allow components to not have a view;
-              then they are still part of the component tree, but not the view
-              tree and are not rendered but still cloned when the component is
-              rendered.</span></li>
+            view. <span class="TODO">Actually, the view can be optional and
+            will be in the future.</span></li>
             <li><code>watches</code> is the set of the <code>Watch</code>es of
             the component.</li>
           </ul>
         </div>
       </div>
-      <p>A <code>Component</code> <em>C</em> is said to <em>conform to the
-        prototype</em> of another component <em>P</em> if and only if <em>C</em>
-      is <em>P</em>, or the prototype <em>C’</em> of <em>C</em> conforms to the
-      prototype of <em>P</em>.</p>
     </section>
 
     <section id="view-elements">
@@ -173,11 +169,15 @@
           component.</p>
           <div>
             <pre>View &lt; Element
-  Component  component
-  boolean    default</pre>
+  Component         component
+  DocumentElement?  document-element
+  boolean           default</pre>
             <ul>
               <li><code>component</code> is the <code>Component</code> that this
               is the view of.</li>
+              <li><code>document-element</code> is the optional element
+              representing the DOM document in which the view gets displayed
+              (see definition below.)</li>
               <li><code>default</code> is a flag that distinguishes the absence
               of content from an <em>empty view</em>. If this flag is set, then
               there must be no <code>children</code>. On the other hand, an
@@ -196,10 +196,9 @@
           the default), <code>bottom</code> (put the view at the bottom of the
           stack), and <code>replace</code> (replace all views within the stack
           with this view.)</span></p>
-        <p><span class="TODO">A <code>View</code> element can appear as a
-          descendant of another view element if it is the view of a descendant
-          of the component of the ancestor view. A <code>target</code> attribute
-          matches the view with its component.</span></p>
+        <p>A <code>View</code> element can appear as a descendant of another
+        <code>View</code> element if and only if it is the view of a descendant
+        of the component of the ancestor view.</p>
       </section>
 
       <section id="content">
@@ -231,7 +230,8 @@
           (<em>i.e.</em>, not a Bender element.) It has a namespace URI and a
           local name like a DOM element; its attributes are
           <code>Attribute</code>s elements, and its contents are any other
-          <code>Element</code>.</p>
+          <code>Element</code>. A <code>DOMElement</code> will be rendered as is
+          in the target document when the component is rendered.</p>
           <div>
             <pre>DOMElement &lt; Element
   string  namespace-uri
@@ -240,6 +240,27 @@
               <li><code>namespace-uri</code> is the namespace URI of the DOM
               element.</li>
               <li><code>local-name</code> is the local name of the DOM
+              element.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="document-element">
+        <h3>DocumentElement</h3>
+        <div class="def" id="DOMElement">
+          <p>The <code>DocumentElement</code> element is a special
+          <code>DOMElement</code> representing the DOM document in which the
+          Bender component is displayed. It is not part of the view but may be
+          accessed from the component, for instance to add event listeners. Each
+          view may maintain a link to its own <code>DocumentElement</code>.
+          <span class="TODO">Similar elements could exist for the document
+            element, the head and the body elements when applicable.</span>
+          <div>
+            <pre>DocumentElement &lt; DOMElement</pre>
+            <ul>
+              <li><strong>Note</strong>: the <code>namespace-uri</code> and
+              <code>local-name</code> values are not defined for this
               element.</li>
             </ul>
           </div>
@@ -297,7 +318,7 @@
       (<em>e.g.</em>, DOM events), and event notifications and property changes
       from <code>Component</code>s; and associating these occurrences with
       corresponding actions, such as generating new event notifications, setting
-      new values for properties, or mutating a component.</p>
+      new values for properties, or updating a component.</p>
 
       <section id="watch">
         <h3>Watch</h3>
@@ -326,8 +347,8 @@
       <section id="adapters">
         <h3>Adapters</h3>
         <div class="def" id="Adapter">
-          <p>An <code>Adapter</code> filters and transforms an input value into
-          an output value, with an optional delay, in the context of a
+          <p>An <code>Adapter</code> filters and transforms input values into
+          output values, with an optional delay, in the context of a
           <em>target</em> <code>Node</code>.</p>
           <div>
             <pre>Adapter &lt; Object
@@ -346,11 +367,10 @@
               target depends on the specific <code>Adapter</code>.</li>
               <li><code>static</code> is a flag that defines whether the
               <code>Adapter</code> applies to a static target (when set) or a
-              <em>runtime target</em> (otherwise), meaning any <code>Node</code>
-              that is, or <em>derives</em> from, the static target
-              <code>Node</code>. A <code>Component</code> node derives from any
-              component in its prototype chain; an <code>Element</code> node
-              derives from another node if it was cloned from this node.</li>
+              <em>runtime target</em> (when unset, which is the default.) A
+              runtime target is any <code>Node</code> that was rendered from
+              this <code>Node</code> (<em>i.e.</em>, the target
+              <code>Node</code> or a copy of it made during rendering.)</li>
               <li><code>match</code> is a predicate that takes a
               <code>Node</code> (the input target) and <code>data</code> (the
               <em>input value</em>) as input and returns a boolean value that is
@@ -595,9 +615,9 @@
         <code>Plus</code> and <code>Minus</code> buttons above.</p>
         <div>
           <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
-  &lt;property name="label" as="string" value="OK"&gt;
-  &lt;property name="enabled" value="true"&gt;
-  &lt;property name="down" value="false"&gt;
+  &lt;property name="label" as="string" value="OK"/&gt;
+  &lt;property name="enabled" value="true"/&gt;
+  &lt;property name="down" value="false"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div name="frame"&gt;
       &lt;attribute name="class"&gt;
@@ -613,11 +633,11 @@
     &lt;set select="@text-label"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">5</span>
-    &lt;get select="@frame" event="mousedown"/&gt;
+    &lt;get select="@frame" event="mousedown" prevent-default="true"/&gt;
     &lt;set property="down" match="`enabled" value="true"/&gt;
   &lt;/watch&gt;
   &lt;watch&gt; <span class="watch">6</span>
-    &lt;get select="@frame" event="mouseup"/&gt;
+    &lt;get select=":document" event="mouseup"/&gt;
     &lt;set event="pushed" match="`down"/&gt;
     &lt;set property="down" value="false"/&gt;
   &lt;/watch&gt;
@@ -625,8 +645,8 @@
     &lt;get property="down"/&gt;
     &lt;get property="enabled"/&gt;
     &lt;set select="@text-class"&gt;
-      return "%0 %1".fmt(`down ? "down" : "", `enabled ? "" : "disabled");
-    &lt;/set
+      return "button%0%1".fmt(`down ? " down" : "", `enabled ? "" : " disabled");
+    &lt;/set&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
           <ul>
@@ -652,11 +672,11 @@
               <li>the input is a <code>GetProperty</code>. The
               <code>target</code> is the <code>Button</code> component, and the
               <code>property</code> is the <code>label</code> property of
-              <code>Button</code>;</li> <li>the output is a
-              <code>SetNodeProperty</code>. The target <code>Node</code> is the
-              <code>text-label</code> text element, and the property to set
-              defaults to <code>text</code> in the absence of a
-              <code>property</code> attribute.</li>
+              <code>Button</code>;</li>
+              <li>the output is a <code>SetNodeProperty</code>. The target
+              <code>Node</code> is the <code>text-label</code> text element, and
+              the property to set defaults to <code>text</code> in the absence
+              of a <code>property</code> attribute.</li>
             </ul>
             The effect of this watch is to display the value of the
             <code>label</code> string in the button.</li>
@@ -681,8 +701,9 @@
             input and two outputs:
             <ul>
               <li>the input is a <code>GetEvent</code>. The <code>target</code>
-              is the <code>frame</code> <code>DOMElement</code>, and the event
-              <code>type</code> is <code>mouseup</code>;</li>
+              is the whole document, as represented by a
+              <code>DocumentElement</code>, and the event <code>type</code> is
+              <code>mouseup</code>;</li>
               <li>the first output is a <code>SetEvent</code>. The target is
               the <code>Button</code> <code>Component</code>, and the
               <code>type</code> of the event is <code>pushed</code>. The
@@ -710,7 +731,7 @@
               <code>property</code> is the <code>enabled</code> property;</li>
               <li>the output is a <code>SetNodeProperty</code>, targeting the
               <code>text-class</code> <code>Text</code> element, which is the
-              child of an <code>Attribute</code> element for the 
+              child of an <code>Attribute</code> element for the
               <code>class</code> attribute of its parent. The value is a
               function that returns a class value containing the class
               <code>down</code> if the <code>down</code> property is true, and
@@ -732,8 +753,9 @@
       parent/child relationships. Pink arrows point to a prototype. Blue arrows
       point from a <code>Component</code> to its <code>View</code>.
       <code>Component</code> nodes are shown as ellipses, while view
-      <code>Element</code>s are shown as small boxes. Watches and properties do
-      not appear in this graph.</p>
+      <code>Element</code>s are shown as small boxes.
+      <code>DocumentElement</code>s, which are not part of the hierarchy, as
+      well as watches and properties, do not appear in this graph.</p>
 
       <figure id="fig-component-graphs">
         <img src="fig/panel.svg">

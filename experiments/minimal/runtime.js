@@ -11,9 +11,9 @@
   var urls = {};  // URL map for loaded resources
 
   var flags = {
+    as_is: true,
     dynamic: true,
     dynamic_string: false,
-    as_is: true,
     gets: true,
     needs_return: true,
     set_unfinished: true
@@ -278,7 +278,9 @@
     return deserialize_adapter(elem, get);
   }
 
-  // Deserialize a set element
+  // Deserialize a set element. The actual kind of set cannot be determined yet
+  // as the target needs to be resolved first, so we make a first guess and may
+  // need to revise it later.
   function deserialize_set(elem) {
     return deserialize_adapter(elem, elem.hasAttribute("event") ?
           bender.SetEvent.create(elem.getAttribute("event")) :
@@ -514,7 +516,30 @@
     adapter.target = targets[0][0];
     adapter.static = targets[0][1];
     delete adapter.__select;
+    return adapter.resolved();
   }
+
+  bender.Adapter.resolved = flexo.self;
+
+  bender.Text.default_property = "text";
+
+  bender.Set.resolved = function () {
+    if (this.target.default_property) {
+      return bender.SetNodeProperty.create(this.target.default_property,
+          this.target);
+    }
+    return this;
+  };
+
+  bender.DOMElement.set_node_property = true;
+  bender.Text.set_node_property = true;
+
+  bender.SetProperty.resolved = function () {
+    if (this.target.set_node_property) {
+      return bender.SetNodeProperty.create(this.property, this.target);
+    }
+    return this;
+  };
 
   function resolve_value(adapter, gets) {
     if (adapter.__value) {
@@ -551,9 +576,25 @@
     }
   }
 
-  function resolve_adapter(adapter, gets) {
+  function resolve_adapter(adapter) {
+    var resolved = resolve_select(adapter);
+    resolve_value(adapter);
+    resolve_match(adapter);
+    if (resolved !== adapter) {
+      resolved.value(adapter.value());
+      resolved.match(adapter.match());
+      resolved.delay(adapter.delay());
+      resolved.static = adapter.static;
+      resolved._watch = adapter._watch;
+      delete adapter._watch;
+      bender.trace("Replacing adapter:", adapter, resolved);
+    }
+    return resolved;
+  }
+
+  function resolve_adapter_gets(adapter) {
     resolve_select(adapter);
-    gets = resolve_value(adapter, gets);
+    var gets = resolve_value(adapter, flags.gets);
     resolve_match(adapter);
     return gets;
   }
@@ -622,7 +663,7 @@
     var $super = bender.Watch.render_subgraph;
     bender.Watch.render_subgraph = function (graph) {
       if (this.__initializer) {
-        var gets = resolve_adapter(this.__initializer, flags.gets);
+        var gets = resolve_adapter_gets(this.__initializer);
         var set = this.__initializer;
         resolve_select(set);
         this.component.property(set.name);
@@ -646,7 +687,7 @@
       } else {
         var resolve__bound = resolve_adapter.bind(this);
         this.gets.forEach(resolve__bound);
-        this.sets.forEach(resolve__bound);
+        this.sets = this.sets.map(resolve__bound);
         if (this.__text) {
           // jshint -W054
           var source = "return " + unchunk_string(this.sets[0], this.__text);

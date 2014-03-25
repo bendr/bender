@@ -749,7 +749,8 @@
       this._text = flexo.safe_string(text);
       if (this.node) {
         this.node.textContent = this._text;
-      } else if (this.parent && typeof this.parent.update_value === "function") {
+      } else if (this.parent && typeof
+        this.parent.update_value === "function") {
         this.parent.update_value();
       }
       return this;
@@ -838,7 +839,9 @@
 
     vertex: function (graph, name, vertices_name, prototype_vertex) {
       var vertices = this.target[vertices_name];
-      if (!vertices.hasOwnProperty(name)) {
+      if (!vertices) {
+        return graph.vortex;
+      } else if (!vertices.hasOwnProperty(name)) {
         vertices[name] = graph.vertex(prototype_vertex.create(this, graph));
         var prototype = Object.getPrototypeOf(this.target);
         if (vertices_name in prototype) {

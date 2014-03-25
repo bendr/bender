@@ -1,0 +1,35 @@
+<component xmlns="http://bender.igel.co.jp" name="Button">
+  <property name="label" as="string" value="OK"/>
+  <property name="enabled" value="true"/>
+  <property name="down" value="false"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div name="frame">
+      <attribute name="class">
+        <text name="text-class"/>
+      </attribute>
+      <content>
+        <text name="text-label"/>
+      </content>
+    </html:div>
+  </view>
+  <watch>
+    <get property="label"/>
+    <set select="@text-label"/>
+  </watch>
+  <watch>
+    <get select="@frame" event="mousedown" prevent-default="true"/>
+    <set property="down" match="`enabled" value="true"/>
+  </watch>
+  <watch>
+    <get select=":document" event="mouseup"/>
+    <set event="pushed" match="`down"/>
+    <set property="down" value="false"/>
+  </watch>
+  <watch>
+    <get property="down"/>
+    <get property="enabled"/>
+    <set select="@text-class">
+      return "button%0%1".fmt(`down ? " down" : "", `enabled ? "" : " disabled");
+    </set>
+  </watch>
+</component>

@@ -1,0 +1,23 @@
+<component xmlns="http://bender.igel.co.jp" name="Panel">
+  <property name="n" value="0"/>
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:div>
+      <text name="text-n"/>
+      <component href="button.xml" name="Plus" label="+"/>
+      <component href="button.xml" name="Minus" label="—"/>
+    </html:div>
+  </view>
+  <watch>
+    <get select="@Plus" event="pushed"/>
+    <set property="n" value="`n + 1"/>
+  </watch>
+  <watch>
+    <get select="@Minus" event="pushed"/>
+    <set property="n" value="`n - 1"/>
+  </watch>
+  <watch>
+    <get property="n"/>
+    <set select="@text-n"/>
+    <set select="@Minus" property="enabled" value="$in &gt; 0"/>
+  </watch>
+</component>
