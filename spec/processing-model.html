@@ -345,7 +345,9 @@
         G.vertices &lt;- V’
         G.edges &lt;- new InitEdge(V’, V, S)</pre>
         <p><span class="TODO">Only the prototype vertex should have an
-          <code>InitEdge</code>.</span></p>
+          <code>InitEdge</code>; however, the runtime has a different behavior
+          where each component with an initial value would have a different edge
+          since the value is on the edge.</p>
 
         <p>To illustrate the rendering of the watch graph, review the
         <code>Panel</code> component from the <a

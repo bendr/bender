@@ -54,6 +54,7 @@
       flexo.Object.init.call(this);
       this.children = [];
       this.__clones = [];
+      this.__concrete = [];
       this.__set_id();
     },
 
@@ -137,7 +138,6 @@
       this.create_objects();
       this.watches = [];
       this.set_view(view);
-      this.__concrete = [];
       delete this._all;
       this.__render_subgraph = true;        // delete when rendered
       return this.name(flexo.random_id());  // set a random name
@@ -417,34 +417,6 @@
     }
   });
 
-  // All concrete components, including those of clones.
-  Object.defineProperty(bender.Node, "all", {
-    enumerable: true,
-    get: function () {
-      if (!this._all) {
-        var all = [];
-        if (this.hasOwnProperty("__clones")) {
-          this.__clones.forEach(function (clone) {
-            flexo.push_all(all, clone.all);
-          }, this);
-        }
-        if (this.hasOwnProperty("__concrete")) {
-          this.__concrete.forEach(function (concrete) {
-            if (concrete !== this) {
-              flexo.push_all(all, concrete.all);
-            } else {
-              all.push(this);
-            }
-          }, this);
-        } else if (all.length === 0) {
-          all.push(this);
-        }
-        this._all = all;
-      }
-      return this._all;
-    }
-  });
-
   // Return the prototype component of the component, or undefined.
   // Because we use prototype inheritance, a component with no component
   // prototype still has bender.Component as its object prototype. Moreover, a
@@ -612,6 +584,7 @@
 
     // Render in the target element.
     render: function (target, stack, i) {
+      this.__concrete.push(this);
       this.element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
       this.render_children(this.element, stack, i);
@@ -651,6 +624,7 @@
     // Render the event listeners once, but dispatch a new value for all
     // concrete renderings.
     render: function () {
+      this.__concrete.push(this);
       if (!this.hasOwnProperty("__clones")) {
         return Object.getPrototypeOf(this).render();
       }
@@ -1263,7 +1237,7 @@
         if (this.static || !this.adapter.target.all) {
           this.dest.value(target, value);
         } else {
-          this.adapter.target.all.forEach(function (concrete) {
+          this.adapter.target.__concrete.forEach(function (concrete) {
             this.dest.value(concrete, value);
           }, this);
         }
