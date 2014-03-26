@@ -489,11 +489,11 @@
   }());
 
 
-  bender.Link = flexo._ext(bender.Base, {
+  bender.Link = flexo._ext(flexo.Object, {
     init: function (rel, href) {
+      flexo.Object.init.call(this);
       this.rel = flexo.safe_trim(rel).toLowerCase();
       this.href = flexo.safe_trim(href);
-      return bender.Base.init.call(this);
     },
 
     load: function () {
@@ -510,11 +510,11 @@
     }
   });
 
-  bender.Inline = flexo._ext(bender.Base, {
+  bender.Inline = flexo._ext(flexo.Object, {
     init: function (elem) {
+      flexo.Object.init.call(this);
       this.elem = elem;
       this.__unloaded = true;
-      return bender.Base.init.call(this);
     }
   });
 

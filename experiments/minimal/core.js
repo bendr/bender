@@ -43,32 +43,18 @@
   });
 
 
-  // Base for all objects (init and create.)
-  bender.Base = {
-
-    // The initializer for a Base object must return the initialized object.
-    init: flexo.self,
-
-    // A convenience method to create a new object and initialize it by calling
-    // init with the given arguments
-    create: function () {
-      return this.init.apply(Object.create(this), arguments);
-    }
-  };
-
-
   // Node < Object
   //   Node?    parent
   //   Node*    children
   //   string?  name
-  bender.Node = flexo._ext(bender.Base, {
+  bender.Node = flexo._ext(flexo.Object, {
 
     // Create a new node with no children and no parent.
     init: function () {
+      flexo.Object.init.call(this);
       this.children = [];
       this.__clones = [];
       this.__set_id();
-      return bender.Base.init.call(this);
     },
 
     // Set a unique id on the node (for debugging purposes)
@@ -638,10 +624,10 @@
 
     // Attributes are index by namespace URI, then by local name.
     init: function (ns, name) {
+      bender.Element.init.call(this);
       this.namespace_uri = ns;
       this.local_name = name;
       this.event_vertices = {};
-      return bender.Element.init.call(this);
     },
 
     // Keep track of the original set of vertices when cloned.
@@ -725,9 +711,9 @@
   bender.Attribute = flexo._ext(bender.Element, {
 
     init: function (ns, name) {
+      bender.Element.init.call(this);
       this.namespace_uri = ns;
       this.local_name = name;
-      return bender.Element.init.call(this);
     },
 
     // Call render when one of the children changes.
@@ -787,13 +773,13 @@
   //   Component  component
   //   Get*       gets
   //   Set*       sets
-  bender.Watch = flexo._ext(bender.Base, {
+  bender.Watch = flexo._ext(flexo.Object, {
 
     // Initialize an empty watch.
     init: function () {
+      flexo.Object.init.call(this);
       this.gets = [];
       this.sets = [];
-      return bender.Base.init.call(this);
     },
 
     // Add a new adapter (get or set) to the corresponding list.
@@ -840,12 +826,12 @@
   //   boolean   match(Node T, data V) = true
   //   data      value(Node T, data V) = V
   //   number?   delay
-  bender.Adapter = flexo._ext(bender.Base, {
+  bender.Adapter = flexo._ext(flexo.Object, {
 
     // Initialize the adapter for the given static target.
     init: function (target) {
+      flexo.Object.init.call(this);
       this.target = target;
-      return bender.Base.init.call(this);
     },
 
     vertex: function (graph, name, vertices_name, prototype_vertex) {
@@ -894,8 +880,8 @@
   //   string  name
   bender.GetProperty = flexo._ext(bender.Get, {
     init: function (name, target) {
+      bender.Get.init.call(this, target);
       this.name = name;
-      return bender.Get.init.call(this, target);
     },
 
     vertex: function (graph) {
@@ -909,8 +895,8 @@
   //   string  type
   bender.GetEvent = flexo._ext(bender.Get, {
     init: function (type, target) {
+      bender.Get.init.call(this, target);
       this.type = type;
-      return bender.Get.init.call(this, target);
     },
 
     vertex: function (graph) {
@@ -939,8 +925,8 @@
   //   Property  property
   bender.SetProperty = flexo._ext(bender.Set, {
     init: function (name, target) {
+      bender.Set.init.call(this, target);
       this.name = name;
-      return bender.Set.init.call(this, target);
     },
 
     vertex: bender.GetProperty.vertex,
@@ -961,8 +947,8 @@
   //   string  name
   bender.SetNodeProperty = flexo._ext(bender.Set, {
     init: function (name, target) {
+      bender.Set.init.call(this, target);
       this.name = name;
-      return bender.Set.init.call(this, target);
     },
 
     apply_value: function (target, value) {
@@ -977,8 +963,8 @@
   //   string  type
   bender.SetEvent = flexo._ext(bender.Set, {
     init: function (type, target) {
+      bender.Set.init.call(this, target);
       this.type = type;
-      return bender.Set.init.call(this, target);
     },
 
     vertex: bender.GetEvent.vertex
@@ -989,13 +975,13 @@
   //   Vertex+  vertices
   //   Vertex   vortex
   //   Edges*   edges
-  bender.WatchGraph = flexo._ext(bender.Base, {
+  bender.WatchGraph = flexo._ext(flexo.Object, {
 
     init: function () {
+      flexo.Object.init.call(this);
       this.vertices = [];
       this.vortex = this.vertex(bender.Vertex.create(this));
       this.schedule = [];
-      return bender.Base.init.call(this);
     },
 
     vertex: function (vertex) {
@@ -1131,15 +1117,15 @@
   //   Edge*  incoming
   //   Edge*  outgoing
   //   data*  values
-  bender.Vertex = flexo._ext(bender.Base, {
+  bender.Vertex = flexo._ext(flexo.Object, {
 
     init: function (graph) {
+      flexo.Object.init.call(this);
       this.graph = graph;
       this.incoming = [];
       this.outgoing = [];
       this.values = {};
       this.ordered_values = [];
-      return bender.Base.init.call(this);
     },
 
     // Set a value for a target. If the flush flag is set, schedule a graph
@@ -1169,8 +1155,8 @@
   //   Watch  watch
   bender.WatchVertex = flexo._ext(bender.Vertex, {
     init: function (watch) {
+      bender.Vertex.init.call(this);
       this._watch = watch;
-      return bender.Vertex.init.call(this);
     }
   });
 
@@ -1179,8 +1165,8 @@
   //   Adapter  adapter
   bender.AdapterVertex = flexo._ext(bender.Vertex, {
     init: function (adapter, graph) {
+      bender.Vertex.init.call(this, graph);
       this.adapter = adapter;
-      return bender.Vertex.init.call(this, graph);
     }
   });
 
@@ -1196,16 +1182,16 @@
   // Edge < Object
   //   Vertex  source
   //   Vertex  dest
-  bender.Edge = flexo._ext(bender.Base, {
+  bender.Edge = flexo._ext(flexo.Object, {
 
     // Initialize the edge with both source and destination, and add the edge to
     // the incoming and outoing list of source and dest.
     init: function (source, dest) {
+      flexo.Object.init.call(this);
       this.source = source;
       this.dest = dest;
       this.source.outgoing.push(this);
       this.dest.incoming.push(this);
-      return bender.Base.init.call(this);
     },
 
     // InheritEdge have a lower priority, while
@@ -1259,8 +1245,8 @@
   //   Adapter  adapter
   bender.AdapterEdge = flexo._ext(bender.Edge, {
     init: function (source, dest, adapter) {
+      bender.Edge.init.call(this, source, dest);
       this.adapter = adapter;
-      return bender.Edge.init.call(this, source, dest);
     },
 
     // Find the runtime target of the adapter and the runtime component of its
