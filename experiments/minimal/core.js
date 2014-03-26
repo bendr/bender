@@ -140,7 +140,6 @@
       this.__concrete = [];
       delete this._all;
       this.__render_subgraph = true;        // delete when rendered
-      this.__render_subgraph_init = true;   // likewise
       return this.name(flexo.random_id());  // set a random name
     },
 
@@ -338,32 +337,6 @@
       this.watches.forEach(function (watch) {
         watch.render_subgraph(graph);
       });
-      return this.render_subgraph_init(graph);
-    },
-
-    // Add initialization vertices and edges for properties.
-    render_subgraph_init: function (graph) {
-      if (!this.__render_subgraph_init) {
-        return graph;
-      }
-      delete this.__render_subgraph_init;
-      var prototype = this.prototype;
-      if (prototype) {
-        this.prototype.render_subgraph_init(graph);
-      }
-      this.children.forEach(function (child) {
-        child.render_subgraph_init(graph);
-      }, this);
-      Object.keys(this.properties).forEach(function (property) {
-        var vertex = this.property_vertices[property];
-        if (!vertex) {
-          return;
-        }
-        if (!vertex.__init_vertex) {
-          vertex.__init_vertex = graph.vertex(bender.InitVertex.create());
-          graph.edge(bender.InitEdge.create(vertex.__init_vertex, vertex));
-        }
-      }, this);
       return graph;
     },
 
@@ -382,8 +355,8 @@
       });
       for (var property in this.properties) {
         var vertex = this.property_vertices[property];
-        if (vertex && vertex.__init_vertex) {
-          vertex.__init_vertex.value(this, this.properties[property],
+        if (vertex && vertex.__init_edge) {
+          vertex.__init_edge.source.value(this, this.properties[property],
               flags.flush);
         }
       }
@@ -845,9 +818,6 @@
           var protovertex = prototype[vertices_name][name];
           if (protovertex) {
             graph.edge(bender.InheritEdge.create(protovertex, vertices[name]));
-            if (protovertex.__init_vertex) {
-              vertices[name].__init_vertex = protovertex.__init_vertex;
-            }
             protovertex.outgoing.forEach(function (edge) {
               if (edge.priority === 0) {
                 var edge_ = Object.create(edge);
@@ -885,8 +855,14 @@
     },
 
     vertex: function (graph) {
-      return bender.Adapter.vertex.call(this, graph, this.name,
+      var vertex = bender.Adapter.vertex.call(this, graph, this.name,
         "property_vertices", bender.PropertyVertex);
+      if (!vertex.__init_edge) {
+        graph.edge(vertex.__init_edge = bender.InitEdge
+          .create(graph.vertex(bender.InitVertex.create()), vertex,
+            bender.SetProperty.create(this.name, this.target)));
+      }
+      return vertex;
     }
   });
 
@@ -1209,6 +1185,7 @@
 
 
   // InheritEdge < Edge
+  //   number priority = -1
   bender.InheritEdge = flexo._ext(bender.Edge, {
 
     // Give low priority during edge sort
@@ -1229,19 +1206,13 @@
   });
 
 
-  // InitEdge < Edge
-  bender.InitEdge = flexo._ext(bender.Edge, {
-    priority: -0.5
-  });
-
-
   // An inert edge is just used for sorting and has zero effect.
   bender.InertEdge = flexo._ext(bender.Edge, {
     traverse: flexo.nop
   });
 
 
-  // AdapterEdge < Object:
+  // AdapterEdge < Edge:
   //   Adapter  adapter
   bender.AdapterEdge = flexo._ext(bender.Edge, {
     init: function (source, dest, adapter) {
@@ -1257,7 +1228,8 @@
     // component of the watch.
     traverse: function () {
       this.source.ordered_values.forEach(function (w) {
-        var component = this.adapter._watch.component;
+        var component = this.adapter._watch && this.adapter._watch.component ||
+          this.adapter.target;
         var target = this.adapter.target;
         var scope = component.view.scope;
         if (w[0].view && w[0].view.stack && !this.adapter.static) {
@@ -1301,6 +1273,13 @@
 
   flexo._get(bender.AdapterEdge, "delay", function () {
     return this.adapter.delay();
+  });
+
+
+  // InitEdge < AdapterEdge
+  //   number priority = -0.5
+  bender.InitEdge = flexo._ext(bender.AdapterEdge, {
+    priority: -0.5
   });
 
 }());

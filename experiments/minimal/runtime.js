@@ -704,14 +704,8 @@
             resolve_select(get);
           }, this);
         } else {
-          var vertex = set.vertex(graph);
-          if (!vertex.__init_vertex) {
-            vertex.__init_vertex = graph.vertex(bender.InitVertex.create());
-          }
-          var edge = bender.AdapterEdge.create(vertex.__init_vertex,
-            vertex, set);
-          edge.priority = bender.InitEdge.priority;
-          graph.edge(edge);
+          var vertex = set.vertex(graph, "properties");
+          vertex.__init_edge.adapter = set;
           return;
         }
       } else {

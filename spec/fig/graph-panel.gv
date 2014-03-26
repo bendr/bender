@@ -43,4 +43,13 @@ digraph bender {
   w7 -> t [label=" 20"];
   w3 -> t [label=" 21"];
 
+  init_n [shape=point, label="", color="#ff6a4d"]
+  init_n -> n [color="#ff6a4d", label=" 8.5"];
+  init_enabled [shape=point, label="", color="#ff6a4d"]
+  init_enabled -> enabled [color="#ff6a4d", label=" 11.5"];
+  init_down [shape=point, label="", color="#ff6a4d"]
+  init_down -> down [color="#ff6a4d", label=" 14.5"];
+  init_label [shape=point, label="", color="#ff6a4d"]
+  init_label -> label [color="#ff6a4d", label=" 17.5"];
+
 }
