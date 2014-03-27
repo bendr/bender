@@ -20,6 +20,7 @@
   var flags = {
     dont_create: true,
     flush: true,
+    no_concrete: true,
     silent: true
   };
 
@@ -61,7 +62,7 @@
     // Set a unique id on the node (for debugging purposes)
     __set_id: function (protoid) {
       var id = (bender.Node.__id++).toString(36).toUpperCase();
-      this.__id = protoid ? "%0(%1)".fmt(id, protoid) : id;
+      this.__id = protoid ? "%1_%0".fmt(id, protoid) : id;
       this.__nodes[id] = this;
     },
 
@@ -70,6 +71,13 @@
 
     // Find node by ID
     __nodes: {},
+
+    // Make the node concrete
+    make_concrete: function () {
+      this.__concrete.push(this);
+      this.concrete = true;
+      return this;
+    },
 
     // Insert a child at the end of the list of children and return the added
     // child, or before the ref node if given.
@@ -379,6 +387,7 @@
     view_stack: function () {
       delete this._all;
       this.__concrete.push(this);
+      this.concrete = true;
       this.view.stack = [this.view];
       this.view.stack.component = this;
       for (var p = this.prototype; p; p = p.prototype) {
@@ -576,15 +585,15 @@
     },
 
     // Keep track of the original set of vertices when cloned.
-    clone: function (parent) {
-      var clone = bender.Element.clone.call(this, parent);
+    clone: function (scope, parent) {
+      var clone = bender.Element.clone.call(this, scope, parent);
       clone.event_vertices = Object.create(this.event_vertices);
       return clone;
     },
 
     // Render in the target element.
     render: function (target, stack, i) {
-      this.__concrete.push(this);
+      this.make_concrete();
       this.element = target.ownerDocument.createElementNS(this.namespace_uri,
         this.local_name);
       this.render_children(this.element, stack, i);
@@ -623,10 +632,13 @@
 
     // Render the event listeners once, but dispatch a new value for all
     // concrete renderings.
-    render: function () {
-      this.__concrete.push(this);
+    render: function (no_concrete) {
       if (!this.hasOwnProperty("__clones")) {
-        return Object.getPrototypeOf(this).render();
+        this.make_concrete();
+        return Object.getPrototypeOf(this).render(flags.no_concrete);
+      }
+      if (!no_concrete) {
+        this.make_concrete();
       }
       for (var type in this.event_vertices) {
         // jshint -W083
@@ -666,6 +678,11 @@
     // Call render when one of the children changes.
     render: function (target) {
       this.node = target;
+      this.text_children = this.children.filter(function (child) {
+        return typeof child.text === "function";
+      }).map(function (text) {
+        return text.make_concrete();
+      });
       this.update_value();
     },
 
@@ -673,9 +690,9 @@
     update_value: function () {
       if (this.node) {
         this.node.setAttributeNS(this.namespace_uri, this.local_name,
-          this.children.reduce(function (text, child) {
-            return text + (typeof child.text === "function" ? child.text() : "");
-          }, ""));
+          this.text_children.map(function (child) {
+            return child.text();
+          }).join(""));
       }
     }
   });
@@ -702,6 +719,7 @@
 
     // Keep track of the node for updates.
     render: function (target) {
+      this.make_concrete();
       this.node = target.ownerDocument.createTextNode(this.text());
       target.appendChild(this.node);
     },
@@ -889,6 +907,8 @@
         p = Object.getPrototypeOf(p),
         descriptor = Object.getOwnPropertyDescriptor(p, this.name)) {}
       descriptor.set.call(target.properties, value, flags.silent);
+      bender.trace("    set property %0`%1=<%2>"
+        .fmt(target.__id, this.name, value));
     }
   });
 
@@ -1082,13 +1102,14 @@
     // flush as well.
     value: function (target, value, flush) {
       if (target.__id in this.values) {
-        return;
+        return false;
       }
       this.values[target.__id] = true;
       this.ordered_values.push([target, value]);
       if (flush) {
         this.graph.flush();
       }
+      return true;
     },
 
     clear_values: function () {
@@ -1157,6 +1178,9 @@
     }
   });
 
+  flexo._get(bender.Edge, "__index", function () {
+    return this.graph.edges.indexOf(this) + 1;
+  });
 
   // InheritEdge < Edge
   //   number priority = -1
@@ -1205,49 +1229,58 @@
         var component = this.adapter._watch && this.adapter._watch.component ||
           this.adapter.target;
         var target = this.adapter.target;
-        var scope = component.view.scope;
-        if (w[0].view && w[0].view.stack && !this.adapter.static) {
-          var i;
-          for (i = w[0].view.stack.length - 1;
-            i >= 0 && !(target.__id in w[0].view.stack[i].scope); i--) {}
-          if (i >= 0) {
-            scope = w[0].view.stack[i].scope;
-          }
-        }
-        var that = scope[component.__id];
-        var rtarget = scope[target.__id];
+        var scope = find_scope(w[0], target);
+        var target_runtime = scope[target.__id];
+        var component_runtime = scope[component.__id] || component;
+        bender.trace("#%0: %1=<%2> target %3<%4 in %5<%6"
+          .fmt(this.graph.edges.indexOf(this) + 1, w[0].__id, w[1],
+            target_runtime.__id, target.__id, component_runtime.__id,
+            component.__id));
         try {
-          if (that && rtarget && this.adapter.match().call(that, w[1], scope)) {
-            if (this.adapter.delay >= 0) {
-              this.dest.graph.flush_later(function () {
-                this.traverse_matched.bind(this, that, rtarget, w[1], scope);
-              }.bind(this), false);
+          if (this.adapter.match().call(component_runtime, w[1], scope)) {
+            // TODO handle delay
+            var value = this.adapter.value();
+            if (this.static || target_runtime.concrete) {
+              var v = value.call(component_runtime, w[1], scope);
+              bender.trace("  (%0) <%1>"
+                .fmt(this.static ? "static" : "concrete", v));
+              if (this.dest.value(target_runtime, v)) {
+                this.adapter.apply_value(target_runtime, v);
+              }
             } else {
-              this.traverse_matched(that, rtarget, w[1], scope);
+              target_runtime.__concrete.forEach(function (concrete) {
+                if (concrete === target_runtime ||
+                  !this.source.values.hasOwnProperty(concrete.__id)) {
+                  scope = find_scope(concrete, target);
+                  target_runtime = scope[target.__id];
+                  component_runtime = scope[component.__id];
+                  var v = value.call(component_runtime, w[1], scope);
+                  bender.trace("  (concrete) %0 in %1=<%2>"
+                    .fmt(target_runtime.__id, component_runtime.__id, v));
+                  if (this.dest.value(target_runtime, v)) {
+                    this.adapter.apply_value(target_runtime, v);
+                  }
+                }
+              }, this);
             }
+          } else {
+            bender.trace("  (no match)");
           }
-        } catch (_) {}
+        } catch(_) {}
       }, this);
     },
 
-    traverse_matched: function (that, target, v, scope) {
-      try {
-        var value = this.adapter.value().call(that, v, scope);
-        this.adapter.apply_value(target, value);
-        if (this.static || !this.adapter.target.all) {
-          this.dest.value(target, value);
-        } else {
-          this.adapter.target.__concrete.forEach(function (concrete) {
-            this.dest.value(concrete, value);
-          }, this);
-        }
-      } catch (_) {}
-    }
   });
 
   flexo._get(bender.AdapterEdge, "delay", function () {
     return this.adapter.delay();
   });
+
+  function find_scope(input, target) {
+    return (flexo.find_first(input.view.stack, function (view) {
+      return target.__id in view.scope;
+    }) || input.view).scope;
+  }
 
 
   // InitEdge < AdapterEdge

@@ -8,6 +8,10 @@ body {
   font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, sans-serif;
 }
 
+.panel {
+  padding: 0.5em;
+}
+
 .button {
   display: inline-block;
   margin: 0 0.5rem;
@@ -35,11 +39,14 @@ body {
     <script>
 "use strict";
 
-var args = flexo.get_args({ href: "button.xml" });
+var args = flexo.get_args({ href: "button.xml", trace: false });
 bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
-    component.render().dump();
+    var graph = component.render();
+    if (args.trace) {
+      graph.dump();
+    }
     var title = component.title();
     if (title) {
       window.document.title = title;

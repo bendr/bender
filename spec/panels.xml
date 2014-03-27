@@ -1,0 +1,7 @@
+<component xmlns="http://bender.igel.co.jp" name="Panels">
+  <view xmlns:html="http://www.w3.org/1999/xhtml">
+    <component href="panel.xml" n="7"/>
+    <component href="panel.xml"/>
+    <component href="panel.xml"/>
+  </view>
+</component>

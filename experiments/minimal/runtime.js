@@ -317,6 +317,7 @@
     if (value) {
       var parsed_value = parse_value[as](value, elem.hasAttribute("value"),
           adapter);
+      // jshint -W041
       if (parsed_value != null) {
         adapter.value(flexo.funcify(parsed_value));
       }
@@ -340,6 +341,7 @@
     if (as) {
       var set = bender.SetProperty.create(name, component);
       var parsed_value = parse_value[as](value, true, set);
+      // jshint -W041
       if (parsed_value != null) {
         set.value(flexo.funcify(parsed_value));
       }
@@ -765,12 +767,16 @@
       var color = edge.priority === bender.InheritEdge.priority ?
         "#f8ca00" : edge.priority < 0 ? "#ff6a4d" :
         edge.priority > 0 ? "#f94179" : "#000000";
-      return "v%0 -> v%1 [label=\"%2\", color=\"%3\"]"
+      return "v%0 -> v%1 [label=\" %2\", color=\"%3\"]"
         .fmt(edge.source.__index, edge.dest.__index, i + 1, color);
     }).join("\n");
     var components = "";
     var component_boxes = {};
     var queue = [bender.Node.__nodes["0"]];
+    var push = function (child) {
+      components += "k_%0 -> k_%1\n".fmt(child.parent.__id, child.__id);
+      queue.push(child);
+    };
     while (queue.length > 0) {
       var q = queue.shift();
       if (!component_boxes[q.__id]) {
@@ -783,10 +789,7 @@
             .fmt(prototype.__id, q.__id);
           queue.push(prototype);
         }
-        q.children.forEach(function (child) {
-          components += "k_%0 -> k_%1\n".fmt(q.__id, child.__id);
-          queue.push(child);
-        });
+        q.children.forEach(push);
       }
     }
     var gv = "digraph bender {\n" +
