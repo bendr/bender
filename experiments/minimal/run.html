@@ -35,11 +35,14 @@ a {
 "use strict";
 
 bender.namespaces[bender.ns + "/lib"] = "/lib";
-var args = flexo.get_args();
+var args = flexo.get_args({ trace: false });
 bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
-    component.render().dump();
+    var graph = component.render();
+    if (args.trace) {
+      graph.dump();
+    }
     var title = component.title();
     if (title) {
       window.document.title = title;

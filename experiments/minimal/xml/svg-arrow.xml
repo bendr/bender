@@ -1,12 +1,16 @@
 <component xmlns="http://bender.igel.co.jp" name="arrow">
 
-  <property name="ev"/>
   <property name="angle" value="flexo.random_int(360)"/>
   <property name="v" value="flexo.random_int(50)"/>
-  <property name="r" as="number" value="20"/>
   <property name="white-bg" as="boolean" value="true"/>
   <property name="color" value="'hsl(%0, 100%, %1%)'
     .fmt(Math.floor(180 - `angle) + 360 % 360, `v)"/>
+  <property select="#this" name="r" delay="0">
+    var svg = document.querySelector("svg");
+    var size = flexo.svg_point(svg.width.baseVal.value,
+      svg.height.baseVal.value, svg);
+    return Math.min(size.x, size.y);
+  </property>
 
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="-10 -10 20 20" name="svg">
@@ -18,16 +22,8 @@
   </view>
 
   <watch>
-    <get select=":document" event="mousemove"/>
-    <set property="ev"/>
-  </watch>
-
-  <watch>
-    <get property="ev">
-      var pt = flexo.event_svg_point($in, @@svg);
-      console.log("Solve ev for %0".fmt(@svg.__id), pt);
-      return pt || flexo.fail();
-      return flexo.event_svg_point($in, @@svg) || flexo.fail();
+    <get select=":document" event="mousemove"
+      value="flexo.event_svg_point($in, @@svg) || flexo.fail()">
     </get>
     <set property="angle"
       value="flexo.remap(Math.atan2($in.y, $in.x), -π, π, -180, 180)"/>

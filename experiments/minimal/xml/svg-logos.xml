@@ -9,7 +9,7 @@
   <view xmlns:svg="http://www.w3.org/2000/svg">
     <svg:svg viewBox="0 0 {{ 10 * `n }} {{ 10 * `n }}" name="svg">
       <svg:g transform="translate(0, 0) scale({{ 1 / `n }})">
-        <component href="svg-logo.xml" sides="4" colors="['pink', 'green']"/>
+        <component href="svg-logo.xml"/>
       </svg:g>
       <svg:g transform="translate(10, 0) scale({{ 1 / `n }})">
         <component href="svg-logo.xml"/>

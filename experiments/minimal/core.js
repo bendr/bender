@@ -363,9 +363,18 @@
       });
       for (var property in this.properties) {
         var vertex = this.property_vertices[property];
-        if (vertex && vertex.__init_edge) {
-          vertex.__init_edge.source.value(this, this.properties[property],
-              flags.flush);
+        var edge = vertex && vertex.__init_edge;
+        if (edge) {
+          if (edge.adapter.static) {
+            if (!edge.__init) {
+              edge.__init = true;
+              edge.source.value(edge.adapter.target,
+                  edge.adapter.target.properties[property], flags.flush);
+            }
+          } else {
+            vertex.__init_edge.source.value(this, this.properties[property],
+                flags.flush);
+          }
         }
       }
     },
@@ -1240,10 +1249,10 @@
           if (this.adapter.match().call(component_runtime, w[1], scope)) {
             // TODO handle delay
             var value = this.adapter.value();
-            if (this.static || target_runtime.concrete) {
+            if (this.adapter.static || target_runtime.concrete) {
               var v = value.call(component_runtime, w[1], scope);
               bender.trace("  (%0) <%1>"
-                .fmt(this.static ? "static" : "concrete", v));
+                .fmt(this.adapter.static ? "static" : "concrete", v));
               if (this.dest.value(target_runtime, v)) {
                 this.adapter.apply_value(target_runtime, v);
               }
