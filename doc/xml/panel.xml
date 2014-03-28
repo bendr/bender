@@ -1,5 +1,5 @@
 <component xmlns="http://bender.igel.co.jp" name="Panel">
-  <property name="n" value="0"/>
+  <property name="n" as="number" value="0"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div class="panel">
       <text name="text-n"/>

@@ -17,10 +17,5 @@ digraph bender {
   down -> w7;
   w7 -> t;
 
-  init_down [shape=point, label="", color="#ff6a4d"]
-  init_down -> down [color="#ff6a4d"];
-  init_enabled [shape=point, label="", color="#ff6a4d"]
-  init_enabled -> enabled [color="#ff6a4d"];
-
 
 }

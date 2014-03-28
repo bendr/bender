@@ -321,7 +321,7 @@
       new values for properties, or updating a component.</p>
 
       <section id="watch">
-        <h3>Watch</h3>
+        <h3>Watch and InitWatch</h3>
         <div class="def" id="Watch">
           <p>A <code>Watch</code> has <em>inputs</em> (incoming event
           notifications or property changes) and <em>outputs</em> (outgoing
@@ -336,10 +336,24 @@
               this watch.</li>
               <li><code>gets</code> is the set of <code>Get</code>s (inputs) of
               this watch. A <code>Watch</code> normally has at least one
-              input (otherwise it would have no effect), but watches with no
-              input are used for property initialization.</li>
+              input, otherwise it has no effect (but see below.)</li>
               <li><code>sets</code> is the set of <code>Set</code>s (outputs) of
               this watch.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="def" id="InitWatch">
+          <p>An <code>InitWatch</code> is a special kind of <code>Watch</code>
+          that is used for property initialization.</p>
+          <div>
+            <pre>InitWatch &lt; Watch</pre>
+            <ul>
+              <li><code>gets</code> is empty.</li>
+              <li><code>sets</code> consists of one or more
+              <code>SetProperty</code> adapters with <code>component</code> as
+              the <code>target</code>. The <code>value</code> function should
+              return the initial value of the associated property given no
+              input value.</li>
             </ul>
           </div>
         </div>
@@ -522,7 +536,7 @@
       <div class="def" id="Panel">
         <div>
           <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Panel"&gt;
-  &lt;property name="n" value="0"/&gt;
+  &lt;property name="n" as="number" value="0"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div class="panel"&gt;
       &lt;text name="text-n"/&gt;
@@ -546,8 +560,14 @@
 &lt;/component&gt;</pre>
           <ul>
             <li><code>Panel</code> has a property named <code>n</code>, as
-            specified by the <code>name</code> attribute, with an initial value
-            of 0, as specified by the <code>value</code> attribute.</li>
+            specified by the <code>name</code> attribute of the
+            <code>property</code> element.</li>
+            <li>An <code>InitWatch</code> handles the property initialization,
+            also defined by the <code>property</code> element. There is one
+            <code>SetProperty</code> output for this watch for the property
+            <code>n</code>. The component itself as a <code>target</code>. The
+            value is a function that returns the number (as defined by the
+            <code>as</code> attribute) 0.</li>
             <li><code>Panel</code> has a <code>View</code> with a
             <code>DOMElement</code> child (a HTML <code>div</code> element),
             with three children. The first is a <code>Text</code> child with the
@@ -564,8 +584,10 @@
             <code>href</code> attribute), with a different initial value for the
             <code>label</code> property (as specified by the <code>label</code>
             attribute), and a default view, since they have no <code>view</code>
-            child element.  These views are alos the second and third children
-            of the <code>div</code> DOM element in the view of
+            child element. These two child components each have an
+            <code>InitWatch</code> for the initial value of their
+            <code>label</code> property. Their views are also the second and
+            third children of the <code>div</code> DOM element in the view of
             <code>Panel</code>.</li>
             <li>The <code>Watch</code> <span class="watch">1</span> has one
             input and one output:
@@ -653,16 +675,24 @@
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
           <ul>
-            <li><code>Button</code> has a property named <code>label</code> with
-            initial value <code>"OK"</code>. The <code>as</code> attribute
-            specifies that the value should be interpreted as a character
-            string.</li>
-            <li><code>Button</code> has a property named <code>enabled</code>
-            with initial value <code>true</code>.</li>
-            <li><code>Button</code> has a property named <code>down</code> with
-            initial value <code>false</code>. <span class="TODO">If properties
-              can be made private, this is an example of a property that would
+            <li><code>Button</code> has three properties named
+            <code>label</code>, <code>enabled</code> and <code>pushed</code>.
+            <span class="TODO">If properties can be made private, then
+              <code>down</code> is an example of a property that would
               be.</span></li>
+            <li>An <code>InitWatch</code> handles the property initializations
+            defined by the <code>property</code> elements. There are three
+            <code>SetProperty</code> outputs for this watch, which all have the
+            component itself as a <code>target</code>:
+            <ul>
+              <li>one for <code>label</code>, with the value function returning
+              the string “OK”;</li>
+              <li>one for <code>enabled</code>, with the value function
+              returning the boolean value <code>true</code>;</li>
+              <li>one for <code>down</code>, with the value function returning
+              the boolean value <code>false</code>.</li>
+            </ul>
+            </li>
             <li><code>Button</code> has a <code>View</code> containing a
               <code>DOMElement</code> (a HTML <code>div</code> element with the
               name <code>frame</code>), containing a <code>Content</code>

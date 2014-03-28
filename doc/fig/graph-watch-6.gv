@@ -10,9 +10,6 @@ digraph bender {
   w6 -> down;
   w6 -> pushed;
 
-  init_down [shape=point, label="", color="#ff6a4d"]
-  init_down -> down [color="#ff6a4d"];
-
   t [label="", shape=triangle, fixedsize=true, width=0.5];
 
 }

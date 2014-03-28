@@ -48,22 +48,16 @@
       <h2>Running a Bender Application in a User Agent</h2>
       <p>Running a Bender application in a user agent, such as a Web browser, is
       rendering the top-level <code>Component</code> defining the application in
-      a target DOM element and a newly created watch graph.</p>
+      a target DOM element and a newly created watch graph. Once rendering is
+      done, the graph is flushed for initial values of properties to propagate
+      and the application is ready to run.</p>
       <pre class="code">render-component(Component C, DOM element T) =
   let G = new WatchGraph in
     do
       render-subgraph(C, G)
       sort-watch-graph(G)
       render-component-view(C, T)
-      init-properties(C, G)</pre>
-      <p>The call to <code>render-subgraph</code> will result in the watch graph
-      of the whole application to be constructed, as it recursiveley renders the
-      subgraph for the component as well as its prototype and its children. When
-      the whole graph is constructed, its edges are sorted. Following the graph
-      construction, the view of the component is rendered, which also causes the
-      views of the children and prototype to be recursively rendered. Finally,
-      the initial values of the properties are set and the application is ready
-      to run.</p>
+      flush-graph(G)</pre>
     </section>
 
     <section id="watch-graph">
@@ -218,14 +212,15 @@
         </div>
 
         <div class="def" id="InitEdge">
-          <p>An <code>InitEdge</code> is an <code>Edge</code> that is used to
-          represent the <em>initial value</em> of a property.</p>
+          <p>An <code>InitEdge</code> is an <code>AdapterEdge</code> rendered
+          from a <code>SetProperty</code> in an <code>InitWatch</code>.</p>
           <div>
-            <pre>InitEdge &lt; Edge:
-  number priority = -0.5</pre>
+            <pre>InitEdge &lt; AdapterEdge:
+  number  priority = -0.5</pre>
             <ul>
-              <li><code>priority</code> is set to -0.5 so that these edges have
-              a low priority during sorting.</li>
+              <li><code>adapter</code> is a <code>SetProperty</code>.</li>
+              <li><code>priority</code> is lower than regular edges, but
+                higher than <code>InheritEdge</code>s.</li>
             </ul>
           </div>
         </div>
@@ -262,6 +257,9 @@
             <code>Edge</code> that is introduced in the graph to represent a
             dependency in the graph. It has no effect during traversal and could
             be removed after sorting.</span></p>
+          <div>
+            <pre>InertEdge &lt; Edge</pre>
+          </div>
         </div>
 
       </section>
@@ -290,7 +288,8 @@
         creating a new <code>WatchVertex</code> <em>V</em> in <em>G</em>, then
         an <code>AdapterEdge</code> to <em>V</em> for each <code>Get</code> of
         <em>W</em>, and an <code>AdapterEdge</code> from <em>V</em> for every
-        <code>Set</code> of <em>W</em>.</p>
+        <code>Set</code> of <em>W</em> (or an <code>InitEdge</code> in the case
+        of an <code>InitWatch</code>.)</p>
         <pre class="code">render-watch(Watch W, Graph G) =
   let V = new WatchVertex(W) in
     do
@@ -300,7 +299,10 @@
           G.edges &lt;- G.edges : new AdapterEdge(V’, V, A)
       for A in W.sets
         let V’ = find-vertex(A, G) in
-          G.edges &lt;- G.edges : new AdapterEdge(V, V’, A)</pre>
+          G.edges &lt;- G.edges :
+            if W is-a InitWatch
+              then new InitEdge(V, V’, A)
+              else new AdapterEdge(V, V’, A)</pre>
 
         <p>A vertex may be the source and destination of several edges, so it is
         created and added to the graph only the first time that it is needed;
@@ -323,8 +325,6 @@
               do
                 G.vertices &lt;- G.vertices : V’
                 add-inherit-edge(V’, G)
-                if V’ is-a PropertyVertex
-                  then add-init-edge(V’, G)
                 V’
     else
       G.vortex</pre>
@@ -333,21 +333,6 @@
           target of an adapter is always defined. With the possibility of
         multiple static targets, a single adapter may produce zero or more
         edges.</span><p>
-
-        <p>An <code>InitEdge</code> is added for every new
-        <code>PropertyVertex</code>. A new vertex is created for that edge,
-        which will receive the initial values for the property. A new
-        <code>SetProperty</code> adapter is created for the edge as well.</p>
-        <pre class="code">add-init-edge(PropertyVertex V, WatchGraph G) =
-  let V’ = new Vertex in
-    let S = new SetProperty(V.adapter.name, V.adapter.target) in
-      do
-        G.vertices &lt;- V’
-        G.edges &lt;- new InitEdge(V’, V, S)</pre>
-        <p><span class="TODO">Only the prototype vertex should have an
-          <code>InitEdge</code>; however, the runtime has a different behavior
-          where each component with an initial value would have a different edge
-          since the value is on the edge.</p>
 
         <p>To illustrate the rendering of the watch graph, review the
         <code>Panel</code> component from the <a
@@ -362,9 +347,7 @@
         <code>WatchVertex</code> are created for the <code>SetProperty</code> to
         a <code>PropertyVertex</code> (ellipse) for the <code>down</code>
         property, and another <code>AdapterEdge</code> for the
-        <code>SetEvent</code> to an <code>EventVertex</code>. The
-        <code>InitEdge</code> for the <code>down</code> property is shown in
-        orange; its source vertex is shown as a simple dot. The vortex is
+        <code>SetEvent</code> to an <code>EventVertex</code>. The vortex is
         shown as a triangle, with no incoming edge yet.</p>
 
         <pre class="code">&lt;watch&gt; <span class="watch">6</span>

@@ -25,11 +25,4 @@ digraph bender {
   n [label="n (Panel)"];
   pushed -> ppushed [color="#f94179"];
 
-  init_down [shape=point, label="", color="#ff6a4d"]
-  init_down -> down [color="#ff6a4d"];
-  init_enabled [shape=point, label="", color="#ff6a4d"]
-  init_enabled -> enabled [color="#ff6a4d"];
-  init_n [shape=point, label="", color="#ff6a4d"]
-  init_n -> n [color="#ff6a4d"];
-  
 }

@@ -11,43 +11,43 @@
 <polygon fill="white" stroke="white" points="-4,4 -4,-436 524,-436 524,4 -4,4"/>
 <!-- mouseup -->
 <g id="node1" class="node"><title>mouseup</title>
-<polygon fill="none" stroke="black" points="467.21,-401.641 447.758,-422.014 369,-431.081 290.242,-422.014 270.79,-401.641 325.293,-385.304 412.707,-385.304 467.21,-401.641"/>
-<text text-anchor="middle" x="369" y="-404.474" font-family="Avenir Next" font-size="14.00">mouseup (frame)</text>
+<polygon fill="none" stroke="black" points="355.21,-401.641 335.758,-422.014 257,-431.081 178.242,-422.014 158.79,-401.641 213.293,-385.304 300.707,-385.304 355.21,-401.641"/>
+<text text-anchor="middle" x="257" y="-404.474" font-family="Avenir Next" font-size="14.00">mouseup (frame)</text>
 </g>
 <!-- w6 -->
 <g id="node5" class="node"><title>w6</title>
-<polygon fill="none" stroke="black" points="380,-346 358,-346 358,-324 380,-324 380,-346"/>
-<text text-anchor="middle" x="369" y="-332.474" font-family="Avenir Next" font-size="14.00">6</text>
+<polygon fill="none" stroke="black" points="268,-346 246,-346 246,-324 268,-324 268,-346"/>
+<text text-anchor="middle" x="257" y="-332.474" font-family="Avenir Next" font-size="14.00">6</text>
 </g>
 <!-- mouseup&#45;&gt;w6 -->
 <g id="edge1" class="edge"><title>mouseup&#45;&gt;w6</title>
-<path fill="none" stroke="black" d="M369,-384.998C369,-375.836 369,-365.142 369,-356.087"/>
-<polygon fill="black" stroke="black" points="372.5,-356.067 369,-346.067 365.5,-356.067 372.5,-356.067"/>
+<path fill="none" stroke="black" d="M257,-384.998C257,-375.836 257,-365.142 257,-356.087"/>
+<polygon fill="black" stroke="black" points="260.5,-356.067 257,-346.067 253.5,-356.067 260.5,-356.067"/>
 </g>
 <!-- down -->
 <g id="node2" class="node"><title>down</title>
-<ellipse fill="none" stroke="black" cx="267" cy="-263" rx="75.3376" ry="21.7689"/>
-<text text-anchor="middle" x="267" y="-260.474" font-family="Avenir Next" font-size="14.00">down (Button)</text>
+<ellipse fill="none" stroke="black" cx="75" cy="-263" rx="75.3376" ry="21.7689"/>
+<text text-anchor="middle" x="75" y="-260.474" font-family="Avenir Next" font-size="14.00">down (Button)</text>
 </g>
 <!-- w7 -->
 <g id="node6" class="node"><title>w7</title>
-<polygon fill="none" stroke="black" points="188,-188 166,-188 166,-166 188,-166 188,-188"/>
-<text text-anchor="middle" x="177" y="-174.474" font-family="Avenir Next" font-size="14.00">7</text>
+<polygon fill="none" stroke="black" points="176,-188 154,-188 154,-166 176,-166 176,-188"/>
+<text text-anchor="middle" x="165" y="-174.474" font-family="Avenir Next" font-size="14.00">7</text>
 </g>
 <!-- down&#45;&gt;w7 -->
 <g id="edge4" class="edge"><title>down&#45;&gt;w7</title>
-<path fill="none" stroke="black" d="M245.214,-241.666C229.938,-227.409 209.749,-208.566 195.305,-195.085"/>
-<polygon fill="black" stroke="black" points="197.639,-192.475 187.94,-188.211 192.863,-197.593 197.639,-192.475"/>
+<path fill="none" stroke="black" d="M96.7865,-241.666C112.062,-227.409 132.251,-208.566 146.695,-195.085"/>
+<polygon fill="black" stroke="black" points="149.137,-197.593 154.06,-188.211 144.361,-192.475 149.137,-197.593"/>
 </g>
 <!-- enabled -->
 <g id="node3" class="node"><title>enabled</title>
-<ellipse fill="none" stroke="black" cx="87" cy="-263" rx="87.3051" ry="21.7689"/>
-<text text-anchor="middle" x="87" y="-260.474" font-family="Avenir Next" font-size="14.00">enabled (Button)</text>
+<ellipse fill="none" stroke="black" cx="255" cy="-263" rx="87.3051" ry="21.7689"/>
+<text text-anchor="middle" x="255" y="-260.474" font-family="Avenir Next" font-size="14.00">enabled (Button)</text>
 </g>
 <!-- enabled&#45;&gt;w7 -->
 <g id="edge5" class="edge"><title>enabled&#45;&gt;w7</title>
-<path fill="none" stroke="black" d="M108.786,-241.666C124.062,-227.409 144.251,-208.566 158.695,-195.085"/>
-<polygon fill="black" stroke="black" points="161.137,-197.593 166.06,-188.211 156.361,-192.475 161.137,-197.593"/>
+<path fill="none" stroke="black" d="M233.214,-241.666C217.938,-227.409 197.749,-208.566 183.305,-195.085"/>
+<polygon fill="black" stroke="black" points="185.639,-192.475 175.94,-188.211 180.863,-197.593 185.639,-192.475"/>
 </g>
 <!-- pushed -->
 <g id="node4" class="node"><title>pushed</title>
@@ -66,22 +66,22 @@
 </g>
 <!-- w6&#45;&gt;down -->
 <g id="edge2" class="edge"><title>w6&#45;&gt;down</title>
-<path fill="none" stroke="black" d="M357.694,-326.241C344.74,-317.351 322.844,-302.324 303.812,-289.263"/>
-<polygon fill="black" stroke="black" points="305.537,-286.202 295.311,-283.429 301.576,-291.973 305.537,-286.202"/>
+<path fill="none" stroke="black" d="M245.889,-329.727C223.049,-320.942 169.517,-300.353 128.406,-284.541"/>
+<polygon fill="black" stroke="black" points="129.635,-281.264 119.045,-280.941 127.122,-287.797 129.635,-281.264"/>
 </g>
 <!-- w6&#45;&gt;pushed -->
 <g id="edge3" class="edge"><title>w6&#45;&gt;pushed</title>
-<path fill="none" stroke="black" d="M379.173,-323.971C387.728,-315.536 400.379,-303.063 411.93,-291.674"/>
-<polygon fill="black" stroke="black" points="414.645,-293.913 419.309,-284.4 409.73,-288.928 414.645,-293.913"/>
+<path fill="none" stroke="black" d="M268.172,-329.727C291.138,-320.942 344.964,-300.353 386.301,-284.541"/>
+<polygon fill="black" stroke="black" points="387.623,-287.782 395.713,-280.941 385.122,-281.244 387.623,-287.782"/>
 </g>
 <!-- t -->
 <g id="node7" class="node"><title>t</title>
-<polygon fill="none" stroke="black" points="177,-116 159,-89 195,-89 177,-116"/>
+<polygon fill="none" stroke="black" points="165,-116 147,-89 183,-89 165,-116"/>
 </g>
 <!-- w7&#45;&gt;t -->
 <g id="edge6" class="edge"><title>w7&#45;&gt;t</title>
-<path fill="none" stroke="black" d="M177,-165.934C177,-155.863 177,-139.929 177,-126.134"/>
-<polygon fill="black" stroke="black" points="180.5,-126.134 177,-116.134 173.5,-126.134 180.5,-126.134"/>
+<path fill="none" stroke="black" d="M165,-165.934C165,-155.863 165,-139.929 165,-126.134"/>
+<polygon fill="black" stroke="black" points="168.5,-126.134 165,-116.134 161.5,-126.134 168.5,-126.134"/>
 </g>
 <!-- w1 -->
 <g id="node9" class="node"><title>w1</title>
@@ -95,40 +95,13 @@
 </g>
 <!-- n -->
 <g id="node10" class="node"><title>n</title>
-<ellipse fill="none" stroke="black" cx="455" cy="-22" rx="49.2362" ry="21.7689"/>
-<text text-anchor="middle" x="455" y="-19.4744" font-family="Avenir Next" font-size="14.00">n (Panel)</text>
+<ellipse fill="none" stroke="black" cx="440" cy="-22" rx="49.2362" ry="21.7689"/>
+<text text-anchor="middle" x="440" y="-19.4744" font-family="Avenir Next" font-size="14.00">n (Panel)</text>
 </g>
 <!-- w1&#45;&gt;n -->
 <g id="edge8" class="edge"><title>w1&#45;&gt;n</title>
-<path fill="none" stroke="black" d="M442.086,-86.7106C443.817,-78.1717 446.371,-65.5686 448.753,-53.8208"/>
-<polygon fill="black" stroke="black" points="452.219,-54.3369 450.775,-43.8409 445.359,-52.9462 452.219,-54.3369"/>
-</g>
-<!-- init_down -->
-<g id="node11" class="node"><title>init_down</title>
-<ellipse fill="#ff6a4d" stroke="#ff6a4d" cx="267" cy="-335" rx="1.8" ry="1.8"/>
-</g>
-<!-- init_down&#45;&gt;down -->
-<g id="edge10" class="edge"><title>init_down&#45;&gt;down</title>
-<path fill="none" stroke="#ff6a4d" d="M267,-333.01C267,-328.757 267,-311.512 267,-295.327"/>
-<polygon fill="#ff6a4d" stroke="#ff6a4d" points="270.5,-294.99 267,-284.99 263.5,-294.99 270.5,-294.99"/>
-</g>
-<!-- init_enabled -->
-<g id="node12" class="node"><title>init_enabled</title>
-<ellipse fill="#ff6a4d" stroke="#ff6a4d" cx="87" cy="-335" rx="1.8" ry="1.8"/>
-</g>
-<!-- init_enabled&#45;&gt;enabled -->
-<g id="edge11" class="edge"><title>init_enabled&#45;&gt;enabled</title>
-<path fill="none" stroke="#ff6a4d" d="M87,-333.01C87,-328.757 87,-311.512 87,-295.327"/>
-<polygon fill="#ff6a4d" stroke="#ff6a4d" points="90.5001,-294.99 87,-284.99 83.5001,-294.99 90.5001,-294.99"/>
-</g>
-<!-- init_n -->
-<g id="node13" class="node"><title>init_n</title>
-<ellipse fill="#ff6a4d" stroke="#ff6a4d" cx="471" cy="-98" rx="1.8" ry="1.8"/>
-</g>
-<!-- init_n&#45;&gt;n -->
-<g id="edge12" class="edge"><title>init_n&#45;&gt;n</title>
-<path fill="none" stroke="#ff6a4d" d="M470.82,-96.1689C469.898,-91.9016 465.585,-71.9544 461.695,-53.9639"/>
-<polygon fill="#ff6a4d" stroke="#ff6a4d" points="465.077,-53.0419 459.542,-44.0075 458.235,-54.5213 465.077,-53.0419"/>
+<path fill="none" stroke="black" d="M440,-86.7106C440,-78.3187 440,-66.0015 440,-54.4286"/>
+<polygon fill="black" stroke="black" points="443.5,-54.1435 440,-44.1435 436.5,-54.1436 443.5,-54.1435"/>
 </g>
 </g>
 </svg>
