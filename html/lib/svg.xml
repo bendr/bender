@@ -1,8 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <link rel="stylesheet" href="svg.css"/>
-  <view xmlns:svg="http://www.w3.org/2000/svg">
-    <svg:svg width="100%" height="100%">
-      <content/>
-    </svg:svg>
-  </view>
-</component>

@@ -1,6 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <view>
-    <component href="lib-button.xml"/>
-    <component href="lib-button.xml"/>
-  </view>
-</component>

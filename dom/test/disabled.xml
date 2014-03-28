@@ -1,5 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" id="disabled">
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <component href="../lib/button.xml" enabled="false"/>
-  </view>
-</component>

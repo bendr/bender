@@ -1,8 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <property name="version" value="bender.VERSION"/>
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>
-      This is Bender, version `version.
-    </html:p>
-  </view>
-</component>

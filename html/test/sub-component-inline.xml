@@ -1,9 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" id="sub-component-inline">
-  <view xmlns:html="http://www.w3.org/1999/xhtml"><component id="inline">
-      <view>
-        <html:p>
-          Hello, world! (inline)
-        </html:p>
-      </view>
-    </component></view>
-</component>
