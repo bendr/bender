@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Thu 27 Mar 2014</p>
+    <p>Version 0.9, Thu 28 Mar 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -329,14 +329,15 @@
           <div>
             <pre>Watch &lt; Object
   Component  component
-  Get+       gets
+  Get*       gets
   Set*       sets</pre>
             <ul>
               <li><code>component</code> is the owner <code>Component</code> of
               this watch.</li>
               <li><code>gets</code> is the set of <code>Get</code>s (inputs) of
-              this watch. A <code>Watch</code> must have at least one
-              input.</li>
+              this watch. A <code>Watch</code> normally has at least one
+              input (otherwise it would have no effect), but watches with no
+              input are used for property initialization.</li>
               <li><code>sets</code> is the set of <code>Set</code>s (outputs) of
               this watch.</li>
             </ul>
@@ -514,7 +515,8 @@
 
     <section id="example">
       <h2>Example</h3>
-      <p>Consider a non-trivial component (named <em>Panel</em>) <a
+      <p>Consider a non-trivial component (named <a
+        href="run.html?href=xml/panel.xml">Panel</a>) <a
         href="runtime.html#s11n">defined in XML</a> as follows:</p>
 
       <div class="def" id="Panel">
@@ -611,7 +613,8 @@
       </div>
 
       <div class="def" id="Button">
-        <p>This second component is the <code>Button</code> prototype of both
+        <p>This second component is the <a
+          href="run.html?href=xml/button.xml">Button</a> prototype of both
         <code>Plus</code> and <code>Minus</code> buttons above.</p>
         <div>
           <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;

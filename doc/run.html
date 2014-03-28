@@ -39,7 +39,7 @@ body {
     <script>
 "use strict";
 
-var args = flexo.get_args({ href: "button.xml", trace: false });
+var args = flexo.get_args({ href: "xml/panels.xml", trace: false });
 bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
