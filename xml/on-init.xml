@@ -1,0 +1,6 @@
+<component xmlns="http://bender.igel.co.jp" on-init="init(this);" name="Foo">
+  <link rel="script" href="on-init.js"/>
+  <view>
+    on-init
+  </view>
+</component>

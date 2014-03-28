@@ -148,6 +148,13 @@
       this.set_view(view);
       delete this._all;
       this.__render_subgraph = true;        // delete when rendered
+      this.__on_init = true;                // delete when init is called
+      flexo.asap(function () {
+        if (this.__on_init) {
+          delete this.__on_init;
+          this.on("init").call(this);
+        }
+      }.bind(this));
       return this.name(flexo.random_id());  // set a random name
     },
 
@@ -171,6 +178,12 @@
         (component === this || this.conforms(component.prototype));
     },
 
+    // Default handlers
+    handlers: {
+      "init": flexo.nop,
+      "render": flexo.nop
+    },
+
     // Create the properties object for the component, which maps property names
     // to their runtime value. The object keeps a hidden back-pointer to its
     // owner component in the “hidden” (i.e., non-enumerable) "" property (which
@@ -184,6 +197,7 @@
         Object.create(this.property_vertices) : {};
       this.event_vertices = "event_vertices" in this ?
         Object.create(this.event_vertices) : {};
+      this.handlers = Object.create(this.handlers);
     },
 
     // Set the view of the component, and add the child components from the
@@ -218,6 +232,29 @@
         }
         return element.children;
       }, this);
+    },
+
+    // Get, add, or remove a known handler.
+    on: function (type, handler) {
+      if (!(type in this.handlers)) {
+        return;
+      }
+      if (arguments.length === 1) {
+        return this.handlers[type];
+      }
+      if (typeof handler === "function") {
+        this.handlers[type] = handler;
+      } else if (typeof handler === "string") {
+        try {
+          this.handlers[type] = new Function(handler);
+        } catch (_) {
+          console.error("Could not compile handler “%0” for on-%1"
+              .fmt(handler, type));
+        }
+      } else {
+        delete this.handlers[type];
+      }
+      return this;
     },
 
     // Add a property to the component and return the component. An initial
@@ -387,6 +424,7 @@
       var stack = this.view_stack();
       stack[0].render(fragment, stack, 0);
       target.appendChild(fragment);
+      this.on("render").call(this); 
     },
 
     // Create the view stack for the component from its prototype and its own

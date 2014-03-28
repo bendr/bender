@@ -113,9 +113,9 @@
       } else {
         return deserialize_component(elem, bender.Component.create(), base_uri);
       }
-    }()).then(function (component) {
-      // component.on_handlers.init.call(component);
-      return load_links(component);
+    }()).then(load_links).then(function (component) {
+      component.on("init").call(component);
+      return component;
     });
   };
 
@@ -166,9 +166,10 @@
       return link.load();
     })).then(flexo.self.bind(component));
   }
-    
+
   // Deserialize the contents of the component created
   function deserialize_component(elem, component, url) {
+    delete component.__on_init;
     deserialize_component_attributes(elem, component, url);
     component.__links = [];
     component.__as = {};
@@ -201,9 +202,9 @@
     // Attributes of the component element
     flexo.foreach(elem.attributes, function (attr) {
       if (attr.namespaceURI === null) {
-        /*if (attr.localName.indexOf("on-") === 0) {
+        if (attr.localName.indexOf("on-") === 0) {
           component.on(attr.localName.substr(3), attr.value);
-        } else */ if (attr.localName === "name") {
+        } else if (attr.localName === "name") {
           component.name(attr.value);
         } else if (attr.localName !== "href" || custom) {
           var set = parse_init_value(component, attr.localName, attr.value);
