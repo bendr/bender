@@ -1247,30 +1247,36 @@
             component.__id));
         try {
           if (this.adapter.match().call(component_runtime, w[1], scope)) {
-            // TODO handle delay
-            var value = this.adapter.value();
-            if (this.adapter.static || target_runtime.concrete) {
-              var v = value.call(component_runtime, w[1], scope);
-              bender.trace("  (%0) <%1>"
-                .fmt(this.adapter.static ? "static" : "concrete", v));
-              if (this.dest.value(target_runtime, v)) {
-                this.adapter.apply_value(target_runtime, v);
-              }
-            } else {
-              target_runtime.__concrete.forEach(function (concrete) {
-                if (concrete === target_runtime ||
-                  !this.source.values.hasOwnProperty(concrete.__id)) {
-                  scope = find_scope(concrete, target);
-                  target_runtime = scope[target.__id];
-                  component_runtime = scope[component.__id];
-                  var v = value.call(component_runtime, w[1], scope);
-                  bender.trace("  (concrete) %0 in %1=<%2>"
-                    .fmt(target_runtime.__id, component_runtime.__id, v));
-                  if (this.dest.value(target_runtime, v)) {
-                    this.adapter.apply_value(target_runtime, v);
-                  }
+            var t = function () {
+              var value = this.adapter.value();
+              if (this.adapter.static || target_runtime.concrete) {
+                var v = value.call(component_runtime, w[1], scope);
+                bender.trace("  (%0) <%1>"
+                  .fmt(this.adapter.static ? "static" : "concrete", v));
+                if (this.dest.value(target_runtime, v)) {
+                  this.adapter.apply_value(target_runtime, v);
                 }
-              }, this);
+              } else {
+                target_runtime.__concrete.forEach(function (concrete) {
+                  if (concrete === target_runtime ||
+                    !this.source.values.hasOwnProperty(concrete.__id)) {
+                    scope = find_scope(concrete, target);
+                    target_runtime = scope[target.__id];
+                    component_runtime = scope[component.__id];
+                    var v = value.call(component_runtime, w[1], scope);
+                    bender.trace("  (concrete) %0 in %1=<%2>"
+                      .fmt(target_runtime.__id, component_runtime.__id, v));
+                    if (this.dest.value(target_runtime, v)) {
+                      this.adapter.apply_value(target_runtime, v);
+                    }
+                  }
+                }, this);
+              }
+            }.bind(this);
+            if (this.adapter.delay() >= 0) {
+              this.graph.flush_later(t, this.adapter.delay())
+            } else {
+              t();
             }
           } else {
             bender.trace("  (no match)");

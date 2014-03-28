@@ -5,7 +5,7 @@
   <property name="white-bg" as="boolean" value="true"/>
   <property name="color" value="'hsl(%0, 100%, %1%)'
     .fmt(Math.floor(180 - `angle) + 360 % 360, `v)"/>
-  <property select="#this" name="r" delay="0">
+  <property select="#this" name="r" delay="50">
     var svg = document.querySelector("svg");
     var size = flexo.svg_point(svg.width.baseVal.value,
       svg.height.baseVal.value, svg);

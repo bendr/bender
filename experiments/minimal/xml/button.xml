@@ -22,31 +22,25 @@
   <property name="label" as="string" value="OK"/>
   <property name="enabled" as="boolean" value="true"/>
   <property name="down" as="boolean" value="false"/>
-  <property name="push-delay" as="number" value="150"/>
   <view xmlns:html="http://www.w3.org/1999/xhtml">
     <html:div name="frame"
-      class="button {{ `down ? 'down' : '' }} {{ `enabled ? '' : 'disabled' }}">
+      class="button{{ `down ? ' down' : '' }}{{ `enabled ? '' : ' disabled'}}">
       <content>
         `label
       </content>
     </html:div>
   </view>
   <watch>
-    <get event="mousedown" select="@frame" match="`enabled"
-      prevent-default="true"/>
-    <set property="down" value="true"/>
+    <get select="@frame" event="mousedown" prevent-default="true"/>
+    <set property="down" match="`enabled" value="true"/>
   </watch>
   <watch>
-    <get event="mouseup" select=":document" match="`down"/>
+    <get select=":document" event="mouseup"/>
+    <set event="pushed" match="`down"/>
     <set property="down" value="false"/>
-    <set event="pushed"/>
   </watch>
-  <!--
   <watch>
-    <get message="push" match="`enabled"/>
-    <set property="down" value="true"/>
-    <set property="down" value="false" delay="`push-delay"/>
-    <set event="pushed" delay="`push-delay"/>
+    <get property="down"/>
+    <get property="enabled"/>
   </watch>
-  -->
 </component>
