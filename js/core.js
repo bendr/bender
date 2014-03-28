@@ -322,7 +322,7 @@
       var graph = this.render_subgraph(bender.WatchGraph.create())
         .sort().minimize();
       this.render_view(target || window.document.body);
-      this.init_properties();
+      graph.flush();
       this.ready();
       return graph;
     },
@@ -392,28 +392,6 @@
         this.names[name] = node;
       }
       this.view.scope[node.__id] = node;
-    },
-
-    init_properties: function () {
-      this.children.forEach(function (child) {
-        child.init_properties();
-      });
-      for (var property in this.properties) {
-        var vertex = this.property_vertices[property];
-        var edge = vertex && vertex.__init_edge;
-        if (edge) {
-          if (edge.adapter.static) {
-            if (!edge.__init) {
-              edge.__init = true;
-              edge.source.value(edge.adapter.target,
-                  edge.adapter.target.properties[property], flags.flush);
-            }
-          } else {
-            vertex.__init_edge.source.value(this, this.properties[property],
-                flags.flush);
-          }
-        }
-      }
     },
 
     // Render the view of the component in a DOM target.
@@ -817,19 +795,35 @@
 
     // Render the subgraph for this watch by in the given WatchGraph.
     render_subgraph: function (graph) {
-      if (this.gets.length === 0 && this.sets.length === 0) {
+      if (this.gets.length === 0) {
         return;
       }
       var vertex = graph.vertex(bender.WatchVertex.create(this, graph));
+      vertex.value(this.component);
       this.gets.forEach(function (get) {
         graph.edge(bender.AdapterEdge.create(get.vertex(graph), vertex, get));
       });
       this.sets.forEach(function (set) {
         graph.edge(bender.AdapterEdge.create(vertex, set.vertex(graph), set));
       });
-    },
+    }
   });
 
+
+  // InitWatch < Watch
+  bender.InitWatch = flexo._ext(bender.Watch, {
+
+    render_subgraph: function (graph) {
+      if (this.sets.length === 0) {
+        return;
+      }
+      var vertex = graph.vertex(bender.WatchVertex.create(this, graph));
+      vertex.value(this.component);
+      this.sets.forEach(function (set) {
+        graph.edge(bender.InitEdge.create(vertex, set.vertex(graph), set));
+      });
+    }
+  });
 
   // Adapter < Object
   //   Watch     watch
@@ -894,14 +888,8 @@
     },
 
     vertex: function (graph) {
-      var vertex = bender.Adapter.vertex.call(this, graph, this.name,
+      return bender.Adapter.vertex.call(this, graph, this.name,
         "property_vertices", bender.PropertyVertex);
-      if (!vertex.__init_edge) {
-        graph.edge(vertex.__init_edge = bender.InitEdge
-          .create(graph.vertex(bender.InitVertex.create()), vertex,
-            bender.SetProperty.create(this.name, this.target)));
-      }
-      return vertex;
     }
   });
 
@@ -1273,8 +1261,7 @@
     // component of the watch.
     traverse: function () {
       this.source.ordered_values.forEach(function (w) {
-        var component = this.adapter._watch && this.adapter._watch.component ||
-          this.adapter.target;
+        var component = this.adapter._watch.component;
         var target = this.adapter.target;
         var scope = find_scope(w[0], target);
         var target_runtime = scope[target.__id];
@@ -1337,7 +1324,7 @@
 
 
   // InitEdge < AdapterEdge
-  //   number priority = -0.5
+  //   number  priority = -0.5
   bender.InitEdge = flexo._ext(bender.AdapterEdge, {
     priority: -0.5
   });

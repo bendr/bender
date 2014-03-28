@@ -100,24 +100,29 @@
 
   // Deserialize a component from an element. If the component element has a
   // href attribute, first deserialize that component then use it as the
-  // prototype for this component, otherwise create a new component.
+  // prototype for this component, otherwise create a new component. When the
+  // component is deserialized, load its link and call the init handler.
   deserialize.component = function (elem) {
-    var base_uri = flexo.base_uri(elem);
-    return (function () {
-      if (elem.hasAttribute("href")) {
-        var url = flexo.normalize_uri(base_uri, elem.getAttribute("href"));
-        return bender.load_component(url, base_uri)
-          .then(function (prototype) {
-            return deserialize_component(elem, prototype.create(), base_uri);
-          });
-      } else {
-        return deserialize_component(elem, bender.Component.create(), base_uri);
-      }
-    }()).then(load_links).then(function (component) {
+    return create_component(elem).then(load_links).then(function (component) {
       component.on("init").call(component);
       return component;
     });
   };
+
+  // Create a new component for a <component> element, with or with prototype,
+  // depending on the href attribute.
+  function create_component(elem) {
+    var base_uri = flexo.base_uri(elem);
+    if (elem.hasAttribute("href")) {
+      var url = flexo.normalize_uri(base_uri, elem.getAttribute("href"));
+      return bender.load_component(url, base_uri)
+        .then(function (prototype) {
+          return deserialize_component(elem, prototype.create(), base_uri);
+        });
+    } else {
+      return deserialize_component(elem, bender.Component.create(), base_uri);
+    }
+  }
 
   // Deserialize the view element
   deserialize.view = function (elem) {
@@ -170,9 +175,10 @@
   // Deserialize the contents of the component created
   function deserialize_component(elem, component, url) {
     delete component.__on_init;
-    deserialize_component_attributes(elem, component, url);
     component.__links = [];
+    component.watch(component.__init_watch = bender.InitWatch.create());
     component.__as = {};
+    deserialize_component_attributes(elem, component, url);
     var view;
     flexo.foreach(elem.childNodes, function (ch) {
       if (ch.nodeType !== window.Node.ELEMENT_NODE ||
@@ -198,8 +204,6 @@
   // Deserialize the attributes of the component element
   function deserialize_component_attributes(elem, component, url, custom) {
     component.url(url);
-    // delete component.__pending_init;
-    // Attributes of the component element
     flexo.foreach(elem.attributes, function (attr) {
       if (attr.namespaceURI === null) {
         if (attr.localName.indexOf("on-") === 0) {
@@ -209,6 +213,7 @@
         } else if (attr.localName !== "href" || custom) {
           var set = parse_init_value(component, attr.localName, attr.value);
           if (set) {
+            // TODO: bindings
           }
         }
       } else if (attr.namespaceURI === bender.ns) {
@@ -227,10 +232,12 @@
           flexo.normalize_uri(component.url(), elem.getAttribute("href"))));
   };
 
+  // Inline style is like a link
   deserialize_component.style = function (component, elem) {
     component.__links.push(bender.Style.create(elem));
   };
 
+  // Inline script is like a link
   deserialize_component.script = function (component, elem) {
     component.__links.push(bender.Script.create(elem));
   };
@@ -240,21 +247,20 @@
     return component.title(shallow_text(elem));
   };
 
-  // Deserialize a property element in a component
+  // Deserialize a property element in a component, remembering the as attribute
+  // as well as the initial value added as a SetProperty on the InitWatch of the
+  // component.
   deserialize_component.property = function (component, elem) {
     var name = elem.getAttribute("name");
     if (!name) {
       console.error("Property with no name");
       return;
     }
-    var watch = bender.Watch.create();
-    component.watch(watch);
     var set = deserialize_adapter(elem, bender.SetProperty.create(name),
         flags.store_as);
     component.__as[name] = set.__as;
     delete set.__as;
-    bender.trace("%0`%1: %2".fmt(component.__id, name, component.__as[name]));
-    watch.set(set).__initializer = set;
+    component.property(name).__init_watch.set(set);
   };
 
   // Deserialize a watch and its content for a component
@@ -346,11 +352,8 @@
       if (parsed_value != null) {
         set.value(flexo.funcify(parsed_value));
       }
-      var watch = bender.Watch.create();
-      component.watch(watch);
-      bender.trace("%0`%1: %2 (= %3)".fmt(component.__id, name, as, value));
-      watch.set(set).__initializer = set;
-      return watch;
+      component.__init_watch.set(set);
+      return set;
     }
   }
 
@@ -362,21 +365,27 @@
       as === "dynamic-string" ? as : "dynamic";
   }
 
+  // Parse a value string into chunks and set the dynamic/needs_return flags
+  // (for match, these are always true.)
   function parse_value_chunks(value, needs_return, adapter, dynamic) {
     adapter.__value = chunk_string(value, dynamic);
     adapter.__dynamic = dynamic;
     adapter.__needs_return = needs_return;
   }
 
+  // Parse a value string for a given adapter as “dynamic.”
   function parse_value_dynamic(value, needs_return, adapter) {
     return parse_value_chunks(value, needs_return, adapter, flags.dynamic);
   }
 
+  // Parse a value string for a given adapter as “dynamic-string.”
   function parse_value_dynamic_string(value, needs_return, adapter) {
     return parse_value_chunks(value, needs_return, adapter,
         flags.dynamic_string);
   }
 
+  // Parse a match string for a given adapter as “dynamic.” (There is no
+  // “dynamic-string” for match.)
   function parse_match(value, adapter) {
     adapter.__match = chunk_string(value, flags.dynamic);
   }
@@ -391,8 +400,8 @@
       if (ns === "") {
         if (attr.localName === "name") {
           e.name(attr.value);
-        // } else if (attr.localName === "render-id") {
-        //   e.renderId(attr.value);
+        } else if (attr.localName === "render-name") {
+          // TODO render-name
         } else {
           add_attribute(e, ns, attr.localName, attr.value);
         }
@@ -427,8 +436,6 @@
     var base_uri = flexo.base_uri(elem);
     var url = flexo.normalize_uri(base_uri,
       "%0/%1.xml".fmt(bender.namespaces[elem.namespaceURI], elem.localName));
-    bender.trace("Custom component: {%0}:%1 -> %2"
-        .fmt(elem.namespaceURI, elem.localName, url));
     return bender.load_component(url, base_uri)
       .then(function (prototype) {
         return deserialize_children(bender.View.create(), elem)
@@ -447,6 +454,7 @@
       child.finalize();
     });
     delete this.__links;
+    delete this.__init_watch;
     return this;
   };
 
@@ -473,7 +481,7 @@
   // Title is just a string (should be any foreign content later)
   flexo._accessor(bender.Component, "title", flexo.safe_trim);
 
-  // While the scope is updated, also make the watches the bindings
+  // While the scope is updated, also make the watches for text bindings
   (function () {
     var $super = bender.Component.update_scope;
     bender.Component.update_scope = function (node) {
@@ -481,9 +489,7 @@
       if (node.__text) {
         var watch = bender.Watch.create();
         node.view.component.watch(watch);
-        gets_for_chunks(node.__text).forEach(function (get) {
-          watch.get(get);
-        });
+        gets_for_chunks(node.__text).forEach(watch.get.bind(watch));
         watch.set(bender.SetNodeProperty.create("text", node));
         watch.__text = node.__text;
         delete node.__text;
@@ -492,13 +498,19 @@
   }());
 
 
+  // Link is not part of the core of Bender and is added as a runtime utility to
+  // include external resources such as scripts and stylesheets, as well as
+  // bringin external (static) components into scope (TODO)
   bender.Link = flexo._ext(flexo.Object, {
+
+    // Initialize a new link with rel and href properties.
     init: function (rel, href) {
       flexo.Object.init.call(this);
       this.rel = flexo.safe_trim(rel).toLowerCase();
       this.href = flexo.safe_trim(href);
     },
 
+    // Load a link once. Loading depends on the rel property.
     load: function () {
       if (urls[this.href]) {
         return urls[this.href];
@@ -513,7 +525,13 @@
     }
   });
 
+
+  // Inline links: similar to link but the content is inline and they do not
+  // need loading. There is no rel or href since the data is inline, and its
+  // type depends on the actual object (since below.)
   bender.Inline = flexo._ext(flexo.Object, {
+
+    // Set an __unloaded flag to make sure that it gets “loaded” only once.
     init: function (elem) {
       flexo.Object.init.call(this);
       this.elem = elem;
@@ -521,7 +539,11 @@
     }
   });
 
+
+  // Inline style element.
   bender.Style = flexo._ext(bender.Inline, {
+
+    // Load: add a style element to the head of the target document.
     load: function () {
       if (this.__unloaded) {
         delete this.__unloaded;
@@ -530,7 +552,10 @@
     }
   });
 
+  // Inline script element.
   bender.Script = flexo._ext(bender.Inline, {
+
+    // Load: add a script element to the head of the target document.
     load: function () {
       if (this.__unloaded) {
         delete this.__unloaded;
@@ -540,6 +565,9 @@
     }
   });
 
+
+  // Resolve the select attribute of adapter elements to the actual target
+  // node(s).
   function resolve_select(adapter) {
     if (adapter.target) {
       return adapter;
@@ -551,6 +579,7 @@
     delete adapter.__select;
     return adapter.resolved();
   }
+
 
   bender.Adapter.resolved = flexo.self;
 
@@ -695,35 +724,41 @@
   (function () {
     var $super = bender.Watch.render_subgraph;
     bender.Watch.render_subgraph = function (graph) {
-      if (this.__initializer) {
-        var gets = resolve_adapter_gets(this.__initializer);
-        var set = this.__initializer;
-        resolve_select(set);
-        this.component.property(set.name);
-        delete this.__initializer;
-        if (gets.length > 0) {
-          gets.forEach(function (get) {
-            this.get(get);
-            resolve_select(get);
-          }, this);
-        } else {
-          var vertex = set.vertex(graph, "properties");
-          vertex.__init_edge.adapter = set;
-          return;
-        }
-      } else {
-        var resolve__bound = resolve_adapter.bind(this);
-        this.gets.forEach(resolve__bound);
-        this.sets = this.sets.map(resolve__bound);
-        if (this.__text) {
-          // jshint -W054
-          var source = "return " + unchunk_string(this.sets[0], this.__text);
-          this.sets[0].value(new Function("_", "$scope", source));
-          delete this.__text;
-        }
+      var resolve__bound = resolve_adapter.bind(this);
+      this.gets.forEach(resolve__bound);
+      this.sets = this.sets.map(resolve__bound);
+      if (this.__text) {
+        // jshint -W054
+        var source = "return " + unchunk_string(this.sets[0], this.__text);
+        this.sets[0].value(new Function("_", "$scope", source));
+        delete this.__text;
       }
       return $super.call(this, graph);
     };
+  }());
+
+  (function () {
+    var $super = bender.InitWatch.render_subgraph;
+    bender.InitWatch.render_subgraph = function (graph) {
+      this.sets = this.sets.filter(function (set) {
+        resolve_select(set);
+        var gets = resolve_adapter_gets(set);
+        if (gets.length > 0) {
+          var watch = bender.Watch.create();
+          this.component.watch(watch);
+          gets.forEach(function (get) {
+            watch.get(get);
+            resolve_select(get);
+          });
+          delete set._watch;
+          watch.set(set);
+          watch.render_subgraph(graph);
+          return false;
+        }
+        return true;
+      }, this);
+      $super.call(this, graph);
+    }
   }());
 
   // Scripts are handled for HTML only by default. Override this method to
@@ -805,7 +840,7 @@
   };
 
   bender.Vertex.desc = function () {
-    return "v%0 [shape=triangle, label=\"%0\"]".fmt(this.__index);
+    return "v%0 [shape=triangle, label=\"\"]".fmt(this.__index);
   };
 
   bender.InitVertex.desc = function () {
@@ -813,20 +848,27 @@
   };
 
   bender.WatchVertex.desc = function () {
-    return "v%0 [label=\"%1\", shape=square, fixedsize=true, width=0.4]"
-      .fmt(this.__index, this._watch.component.__id);
+    return "v%0 [%1]".fmt(this.__index, this._watch.desc());
+  };
+
+  bender.Watch.desc = function () {
+    return "label=\"%0\", shape=square, fixedsize=true, width=0.4"
+      .fmt(this.component.__id);
+  };
+
+  bender.InitWatch.desc = function () {
+    return "label=\"\", shape=square, fixedsize=true, width=0.3, " +
+      "color=\"#ff6a4d\"";
   };
 
   bender.PropertyVertex.desc = function () {
-    return "v%0 [label=\"%1[%2]`%3\"]"
-      .fmt(this.__index, this.adapter.target.name(), this.adapter.target.__id,
-          this.adapter.name);
+    return "v%0 [label=\"%1`%2\"]"
+      .fmt(this.__index, this.adapter.target.__id, this.adapter.name);
   };
 
   bender.EventVertex.desc = function () {
-    return "v%0 [label=\"%1[%2]!%3\", shape=septagon]"
-      .fmt(this.__index, this.adapter.target.name(), this.adapter.target.__id,
-          this.adapter.type);
+    return "v%0 [label=\"%1!%2\", shape=septagon]"
+      .fmt(this.__index, this.adapter.target.__id, this.adapter.type);
   };
 
 
