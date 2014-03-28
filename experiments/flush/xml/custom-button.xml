@@ -1,7 +1,0 @@
-<component xmlns="http://bender.igel.co.jp"
-  xmlns:lib="http://bender.igel.co.jp/lib" id="custom-button">
-  <view>
-    <lib:button id="ok-button">OK</lib:button>
-  </view>
-</component>
-
