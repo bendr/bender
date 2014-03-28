@@ -1,7 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" id="P">
-  <property name="x" value="777"/>
-  <property name="y" value="`x + 1"/>
-  <view>
-    Y = `y
-  </view>
-</component>

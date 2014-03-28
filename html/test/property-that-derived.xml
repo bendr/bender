@@ -1,6 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <view>
-    <component href="property-that.xml" id="A"/>
-    <component href="property-that.xml" id="B"/>
-  </view>
-</component>

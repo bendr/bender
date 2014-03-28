@@ -1,4 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" id="A">
-  <property name="x" as="number" value="100"/>
-  <property name="y" value="flexo.random_int(`x)"/>
-</component>

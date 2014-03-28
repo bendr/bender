@@ -1,7 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" id="A">
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div class="A">
-      <component href="number-number.xml" id="x"/>
-    </html:div>
-  </view>
-</component>

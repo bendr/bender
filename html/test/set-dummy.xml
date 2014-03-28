@@ -1,8 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <watch>
-    <get dom-event="mousedown" select="$document" prevent-default="true"/>
-    <set>
-      $scope.$document.body.appendChild(flexo.$p("CLICK"));
-    </set>
-  </watch>
-</component>

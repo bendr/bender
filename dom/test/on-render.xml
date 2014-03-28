@@ -1,9 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" on-render="rendered">
-  <link rel="script" href="on-render.js"/>
-  <property name="message" as="string" value="OK"/>
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p>
-      on-render: <text id="t">???</text>
-    </html:p>
-  </view>
-</component>

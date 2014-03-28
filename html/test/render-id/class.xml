@@ -1,7 +1,0 @@
-<component xmlns="http://bender.igel.co.jp" id="foo">
-  <view xmlns:html="http://www.w3.org/1999/xhtml" id="bar">
-    <html:p id="baz" render-id="class">
-      What’s my class?
-    </html:p>
-  </view>
-</component>

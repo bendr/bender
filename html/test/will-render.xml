@@ -1,4 +1,0 @@
-<component xmlns="http://bender.igel.co.jp"
-  on-will-render="will_render(instance)">
-  <link rel="script" href="will-render.js"/>
-</component>

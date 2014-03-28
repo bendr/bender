@@ -1,8 +1,0 @@
-<component xmlns="http://bender.igel.co.jp">
-  <property name="color" as="string" value="red"/>
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:p style="color: `color">
-      This paragraph should be `color.
-    </html:p>
-  </view>
-</component>
