@@ -799,7 +799,6 @@
         return;
       }
       var vertex = graph.vertex(bender.WatchVertex.create(this, graph));
-      vertex.value(this.component);
       this.gets.forEach(function (get) {
         graph.edge(bender.AdapterEdge.create(get.vertex(graph), vertex, get));
       });
