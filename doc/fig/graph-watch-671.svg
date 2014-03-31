@@ -11,8 +11,8 @@
 <polygon fill="white" stroke="white" points="-4,4 -4,-436 524,-436 524,4 -4,4"/>
 <!-- mouseup -->
 <g id="node1" class="node"><title>mouseup</title>
-<polygon fill="none" stroke="black" points="355.21,-401.641 335.758,-422.014 257,-431.081 178.242,-422.014 158.79,-401.641 213.293,-385.304 300.707,-385.304 355.21,-401.641"/>
-<text text-anchor="middle" x="257" y="-404.474" font-family="Avenir Next" font-size="14.00">mouseup (frame)</text>
+<polygon fill="none" stroke="black" points="377.496,-401.641 353.631,-422.014 257,-431.081 160.369,-422.014 136.504,-401.641 203.374,-385.304 310.626,-385.304 377.496,-401.641"/>
+<text text-anchor="middle" x="257" y="-404.474" font-family="Avenir Next" font-size="14.00">mouseup (document)</text>
 </g>
 <!-- w6 -->
 <g id="node5" class="node"><title>w6</title>

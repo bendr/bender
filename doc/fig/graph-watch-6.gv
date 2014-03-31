@@ -2,7 +2,7 @@ digraph bender {
   node [fontname="Avenir Next"];
   edge [fontname="Avenir Next"];
 
-  mouseup [label="mouseup (frame)", shape=septagon];
+  mouseup [label="mouseup (document)", shape=septagon];
   down [label="down (Button)"];
   pushed [label="push (Button)", shape=septagon];
   w6 [label="6", shape=square, fixedsize=true, width=0.3];

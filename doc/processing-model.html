@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Fri 28 Mar 2014</p>
+    <p>Version 0.9, Mon 31 Mar 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -289,7 +289,11 @@
         an <code>AdapterEdge</code> to <em>V</em> for each <code>Get</code> of
         <em>W</em>, and an <code>AdapterEdge</code> from <em>V</em> for every
         <code>Set</code> of <em>W</em> (or an <code>InitEdge</code> in the case
-        of an <code>InitWatch</code>.)</p>
+        of an <code>InitWatch</code>.) Lastly, if <em>W</em> is an
+        <code>InitWatch</code>, it gets initialized with a nil value for the
+        component of the watch. This ensures that once the graph is flushed
+        after being completely rendered, the initial values of the properties
+        of the component of <em>W</em> will be propagated.</p>
         <pre class="code">render-watch(Watch W, Graph G) =
   let V = new WatchVertex(W) in
     do
@@ -302,7 +306,9 @@
           G.edges &lt;- G.edges :
             if W is-a InitWatch
               then new InitEdge(V, V’, A)
-              else new AdapterEdge(V, V’, A)</pre>
+              else new AdapterEdge(V, V’, A)
+      if W is-a InitWatch
+        then V.values[W.component] = nil</pre>
 
         <p>A vertex may be the source and destination of several edges, so it is
         created and added to the graph only the first time that it is needed;
@@ -310,7 +316,7 @@
         created vertex. When the adapter is a plain <code>Set</code>, a
         <code>SetNodeProperty</code>, or <code>SetEvent</code> to an
         <code>Element</code> target (versus a <code>Component</code> target),
-        then the <code>vortex</code> is used since there is no relevant
+        the <code>vortex</code> is used since there is no relevant
         <code>AdapterVertex</code> destination for these outputs.</p>
         <pre class="code">Vertex find-vertex(Adapter A, Graph G) =
   if A is-a Get or
@@ -351,7 +357,7 @@
         shown as a triangle, with no incoming edge yet.</p>
 
         <pre class="code">&lt;watch&gt; <span class="watch">6</span>
-  &lt;get select="@frame" event="mouseup"/&gt;
+  &lt;get select=":document" event="mouseup"/&gt;
   &lt;set event="pushed" match="`down"/&gt;
   &lt;set property="down" value="false"/&gt;
 &lt;/watch&gt;</pre>
@@ -465,10 +471,15 @@ AdapterVertex? find-prototype-vertex’(Adapter A, Component? C, WatchGraph G) =
         sorted list of edges in order of decreasing priority (the relative order
         of edges with the same priority is not pertinent), and marked as
         processed in the list of outgoing edges of their source vertex.</p>
-        <p>The process repeats with the vertices which do not have any unprocessed
-        outgoing edge anymore. If there were no cycles in the graph, all edges and
-        vertices are processed, otherwise an error is raised (although cycles may be
-        broken when they include <em>delayed edges</em> as detailed below.)</p>
+        <p>The process repeats with the vertices which do not have any
+        unprocessed outgoing edge anymore. If there were no cycles in the graph,
+        all edges and vertices are processed, otherwise an error is raised
+        (although cycles may be broken when they include <em>delayed edges</em>
+        as detailed below.)</p>
+        <p><span class="TODO">Delayed edges are handled by placing them at the
+        end of te list of sorted edges, then sorting the remaining edges as
+        described above. Cycles that include delayed edges can be broken in this
+        manner.</span><p>
         <pre class="code">sort-watch-graph(WatchGraph G) = G.edges &lt;- sort-edges(G.edges)
 <span class="TODO">Edge* sort-edges(Edge* E) = ...</span></pre>
       </section>
@@ -477,12 +488,13 @@ AdapterVertex? find-prototype-vertex’(Adapter A, Component? C, WatchGraph G) =
         <h3>Example</h3>
         <p>The figure below shows the sorted watch graph for <code>Panel</code>.
         Vertices are represented by ovals (properties), heptagons (events),
-        squares (watches), and a triangle for the vortex. Edges are represented
-        by arrows between the vertices and numbered with their traversal order,
-        starting from 1; <code>InheritEdges</code> (3, 4, and 12) are pink while
-        yellow edges are edges that were copied from the prototype vertex (15,
-        which is a copy of 17.) <span class="TODO">The numbering should be
-          updated to include the <code>InitEdge</code>s.</span></p>
+        squares (watches; an <code>InitVertex</code> is orange), and a triangle
+        for the vortex. Edges are represented by arrows between the vertices and
+        numbered with their traversal order, starting from 1;
+        <code>InheritEdges</code> (3, 4, 15, 20, and 22) are fuchsia; edges that
+        are copied from a prototype vertex (23, copied from 25, and 26 and 27,
+        both copied from 28) are yellow; and <code>InitEdge</code>s (9, 11, 13,
+        18, 19, 21) are orange.</p>
 
         <figure>
           <img src="fig/graph-panel.svg">
@@ -684,7 +696,9 @@ integer next-view-index(View+ S, integer I) =
 
         <p><span class="TODO">When the element is the target of an event, a DOM
           event listener is also added so that the corresponding vertex receives
-        a value from this node when the event occurs.</span></p>
+        a value from this node when the event occurs. This also applies to the
+        <code>DocumentElement</code> of a view, if any, where event listeners
+        are added to the document of the target element.</span></p>
 
         <p>Rendering an <code>Attribute</code> <em>A</em> is setting an
         attribute on the target element with the value resulting from the
@@ -742,9 +756,10 @@ integer next-view-index(View+ S, integer I) =
         <p>Every edge of the graph is visited in turn. This function is called
         whenever a <code>Vertex</code> receives a value. More than one values
         can be present in the graph before a traversal begins, which simulates
-        the simultaneous propagation of the values. This happens for instnce at
+        the simultaneous propagation of the values. This happens for instance at
         initialization time, when all properties are initialized, and allows
-        updates to be batched while traversal happens asynchronously.</p>
+        updates to be batched while traversal happens asynchronously. After all
+        edges have been traversed, the vertex values are cleared.</p>
         <pre class="code">traverse-graph(Graph G) =
   do
     for E in G.edges
@@ -764,13 +779,12 @@ integer next-view-index(View+ S, integer I) =
 
         <p>An <code>InheritEdge</code> only filters its input values. The input
         value is passed unchanged to the destination vertex if and only if the
-        static target of the destination vertex is a prototype of the input
-        value target <span class="TODO">(better specify this
-        relationship.)</span></p>
+        static target of the destination vertex conforms to the
+        <code>Node</code> for which the value was set on the source vertex.</p>
         <pre class="code">traverse-inherit-edge(InheritEdge E) =
-  for W in vertex-values(E.source)
-    if target-of(E.dest) is-prototype-of W.target
-      set-vertex-value(E.dest, W)</pre>
+  for N in keys(E.source.values)
+    if conforms-to(target-of(E.dest), N)
+      E.dest.values[N] = E.source.values[N]</pre>
 
         <p><code>target-of()</code> returns the static target of a vertex. In
         the case of an <code>InheritEdge</code>, the destination vertex is
@@ -800,22 +814,26 @@ integer next-view-index(View+ S, integer I) =
         Moreover, it must also determine the right runtime target for its output
         based on the static target of its adapter and its input runtime
         target.</p>
-        <pre class="code">traverse-adapter-edge(AdapterEdge E) =
-  for W in vertex-values(E.source)
-    for T in runtime-targets(target-of(E.dest), W.target)
-      if E.adapter.match(W.value, T)
-        apply-value(E, T, E.adapter.value(W.value, T))</pre>
 
-        <p><span class="TODO">Find the runtime targets for static target node
-          <em>S</em> in the context of the input runtime target <em>T</em>.
-        There can be zero or more such targets (depending on the static
-        flag.)</span></p>
-        <pre class="code">Node* runtime-targets(Node S, Node T) =
- let V = find(view-stack-of(S), λV S.view = V)
-   in let T’ = runtime-target(T, V) in
-     if defined T’
-       then [T’]
-       else []</pre>
+        <p><span class="TODO">This is just a summary as this part needs review.
+        The runtime component and target of the edge are determined by matching
+        the static component (the component of the watch of the adapter of the
+        edge) and the static target (the target of the adapter of the edge) to
+        their runtime counterpart. A <em>scope</em> map maintains for each
+        rendered view the which runtime node corresponds to which static node.
+        This scope map is used to find the runtime component and target. The
+        <em>concrete</em> targets are then determined from the runtime target.
+        If the edge is static or the runtime target is concrete, then it is the
+        same as the runtime target. If the runtime target is abstract (for
+        instance in the current <code>Panel</code> example, the
+        <code>Button</code> component is abstract; so if it is the target of
+        an edge, then the concrete targets are the <code>Plus</code> and
+        <code>Minus</code> components. Once those are determined, the set of
+        input values is first filtered by applying the <code>match()</code>
+        function of the adapter for all input value/concrete target pairs. For
+        all matches, a value is computed from the <code>value()</code> function
+        of the adapter and is set on the destination vertex for the concrete
+        target. Then, the values are <em>applied</em> to take effect.</span></p>
 
         <p>When an edge for a <code>Set</code> is traversed, its output value is
         set on the target vertex, but it is also <em>applied</em> to the target.
@@ -866,19 +884,18 @@ integer next-view-index(View+ S, integer I) =
         </figure>
 
         <p>The <code>mouseup</code> event vertex was just activated for the
-        <code>Plus</code> button with an event value. The graph traversal then
-        starts, following edges in the order below (dashed edges are not
-        followed as they have no input value and are omitted for brevity), with
-        the following effects:</p>
+        <code>DocumentElement</code> of both <code>Plus</code> and
+        <code>Minus</code> buttons with a DOM event value. The graph traversal
+        then starts, following edges in the order below, with the following
+        effects:</p>
         <ol>
-          <li>A DOM <code>mouseup</code> event is received from the
-          <code>frame</code> DOM element of the clone of the view of
-          <code>Button</code> for the <code>Plus</code> component (shown as
-          <code>frame/Plus</code>.)</li>
-          <li>A new event is generated for <code>Plus</code>, which is the
-          runtime target matching the static target <code>Button</code> of the
-          adapter for this edge (since the input target was the
-          <code>frame</code> element of <code>Plus</code>.)</li>
+          <li>The DOM <code>mouseup</code> event is received from the document
+          element on both <code>Plus</code> and <code>Minus</code>
+          components.</li>
+          <li>Only the <code>Plus</code> component had its <code>down</code>
+          property set to true, so the event value for <code>Minus</code> gets
+          filtered out. A new Bender event of type <code>pushed</code> is
+          generated for <code>Plus</code>.</li>
           <li><code>Minus</code> does not conform to the prototype of
           <code>Plus</code> so this edge is not followed.</li>
           <li><code>Plus</code> conforms to the prototype of <code>Plus</code>,
@@ -890,35 +907,47 @@ integer next-view-index(View+ S, integer I) =
           <li>The value of <code>n</code> for <code>Panel</code> is set to
           3.</li>
           <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
           <li>The value of <code>n</code> is passed to watch <span
             class="watch">3</span>.</li>
+          <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
           <li>This edge has no input value.</li>
           <li>The value of <code>enabled</code> for <code>Minus</code> is set to
           true (since <code>n</code> is greater than 0.)</li>
           <li>This edge has no input value.</li>
           <li>This edge has no input value.</li>
-          <li>The value of <code>down</code> for <code>Plus</code> is set to
-          false.</li>
+          <li>The value of <code>down</code> for both <code>Plus</code> and
+          <code>Minus</code> is set to false.</li>
+          <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
           <li>The value of <code>enabled</code> is passed to watch <span
             class="watch">7</span>.</li>
           <li>The value of <code>down</code> is passed to watch <span
-            class="watch">7</span>. Note that the watch has a value for the
-          target <code>Minus</code>, so a new value for the target
-          <code>Plus</code> can be
-          set.</li>
+            class="watch">7</span>. Note that the watch already has a value for
+          the target <code>Minus</code>, so a value is set for the target
+          <code>Plus</code> only.</li>
           <li>This edge has no input value.</li>
           <li>This edge has no input value.</li>
           <li>This edge has no input value.</li>
-          <li>There are two values, so the edge is traversed twice. First, the
-          <code>class</code> attribute of the DOM element for <code>frame</code>
-          in <code>Plus</code> is set to the empty string, then the
-          <code>class</code> attribute of the DOM element for <code>frame</code>
-          in <code>Minus</code> is set to the empty string.</li>
+          <li>This edge has no input value.</li>
+          <li>This edge has no input value.</li>
+          <li>The <code>class</code> attribute of the DOM element for
+          <code>frame</code> in both <code>Plus</code> amd <code>Minus</code> is
+          set to the string <code>button</code> (this does not change for
+          <code>Minus</code>, but removes the <code>down</code> class for
+          <code>Plus</code>.)</li>
           <li>The text content of the text node for <code>text-n</code> in
           <code>Panel</code> is set to the string "3".</li>
         </ol>
+        <p>After this traversal, the application state is consistent: both
+        buttons are in their normal state, and the display of the <code>n</code>
+        property was brought up to date.</p>
       </section>
-      
+
       <section id="delayed-edges">
         <h3>Delayed edge traversal</h3>
         <p><code>Adapter</code>s have a <code>delay</code> property. If that
@@ -948,34 +977,50 @@ integer next-view-index(View+ S, integer I) =
       </section>
     </section>
 
-    <section id="initialization">
-      <h2>Property Initialization</h2>
-
-      <p><span class="TODO">After rendering the view of all components, initial
-        values are set and the watch graph is flushed. For every property vertex
-      <em>V</em> in the graph, a new vertex <em>I</em> is added, with a single
-      outgoing edge <em>E</em> to <em>V</em>. Since the graph was sorted,
-      <em>E</em> can be inserted after all regular incoming edges of <em>V</em>,
-      but before any <code>InheritEdge</code> (i.e. <em>E</em> is considered to
-      have a <code>priority</code> in the range ]-1, 0[.) If <em>V</em> has no
-      incoming edge, <em>E</em> can safely be inserted at the head of the list
-      of edges. The graph is then traversed normally. The vertices and edges
-      added at this step can be removed, although they do not interfere in
-      further traversals.</span></p>
-
-      <p><span class="TODO">Finally, a <code>ready</code> event notification is
-        generated for all components so that they can finish any initialization
-      that relies on the propagation of property values.</span></p>
-
-      <pre class="code">init-properties(Component C, Graph G) = ...</pre>
-    </section>
-
     <section id="mutations">
       <h2>Component Mutations</h2>
       <p><span class="TODO">Render new graph and view, then reinitialize the
         graph using all the values from the previous rendering directly in the
       vertices.  If nodes have been added, they are initialized normally with
       their initial value.</span></p>
+
+      <section>
+        <h3>Unrendering Views</h3>
+        <p><span class="TODO">When a view is rendered, it keeps track of its
+          <em>span</em>: the first and last DOM nodes of its rendering. When a
+          view is unrendered, all nodes in its span are removed. The span of a
+          parent view needs to be updated. Event listeners need to be
+          removed.</p>
+      </section>
+
+      <section>
+        <h3>Unrendering Watches</h3>
+        <p><span class="TODO">When the subgraph of a component is rendered, it
+          keeps track of a <em>reference count</em>; it starts from zero and is
+          incremented every time a render is required. Only when the count
+          reaches 1 for the first time is the subgraph <em>actually</em>
+          rendered (this replace the mark in <code>render-subgraph()</code>.)
+          Watches are removed from the watch graph by removing the corresponding
+          watch vertices. When a vertex is removed, all of its input edges and
+          output edges are removed as well. Vertices that have no more input or
+          output edge then be removed (unless it is the vortex.) This continues
+          until no more vertices need to be removed. Child component are
+          unrendered in the same way. Prototype components are unrendered if and
+          only if their reference count, which is decremented at every unrender
+          request, reaches zero.</span></p>
+      </section>
+
+      <section>
+        <h3>State Persistence</h3>
+        <p><span class="TODO">State persistence is achieved by having the values
+          of properties <em>frozen</em>. Serializing to JSON allows values to
+          be frozen and thawed later by parsing the JSON back. Object data can
+          be frozen and thawed by implementing an adequate protocol/interface
+          (see runtime.) Thawed values can be set directly on property vertices
+          while flushing the graph restores the complete state of the
+          application.</span></p>
+      </section>
+
     </section>
 
     <section id="minimization">

@@ -9,31 +9,29 @@ digraph bender {
   label [label="label (Button)"];
   mousedown [label="mousedown (frame)", shape=septagon];
   down [label="down (Button)"];
-  mouseup [label="mouseup (frame)", shape=septagon];
+  mouseup [label="mouseup (document)", shape=septagon];
   w6 [label="6", shape=square, fixedsize=true, width=0.3];
   pushed [label="pushed\n(Button, Plus, Minus)", shape=septagon];
   w7 [label="7", shape=square, fixedsize=true, width=0.3];
 
-  init_label [label="label (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
-  init_enabled [label="enabled (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
-  init_n [label="n (Panel)", color="#ff6a4d", fontcolor="#ff6a4d"];
-  init_down [label="down (Button)", color="#ff6a4d", fontcolor="#ff6a4d"];
+  init_button [label="", shape=square, fixedsize=true, width=0.3, color="#ff6a4d"];
+  init_panel [label="", shape=square, fixedsize=true, width=0.3, color="#ff6a4d"];
 
-  init_label -> label [label=" 0.5", color="#ff6a4d", fontcolor="#ff6a4d"];
   mouseup -> w6 [label=" 1"];
   w6 -> pushed [label=" 2"];
   pushed -> n [label=" 8"];
-  init_n -> n [label=" 8.5", color="#ff6a4d", fontcolor="#ff6a4d"];
-  n -> w3 [label=" 9"];
-  init_enabled -> enabled [label=" 11.5", color="#ff6a4d", fontcolor="#ff6a4d"];
-  w3 -> enabled [label=" 11"];
-  mousedown -> down [label=" 13"];
-  w6 -> down [label=" 14"];
-  init_down -> down [label=" 14.5", color="#ff6a4d", fontcolor="#ff6a4d"];
-  down -> w7 [label=" 16"];
-  enabled -> w7 [label=" 17"];
-  label -> t [label=" 19"];
-  w7 -> t [label=" 20"];
-  w3 -> t [label=" 21"];
+  init_panel -> n [label=" 9", color="#ff6a4d", fontcolor="#ff6a4d"];
+  n -> w3 [label=" 10"];
+  init_button -> enabled [label=" 11", color="#ff6a4d", fontcolor="#ff6a4d"];
+  mousedown -> down [label=" 12"];
+  init_button -> label [label=" 13", color="#ff6a4d", fontcolor="#ff6a4d"];
+  w3 -> enabled [label=" 14"];
+  w6 -> down [label=" 17"];
+  init_button -> down [label=" 18", color="#ff6a4d", fontcolor="#ff6a4d"];
+  down -> w7 [label=" 24"];
+  enabled -> w7 [label=" 25"];
+  label -> t [label=" 29"];
+  w7 -> t [label=" 30"];
+  w3 -> t [label=" 31"];
 
 }

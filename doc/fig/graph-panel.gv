@@ -1,55 +1,61 @@
 digraph bender {
-  node [fontname="Avenir Next"];
-  edge [fontname="Avenir Next"];
+  node [fontname="Avenir Next"]
+  edge [fontname="Avenir Next"]
 
-  t [label="", shape=triangle, fixedsize=true, width=0.5];
-  w4 [label="4", shape=square, fixedsize=true, width=0.3];
-  label [label="label (Button)"];
-  w5 [label="5", shape=square, fixedsize=true, width=0.3];
-  mousedown [label="mousedown (frame)", shape=septagon];
-  down [label="down (Button)"];
-  w6 [label="6", shape=square, fixedsize=true, width=0.3];
-  mouseup [label="mouseup (frame)", shape=septagon];
-  pushed [label="pushed (Button)", shape=septagon];
-  w7 [label="7", shape=square, fixedsize=true, width=0.3];
-  enabled [label="enabled (Button)"];
-  w1 [label="1", shape=square, fixedsize=true, width=0.3];
-  ppushed [label="pushed (Plus)", shape=septagon];
-  n [label="n (Panel)"];
-  w2 [label="2", shape=square, fixedsize=true, width=0.3];
-  mpushed [label="pushed (Minus)", shape=septagon];
-  w3 [label="3", shape=square, fixedsize=true, width=0.3];
-  menabled [label="enabled (Minus)"];
+  v0 [shape=triangle, label=""]
+  v1 [label="", shape=square, fixedsize=true, width=0.3, color="#ff6a4d"]
+  v2 [label="label (Button)"]
+  v3 [label="enabled (Button)"]
+  v4 [label="down (Button)"]
+  v5 [label="4", shape=square, fixedsize=true, width=0.3]
+  v6 [label="5", shape=square, fixedsize=true, width=0.3]
+  v7 [label="mousedown (frame)", shape=septagon]
+  v8 [label="6", shape=square, fixedsize=true, width=0.3]
+  v9 [label="mouseup (document)", shape=septagon]
+  v10 [label="pushed (Button)", shape=septagon]
+  v11 [label="7", shape=square, fixedsize=true, width=0.3]
+  v12 [label="", shape=square, fixedsize=true, width=0.3, color="#ff6a4d"]
+  v13 [label="label (Plus)"]
+  v14 [label="", shape=square, fixedsize=true, width=0.3, color="#ff6a4d"]
+  v15 [label="label (Minus)"]
+  v16 [label="", shape=square, fixedsize=true, width=0.3, color="#ff6a4d"]
+  v17 [label="n (Panel)"]
+  v18 [label="1", shape=square, fixedsize=true, width=0.3]
+  v19 [label="pushed (Plus)", shape=septagon]
+  v20 [label="2", shape=square, fixedsize=true, width=0.3]
+  v21 [label="pushed (Minus)", shape=septagon]
+  v22 [label="3", shape=square, fixedsize=true, width=0.3]
+  v23 [label="enabled (Minus)"]
 
-  mouseup -> w6 [label=" 1"];
-  w6 -> pushed [label=" 2"];
-  pushed -> mpushed [label=" 3", color="#f94179"];
-  pushed -> ppushed [label=" 4", color="#f94179"];
-  mpushed -> w2 [label=" 5"];
-  ppushed -> w1 [label=" 6"];
-  w1 -> n [label=" 7"];
-  w2 -> n [label=" 8"];
-  n -> w3 [label=" 9"];
-  mousedown -> w5 [label=" 10"];
-  w3 -> menabled [label=" 11"];
-  enabled -> menabled [label=" 12", color="#f94179"];
-  w5 -> down [label=" 13"];
-  w6 -> down [label=" 14"];
-  menabled -> w7 [label=" 15", color="#f8ca00"];
-  down -> w7 [label=" 16"];
-  enabled -> w7 [label=" 17"];
-  label -> w4 [label=" 18"];
-  w4 -> t [label=" 19"];
-  w7 -> t [label=" 20"];
-  w3 -> t [label=" 21"];
-
-  init_n [shape=point, label="", color="#ff6a4d"]
-  init_n -> n [color="#ff6a4d", label=" 8.5"];
-  init_enabled [shape=point, label="", color="#ff6a4d"]
-  init_enabled -> enabled [color="#ff6a4d", label=" 11.5"];
-  init_down [shape=point, label="", color="#ff6a4d"]
-  init_down -> down [color="#ff6a4d", label=" 14.5"];
-  init_label [shape=point, label="", color="#ff6a4d"]
-  init_label -> label [color="#ff6a4d", label=" 17.5"];
-
+  v9 -> v8 [label=" 1", color="#000000"]
+  v8 -> v10 [label=" 2", color="#000000"]
+  v10 -> v21 [label=" 3", color="#f94179"]
+  v10 -> v19 [label=" 4", color="#f94179"]
+  v21 -> v20 [label=" 5", color="#000000"]
+  v19 -> v18 [label=" 6", color="#000000"]
+  v18 -> v17 [label=" 7", color="#000000"]
+  v20 -> v17 [label=" 8", color="#000000"]
+  v16 -> v17 [label=" 9", color="#ff6a4d"]
+  v17 -> v22 [label=" 10", color="#000000"]
+  v1 -> v3 [label=" 11", color="#ff6a4d"]
+  v7 -> v6 [label=" 12", color="#000000"]
+  v1 -> v2 [label=" 13", color="#ff6a4d"]
+  v22 -> v23 [label=" 14", color="#000000"]
+  v3 -> v23 [label=" 15", color="#f94179"]
+  v6 -> v4 [label=" 16", color="#000000"]
+  v8 -> v4 [label=" 17", color="#000000"]
+  v1 -> v4 [label=" 18", color="#ff6a4d"]
+  v14 -> v15 [label=" 19", color="#ff6a4d"]
+  v2 -> v15 [label=" 20", color="#f94179"]
+  v12 -> v13 [label=" 21", color="#ff6a4d"]
+  v2 -> v13 [label=" 22", color="#f94179"]
+  v23 -> v11 [label=" 23", color="#f8ca00"]
+  v4 -> v11 [label=" 24", color="#000000"]
+  v3 -> v11 [label=" 25", color="#000000"]
+  v13 -> v5 [label=" 26", color="#f8ca00"]
+  v15 -> v5 [label=" 27", color="#f8ca00"]
+  v2 -> v5 [label=" 28", color="#000000"]
+  v5 -> v0 [label=" 29", color="#000000"]
+  v11 -> v0 [label=" 30", color="#000000"]
+  v22 -> v0 [label=" 31", color="#000000"]
 }

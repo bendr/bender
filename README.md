@@ -4,9 +4,8 @@ Copyright © 2011-2014 [IGEL Co., Ltd.](http://www.igel.co.jp/bender/)
 
 Bender is an experimental, declarative language for Web application authoring.
 It is built on top of HTML5, Javascript and XML and focuses on rich graphical
-user interfaces. It is free software and is released under the Apache License
-v2.0 (see included
-[LICENSE](https://github.com/bendr/bender/blob/master/LICENSE) file.)
+user interfaces. It is free software and is released under the [Apache License
+v2.0](https://github.com/bendr/bender/blob/master/LICENSE).
 
 Bender builds on the idea of declarative languages like HTML, SVG and CSS to
 describe not only the layout of an application, but also its structure and its
