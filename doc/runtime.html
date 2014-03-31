@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender HTML Runtime</h1>
-    <p>Version 0.9, Fri 28 Mar 2014</p>
+    <p>Version 0.9, Mon 31 Mar 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and
     <a href="processing-model.html">the Bender Processing Model</a> for
     reference.</p>
@@ -32,16 +32,12 @@
     <section id="s11n">
       <h2>XML Serialization of Bender Components</h2>
 
-      <section id="attributes">
-        <h3>Common attributes</h3>
-        <ul>
-          <li><span class="TODO">The <code>name</code> attribute. Two
-            namespaces: one for properties, and one for nodes (components and
-          view elements.) Scope for property names is the parent component;
-          scope for nodes is the top-level component tree.</span></li>
-          <li><span class="TODO">The <code>render-name</code> attribute. Where
-            does it go exactly?</span></li>
-        </ul>
+      <section>
+        <h3>Introduction</h3>
+        <p>All Bender elements are in the Bender namespace:</p>
+        <pre>http://bender.igel.co.jp/</pre>
+        <p>A Bender component is described by an XML file with a
+        <code>component</code> as its root element.</p>
       </section>
 
       <section id="component">
@@ -53,14 +49,25 @@
         container?</span></p>
         <p>The <code>component</code> element has the following attributes:</p>
         <ul>
-          <li><code>name</code> (optional)</li>
+          <li><code>name</code> (optional): the name of the component. It must
+          be unique within the scope of the component (<em>i.e.</em>, within the
+          component, its parent, and its children) and cannot be the empty
+          string or the string <code>this</code>.</li>
           <li><code>href</code> (optional): this attribute points to the
           prototype component. The value of <code>href</code> must be a URI that
           identifies a Bender component.</li>
-          <li><span class="TODO">on-* attributes: see runtime.</span></li>
-          <li>any other attribute is interpreted as the name of a property. The
+          <li><code>on-init</code> (optional): Javascript source code for a
+          function getting called when the component is initialized (before it
+          is rendered or its properties are set.) <code>this</code> is set to
+          the component.</li>
+          <li><code>on-render</code> (optional): Javascript source code for a
+          function getting called after every rendering of the component.
+          <code>this</code> is set to the component.</li>
+          <li>any other attribute is interpreted as the name of a property and
+          must match a declared property for the component or its prototype. The
           value of the attribute is used as the initial value of this property
-          for this component.</li>
+          for this component and is interpreted using the <code>as</code> value
+          of the original declaration.</li>
         </ul>
         <p>The <code>component</code> element has the following children, which
         can appear in any order:</p>
@@ -68,7 +75,7 @@
           <li><code>property</code> (zero or more): the properties of the
           component.</li>
           <li><span class="TODO"><code>component</code> (zero or more): child
-            components that are not rendered.</span></li>
+            components that are not rendered (not implemented yet.)</span></li>
           <li><code>view</code> (optional): the view of the component.</li>
           <li><code>watch</code> (zero or more): the watches of the
           component.</li>
@@ -76,6 +83,7 @@
           (scripts, stylesheets, components.)</li>
           <li><code>script</code> (zero or more): inline scripts.</li>
           <li><code>style</code> (zero or more): inline style.</li>
+          <li><code>title</code> (optional): the component title (metadata.)</li>
         </ul>
       </section>
 
@@ -84,6 +92,24 @@
         <p>The <code>property</code> element describes a property of the parent
         component, and how it is initialized or bound to other properties. It
         can occur only as the child of a <code>component</code> element.</p>
+        <p>The <code>property</code> element has the following attributes:</p>
+        <ul>
+          <li><code>name</code>: the name of the property. It must be a
+          non-empty string and must be unique within the component.</li>
+          <li><code>value</code> (optional): the bound or initial value of the
+          property. See how <code>value</code> is parsed below.</li>
+          <li><code>as</code> (optional): describe how the <code>value</code>
+          string is interepreted. Its value can be one of: <code>boolean</code>,
+          <code>dynamic</code>, <code>dynamic-string</code>,
+          <code>number</code>, or <code>string</code>. The default value is
+          <code>dynamic</code>.</li>
+          <li><code>match</code> (optional):</li>
+          <li><code>select</code> (optional):</li>
+          <li><code>delay</code> (optional):</li>
+        </ul>
+        <p>The <code>property</code> element can only have text content, which
+        in absence of a <code>value</code> attribute is the bound or initial
+        value of the property.</p>
       </section>
 
       <section id="view">
@@ -91,18 +117,91 @@
         <p>The <code>view</code> element is the container for the view of its
         parent component. A <code>component</code> with no <code>view</code>
         child has a default view.</p>
+        <p>The <code>view</code> element has the following attributes:</p>
+        <ul>
+          <li><span class="TODO"><code>render-name</code> (optional): render the
+            name of the parent component as an id or a class. Possible values
+            are <code>id</code>, <code>class</code>, <code>node</code>. The
+            default value is <code>none</code>.</span></li>
+          <li><span class="TODO"><code>stack</code> (optional): stacking order
+            of the views, one of <code>top</code>, <code>bottom</code>, or
+            <code>replace</code>. The default is <code>top</code>.</span></li>
+        </ul>
+        <p>The <code>view</code> element has the following children, which
+        can appear in any order:</p>
+        <ul>
+          <li><code>content</code>: placeholder for the view of components that
+          inherit from this view. There can be at most one <code>content</code> 
+          element for a given <code>view</code>. <span class="TODO">This will
+            be relaxed with a <code>select</code> attribute.</span></li>
+          <li><span class="TODO"><code>view</code> (zero or more): views of
+            descendant components of the parent component of the
+            view.</span></li>
+          <li><code>component</code> (zero or more): child components.</li>
+          <li>Foreign view elements (zero or more): foreign elements rendered
+          as is.</li>
+          <li><code>attribute</code> (zero or more): attributes of the
+          enclosing element.</li>
+          <li><code>text</code> (zero or more): text content.</li>
+        </ul>
       </section>
 
       <section>
         <h3>The <code>content</code> element</h3>
+        <p>The <code>content</code> element describes a placeholder for the view
+        of a component inheriting from the parent component, and default content
+        when that component is rendered.</p>
+        <p>The <code>view</code> element has the following children, which
+        can appear in any order:</p>
+        <ul>
+          <li><span class="TODO"><code>view</code> (zero or more): views of
+            descendant components of the parent component of the
+            view.</span></li>
+          <li><code>component</code> (zero or more): child components.</li>
+          <li>Foreign view elements (zero or more): foreign elements rendered
+          as is.</li>
+          <li><code>attribute</code> (zero or more): attributes of the
+          enclosing element.</li>
+          <li><code>text</code> (zero or more): text content.</li>
+        </ul>
       </section>
 
       <section>
         <h3>Foreign view elements</h3>
+        <p>Foreign view elements are any element not in the Bender namespace.
+        These elements are rendered are rendered as is, and as such should be
+        in namespaces that the host application supports, such as HTML or
+        SVG.</p>
+        <p>Foreign view elements have the following attributes:</p>
+        <ul>
+          <li><code>name</code> (optional): the name of the element. It must
+          be unique within the scope of the component (<em>i.e.</em>, within the
+          component, its parent, and its children) and cannot be the empty
+          string or the string <code>this</code>.</li>
+          <li>any other element is rendered as is.</li>
+        </ul>
+        <p>Foreign view elements have the following children, which can appear
+        in any order:</p>
+        <ul>
+          <li><code>content</code>: placeholder for the view of components that
+          inherit from this view. There can be at most one <code>content</code> 
+          element for a given <code>view</code>. <span class="TODO">This will
+            be relaxed with a <code>select</code> attribute.</span></li>
+          <li><span class="TODO"><code>view</code> (zero or more): views of
+            descendant components of the parent component of the
+            view.</span></li>
+          <li><code>component</code> (zero or more): child components.</li>
+          <li>Foreign view elements (zero or more): foreign elements rendered
+          as is.</li>
+          <li><code>attribute</code> (zero or more): attributes of the
+          enclosing element.</li>
+          <li><code>text</code> (zero or more): text content.</li>
+        </ul>
       </section>
 
       <section>
         <h3>The <code>attribute</code> element</h3>
+        <p>The
       </section>
 
       <section>
@@ -112,7 +211,7 @@
 
       <section>
         <h3>The <code>watch</code> element</h3>
-        <p>The <code>watch</code> element</p> describes a watch in a component.
+        <p>The <code>watch</code> element describes a watch in a component.
         It can occur in a <code>component</code> element. It has no attribute.
         It has the following children in any order:</p>
         <ul>
@@ -262,9 +361,6 @@
 &lt;/component&gt;</pre>
       </section>
 
-      <section>
-        <h3>Javascript API for the Data Model</h3>
-      </section>
     </section>
 
     <script src="doc.js"></script>

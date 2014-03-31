@@ -1,7 +1,18 @@
 // Bender core, implementing only the processing model as defined in
-// /spec/data-model.html and /spec/processing-model.html. See runtime.js for
+// /doc/data-model.html and /doc/processing-model.html. See runtime.js for
 // the runtime, XML serialization, and other sorts of syntactic sugar.
 // Additional properties are introduced for implementation purposes.
+
+// TODO
+// [/] remove component removes the view; unrender view; unrender from graph.
+// [ ] persistence of property values
+// [ ] match then, compute value then, apply value in traverse edge; get rid of
+//     ordered_values
+// [ ] do not traverse edges for static values when the component has its own
+//     value (in match)
+// [ ] review delay
+// [ ] view-less components
+// [ ] InertEdges
 
 /* global bender, console, exports, flexo, global, require, window */
 
@@ -147,8 +158,8 @@
       this.watches = [];
       this.set_view(view);
       delete this._all;
-      this.__render_subgraph = true;        // delete when rendered
-      this.__on_init = true;                // delete when init is called
+      this.__render_subgraph = 0;  // number of rendering requests
+      this.__on_init = true;       // delete when init is called
       flexo.asap(function () {
         if (this.__on_init) {
           delete this.__on_init;
@@ -365,10 +376,9 @@
     // Note also that this is a place as good as any to build the static scope
     // of the component (later, we might save the scope on vertices?)
     render_subgraph: function (graph) {
-      if (!this.__render_subgraph) {
+      if (this.__render_subgraph++ > 0) {
         return graph;
       }
-      delete this.__render_subgraph;
       var prototype = this.prototype;
       if (prototype) {
         this.prototype.render_subgraph(graph);
@@ -399,9 +409,11 @@
 
     unrender_subgraph: function () {
       // Prototype should keep track of how many subgraphs are rendered for it
+      if (--this.__render_subgraph > 0) {
+        return;
+      }
       var prototype = this.prototype;
       if (prototype) {
-        // TODO decrease count
         prototype.unrender_subgraph();
       }
       this.children.forEach(function (child) {
@@ -410,7 +422,6 @@
       this.watches.forEach(function (watch) {
         watch.unrender_subgraph();
       });
-      this.__render_subgraph = true;
     },
 
     // Update the scope (and name map) of the component for the given node.

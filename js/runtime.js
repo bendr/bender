@@ -1,5 +1,9 @@
 // HTML runtime for Bender, based on the functional core.
 
+// TODO
+// [ ] render-name
+// [ ] link rel="component" (link rel="watch"? rel="view"?)
+
 /* global console, flexo, window */
 
 (function (bender) {
@@ -209,6 +213,12 @@
         if (attr.localName.indexOf("on-") === 0) {
           component.on(attr.localName.substr(3), attr.value);
         } else if (attr.localName === "name") {
+          var name = flexo.safe_string(name);
+          if (name === "") {
+            throw "Name cannot be empty.";
+          } else if (name.toLowerCase() === "this") {
+            throw "Name cannot be “this”.";
+          }
           component.name(attr.value);
         } else if (attr.localName !== "href" || custom) {
           var set = parse_init_value(component, attr.localName, attr.value);
@@ -801,8 +811,8 @@
     }).join("\n");
     var edges = this.edges.map(function (edge, i) {
       var color = edge.priority === bender.InheritEdge.priority ?
-        "#f8ca00" : edge.priority < 0 ? "#ff6a4d" :
-        edge.priority > 0 ? "#f94179" : "#000000";
+        "#f94179" : edge.priority < 0 ? "#ff6a4d" :
+        edge.priority > 0 ? "#f8ca00" : "#000000";
       return "v%0 -> v%1 [label=\" %2\", color=\"%3\"]"
         .fmt(edge.source.__index, edge.dest.__index, i + 1, color);
     }).join("\n");
