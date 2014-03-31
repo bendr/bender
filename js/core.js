@@ -321,10 +321,22 @@
     render: function (target) {
       var graph = this.render_subgraph(bender.WatchGraph.create())
         .sort().minimize();
+      this.target = target;
       this.render_view(target || window.document.body);
       graph.flush();
       this.ready();
       return graph;
+    },
+
+    // Unrender the component (so far, just the view; TODO: unrender watch)
+    unrender: function () {
+      this.view.unrender();
+      this.unrender_subgraph();
+    },
+
+    rerender: function () {
+      this.unrender();
+      this.render(this.target);
     },
 
     // Send a ready notification
@@ -385,6 +397,22 @@
       return graph;
     },
 
+    unrender_subgraph: function () {
+      // Prototype should keep track of how many subgraphs are rendered for it
+      var prototype = this.prototype;
+      if (prototype) {
+        // TODO decrease count
+        prototype.unrender_subgraph();
+      }
+      this.children.forEach(function (child) {
+        child.unrender_subgraph();
+      });
+      this.watches.forEach(function (watch) {
+        watch.unrender_subgraph();
+      });
+      this.__render_subgraph = true;
+    },
+
     // Update the scope (and name map) of the component for the given node.
     update_scope: function (node) {
       var name = node.name();
@@ -402,7 +430,7 @@
       var stack = this.view_stack();
       stack[0].render(fragment, stack, 0);
       target.appendChild(fragment);
-      this.on("render").call(this); 
+      this.on("render").call(this);
     },
 
     // Create the view stack for the component from its prototype and its own
@@ -448,7 +476,13 @@
       }
       this._url = url;
       return this;
+    },
+
+    // Removing a component removes its view from the hierarchy as well.
+    is_removed: function () {
+      this.view.remove_self();
     }
+
   });
 
   // Return the prototype component of the component, or undefined.
@@ -562,10 +596,27 @@
       if (this.__document_element) {
         this.__document_element.render();
       }
+      var first = target.firstChild;
       if (this === stack[i]) {
         this.render_children(target, stack, i);
       } else {
         this.component.render_view(target);
+      }
+      this.span = [first ? first.nextSibling : target.firstChild,
+        target.lastChild];
+    },
+
+    // TODO unrender event listeners
+    unrender: function () {
+      if (this.span) {
+        var node = this.span[0];
+        var parent = node.parentNode;
+        while (node !== this.span[1]) {
+          var next = node.nextSibling;
+          parent.removeChild(node);
+          node = next;
+        }
+        parent.removeChild(node);
       }
     }
   });
@@ -805,6 +856,10 @@
       this.sets.forEach(function (set) {
         graph.edge(bender.AdapterEdge.create(vertex, set.vertex(graph), set));
       });
+    },
+
+    unrender_subgraph: function () {
+      // TODO
     }
   });
 
