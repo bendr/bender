@@ -22,12 +22,14 @@ digraph panel {
     vbutton_ [label="view (Button)", shape=box]
     frame_ [label="html:div (frame/Plus)", shape=box, color="#5eb26b"]
     attr_ [label="attribute (class)", shape=box]
+    textbutton_ [label="text (“button”)", shape=box]
     textclass_ [label="text (text-class)", shape=box]
     content_ [label="content", shape=box]
     textlabel_ [label="text (text-label/Plus)", shape=box, color="#5eb26b"]
     vbutton__ [label="view (Button)", shape=box]
     frame__ [label="html:div (frame/Minus)", shape=box, color="#5eb26b"]
     attr__ [label="attribute (class)", shape=box]
+    textbutton__ [label="text (“button”)", shape=box]
     textclass__ [label="text (text-class)", shape=box]
     content__ [label="content", shape=box]
     textlabel__ [label="text (text-label/Minus)", shape=box, color="#5eb26b"]
@@ -44,6 +46,7 @@ digraph panel {
     vplus -> vbutton_ [dir=none, color="#f94179"]
     vbutton_ -> frame_
     frame_ -> attr_
+    attr_ -> textbutton_
     attr_ -> textclass_
     frame_ -> content_
     content_ -> textlabel_
@@ -51,6 +54,7 @@ digraph panel {
     vminus -> vbutton__ [dir=none, color="#f94179"]
     vbutton__ -> frame__
     frame__ -> attr__
+    attr__ -> textbutton__
     attr__ -> textclass__
     frame__ -> content__
     content__ -> textlabel__
@@ -71,11 +75,13 @@ digraph panel {
       frame [label="html:div (frame)", shape=box]
       content [shape=box]
       attr [label="attribute (class)", shape=box]
+      textbutton [label="text (“button”)", shape=box]
       textclass [label="text (text-class)", shape=box]
       textlabel [label="text (text-label)", shape=box]
       vbutton -> frame
       frame -> attr
       attr -> textclass
+      attr -> textbutton
       frame -> content
       content -> textlabel
     }

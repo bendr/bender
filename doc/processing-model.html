@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Processing Model</h1>
-    <p>Version 0.9, Mon 31 Mar 2014</p>
+    <p>Version 0.9, Tue 01 Apr 2014</p>
     <p>See also <a href="data-model.html">the Bender Data Model</a> and <a
       href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -273,7 +273,8 @@
         vertices and edges for every <code>Watch</code> in <em>C</em>. The
         component is marked so that its sub-graph is rendered only once. This is
         necessary because a prototype component may be shared by several
-        components, which will all require it to render its sub-graph.</p>
+        components, which will all require it to render its sub-graph.
+        <span class="TODO">Replace the mark with a counter.</span></p>
         <pre class="code">render-subgraph(Component C, WatchGraph G) =
   do
     mark C
@@ -381,7 +382,7 @@
   &lt;get property="down"/&gt;
   &lt;get property="enabled"/&gt;
   &lt;set select="@text-class"&gt;
-    return "button%0%1".fmt(`down ? " down" : "", `enabled ? "" : " disabled");
+    return (`down ? " down" : "") + (`enabled ? "" : " disabled");
   &lt;/set
 &lt;/watch&gt;</pre>
 
