@@ -7,7 +7,7 @@
   </head>
   <body>
     <h1>The Bender Data Model</h1>
-    <p>Version 0.9, Thu 28 Mar 2014</p>
+    <p>Version 0.9, Tue 01 Apr 2014</p>
     <p>See also <a href="processing-model.html">the Bender Processing Model</a>
     and <a href="runtime.html">the Bender Runtime</a> for reference.</p>
 
@@ -533,9 +533,11 @@
         href="run.html?href=xml/panel.xml">Panel</a>) <a
         href="runtime.html#s11n">defined in XML</a> as follows:</p>
 
-      <div class="def" id="Panel">
-        <div>
-          <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Panel"&gt;
+      <section>
+        <h3>The <code>Panel</code> component</h3>
+        <div class="def" id="Panel">
+          <div>
+            <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Panel"&gt;
   &lt;property name="n" as="number" value="0"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div class="panel"&gt;
@@ -558,96 +560,98 @@
     &lt;set select="@Minus" property="enabled" value="$in &amp;gt; 0"/&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
-          <ul>
-            <li><code>Panel</code> has a property named <code>n</code>, as
-            specified by the <code>name</code> attribute of the
-            <code>property</code> element.</li>
-            <li>An <code>InitWatch</code> handles the property initialization,
-            also defined by the <code>property</code> element. There is one
-            <code>SetProperty</code> output for this watch for the property
-            <code>n</code>. The component itself as a <code>target</code>. The
-            value is a function that returns the number (as defined by the
-            <code>as</code> attribute) 0.</li>
-            <li><code>Panel</code> has a <code>View</code> with a
-            <code>DOMElement</code> child (a HTML <code>div</code> element),
-            with three children. The first is a <code>Text</code> child with the
-            name <code>text-n</code>, as specified by the <code>name</code>
-            attribute.</li>
-            <li>The <code>component</code> element inside a
-            <code>view</code> element has two roles: set the component as a
-            child component of the component for which this is the view of, and
-            set the view of the component as a child of the parent element. The
-            two <code>component</code> elements here mean that
-            <code>Panel</code> has two child components with the names
-            <code>Plus</code> and <code>Minus</code>, both inheriting from the
-            <code>Button</code> component shown below (as specified by the
-            <code>href</code> attribute), with a different initial value for the
-            <code>label</code> property (as specified by the <code>label</code>
-            attribute), and a default view, since they have no <code>view</code>
-            child element. These two child components each have an
-            <code>InitWatch</code> for the initial value of their
-            <code>label</code> property. Their views are also the second and
-            third children of the <code>div</code> DOM element in the view of
-            <code>Panel</code>.</li>
-            <li>The <code>Watch</code> <span class="watch">1</span> has one
-            input and one output:
             <ul>
-              <li>the input is a <code>GetEvent</code>. The <code>target</code>
-              is the <code>Plus</code> component, as specified by the
-              <code>select</code> attribute. The watch is listening to a Bender
-              event of type <code>pushed</code>;</li>
-              <li>the output is a <code>SetProperty</code>. The target property
-              is the <code>n</code> property of the <code>Panel</code>
-              component, as specified by the <code>property</code> attribute.
-              The output value is one plus the value of <code>n</code>, as
-              specified by the <code>value</code> element. <span
-                class="TODO">Rewrite this with a parameter for
-                <code>n</code>.</span></li>
+              <li><code>Panel</code> has a property named <code>n</code>, as
+              specified by the <code>name</code> attribute of the
+              <code>property</code> element.</li>
+              <li>An <code>InitWatch</code> handles the property initialization,
+              also defined by the <code>property</code> element. There is one
+              <code>SetProperty</code> output for this watch for the property
+              <code>n</code>. The component itself as a <code>target</code>. The
+              value is a function that returns the number (as defined by the
+              <code>as</code> attribute) 0.</li>
+              <li><code>Panel</code> has a <code>View</code> with a
+              <code>DOMElement</code> child (a HTML <code>div</code> element),
+              with three children. The first is a <code>Text</code> child with
+              the name <code>text-n</code>, as specified by the
+              <code>name</code> attribute.</li>
+              <li>The <code>component</code> element inside a
+              <code>view</code> element has two roles: set the component as a
+              child component of the component for which this is the view of,
+              and set the view of the component as a child of the parent
+              element. The two <code>component</code> elements here mean that
+              <code>Panel</code> has two child components with the names
+              <code>Plus</code> and <code>Minus</code>, both inheriting from the
+              <code>Button</code> component shown below (as specified by the
+              <code>href</code> attribute), with a different initial value for
+              the <code>label</code> property (as specified by the
+              <code>label</code> attribute), and a default view, since they have
+              no <code>view</code> child element. These two child components
+              each have an <code>InitWatch</code> for the initial value of their
+              <code>label</code> property. Their views are also the second and
+              third children of the <code>div</code> DOM element in the view of
+              <code>Panel</code>.</li>
+              <li>The <code>Watch</code> <span class="watch">1</span> has one
+              input and one output:
+              <ul>
+                <li>the input is a <code>GetEvent</code>. The
+                <code>target</code> is the <code>Plus</code> component, as
+                specified by the <code>select</code> attribute. The watch is
+                listening to a Bender event of type <code>pushed</code>;</li>
+                <li>the output is a <code>SetProperty</code>. The target
+                property is the <code>n</code> property of the
+                <code>Panel</code> component, as specified by the
+                <code>property</code> attribute. The output value is one plus
+                the value of <code>n</code>, as specified by the
+                <code>value</code> element. <span class="TODO">Rewrite this with
+                  a parameter for <code>n</code>.</span></li>
+              </ul>
+              The effect of this watch is to increment the value of
+              <code>n</code> when the <code>Plus</code> button is pushed.</li>
+              <li>The <code>Watch</code> <span class="watch">2</span> is
+              similar, with the input target being the <code>Minus</code>
+              component, and the output value being 1 minus the value of
+              <code>n</code>. The
+              effect of this watch is to decrement the value of <code>n</code>
+              when the <code>Plus</code> button is pushed.</li>
+              <li>The <code>Watch</code> <span class="watch">3</span> has one
+              input and two outputs:
+              <ul>
+                <li>the input is a <code>GetProperty</code>. The target property
+                is the <code>n</code> property of <code>Panel</code>.</li>
+                <li>the first output is a <code>SetNodeProperty</code>. The
+                target is the <code>text-n</code> <code>Text</code> element; by
+                default, the property to set is <code>text</code>;</li>
+                <li>the second output is a <code>SetProperty</code>. The target
+                property is the <code>enabled</code> property of the
+                <code>Minus</code> <code>Component</code>. The output value is
+                a boolean value that is true if and only if the input value is
+                greater than 0. (Because this is XML, the <code>&gt;</code>
+                character must be escaped.)</li>
+              </ul>
+              The effect of this watch is two-fold. First, update the display of
+              the component to show the current value of <code>n</code>. Second,
+              update the enabled status of the <code>Minus</code> button so that
+              the value of n cannot be decreased further than 0.</li>
             </ul>
-            The effect of this watch is to increment the value of <code>n</code>
-            when the <code>Plus</code> button is pushed.</li>
-            <li>The <code>Watch</code> <span class="watch">2</span> is similar,
-            with the input target being the <code>Minus</code> component, and
-            the output value being 1 minus the value of <code>n</code>. The
-            effect of this watch is to decrement the value of <code>n</code>
-            when the <code>Plus</code> button is pushed.</li>
-            <li>The <code>Watch</code> <span class="watch">3</span> has one
-            input and two outputs:
-            <ul>
-              <li>the input is a <code>GetProperty</code>. The target property
-              is the <code>n</code> property of <code>Panel</code>.</li>
-              <li>the first output is a <code>SetNodeProperty</code>. The target
-              is the <code>text-n</code> <code>Text</code> element; by default,
-              the property to set is <code>text</code>;</li>
-              <li>the second output is a <code>SetProperty</code>. The target
-              property is the <code>enabled</code> property of the
-              <code>Minus</code> <code>Component</code>. The output value is
-              a boolean value that is true if and only if the input value is
-              greater than 0. (Because this is XML, the <code>&gt;</code>
-              character must be escaped.)</li>
-            </ul>
-            The effect of this watch is two-fold. First, update the display of
-            the component to show the current value of <code>n</code>. Second,
-            update the enabled status of the <code>Minus</code> button so that
-            the value of n cannot be decreased further than 0.</li>
-          </ul>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="def" id="Button">
-        <p>This second component is the <a
-          href="run.html?href=xml/button.xml">Button</a> prototype of both
-        <code>Plus</code> and <code>Minus</code> buttons above.</p>
-        <div>
-          <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
+      <section>
+        <h3>The <code>Button</code> component</h3>
+        <div class="def" id="Button">
+          <p>This second component is the <a
+            href="run.html?href=xml/button.xml">Button</a> prototype of both
+          <code>Plus</code> and <code>Minus</code> buttons above.</p>
+          <div>
+            <pre>&lt;component xmlns="http://bender.igel.co.jp" name="Button"&gt;
   &lt;property name="label" as="string" value="OK"/&gt;
   &lt;property name="enabled" value="true"/&gt;
   &lt;property name="down" value="false"/&gt;
   &lt;view xmlns:html="http://www.w3.org/1999/xhtml"&gt;
     &lt;html:div name="frame"&gt;
-      &lt;attribute name="class"&gt;
-        &lt;text name="text-class"/&gt;
-      &lt;/attribute&gt;
+      &lt;attribute name="class"&gt;button&lt;text name="text-class"/&gt;&lt;/attribute&gt;
       &lt;content&gt;
         &lt;text name="text-label"/&gt;
       &lt;/content&gt;
@@ -670,134 +674,143 @@
     &lt;get property="down"/&gt;
     &lt;get property="enabled"/&gt;
     &lt;set select="@text-class"&gt;
-      return "button%0%1".fmt(`down ? " down" : "", `enabled ? "" : " disabled");
+      return (`down ? " down" : "") + (`enabled ? "" : " disabled");
     &lt;/set&gt;
   &lt;/watch&gt;
 &lt;/component&gt;</pre>
-          <ul>
-            <li><code>Button</code> has three properties named
-            <code>label</code>, <code>enabled</code> and <code>pushed</code>.
-            <span class="TODO">If properties can be made private, then
-              <code>down</code> is an example of a property that would
-              be.</span></li>
-            <li>An <code>InitWatch</code> handles the property initializations
-            defined by the <code>property</code> elements. There are three
-            <code>SetProperty</code> outputs for this watch, which all have the
-            component itself as a <code>target</code>:
             <ul>
-              <li>one for <code>label</code>, with the value function returning
-              the string “OK”;</li>
-              <li>one for <code>enabled</code>, with the value function
-              returning the boolean value <code>true</code>;</li>
-              <li>one for <code>down</code>, with the value function returning
-              the boolean value <code>false</code>.</li>
+              <li><code>Button</code> has three properties named
+              <code>label</code>, <code>enabled</code> and <code>pushed</code>.
+              <span class="TODO">If properties can be made private, then
+                <code>down</code> is an example of a property that would
+                be.</span></li>
+              <li>An <code>InitWatch</code> handles the property initializations
+              defined by the <code>property</code> elements. There are three
+              <code>SetProperty</code> outputs for this watch, which all have
+              the component itself as a <code>target</code>:
+                <ul>
+                  <li>one for <code>label</code>, with the value function
+                  returning the string “OK”;</li>
+                  <li>one for <code>enabled</code>, with the value function
+                  returning the boolean value <code>true</code>;</li>
+                  <li>one for <code>down</code>, with the value function
+                  returning the boolean value <code>false</code>.</li>
+                </ul>
+              </li>
+              <li><code>Button</code> has a <code>View</code> containing a
+                <code>DOMElement</code> (a HTML <code>div</code> element with the
+                name <code>frame</code>), containing a <code>Content</code>
+                element, containing a <code>Text</code> element with the name
+                <code>text-label</code>.</li>
+              <li>The <code>frame</code> element also has a
+              <code>Attribute</code> child with the <code>local-name</code> 
+              <code>class</code> and two text children: one with the value
+              “button”, and one named <code>text-class</code> with no
+              content.</li>
+              <li><code>Button</code> has no child <code>Component</code>.</li>
+              <li>The <code>Watch</code> <span class="watch">4</span> has one
+              input and one output:
+              <ul>
+                <li>the input is a <code>GetProperty</code>. The
+                <code>target</code> is the <code>Button</code> component, and
+                the <code>property</code> is the <code>label</code> property of
+                <code>Button</code>;</li>
+                <li>the output is a <code>SetNodeProperty</code>. The target
+                <code>Node</code> is the <code>text-label</code> text element,
+                and the property to set defaults to <code>text</code> in the
+                absence of a <code>property</code> attribute.</li>
+              </ul>
+              The effect of this watch is to display the value of the
+              <code>label</code> string in the button.</li>
+              <li>The <code>Watch</code> <span class="watch">5</span> has one
+              input and one output:
+              <ul>
+                <li>the input is a <code>GetEvent</code>. The
+                <code>target</code> is the <code>frame</code>
+                <code>DOMElement</code>, and the event
+                <code>type</code> is <code>mousedown</code>;</li>
+                <li>the output is a <code>SetProperty</code>. The target is the
+                <code>Button</code> component, and the <code>property</code> is
+                the <code>down</code> property of <code>Button</code>. The
+                <code>value</code> is a function that returns true. The
+                <code>match</code> function returns true if and only if the
+                <code>enabled</code> property of the <code>target</code> is
+                true.</li>
+              </ul>
+              The effect of this watch is to set the <code>down</code> property
+              of the button to true when the mouse button is pressed, but only
+              when the button is enabled.</li>
+              <li>The <code>Watch</code> <span class="watch">6</span> has one
+              input and two outputs:
+              <ul>
+                <li>the input is a <code>GetEvent</code>. The
+                <code>target</code> is the whole document, as represented by a
+                <code>DocumentElement</code>, and the event <code>type</code> is
+                <code>mouseup</code>;</li>
+                <li>the first output is a <code>SetEvent</code>. The target is
+                the <code>Button</code> <code>Component</code>, and the
+                <code>type</code> of the event is <code>pushed</code>. The
+                <code>match</code> function of the output is a function that
+                returns true if and only if <code>down</code> property of the
+                <code>target</code> is true;</li>
+                <li>the second output is a <code>SetProperty</code>. The target
+                is the <code>Button</code> component, and the
+                <code>property</code> is the <code>down</code> property of
+                <code>Button</code>. The <code>value</code> is a function that
+                returns false.</li>
+              </ul>
+              The effect of this watch is to set the <code>down</code> property
+              of the button back to false when the mouse button is released, and
+              dispatch a pushed event if the <code>down</code> property was
+              indeed true (<em>i.e.</em> the mouse was pressed inside the
+              button.)</li>
+              <li>The <code>Watch</code> <span class="watch">7</span> has two
+              inputs and one output:
+              <ul>
+                <li>the first input is a <code>GetProperty</code>. The
+                <code>target</code> is the <code>Button</code> component, and
+                the <code>property</code> is the <code>down</code>
+                property;</li>
+                <li>the second input is a <code>GetProperty</code>. The
+                <code>target</code> is the <code>Button</code> component, and
+                the <code>property</code> is the <code>enabled</code>
+                property;</li>
+                <li>the output is a <code>SetNodeProperty</code>, targeting the
+                <code>text-class</code> <code>Text</code> element. The value is
+                a function that returns the concatenation of two strings to
+                complete the value of the <code>class</code> attribute of the
+                <code>frame</code> element. This class always contains “button”,
+                and may also contain the two class names “down” if and only if
+                the <code>down</code> property of the button is true, and
+                “disabled”, if and only if the <code>enabled</code> property is
+                false.</li>
+              </ul>
+              </li>
             </ul>
-            </li>
-            <li><code>Button</code> has a <code>View</code> containing a
-              <code>DOMElement</code> (a HTML <code>div</code> element with the
-              name <code>frame</code>), containing a <code>Content</code>
-              element, containing a <code>Text</code> element with the name
-              <code>text-label</code>.</li>
-            <li><code>Button</code> has no child <code>Component</code>.</li>
-            <li>The <code>Watch</code> <span class="watch">4</span> has one
-            input and one output:
-            <ul>
-              <li>the input is a <code>GetProperty</code>. The
-              <code>target</code> is the <code>Button</code> component, and the
-              <code>property</code> is the <code>label</code> property of
-              <code>Button</code>;</li>
-              <li>the output is a <code>SetNodeProperty</code>. The target
-              <code>Node</code> is the <code>text-label</code> text element, and
-              the property to set defaults to <code>text</code> in the absence
-              of a <code>property</code> attribute.</li>
-            </ul>
-            The effect of this watch is to display the value of the
-            <code>label</code> string in the button.</li>
-            <li>The <code>Watch</code> <span class="watch">5</span> has one
-            input and one output:
-            <ul>
-              <li>the input is a <code>GetEvent</code>. The <code>target</code>
-              is the <code>frame</code> <code>DOMElement</code>, and the event
-              <code>type</code> is <code>mousedown</code>;</li>
-              <li>the output is a <code>SetProperty</code>. The target is the
-              <code>Button</code> component, and the <code>property</code> is
-              the <code>down</code> property of <code>Button</code>. The
-              <code>value</code> is a function that returns true. The
-              <code>match</code> function returns true if and only if the
-              <code>enabled</code> property of the <code>target</code> is
-              true.</li>
-            </ul>
-            The effect of this watch is to set the <code>down</code> property of
-            the button to true when the mouse button is pressed, but only when
-            the button is enabled.</li>
-            <li>The <code>Watch</code> <span class="watch">6</span> has one
-            input and two outputs:
-            <ul>
-              <li>the input is a <code>GetEvent</code>. The <code>target</code>
-              is the whole document, as represented by a
-              <code>DocumentElement</code>, and the event <code>type</code> is
-              <code>mouseup</code>;</li>
-              <li>the first output is a <code>SetEvent</code>. The target is
-              the <code>Button</code> <code>Component</code>, and the
-              <code>type</code> of the event is <code>pushed</code>. The
-              <code>match</code> function of the output is a function that
-              returns true if and only if <code>down</code> property of the
-              <code>target</code> is true;</li>
-              <li>the second output is a <code>SetProperty</code>. The target is
-              the <code>Button</code> component, and the <code>property</code>
-              is the <code>down</code> property of <code>Button</code>. The
-              <code>value</code> is a function that returns false.</li>
-            </ul>
-            The effect of this watch is to set the <code>down</code> property of
-            the button back to false when the mouse button is released, and
-            dispatch a pushed event if the <code>down</code> property was indeed
-            true (<em>i.e.</em> the mouse was pressed inside the button.)</li>
-            </li>
-            <li>The <code>Watch</code> <span class="watch">7</span> has two
-            inputs and one output:
-            <ul>
-              <li>the first input is a <code>GetProperty</code>. The
-              <code>target</code> is the <code>Button</code> component, and the
-              <code>property</code> is the <code>down</code> property;</li>
-              <li>the second input is a <code>GetProperty</code>. The
-              <code>target</code> is the <code>Button</code> component, and the
-              <code>property</code> is the <code>enabled</code> property;</li>
-              <li>the output is a <code>SetNodeProperty</code>, targeting the
-              <code>text-class</code> <code>Text</code> element, which is the
-              child of an <code>Attribute</code> element for the
-              <code>class</code> attribute of its parent. The value is a
-              function that returns a class value containing the class
-              <code>down</code> if the <code>down</code> property is true, and
-              the class <code>disabled</code> if the <code>enabled</code>
-              property is false.</li>
-            </ul>
-            The effect of this watch is to update the <code>class</code>
-            attribute of the HTML <code>div</code> element for the
-            <code>frame</code> node; it gets set to a combination of
-            <code>down</code> if and only if the <code>down</code> property is
-            true, and <code>disabled</code> if and only if the
-            <code>enabled</code> property is false.</li>
-          </ul>
+          </div>
         </div>
-      </div>
+        </section>
 
-      <p>The figure below shows the component graphs of <code>Panel</code> and
-      <code>Button</code>, enclosed in large boxes. Black arrows are
-      parent/child relationships. Pink arrows point to a prototype. Blue arrows
-      point from a <code>Component</code> to its <code>View</code>.
-      <code>Component</code> nodes are shown as ellipses, while view
-      <code>Element</code>s are shown as small boxes.
-      <code>DocumentElement</code>s, which are not part of the hierarchy, as
-      well as watches and properties, do not appear in this graph.</p>
+      <section>
+        <h3>Component Graphs</h3>
+        <p>The figure below shows the component graphs of <code>Panel</code> and
+        <code>Button</code>, enclosed in large boxes. Black arrows are
+        parent/child relationships. Pink arrows point to a prototype. Blue
+        arrows point from a <code>Component</code> to its <code>View</code>.
+        <code>Component</code> nodes are shown as ellipses, while view
+        <code>Element</code>s are shown as small boxes.
+        <code>DocumentElement</code>s, which are not part of the hierarchy, as
+        well as watches and properties, do not appear in this graph.</p>
 
-      <figure id="fig-component-graphs">
-        <img src="fig/panel.svg">
-        <figcaption>Component graphs of <code>Panel</code> and
-        <code>Button</code>.</figcaption>
-      </figure>
+        <figure id="fig-component-graphs">
+          <img src="fig/panel.svg">
+          <figcaption>Component graphs of <code>Panel</code> and
+          <code>Button</code>.</figcaption>
+        </figure>
 
-      <p>This example is used again to illustrate <a
-        href="processing-model.html">the processing model of Bender</a>.</p>
+        <p>This example is used again to illustrate <a
+          href="processing-model.html">the processing model of Bender</a>.</p>
+      </section>
     </section>
 
     <script src="doc.js"></script>

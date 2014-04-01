@@ -213,7 +213,7 @@
         if (attr.localName.indexOf("on-") === 0) {
           component.on(attr.localName.substr(3), attr.value);
         } else if (attr.localName === "name") {
-          var name = flexo.safe_string(name);
+          var name = flexo.safe_string(attr.value);
           if (name === "") {
             throw "Name cannot be empty.";
           } else if (name.toLowerCase() === "this") {

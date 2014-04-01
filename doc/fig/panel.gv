@@ -34,7 +34,14 @@ digraph panel {
     textlabel [label="text (text-label)", shape=box]
     vbutton -> frame
     frame -> content
+    frame -> attr
     content -> textlabel
+
+    attr [label="attribute (class)", shape=box]
+    text_button [label="text (“button”)", shape=box]
+    text_class [label="text (text-class)", shape=box]
+    attr -> text_button
+    attr -> text_class
 
     Button -> Minus [color="#f94179", dir=back]
     Button -> Plus  [color="#f94179", dir=back]
