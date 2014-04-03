@@ -5,6 +5,7 @@
 
 // TODO
 // [/] remove component removes the view; unrender view; unrender from graph.
+// [ ] remove any node (not just component and view.)
 // [ ] persistence of property values
 // [ ] match then, compute value then, apply value in traverse edge; get rid of
 //     ordered_values
@@ -118,7 +119,7 @@
     // child.
     remove_child: function (child) {
       if (child.parent !== this ||
-          !flexo.remove_from_array(child.is_removed())) {
+          !flexo.remove_from_array(this.children, child.is_removed())) {
         throw "Not a child node";
       }
       delete child.parent;
@@ -339,15 +340,12 @@
       return graph;
     },
 
-    // Unrender the component (so far, just the view; TODO: unrender watch)
+    // Unrender the component. TODO update the scope.
     unrender: function () {
-      this.view.unrender();
+      if (this.view.stack) {
+        this.view.stack[0].unrender();
+      }
       this.unrender_subgraph();
-    },
-
-    rerender: function () {
-      this.unrender();
-      this.render(this.target);
     },
 
     // Send a ready notification
@@ -490,8 +488,10 @@
     },
 
     // Removing a component removes its view from the hierarchy as well.
-    is_removed: function () {
+    was_removed: function () {
       this.view.remove_self();
+      this.unrender();
+      return this;
     }
 
   });
@@ -538,6 +538,15 @@
     render_children: function (target, stack, i) {
       this.children.forEach(function (child) {
         child.render(target, stack, i);
+      });
+    },
+
+    unrender: flexo.nop,
+
+    // Unrender the node and its children.
+    unrender_children: function () {
+      this.children.forEach(function (child) {
+        child.unrender();
       });
     }
   });
@@ -617,7 +626,8 @@
         target.lastChild];
     },
 
-    // TODO unrender event listeners
+    // Remove the elements from the span, but also unrender the children so that
+    // event listeners are handled correctly.
     unrender: function () {
       if (this.span) {
         var node = this.span[0];
@@ -629,6 +639,13 @@
         }
         parent.removeChild(node);
       }
+      if (this.__document_element) {
+        flexo.remove_from_array(this.__document_element.__clones,
+            this.__document_element);
+        this.__document_element.unrender();
+        delete this.__document_element;
+      }
+      this.unrender_children();
     }
   });
 
@@ -650,9 +667,19 @@
       var n = stack.length;
       for (; j < n && stack[j].default; ++j) {}
       if (j < n) {
+        this.__next_view = stack[j];
         stack[j].render(target, stack, j);
       } else {
         this.render_children(target, stack, i);
+      }
+    },
+
+    // Unrender either the children or the next view that was rendered above.
+    unrender: function () {
+      if (this.__next_view) {
+        this.__next_view.unrender();
+      } else {
+        this.unrender_children();
       }
     }
   });
@@ -669,6 +696,7 @@
       this.namespace_uri = ns;
       this.local_name = name;
       this.event_vertices = {};
+      this.event_listeners = [];
     },
 
     // Keep track of the original set of vertices when cloned.
@@ -691,8 +719,19 @@
       target.appendChild(this.element);
     },
 
+    // Remove all event listeners (stored as [type, listener] pairs)
+    unrender: function () {
+      this.event_listeners.forEach(function (l) {
+        this.element.removeEventListener(l[0], l[1]);
+      }, this);
+      this.event_listeners = [];
+      this.unrender_children();
+    },
+
+    // Render an event listener of the given type on the concrete node. Store
+    // the pair (type, listener) in the list of listeners for unrendering later.
     render_event_listener: function (component, type, edge) {
-      this.element.addEventListener(type, function (e) {
+      var listener = function (e) {
         if (edge.adapter.prevent_default()) {
           e.preventDefault();
         }
@@ -700,7 +739,9 @@
           e.stopPropagation();
         }
         edge.source.value(component, e, flags.flush);
-      });
+      };
+      this.element.addEventListener(type, listener);
+      this.event_listeners.push([type, listener]);
     },
 
     // Set a DOM property on the target element.
@@ -730,7 +771,11 @@
       for (var type in this.event_vertices) {
         // jshint -W083
         this.event_vertices[type].outgoing.forEach(function (edge) {
-          this.element.addEventListener(type, function (e) {
+          if (++edge.__rendered > 0) {
+            return;
+          }
+          edge.__rendered = 1;
+          var listener = function (e) {
             if (edge.adapter.prevent_default()) {
               e.preventDefault();
             }
@@ -738,12 +783,22 @@
               e.stopPropagation();
             }
             edge.source.value(this.view.component, e, flags.flush);
+            console.log("document element: clones:",
+              this.__clones.map(function (clone) {
+                return clone.__id;
+              }));
             this.__clones.forEach(function (clone) {
               edge.source.value(clone.view.component, e, flags.flush);
             });
-          }.bind(this));
+          }.bind(this);
+          this.element.addEventListener(type, listener);
+          this.event_listeners.push([type, listener]);
         }, this);
       }
+    },
+
+    unrender: function () {
+      // TODO decrement count
     },
 
     attr: flexo.discard(flexo.fail),
@@ -860,17 +915,24 @@
       if (this.gets.length === 0) {
         return;
       }
-      var vertex = graph.vertex(bender.WatchVertex.create(this, graph));
+      this.vertex = graph.vertex(bender.WatchVertex.create(this, graph));
       this.gets.forEach(function (get) {
-        graph.edge(bender.AdapterEdge.create(get.vertex(graph), vertex, get));
-      });
+        graph.edge(bender.AdapterEdge.create(get.vertex(graph), this.vertex,
+            get));
+      }, this);
       this.sets.forEach(function (set) {
-        graph.edge(bender.AdapterEdge.create(vertex, set.vertex(graph), set));
-      });
+        graph.edge(bender.AdapterEdge.create(this.vertex, set.vertex(graph),
+            set));
+      }, this);
     },
 
+    // Remove the watch vertex, which causes the removal of its incoming and
+    // outgoing edges, and in turn the removal of more vertices.
     unrender_subgraph: function () {
-      // TODO
+      if (this.vertex) {
+        this.vertex.remove_self();
+        delete this.vertex;
+      }
     }
   });
 
@@ -882,13 +944,14 @@
       if (this.sets.length === 0) {
         return;
       }
-      var vertex = graph.vertex(bender.WatchVertex.create(this, graph));
-      vertex.value(this.component);
+      this.vertex = graph.vertex(bender.WatchVertex.create(this));
+      this.vertex.value(this.component);
       this.sets.forEach(function (set) {
-        graph.edge(bender.InitEdge.create(vertex, set.vertex(graph), set));
-      });
+        graph.edge(bender.InitEdge.create(this.vertex, set.vertex(graph), set));
+      }, this);
     }
   });
+
 
   // Adapter < Object
   //   Watch     watch
@@ -910,7 +973,7 @@
       if (!vertices) {
         return graph.vortex;
       } else if (!vertices.hasOwnProperty(name)) {
-        vertices[name] = graph.vertex(prototype_vertex.create(this, graph));
+        vertices[name] = graph.vertex(prototype_vertex.create(this));
         var prototype = Object.getPrototypeOf(this.target);
         if (vertices_name in prototype) {
           var protovertex = prototype[vertices_name][name];
@@ -1060,9 +1123,25 @@
       return vertex;
     },
 
+    remove_vertex: function (vertex) {
+      vertex = flexo.remove_from_array(this.vertices, vertex);
+      if (vertex) {
+        delete vertex.graph;
+      }
+      return vertex;
+    },
+
     edge: function (edge) {
       this.__unsorted = true;
       edge.graph = this;
+      return edge;
+    },
+
+    remove_edge: function (edge) {
+      edge = flexo.remove_from_array(this.edges, edge);
+      if (edge) {
+        delete edge.graph;
+      }
       return edge;
     },
 
@@ -1189,9 +1268,8 @@
   //   data*  values
   bender.Vertex = flexo._ext(flexo.Object, {
 
-    init: function (graph) {
+    init: function () {
       flexo.Object.init.call(this);
-      this.graph = graph;
       this.incoming = [];
       this.outgoing = [];
       this.values = {};
@@ -1212,10 +1290,38 @@
       return true;
     },
 
+    // Clear all values (TODO remove ordered_values)
     clear_values: function () {
       this.values = {};
       this.ordered_values = [];
-    }
+    },
+
+    // Request the graph to remove this vertex, as well as all of its incoming
+    // and outgoing edges.
+    remove_self: function () {
+      if (this.graph) {
+        var remove_edge = flexo.call.bind(bender.Edge.remove_self);
+        this.incoming.forEach(remove_edge);
+        this.outgoing.forEach(remove_edge);
+        this.graph.remove_vertex(this);
+      }
+    },
+
+    remove_edge: function (from, edge) {
+      this.graph.remove_edge(edge);
+      flexo.remove_from_array(from, edge);
+      if (this.incoming.length === 0 && this.outgoing.length === 0) {
+        this.graph.remove_vertex(this);
+      }
+    },
+
+    remove_incoming: function (edge) {
+      this.remove_edge(this.incoming, edge);
+    },
+
+    remove_outgoing: function (edge) {
+      this.remove_edge(this.outoing, edge);
+    },
   });
 
 
@@ -1235,8 +1341,8 @@
   // AdapterVertex < Vertex
   //   Adapter  adapter
   bender.AdapterVertex = flexo._ext(bender.Vertex, {
-    init: function (adapter, graph) {
-      bender.Vertex.init.call(this, graph);
+    init: function (adapter) {
+      bender.Vertex.init.call(this);
       this.adapter = adapter;
     }
   });
@@ -1275,6 +1381,11 @@
       this.source.ordered_values.forEach(function (w) {
         this.dest.value.apply(this.dest, w);
       }, this);
+    },
+
+    remove_self: function () {
+      this.source.remove_outgoing(this);
+      this.dest.remove_incoming(this);
     }
   });
 

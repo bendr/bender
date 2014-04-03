@@ -30,7 +30,7 @@ var args = flexo.get_args({ trace: false });
 bender.TRACE = args.trace;
 if (args.href) {
   bender.load_component(args.href).then(function (component) {
-    var graph = component.render();
+    var graph = window.graph = component.render();
     if (args.trace) {
       graph.dump();
     }
