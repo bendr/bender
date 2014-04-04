@@ -546,10 +546,15 @@
     return Math.random().toString(36).substr(2, n).toUpperCase();
   };
 
+  // Normalize space in a string, converting it if necessary.
+  flexo.safe_normalize_space = function (maybe_string) {
+    return flexo.safe_trim(maybe_string).replace(/\s+/g, " ");
+  }
+
   // Trim a string, or return the empty string if the argument was not a string
   // (for instance, null or undefined.)
   flexo.safe_trim = function (maybe_string) {
-    return typeof maybe_string === "string" ? maybe_string.trim() : "";
+    return flexo.safe_string(maybe_string).trim();
   };
 
   // Parse a number, using parseFloat first but defaulting to parseInt for

@@ -1,7 +1,7 @@
 // HTML runtime for Bender, based on the functional core.
 
 // TODO
-// [ ] render-name
+// [/] render-name
 // [ ] link rel="component" (link rel="watch"? rel="view"?)
 
 /* global console, flexo, window */
@@ -20,6 +20,7 @@
     dynamic_string: false,
     gets: true,
     needs_return: true,
+    normalize_space: true,
     set_unfinished: true,
     store_as: true
   };
@@ -81,9 +82,21 @@
       }
     } else if (node.nodeType === window.Node.TEXT_NODE ||
         node.nodeType === window.Node.CDATA_SECTION_NODE) {
-      return deserialize_text(node.textContent, node.parentNode &&
-          node.parentNode.namespaceURI === bender.ns &&
-          node.parentNode.localName === "text");
+      if (!/\S/.test(node.textContent)) {
+        for (var n = node.parentNode; n &&
+            typeof n.hasAttributeNS === "function" &&
+            !n.hasAttributeNS(flexo.ns.xml, "space"); n = n.parentNode) {}
+        if (!(n && typeof n.getAttributeNS === "function" &&
+            flexo.safe_trim(n.getAttributeNS(flexo.ns.xml, "space"))
+              .toLowerCase() === "preserve")) {
+          return;
+        }
+      }
+      if (/\S/.test(node.textContent)) {
+        return deserialize_text(node.textContent, node.parentNode &&
+            node.parentNode.namespaceURI === bender.ns &&
+            node.parentNode.localName === "text");
+      }
     }
   }
 
@@ -130,7 +143,8 @@
 
   // Deserialize the view element
   deserialize.view = function (elem) {
-    return deserialize_children(bender.View.create(), elem);
+    return deserialize_children(bender.View.create()
+        .render_name(elem.getAttribute("render-name")), elem);
   };
 
   // Deserialize the content element
@@ -410,8 +424,6 @@
       if (ns === "") {
         if (attr.localName === "name") {
           e.name(attr.value);
-        } else if (attr.localName === "render-name") {
-          // TODO render-name
         } else {
           add_attribute(e, ns, attr.localName, attr.value);
         }
@@ -503,6 +515,32 @@
         watch.set(bender.SetNodeProperty.create("text", node));
         watch.__text = node.__text;
         delete node.__text;
+      }
+    };
+  }());
+
+
+  // render-name attribute for <view>: use the name of the component on the
+  // first rendered element.
+
+  flexo._accessor(bender.View, "render_name", function (render_name) {
+      render_name = flexo.safe_trim(render_name).toLowerCase();
+      return render_name === "class" || render_name === "id" ? render_name :
+        "none";
+    });
+
+  (function () {
+    var $super = bender.View.render;
+    bender.View.render = function (target, stack, i) {
+      $super.call(this, target, stack, i);
+      var name = this.component.name();
+      if (name && this.render_name() !== "none") {
+        for (var n = this.span[0], m = this.span[1].nextSibling;
+          n.nodeType !== window.Node.ELEMENT_NODE && n !== m;
+          n = n.nextSibling) {}
+        if (n !== m) {
+          n.setAttribute(this.render_name(), name);
+        }
       }
     };
   }());

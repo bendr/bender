@@ -1,7 +1,7 @@
 <component xmlns="http://bender.igel.co.jp" name="Panel">
   <property name="n" as="number" value="0"/>
-  <view xmlns:html="http://www.w3.org/1999/xhtml">
-    <html:div class="panel">
+  <view xmlns:html="http://www.w3.org/1999/xhtml" render-name="class">
+    <html:div>
       <text name="text-n"/>
       <component href="button.xml" name="Plus" label="+"/>
       <component href="button.xml" name="Minus" label="—"/>
